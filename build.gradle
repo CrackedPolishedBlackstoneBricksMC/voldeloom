@@ -85,15 +85,6 @@ task javadocJar(type: Jar, dependsOn: javadoc) {
 	from javadoc.destinationDir
 }
 
-checkstyle {
-	configFile = file("checkstyle.xml")
-	toolVersion = '8.25'
-}
-
-checkstyleMain {
-	logging.setLevel(LogLevel.LIFECYCLE)
-}
-
 gradlePlugin {
 	plugins {
 		fabricLoom {
