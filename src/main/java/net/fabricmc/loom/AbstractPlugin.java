@@ -52,6 +52,7 @@ import org.gradle.api.tasks.javadoc.Javadoc;
 import org.gradle.api.tasks.scala.ScalaCompile;
 import org.gradle.plugins.ide.idea.model.IdeaModel;
 
+import net.fabricmc.loom.forge.provider.ForgeProvider;
 import net.fabricmc.loom.providers.LaunchProvider;
 import net.fabricmc.loom.providers.MappingsProvider;
 import net.fabricmc.loom.providers.MinecraftProvider;
@@ -109,6 +110,7 @@ public class AbstractPlugin implements Plugin<Project> {
 
 		project.getConfigurations().maybeCreate(Constants.MAPPINGS);
 		project.getConfigurations().maybeCreate(Constants.MAPPINGS_FINAL);
+		project.getConfigurations().maybeCreate(Constants.FORGE).setTransitive(false); // disable transitive to be safe -- forge will load its deps at runtime.
 
 		for (RemappedConfigurationEntry entry : Constants.MOD_COMPILE_ENTRIES) {
 			Configuration compileModsConfig = project.getConfigurations().maybeCreate(entry.getSourceConfiguration());
@@ -267,6 +269,7 @@ public class AbstractPlugin implements Plugin<Project> {
 			LoomDependencyManager dependencyManager = new LoomDependencyManager();
 			extension.setDependencyManager(dependencyManager);
 
+			dependencyManager.addProvider(new ForgeProvider(getProject()));
 			dependencyManager.addProvider(new MinecraftProvider(getProject()));
 			dependencyManager.addProvider(new MappingsProvider(getProject()));
 			dependencyManager.addProvider(new LaunchProvider(getProject()));

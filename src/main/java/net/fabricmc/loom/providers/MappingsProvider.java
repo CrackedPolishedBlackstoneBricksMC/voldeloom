@@ -24,19 +24,22 @@
 
 package net.fabricmc.loom.providers;
 
-import java.io.BufferedReader;
+import java.io.BufferedOutputStream;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
-import java.net.URL;
+import java.io.OutputStream;
+import java.net.URI;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Map;
 import java.util.function.Consumer;
 
-import com.google.common.net.UrlEscapers;
 import org.apache.commons.io.FileUtils;
 import org.apache.tools.ant.util.StringUtils;
 import org.gradle.api.Project;
@@ -46,17 +49,19 @@ import org.zeroturnaround.zip.ZipUtil;
 
 import net.fabricmc.loom.util.Constants;
 import net.fabricmc.loom.util.DependencyProvider;
-import net.fabricmc.loom.util.DownloadUtil;
-import net.fabricmc.mapping.reader.v2.TinyV2Factory;
 import net.fabricmc.mapping.tree.TinyTree;
-import net.fabricmc.stitch.Command;
-import net.fabricmc.stitch.commands.CommandProposeFieldNames;
-import net.fabricmc.stitch.commands.tinyv2.CommandMergeTinyV2;
-import net.fabricmc.stitch.commands.tinyv2.CommandReorderTinyV2;
+import net.fabricmc.stitch.util.Pair;
+import net.fabricmc.tinyremapper.IMappingProvider.MappingAcceptor;
+import net.fabricmc.loom.forge.mapping.AcceptorProvider;
+import net.fabricmc.loom.forge.mapping.CsvApplierAcceptor;
+import net.fabricmc.loom.forge.mapping.SrgMappingProvider;
+import net.fabricmc.loom.forge.mapping.TinyWriter3Column;
 import net.fabricmc.loom.processors.JarProcessorManager;
 import net.fabricmc.loom.processors.MinecraftProcessedProvider;
 
 public class MappingsProvider extends DependencyProvider {
+	private static final Map<String, String> FS_ENV = Collections.singletonMap("create", "true");
+	
 	public MinecraftMappedProvider mappedProvider;
 
 	public String mappingsName;
@@ -64,9 +69,7 @@ public class MappingsProvider extends DependencyProvider {
 	public String mappingsVersion;
 
 	private Path mappingsDir;
-	private Path mappingsStepsDir;
-	// The mappings that gradle gives us
-	private Path baseTinyMappings;
+
 	// The mappings we use in practice
 	public File tinyMappings;
 	public File tinyMappingsJar;
@@ -91,19 +94,14 @@ public class MappingsProvider extends DependencyProvider {
 		getProject().getLogger().lifecycle(":setting up mappings (" + dependency.getDependency().getName() + " " + dependency.getResolvedVersion() + ")");
 
 		String version = dependency.getResolvedVersion();
-		File mappingsJar = dependency.resolveFile().orElseThrow(() -> new RuntimeException("Could not find yarn mappings: " + dependency));
+		File mappingsJar = dependency.resolveFile().orElseThrow(() -> new RuntimeException("Could not find mcp mappings: " + dependency));
 
 		this.mappingsName = StringUtils.removeSuffix(dependency.getDependency().getGroup() + "." + dependency.getDependency().getName(), "-unmerged");
 
-		boolean isV2 = doesJarContainV2Mappings(mappingsJar.toPath());
-
-		this.minecraftVersion = minecraftProvider.getMinecraftVersion();
-		this.mappingsVersion = version + (isV2 ? "-v2" : "");
+		this.minecraftVersion = minecraftProvider.getJarStuff();
+		this.mappingsVersion = version;
 
 		initFiles();
-
-		Files.createDirectories(mappingsDir);
-		Files.createDirectories(mappingsStepsDir);
 
 		String[] depStringSplit = dependency.getDepString().split(":");
 		String jarClassifier = "final";
@@ -114,9 +112,27 @@ public class MappingsProvider extends DependencyProvider {
 
 		tinyMappings = mappingsDir.resolve(StringUtils.removeSuffix(mappingsJar.getName(), ".jar") + ".tiny").toFile();
 		tinyMappingsJar = new File(getExtension().getUserCache(), mappingsJar.getName().replace(".jar", "-" + jarClassifier + ".jar"));
-
+		
 		if (!tinyMappings.exists()) {
-			storeMappings(getProject(), minecraftProvider, mappingsJar.toPath());
+			try(FileSystem mcpZipFs = FileSystems.newFileSystem(URI.create("jar:" + mappingsJar.toURI()), FS_ENV)) {
+				Pair<Map<String, String>, Collection<String>> data = SrgMappingProvider.calcInfo(minecraftProvider.getMergedJar());
+				SrgMappingProvider client = new SrgMappingProvider(mcpZipFs.getPath("conf", "client.srg"), data.getLeft(), data.getRight());
+				SrgMappingProvider server = new SrgMappingProvider(mcpZipFs.getPath("conf", "server.srg"), data.getLeft(), data.getRight());
+				Path notMyAwfulHack = mcpZipFs.getPath("conf", "newids.csv");
+				AcceptorProvider merged = new AcceptorProvider();
+				client.load(new CsvApplierAcceptor(merged, notMyAwfulHack, CsvApplierAcceptor.NEWNAME_CLIENT_IN, CsvApplierAcceptor.NEWNAME_OUT));
+				server.load(new CsvApplierAcceptor(merged, notMyAwfulHack, CsvApplierAcceptor.NEWNAME_SERVER_IN, CsvApplierAcceptor.NEWNAME_OUT));
+				
+				TinyWriter3Column writer = new TinyWriter3Column("official", "intermediary", "named");
+				merged.load(writer);
+				writer.acceptSecond();
+				MappingAcceptor fieldMapper = new CsvApplierAcceptor(writer, mcpZipFs.getPath("conf", "fields.csv"), CsvApplierAcceptor.GENERIC_IN, CsvApplierAcceptor.GENERIC_OUT);
+				MappingAcceptor methodMapper = new CsvApplierAcceptor(fieldMapper, mcpZipFs.getPath("conf", "methods.csv"), CsvApplierAcceptor.GENERIC_IN, CsvApplierAcceptor.GENERIC_OUT);
+				merged.load(methodMapper);
+				try(OutputStream out = new BufferedOutputStream(new FileOutputStream(tinyMappings))) {
+					writer.write(out);
+				}
+			}
 		}
 
 		if (!tinyMappingsJar.exists()) {
@@ -139,124 +155,12 @@ public class MappingsProvider extends DependencyProvider {
 		mappedProvider.provide(dependency, postPopulationScheduler);
 	}
 
-	private void storeMappings(Project project, MinecraftProvider minecraftProvider, Path yarnJar) throws IOException {
-		project.getLogger().lifecycle(":extracting " + yarnJar.getFileName());
-
-		try (FileSystem fileSystem = FileSystems.newFileSystem(yarnJar, null)) {
-			extractMappings(fileSystem, baseTinyMappings);
-		}
-
-		if (baseMappingsAreV2()) {
-			// These are unmerged v2 mappings
-
-			// Download and extract intermediary
-			String encodedMinecraftVersion = UrlEscapers.urlFragmentEscaper().escape(minecraftVersion);
-			String intermediaryArtifactUrl = "https://maven.fabricmc.net/net/fabricmc/intermediary/" + encodedMinecraftVersion + "/intermediary-" + encodedMinecraftVersion + "-v2.jar";
-			Path intermediaryJar = mappingsStepsDir.resolve("v2-intermediary-" + minecraftVersion + ".jar");
-			DownloadUtil.downloadIfChanged(new URL(intermediaryArtifactUrl), intermediaryJar.toFile(), project.getLogger());
-
-			mergeAndSaveMappings(project, intermediaryJar, yarnJar);
-		} else {
-			// These are merged v1 mappings
-			if (tinyMappings.exists()) {
-				tinyMappings.delete();
-			}
-
-			project.getLogger().lifecycle(":populating field names");
-			suggestFieldNames(minecraftProvider, baseTinyMappings, tinyMappings.toPath());
-		}
-	}
-
-	private boolean baseMappingsAreV2() throws IOException {
-		try (BufferedReader reader = Files.newBufferedReader(baseTinyMappings)) {
-			TinyV2Factory.readMetadata(reader);
-			return true;
-		} catch (IllegalArgumentException e) {
-			// TODO: just check the mappings version when Parser supports V1 in readMetadata()
-			return false;
-		}
-	}
-
-	private boolean doesJarContainV2Mappings(Path path) throws IOException {
-		try (FileSystem fs = FileSystems.newFileSystem(path, null)) {
-			try (BufferedReader reader = Files.newBufferedReader(fs.getPath("mappings", "mappings.tiny"))) {
-				TinyV2Factory.readMetadata(reader);
-				return true;
-			} catch (IllegalArgumentException e) {
-				return false;
-			}
-		}
-	}
-
 	public static void extractMappings(FileSystem jar, Path extractTo) throws IOException {
 		Files.copy(jar.getPath("mappings/mappings.tiny"), extractTo, StandardCopyOption.REPLACE_EXISTING);
 	}
-
-	private void mergeAndSaveMappings(Project project, Path unmergedIntermediaryJar, Path unmergedYarnJar) throws IOException {
-		Path unmergedIntermediary = Paths.get(mappingsStepsDir.toString(), "unmerged-intermediary.tiny");
-		project.getLogger().info(":extracting " + unmergedIntermediaryJar.getFileName());
-
-		try (FileSystem unmergedIntermediaryFs = FileSystems.newFileSystem(unmergedIntermediaryJar, null)) {
-			extractMappings(unmergedIntermediaryFs, unmergedIntermediary);
-		}
-
-		Path unmergedYarn = Paths.get(mappingsStepsDir.toString(), "unmerged-yarn.tiny");
-		project.getLogger().info(":extracting " + unmergedYarnJar.getFileName());
-
-		try (FileSystem unmergedYarnJarFs = FileSystems.newFileSystem(unmergedYarnJar, null)) {
-			extractMappings(unmergedYarnJarFs, unmergedYarn);
-		}
-
-		Path invertedIntermediary = Paths.get(mappingsStepsDir.toString(), "inverted-intermediary.tiny");
-		reorderMappings(unmergedIntermediary, invertedIntermediary, "intermediary", "official");
-		Path unorderedMergedMappings = Paths.get(mappingsStepsDir.toString(), "unordered-merged.tiny");
-		project.getLogger().info(":merging");
-		mergeMappings(invertedIntermediary, unmergedYarn, unorderedMergedMappings);
-		reorderMappings(unorderedMergedMappings, tinyMappings.toPath(), "official", "intermediary", "named");
-	}
-
-	private void reorderMappings(Path oldMappings, Path newMappings, String... newOrder) {
-		Command command = new CommandReorderTinyV2();
-		String[] args = new String[2 + newOrder.length];
-		args[0] = oldMappings.toAbsolutePath().toString();
-		args[1] = newMappings.toAbsolutePath().toString();
-		System.arraycopy(newOrder, 0, args, 2, newOrder.length);
-		runCommand(command, args);
-	}
-
-	private void mergeMappings(Path intermediaryMappings, Path yarnMappings, Path newMergedMappings) {
-		try {
-			Command command = new CommandMergeTinyV2();
-			runCommand(command, intermediaryMappings.toAbsolutePath().toString(),
-							yarnMappings.toAbsolutePath().toString(),
-							newMergedMappings.toAbsolutePath().toString(),
-							"intermediary", "official");
-		} catch (Exception e) {
-			throw new RuntimeException("Could not merge mappings from " + intermediaryMappings.toString()
-							+ " with mappings from " + yarnMappings, e);
-		}
-	}
-
-	private void suggestFieldNames(MinecraftProvider minecraftProvider, Path oldMappings, Path newMappings) {
-		Command command = new CommandProposeFieldNames();
-		runCommand(command, minecraftProvider.getMergedJar().getAbsolutePath(),
-						oldMappings.toAbsolutePath().toString(),
-						newMappings.toAbsolutePath().toString());
-	}
-
-	private void runCommand(Command command, String... args) {
-		try {
-			command.run(args);
-		} catch (Exception e) {
-			throw new RuntimeException(e);
-		}
-	}
-
+	
 	private void initFiles() {
 		mappingsDir = getExtension().getUserCache().toPath().resolve("mappings");
-		mappingsStepsDir = mappingsDir.resolve("steps");
-
-		baseTinyMappings = mappingsDir.resolve(mappingsName + "-tiny-" + minecraftVersion + "-" + mappingsVersion + "-base");
 		mappingsMixinExport = new File(getExtension().getProjectBuildCache(), "mixin-map-" + minecraftVersion + "-" + mappingsVersion + ".tiny");
 	}
 

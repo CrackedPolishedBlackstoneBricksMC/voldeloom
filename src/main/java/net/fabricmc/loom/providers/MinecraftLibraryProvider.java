@@ -47,7 +47,7 @@ public class MinecraftLibraryProvider {
 		initFiles(project, minecraftProvider);
 
 		for (MinecraftVersionInfo.Library library : versionInfo.libraries) {
-			if (library.allowed() && !library.isNative() && library.getFile(MINECRAFT_LIBS) != null) {
+			if (library.allowed() && !library.isNative() && library.getFile(MINECRAFT_LIBS) != null && !library.getArtifactName().contains("org.ow2.asm")) { // voldeloom: exclude forge's ASM 4 dep.
 				// TODO: Add custom library locations
 
 				// By default, they are all available on all sides

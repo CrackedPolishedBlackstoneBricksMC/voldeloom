@@ -40,6 +40,8 @@ import org.gradle.api.GradleException;
 import org.gradle.api.Project;
 import org.gradle.api.logging.Logger;
 
+import net.fabricmc.loom.forge.ForgePatchApplier;
+import net.fabricmc.loom.forge.provider.ForgeProvider;
 import net.fabricmc.loom.util.Checksum;
 import net.fabricmc.loom.util.Constants;
 import net.fabricmc.loom.util.DependencyProvider;
@@ -51,6 +53,7 @@ import net.fabricmc.stitch.merge.JarMerger;
 
 public class MinecraftProvider extends DependencyProvider {
 	private String minecraftVersion;
+	private String minecraftJarStuff;
 
 	private MinecraftVersionInfo versionInfo;
 	private MinecraftLibraryProvider libraryProvider;
@@ -59,6 +62,7 @@ public class MinecraftProvider extends DependencyProvider {
 	private File minecraftClientJar;
 	private File minecraftServerJar;
 	private File minecraftMergedJar;
+	private File minecraftPatchedMergedJar;
 
 	Gson gson = new Gson();
 
@@ -68,7 +72,9 @@ public class MinecraftProvider extends DependencyProvider {
 
 	@Override
 	public void provide(DependencyInfo dependency, Consumer<Runnable> postPopulationScheduler) throws Exception {
+		ForgeProvider forge = getExtension().getDependencyManager().getProvider(ForgeProvider.class);
 		minecraftVersion = dependency.getDependency().getVersion();
+		minecraftJarStuff = dependency.getDependency().getVersion() + "-forge-" + forge.getForgeVersion();
 		boolean offline = getProject().getGradle().getStartParameter().isOffline();
 
 		initFiles();
@@ -98,16 +104,21 @@ public class MinecraftProvider extends DependencyProvider {
 		libraryProvider = new MinecraftLibraryProvider();
 		libraryProvider.provide(this, getProject());
 
-		if (!minecraftMergedJar.exists()) {
-			try {
-				mergeJars(getProject().getLogger());
-			} catch (ZipError e) {
-				DownloadUtil.delete(minecraftClientJar);
-				DownloadUtil.delete(minecraftServerJar);
+		if (!minecraftPatchedMergedJar.exists()) {
+			if (!minecraftMergedJar.exists()) {
+				try {
+					mergeJars(getProject().getLogger());
+				} catch (ZipError e) {
+					DownloadUtil.delete(minecraftClientJar);
+					DownloadUtil.delete(minecraftServerJar);
 
-				getProject().getLogger().error("Could not merge JARs! Deleting source JARs - please re-run the command and move on.", e);
-				throw new RuntimeException();
+					getProject().getLogger().error("Could not merge JARs! Deleting source JARs - please re-run the command and move on.", e);
+					throw new RuntimeException();
+				}
 			}
+			System.out.println("Copying Forge files...");
+			Files.copy(minecraftMergedJar, minecraftPatchedMergedJar);
+			ForgePatchApplier.process(minecraftPatchedMergedJar, getExtension());
 		}
 	}
 
@@ -116,6 +127,7 @@ public class MinecraftProvider extends DependencyProvider {
 		minecraftClientJar = new File(getExtension().getUserCache(), "minecraft-" + minecraftVersion + "-client.jar");
 		minecraftServerJar = new File(getExtension().getUserCache(), "minecraft-" + minecraftVersion + "-server.jar");
 		minecraftMergedJar = new File(getExtension().getUserCache(), "minecraft-" + minecraftVersion + "-merged.jar");
+		minecraftPatchedMergedJar = new File(getExtension().getUserCache(), "minecraft-" + minecraftJarStuff + "-merged.jar");
 	}
 
 	private void downloadMcJson(boolean offline) throws IOException {
@@ -193,11 +205,15 @@ public class MinecraftProvider extends DependencyProvider {
 	}
 
 	public File getMergedJar() {
-		return minecraftMergedJar;
+		return minecraftPatchedMergedJar;
 	}
 
 	public String getMinecraftVersion() {
 		return minecraftVersion;
+	}
+	
+	public String getJarStuff() {
+		return minecraftJarStuff;
 	}
 
 	public MinecraftVersionInfo getVersionInfo() {

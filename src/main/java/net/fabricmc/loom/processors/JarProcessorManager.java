@@ -32,6 +32,8 @@ import java.util.List;
 import org.gradle.api.Project;
 
 import net.fabricmc.loom.LoomGradleExtension;
+import net.fabricmc.loom.forge.ASMFixesProcessor;
+import net.fabricmc.loom.forge.CursedLibDeleterProcessor;
 
 public class JarProcessorManager {
 	private final Project project;
@@ -49,7 +51,9 @@ public class JarProcessorManager {
 	private List<JarProcessor> setupProcessors() {
 		List<JarProcessor> jarProcessors = new ArrayList<>();
 
-		jarProcessors.forEach(jarProcessor -> jarProcessor.setup(project));
+		jarProcessors.add(new CursedLibDeleterProcessor());
+		jarProcessors.add(new ASMFixesProcessor());
+		jarProcessors.forEach(jarProcessor -> jarProcessor.setup(project, extension));
 		return Collections.unmodifiableList(jarProcessors);
 	}
 
@@ -66,6 +70,7 @@ public class JarProcessorManager {
 	}
 
 	public void process(File file) {
+		System.out.println("process");
 		for (JarProcessor jarProcessor : jarProcessors) {
 			jarProcessor.process(file);
 		}

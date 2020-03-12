@@ -28,8 +28,10 @@ import java.io.File;
 
 import org.gradle.api.Project;
 
+import net.fabricmc.loom.LoomGradleExtension;
+
 public interface JarProcessor {
-	void setup(Project project);
+	void setup(Project project, LoomGradleExtension extension);
 
 	void process(File file);
 
