@@ -56,7 +56,7 @@ public class LoomGradlePlugin extends AbstractPlugin {
 	public static File getMappedByproduct(Project project, String suffix) {
 		LoomGradleExtension extension = project.getExtensions().getByType(LoomGradleExtension.class);
 		MappingsProvider mappingsProvider = extension.getMappingsProvider();
-		File mappedJar = mappingsProvider.mappedProvider.getMappedJar();
+		File mappedJar = extension.getMinecraftMappedProvider().getMappedJar();
 		String path = mappedJar.getAbsolutePath();
 
 		if (!path.toLowerCase(Locale.ROOT).endsWith(".jar")) {
@@ -114,7 +114,7 @@ public class LoomGradlePlugin extends AbstractPlugin {
 			LoomGradleExtension extension = project.getExtensions().getByType(LoomGradleExtension.class);
 			MinecraftLibraryProvider libraryProvider = extension.getMinecraftProvider().getLibraryProvider();
 			MappingsProvider mappingsProvider = extension.getMappingsProvider();
-			File mappedJar = mappingsProvider.mappedProvider.getMappedJar();
+			File mappedJar = extension.getMinecraftMappedProvider().getMappedJar();
 			File linemappedJar = getMappedByproduct(project, "-linemapped.jar");
 			File sourcesJar = getMappedByproduct(project, "-sources.jar");
 			File linemapFile = getMappedByproduct(project, "-sources.lmap");

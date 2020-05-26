@@ -53,13 +53,9 @@ import net.fabricmc.stitch.Command;
 import net.fabricmc.stitch.commands.CommandProposeFieldNames;
 import net.fabricmc.stitch.commands.tinyv2.CommandMergeTinyV2;
 import net.fabricmc.stitch.commands.tinyv2.CommandReorderTinyV2;
-import net.fabricmc.loom.processors.JarProcessorManager;
-import net.fabricmc.loom.processors.MinecraftProcessedProvider;
 import net.fabricmc.loom.util.DeletingFileVisitor;
 
 public class MappingsProvider extends DependencyProvider {
-	public MinecraftMappedProvider mappedProvider;
-
 	public String mappingsName;
 	public String minecraftVersion;
 	public String mappingsVersion;
@@ -98,7 +94,8 @@ public class MappingsProvider extends DependencyProvider {
 		this.minecraftVersion = minecraftProvider.getMinecraftVersion();
 
 		// Only do this for official yarn, there isn't really a way we can get the mc version for all mappings
-		if (dependency.getDependency().getGroup() != null && dependency.getDependency().getGroup().equals("net.fabricmc") && dependency.getDependency().getName().equals("yarn") && dependency.getDependency().getVersion() != null) {
+		// FIXME check disabled since i had to change dependency order
+		/*if (dependency.getDependency().getGroup() != null && dependency.getDependency().getGroup().equals("net.fabricmc") && dependency.getDependency().getName().equals("yarn") && dependency.getDependency().getVersion() != null) {
 			String yarnVersion = dependency.getDependency().getVersion();
 			char separator = yarnVersion.contains("+build.") ? '+' : yarnVersion.contains("-") ? '-' : '.';
 			String yarnMinecraftVersion = yarnVersion.substring(0, yarnVersion.lastIndexOf(separator));
@@ -106,7 +103,7 @@ public class MappingsProvider extends DependencyProvider {
 			if (!yarnMinecraftVersion.equalsIgnoreCase(minecraftVersion)) {
 				throw new RuntimeException(String.format("Minecraft Version (%s) does not match yarn's minecraft version (%s)", minecraftVersion, yarnMinecraftVersion));
 			}
-		}
+		}*/
 
 		boolean isV2 = doesJarContainV2Mappings(mappingsJar.toPath());
 		this.mappingsVersion = version + (isV2 ? "-v2" : "");
@@ -133,21 +130,8 @@ public class MappingsProvider extends DependencyProvider {
 		if (!tinyMappingsJar.exists()) {
 			ZipUtil.pack(new ZipEntrySource[] {new FileSource("mappings/mappings.tiny", tinyMappings)}, tinyMappingsJar);
 		}
-
+		
 		addDependency(tinyMappingsJar, Constants.MAPPINGS_FINAL);
-
-		JarProcessorManager processorManager = new JarProcessorManager(getProject());
-		getExtension().setJarProcessorManager(processorManager);
-
-		if (processorManager.active()) {
-			mappedProvider = new MinecraftProcessedProvider(getProject(), processorManager);
-			getProject().getLogger().lifecycle("Using project based jar storage");
-		} else {
-			mappedProvider = new MinecraftMappedProvider(getProject());
-		}
-
-		mappedProvider.initFiles(minecraftProvider, this);
-		mappedProvider.provide(dependency, postPopulationScheduler);
 	}
 
 	private void storeMappings(Project project, MinecraftProvider minecraftProvider, Path yarnJar) throws IOException {

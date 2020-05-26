@@ -23,11 +23,16 @@ if (ENV.BUILD_NUMBER) {
 } else {
 	version = baseVersion + ".local"
 }
+version = version + "-forge"
 
 repositories {
 	maven {
 		name = "Fabric"
 		url = 'https://maven.fabricmc.net/'
+	}
+	maven {
+		name = "Forge"
+		url = 'https://files.minecraftforge.net/maven/'
 	}
 	mavenCentral()
 }
@@ -54,6 +59,15 @@ dependencies {
 	implementation ('net.fabricmc:lorenz-tiny:1.0.0+build.1') {
 		transitive = false
 	}
+	
+	// cadixdev remapper since we need to work with tsrg
+	implementation 'org.cadixdev:lorenz:0.5.2'
+	implementation 'org.cadixdev:lorenz-asm:0.5.2'
+	implementation 'org.cadixdev:atlas:0.2.0'
+	
+	// forge patch stuff
+	implementation 'net.minecraftforge:installer:2.0.14'
+	runtime 'net.sf.jopt-simple:jopt-simple:5.0.4' // fix your pom forge
 
 	// decompilers
 	implementation ('net.fabricmc:procyon-fabric-compilertools:0.5.35.13')

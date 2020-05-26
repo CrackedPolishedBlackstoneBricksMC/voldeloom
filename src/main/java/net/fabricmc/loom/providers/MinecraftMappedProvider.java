@@ -44,6 +44,7 @@ public class MinecraftMappedProvider extends DependencyProvider {
 	private File minecraftIntermediaryJar;
 
 	private MinecraftProvider minecraftProvider;
+	private ForgePatchProvider forgePatchProvider;
 
 	public MinecraftMappedProvider(Project project) {
 		super(project);
@@ -138,6 +139,7 @@ public class MinecraftMappedProvider extends DependencyProvider {
 
 	public void initFiles(MinecraftProvider minecraftProvider, MappingsProvider mappingsProvider) {
 		this.minecraftProvider = minecraftProvider;
+		forgePatchProvider = getExtension().getDependencyManager().getProvider(ForgePatchProvider.class);
 		minecraftIntermediaryJar = new File(getExtension().getUserCache(), "minecraft-" + getJarVersionString("intermediary") + ".jar");
 		minecraftMappedJar = new File(getJarDirectory(getExtension().getUserCache(), "mapped"), "minecraft-" + getJarVersionString("mapped") + ".jar");
 	}
@@ -147,7 +149,7 @@ public class MinecraftMappedProvider extends DependencyProvider {
 	}
 
 	protected String getJarVersionString(String type) {
-		return String.format("%s-%s-%s-%s", minecraftProvider.getMinecraftVersion(), type, getExtension().getMappingsProvider().mappingsName, getExtension().getMappingsProvider().mappingsVersion);
+		return String.format("%s-%s-%s-%s-forge-%s", minecraftProvider.getMinecraftVersion(), type, getExtension().getMappingsProvider().mappingsName, getExtension().getMappingsProvider().mappingsVersion, forgePatchProvider.getForgeVersion());
 	}
 
 	public Collection<File> getMapperPaths() {

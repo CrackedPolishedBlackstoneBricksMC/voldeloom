@@ -289,7 +289,7 @@ public class LoomGradleExtension {
 	}
 
 	public MinecraftMappedProvider getMinecraftMappedProvider() {
-		return getMappingsProvider().mappedProvider;
+		return getMinecraftProvider().getMappedProvider();
 	}
 
 	public MappingsProvider getMappingsProvider() {
