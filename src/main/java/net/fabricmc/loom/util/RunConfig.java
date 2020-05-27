@@ -151,7 +151,7 @@ public class RunConfig {
 		populate(project, extension, ideaClient, "client");
 		ideaClient.configName = "Minecraft Client";
 		ideaClient.vmArgs += getOSClientJVMArgs();
-		ideaClient.vmArgs += " -Dfabric.dli.main=" + getMainClass("client", extension);
+		ideaClient.vmArgs += " -Dfabric.dli.main=cpw.mods.modlauncher.Launcher"; //+ getMainClass("client", extension);
 
 		return ideaClient;
 	}
@@ -162,7 +162,7 @@ public class RunConfig {
 		RunConfig ideaServer = new RunConfig();
 		populate(project, extension, ideaServer, "server");
 		ideaServer.configName = "Minecraft Server";
-		ideaServer.vmArgs += " -Dfabric.dli.main=" + getMainClass("server", extension);
+		ideaServer.vmArgs += " -Dfabric.dli.main=cpw.mods.modlauncher.Launcher";// + getMainClass("server", extension);
 
 		return ideaServer;
 	}

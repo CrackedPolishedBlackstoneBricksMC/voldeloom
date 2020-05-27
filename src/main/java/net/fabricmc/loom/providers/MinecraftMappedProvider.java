@@ -44,7 +44,7 @@ public class MinecraftMappedProvider extends DependencyProvider {
 	private File minecraftIntermediaryJar;
 
 	private MinecraftProvider minecraftProvider;
-	private ForgePatchProvider forgePatchProvider;
+	private ForgeProvider forgePatchProvider;
 
 	public MinecraftMappedProvider(Project project) {
 		super(project);
@@ -139,7 +139,7 @@ public class MinecraftMappedProvider extends DependencyProvider {
 
 	public void initFiles(MinecraftProvider minecraftProvider, MappingsProvider mappingsProvider) {
 		this.minecraftProvider = minecraftProvider;
-		forgePatchProvider = getExtension().getDependencyManager().getProvider(ForgePatchProvider.class);
+		forgePatchProvider = getExtension().getDependencyManager().getProvider(ForgeProvider.class);
 		minecraftIntermediaryJar = new File(getExtension().getUserCache(), "minecraft-" + getJarVersionString("intermediary") + ".jar");
 		minecraftMappedJar = new File(getJarDirectory(getExtension().getUserCache(), "mapped"), "minecraft-" + getJarVersionString("mapped") + ".jar");
 	}

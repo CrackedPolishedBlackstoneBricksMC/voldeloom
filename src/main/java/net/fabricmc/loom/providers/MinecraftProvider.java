@@ -73,7 +73,7 @@ public class MinecraftProvider extends DependencyProvider {
 	private Path minecraftMergedSrg;
 	private Path minecraftMergedJar;
 
-	private ForgePatchProvider patchProvider;
+	private ForgeProvider patchProvider;
 	private McpConfigProvider mcpConfigProvider;
 
 	Gson gson = new Gson();
@@ -171,7 +171,7 @@ public class MinecraftProvider extends DependencyProvider {
 	}
 
 	private void initFiles() {
-		patchProvider = getExtension().getDependencyManager().getProvider(ForgePatchProvider.class);
+		patchProvider = getExtension().getDependencyManager().getProvider(ForgeProvider.class);
 		mcpConfigProvider = getExtension().getDependencyManager().getProvider(McpConfigProvider.class);
 		mappingsProvider = getExtension().getMappingsProvider();
 		mappingsProvider.minecraftVersion = minecraftVersion;

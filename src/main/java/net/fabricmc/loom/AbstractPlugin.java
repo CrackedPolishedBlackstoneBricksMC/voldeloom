@@ -48,7 +48,7 @@ import org.gradle.api.tasks.bundling.AbstractArchiveTask;
 import org.gradle.api.tasks.javadoc.Javadoc;
 import org.gradle.plugins.ide.idea.model.IdeaModel;
 
-import net.fabricmc.loom.providers.ForgePatchProvider;
+import net.fabricmc.loom.providers.ForgeProvider;
 import net.fabricmc.loom.providers.LaunchProvider;
 import net.fabricmc.loom.providers.MappingsProvider;
 import net.fabricmc.loom.providers.McpConfigProvider;
@@ -110,8 +110,9 @@ public class AbstractPlugin implements Plugin<Project> {
 		project.getConfigurations().maybeCreate(Constants.MAPPINGS);
 		project.getConfigurations().maybeCreate(Constants.MAPPINGS_FINAL);
 		
-		project.getConfigurations().maybeCreate(Constants.FORGE_PATCHES);
+		project.getConfigurations().maybeCreate(Constants.FORGE);
 		project.getConfigurations().maybeCreate(Constants.MCPCONFIG);
+		project.getConfigurations().maybeCreate(Constants.FORGE_RESOLUTION_INTERNAL); // Internal configuration. Do not touch in buildscript
 
 		for (RemappedConfigurationEntry entry : Constants.MOD_COMPILE_ENTRIES) {
 			Configuration compileModsConfig = project.getConfigurations().maybeCreate(entry.getSourceConfiguration());
@@ -236,7 +237,7 @@ public class AbstractPlugin implements Plugin<Project> {
 			extension.setDependencyManager(dependencyManager);
 
 			dependencyManager.addProvider(new McpConfigProvider(getProject()));
-			dependencyManager.addProvider(new ForgePatchProvider(getProject()));
+			dependencyManager.addProvider(new ForgeProvider(getProject()));
 			dependencyManager.addProvider(new MappingsProvider(getProject()));
 			dependencyManager.addProvider(new MinecraftProvider(getProject()));
 			dependencyManager.addProvider(new LaunchProvider(getProject()));

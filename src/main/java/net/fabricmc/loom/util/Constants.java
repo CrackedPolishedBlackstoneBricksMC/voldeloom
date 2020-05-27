@@ -37,6 +37,7 @@ public class Constants {
 
 	public static final String SYSTEM_ARCH = System.getProperty("os.arch").equals("64") ? "64" : "32";
 
+	public static final String FORGE_RESOLUTION_INTERNAL = "forgeArtifactResolutionInternal";
 	public static final String MOD_COMPILE_CLASSPATH = "modCompileClasspath";
 	public static final String MOD_COMPILE_CLASSPATH_MAPPED = "modCompileClasspathMapped";
 	public static final List<RemappedConfigurationEntry> MOD_COMPILE_ENTRIES = ImmutableList.of(
@@ -53,7 +54,7 @@ public class Constants {
 	public static final String MINECRAFT_NAMED = "minecraftNamed";
 	public static final String MAPPINGS = "mappings";
 	public static final String MAPPINGS_FINAL = "mappingsFinal";
-	public static final String FORGE_PATCHES = "forge";
+	public static final String FORGE = "forge";
 	public static final String MCPCONFIG = "mcpconfig";
 
 	public static final String MIXIN_COMPILE_EXTENSIONS_VERSION = "0.3.0.4";

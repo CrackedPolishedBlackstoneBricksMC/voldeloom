@@ -107,9 +107,10 @@ public class ModCompileRemapper {
 		} catch (IOException e) {
 			throw new RuntimeException("Failed to remap mods", e);
 		}
-
+		
 		// Add all of the remapped mods onto the config
 		for (ModDependencyInfo modDependency : modDependencies) {
+			
 			project.getDependencies().add(modCompileRemapped.getName(), project.getDependencies().module(modDependency.getRemappedNotation()));
 		}
 	}

@@ -60,7 +60,19 @@ public class LaunchProvider extends DependencyProvider {
 				.argument("client", "--assetIndex")
 				.argument("client", getExtension().getMinecraftProvider().getVersionInfo().assetIndex.getFabricId(getExtension().getMinecraftProvider().getMinecraftVersion()))
 				.argument("client", "--assetsDir")
-				.argument("client", new File(getExtension().getUserCache(), "assets").getAbsolutePath());
+				.argument("client", new File(getExtension().getUserCache(), "assets").getAbsolutePath())
+				.argument("client", "--launchTarget")
+				.argument("client", "fmluserdevclient")
+				.argument("--fml.forgeGroup")
+				.argument("net.minecraftforge")
+				.argument("--fml.forgeVersion")
+				.argument(getExtension().getDependencyManager().getProvider(ForgeProvider.class).getForgeVersion().split("-")[1])
+				.argument("--gameDir")
+				.argument(".")
+				.argument("--fml.mcpVersion")
+				.argument("yarn")
+				.argument("--fml.mcVersion")
+				.argument("1.15.2");
 
 		//Enable ansi by default for idea and vscode
 		if (new File(getProject().getRootDir(), ".vscode").exists()
