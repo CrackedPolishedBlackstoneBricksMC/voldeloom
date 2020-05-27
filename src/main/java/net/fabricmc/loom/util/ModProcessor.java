@@ -33,6 +33,7 @@ import java.io.InputStreamReader;
 import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -43,6 +44,11 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import org.apache.commons.io.IOUtils;
+import org.cadixdev.atlas.Atlas;
+import org.cadixdev.bombe.asm.jar.JarEntryRemappingTransformer;
+import org.cadixdev.lorenz.MappingSet;
+import org.cadixdev.lorenz.asm.LorenzRemapper;
+import org.cadixdev.lorenz.io.srg.tsrg.TSrgMappingFormat;
 import org.gradle.api.Project;
 import org.objectweb.asm.commons.Remapper;
 import org.zeroturnaround.zip.ZipUtil;
@@ -51,6 +57,7 @@ import org.zeroturnaround.zip.transform.ZipEntryTransformerEntry;
 
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.providers.MappingsProvider;
+import net.fabricmc.loom.providers.McpConfigProvider;
 import net.fabricmc.loom.providers.MinecraftMappedProvider;
 import net.fabricmc.loom.util.accesswidener.AccessWidener;
 import net.fabricmc.loom.util.accesswidener.AccessWidenerRemapper;
@@ -115,13 +122,30 @@ public class ModProcessor {
 
 	private static void remapJars(Project project, List<ModDependencyInfo> processList) throws IOException {
 		LoomGradleExtension extension = project.getExtensions().getByType(LoomGradleExtension.class);
-		String fromM = "intermediary";
+		try(Atlas atlas = new Atlas()) {
+			MappingSet srgObf = new TSrgMappingFormat().read(extension.getDependencyManager().getProvider(McpConfigProvider.class).getTsrgPath()).reverse();
+			atlas.use(extension.getMinecraftProvider().getSrgForgeJar());
+			/*List<JarFile> jars = new ArrayList<>(processList.size());
+			for(ModDependencyInfo info : processList) {
+				JarFile modJar = new JarFile(info.getInputFile().toPath());
+				atlas.use(modJar);
+			}*/
+			// FIXME support for mods that depend on each other's inheritance! likely needs a change in atlas
+			atlas.install(ctx -> new JarEntryRemappingTransformer(new LorenzRemapper(srgObf, ctx.inheritanceProvider())));
+			
+			for(ModDependencyInfo info : processList) {
+				atlas.run(info.getInputFile().toPath(), info.getObfMapped());
+			}
+		}
+		
+		
+		String fromM = "official";
 		String toM = "named";
 
 		MinecraftMappedProvider mappedProvider = extension.getMinecraftMappedProvider();
 		MappingsProvider mappingsProvider = extension.getMappingsProvider();
 
-		Path mc = mappedProvider.getIntermediaryJar().toPath();
+		Path mc = extension.getMinecraftProvider().getMergedJar().toPath();
 		Path[] mcDeps = mappedProvider.getMapperPaths().stream().map(File::toPath).toArray(Path[]::new);
 
 		project.getLogger().lifecycle(":remapping " + processList.size() + " mods (TinyRemapper, " + fromM + " -> " + toM + ")");
@@ -140,14 +164,14 @@ public class ModProcessor {
 
 		for (ModDependencyInfo info : processList) {
 			InputTag tag = remapper.createInputTag();
-			remapper.readInputsAsync(tag, info.getInputFile().toPath());
+			remapper.readInputsAsync(tag, info.getObfMapped());
 			tagMap.put(info, tag);
 		}
 
 		// Apply this in a second loop as we need to ensure all the inputs are on the classpath before remapping.
 		for (ModDependencyInfo info : processList) {
 			OutputConsumerPath outputConsumer = new OutputConsumerPath.Builder(info.getRemappedOutput().toPath()).build();
-			outputConsumer.addNonClassFiles(info.getInputFile().toPath());
+			outputConsumer.addNonClassFiles(info.getObfMapped());
 			outputConsumerMap.put(info, outputConsumer);
 			String accessWidener = info.getAccessWidener();
 

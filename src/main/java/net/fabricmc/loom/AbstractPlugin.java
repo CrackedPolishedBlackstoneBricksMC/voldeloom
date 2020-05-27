@@ -110,8 +110,8 @@ public class AbstractPlugin implements Plugin<Project> {
 		project.getConfigurations().maybeCreate(Constants.MAPPINGS);
 		project.getConfigurations().maybeCreate(Constants.MAPPINGS_FINAL);
 		
-		project.getConfigurations().maybeCreate("forge");
-		project.getConfigurations().maybeCreate("mcpconfig");
+		project.getConfigurations().maybeCreate(Constants.FORGE_PATCHES);
+		project.getConfigurations().maybeCreate(Constants.MCPCONFIG);
 
 		for (RemappedConfigurationEntry entry : Constants.MOD_COMPILE_ENTRIES) {
 			Configuration compileModsConfig = project.getConfigurations().maybeCreate(entry.getSourceConfiguration());

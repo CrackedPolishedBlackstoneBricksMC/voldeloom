@@ -8,6 +8,8 @@ import java.nio.file.Path;
 import java.util.function.Consumer;
 
 import org.gradle.api.Project;
+
+import net.fabricmc.loom.util.Constants;
 import net.fabricmc.loom.util.DependencyProvider;
 
 public class McpConfigProvider extends DependencyProvider {
@@ -29,7 +31,7 @@ public class McpConfigProvider extends DependencyProvider {
 	
 	@Override
 	public String getTargetConfig() {
-		return "mcpconfig";
+		return Constants.MCPCONFIG;
 	}
 	
 	public Path getTsrgPath() {

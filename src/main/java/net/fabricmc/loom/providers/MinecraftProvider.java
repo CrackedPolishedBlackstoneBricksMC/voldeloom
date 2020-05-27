@@ -116,41 +116,42 @@ public class MinecraftProvider extends DependencyProvider {
 		libraryProvider = new MinecraftLibraryProvider();
 		libraryProvider.provide(this, getProject());
 
-		if (!Files.exists(minecraftMergedJar)) {
-			if(!Files.exists(minecraftMergedSrg)) {
-				if (!Files.exists(minecraftForgeJar)) {
-					getProject().getLogger().lifecycle(":installing Forge");
-					Path forgeLibrariesDir = getExtension().getUserCache().toPath().resolve("forge-libs");
-					InstallerUtil.clientInstall(forgeLibrariesDir, minecraftClientJar, patchProvider.getInstaller());
-					Path forgeOutput = forgeLibrariesDir.resolve("net").resolve("minecraftforge").resolve("forge")
-							.resolve(patchProvider.getForgeVersion())
-							.resolve(String.format("forge-%s-%s.jar", patchProvider.getForgeVersion(), "client"));
-					Files.copy(forgeOutput, minecraftForgeJar, StandardCopyOption.REPLACE_EXISTING);
-				}
-				if(!Files.exists(minecraftClientSrg)) {
-					getProject().getLogger().lifecycle(":remapping Minecraft (CadixDev, official -> srg)");
-					remapSrg(minecraftClientJar, minecraftClientSrg, false);
-				}
+		// this is depended on by the Forge lib remapper, make sure it exists
+		if(!Files.exists(minecraftMergedSrg)) {
+			if (!Files.exists(minecraftForgeJar)) {
+				getProject().getLogger().lifecycle(":installing Forge");
+				Path forgeLibrariesDir = getExtension().getUserCache().toPath().resolve("forge-libs");
+				InstallerUtil.clientInstall(forgeLibrariesDir, minecraftClientJar, patchProvider.getInstaller());
+				Path forgeOutput = forgeLibrariesDir.resolve("net").resolve("minecraftforge").resolve("forge")
+						.resolve(patchProvider.getForgeVersion())
+						.resolve(String.format("forge-%s-%s.jar", patchProvider.getForgeVersion(), "client"));
+				Files.copy(forgeOutput, minecraftForgeJar, StandardCopyOption.REPLACE_EXISTING);
+			}
+			if(!Files.exists(minecraftClientSrg)) {
+				getProject().getLogger().lifecycle(":remapping Minecraft (CadixDev, official -> srg)");
+				remapSrg(minecraftClientJar, minecraftClientSrg, false);
+			}
+		
+			getProject().getLogger().lifecycle(":moving Forge-modified classes..");
+			Files.copy(minecraftClientSrg, minecraftMergedSrg);
 			
-				getProject().getLogger().lifecycle(":moving Forge-modified classes..");
-				Files.copy(minecraftClientSrg, minecraftMergedSrg);
-				
-				try (FileSystem forgeFs = FileSystems.newFileSystem(minecraftForgeJar, null)) {
-					try (FileSystem mergedFs = FileSystems.newFileSystem(minecraftMergedSrg, null)) {
-						Files.walk(forgeFs.getPath("/")).forEach(p -> {
-							try {
-								if(Files.isRegularFile(p)) {
-									Files.copy(p, mergedFs.getPath(p.toString()), StandardCopyOption.REPLACE_EXISTING);
-								}
-							} catch (IOException e) {
-								throw new RuntimeException(e);
+			try (FileSystem forgeFs = FileSystems.newFileSystem(minecraftForgeJar, null)) {
+				try (FileSystem mergedFs = FileSystems.newFileSystem(minecraftMergedSrg, null)) {
+					Files.walk(forgeFs.getPath("/")).forEach(p -> {
+						try {
+							if(Files.isRegularFile(p)) {
+								Files.copy(p, mergedFs.getPath(p.toString()), StandardCopyOption.REPLACE_EXISTING);
 							}
-						});
-						Files.walkFileTree(mergedFs.getPath("META-INF"), new DeletionFileVisitor());
-					}
+						} catch (IOException e) {
+							throw new RuntimeException(e);
+						}
+					});
+					Files.walkFileTree(mergedFs.getPath("META-INF"), new DeletionFileVisitor());
 				}
 			}
-			
+		}
+		
+		if (!Files.exists(minecraftMergedJar)) {
 			getProject().getLogger().lifecycle(":remapping Minecraft (CadixDev, srg -> official)");
 			remapSrg(minecraftMergedSrg, minecraftMergedJar, true);
 		}
@@ -262,8 +263,6 @@ public class MinecraftProvider extends DependencyProvider {
 
 	private void remapSrg(Path input, Path output, boolean reverse) throws IOException {
 		try (Atlas atlas = new Atlas()) {
-			System.out.println(mcpConfigProvider);
-			System.out.println(mcpConfigProvider.getTsrgPath());
 			MappingSet mappings = new TSrgMappingFormat().read(mcpConfigProvider.getTsrgPath());
 			if(reverse) {
 				mappings = mappings.reverse();
@@ -295,6 +294,10 @@ public class MinecraftProvider extends DependencyProvider {
 
 	public MinecraftMappedProvider getMappedProvider() {
 		return mappedProvider;
+	}
+	
+	public Path getSrgForgeJar() {
+		return minecraftMergedSrg;
 	}
 
 	@Override

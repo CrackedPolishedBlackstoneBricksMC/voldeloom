@@ -53,6 +53,8 @@ public class Constants {
 	public static final String MINECRAFT_NAMED = "minecraftNamed";
 	public static final String MAPPINGS = "mappings";
 	public static final String MAPPINGS_FINAL = "mappingsFinal";
+	public static final String FORGE_PATCHES = "forge";
+	public static final String MCPCONFIG = "mcpconfig";
 
 	public static final String MIXIN_COMPILE_EXTENSIONS_VERSION = "0.3.0.4";
 	public static final String DEV_LAUNCH_INJECTOR_VERSION = "0.2.0+build.6";

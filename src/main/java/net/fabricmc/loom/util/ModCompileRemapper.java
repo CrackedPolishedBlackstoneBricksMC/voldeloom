@@ -78,10 +78,11 @@ public class ModCompileRemapper {
 
 			final String notation = group + ":" + name + ":" + version + classifierSuffix;
 
-			if (!isFabricMod(project, logger, artifact, notation)) {
+			// TODO re-implement check for mod
+			/*if (!isFabricMod(project, logger, artifact, notation)) {
 				addToRegularCompile(project, regularCompile, notation);
 				continue;
-			}
+			}*/
 
 			File sources = findSources(dependencies, artifact);
 
