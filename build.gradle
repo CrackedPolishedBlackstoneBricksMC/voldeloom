@@ -35,6 +35,7 @@ repositories {
 		url = 'https://files.minecraftforge.net/maven/'
 	}
 	mavenCentral()
+	mavenLocal()
 }
 
 dependencies {
@@ -65,9 +66,13 @@ dependencies {
 	implementation 'org.cadixdev:lorenz-asm:0.5.2'
 	implementation 'org.cadixdev:atlas:0.2.0'
 	
-	// forge patch stuff
+	// forge-related stuff
+	implementation 'io.github.nuclearfarts:tinysrg:0.1.0'
 	implementation 'net.minecraftforge:installer:2.0.14'
 	runtime 'net.sf.jopt-simple:jopt-simple:5.0.4' // fix your pom forge
+	
+	// compile the naming service
+	compileOnly 'cpw.mods:modlauncher:5.1.0'
 
 	// decompilers
 	implementation ('net.fabricmc:procyon-fabric-compilertools:0.5.35.13')

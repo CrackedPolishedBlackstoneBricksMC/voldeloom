@@ -237,8 +237,8 @@ public class AbstractPlugin implements Plugin<Project> {
 			extension.setDependencyManager(dependencyManager);
 
 			dependencyManager.addProvider(new McpConfigProvider(getProject()));
-			dependencyManager.addProvider(new ForgeProvider(getProject()));
 			dependencyManager.addProvider(new MappingsProvider(getProject()));
+			dependencyManager.addProvider(new ForgeProvider(getProject()));
 			dependencyManager.addProvider(new MinecraftProvider(getProject()));
 			dependencyManager.addProvider(new LaunchProvider(getProject()));
 

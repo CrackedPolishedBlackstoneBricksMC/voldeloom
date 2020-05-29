@@ -52,6 +52,7 @@ public class LaunchProvider extends DependencyProvider {
 	public void provide(DependencyInfo dependency, Consumer<Runnable> postPopulationScheduler) throws IOException {
 		final LaunchConfig launchConfig = new LaunchConfig()
 				.property("fabric.development", "true")
+				.property("yarnforgedev.srgyarn", getExtension().getMappingsProvider().tinySrg.toString())
 				.property("log4j.configurationFile", getLog4jConfigFile().getAbsolutePath())
 
 				.property("client", "java.library.path", getExtension().getNativesDirectory().getAbsolutePath())
@@ -72,7 +73,11 @@ public class LaunchProvider extends DependencyProvider {
 				.argument("--fml.mcpVersion")
 				.argument("yarn")
 				.argument("--fml.mcVersion")
-				.argument("1.15.2");
+				.argument("1.15.2")
+				.argument("--version")
+				.argument("1.15.2")
+				.argument("--accessToken")
+				.argument("dontcrash");
 
 		//Enable ansi by default for idea and vscode
 		if (new File(getProject().getRootDir(), ".vscode").exists()

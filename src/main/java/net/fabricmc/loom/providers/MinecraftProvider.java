@@ -39,11 +39,6 @@ import java.util.function.Consumer;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
-import org.cadixdev.atlas.Atlas;
-import org.cadixdev.bombe.asm.jar.JarEntryRemappingTransformer;
-import org.cadixdev.lorenz.MappingSet;
-import org.cadixdev.lorenz.asm.LorenzRemapper;
-import org.cadixdev.lorenz.io.srg.tsrg.TSrgMappingFormat;
 import org.gradle.api.GradleException;
 import org.gradle.api.Project;
 import org.gradle.api.logging.Logger;
@@ -57,6 +52,9 @@ import net.fabricmc.loom.util.DownloadUtil;
 import net.fabricmc.loom.util.ManifestVersion;
 import net.fabricmc.loom.util.MinecraftVersionInfo;
 import net.fabricmc.loom.util.StaticPathWatcher;
+import net.fabricmc.loom.util.TinyRemapperMappingsHelper;
+import net.fabricmc.tinyremapper.OutputConsumerPath;
+import net.fabricmc.tinyremapper.TinyRemapper;
 
 public class MinecraftProvider extends DependencyProvider {
 	private MinecraftMappedProvider mappedProvider;
@@ -71,10 +69,9 @@ public class MinecraftProvider extends DependencyProvider {
 	private Path minecraftClientSrg;
 	private Path minecraftForgeJar;
 	private Path minecraftMergedSrg;
-	private Path minecraftMergedJar;
+	//private Path minecraftMergedJar;
 
-	private ForgeProvider patchProvider;
-	private McpConfigProvider mcpConfigProvider;
+	private ForgeProvider forgeProvider;
 
 	Gson gson = new Gson();
 
@@ -102,7 +99,7 @@ public class MinecraftProvider extends DependencyProvider {
 		if (offline) {
 			if (Files.exists(minecraftClientJar)) {
 				getProject().getLogger().debug("Found client jar, presuming up-to-date");
-			} else if (Files.exists(minecraftMergedJar)) {
+			} else if (Files.exists(minecraftMergedSrg)) {
 				// Strictly we don't need the split jars if the merged one exists, let's try go
 				// on
 				getProject().getLogger().warn("Missing game jar but merged jar present, things might end badly");
@@ -121,15 +118,16 @@ public class MinecraftProvider extends DependencyProvider {
 			if (!Files.exists(minecraftForgeJar)) {
 				getProject().getLogger().lifecycle(":installing Forge");
 				Path forgeLibrariesDir = getExtension().getUserCache().toPath().resolve("forge-libs");
-				InstallerUtil.clientInstall(forgeLibrariesDir, minecraftClientJar, patchProvider.getInstaller());
+				InstallerUtil.clientInstall(forgeLibrariesDir, minecraftClientJar, forgeProvider.getInstaller());
 				Path forgeOutput = forgeLibrariesDir.resolve("net").resolve("minecraftforge").resolve("forge")
-						.resolve(patchProvider.getForgeVersion())
-						.resolve(String.format("forge-%s-%s.jar", patchProvider.getForgeVersion(), "client"));
+						.resolve(forgeProvider.getForgeVersion())
+						.resolve(String.format("forge-%s-%s.jar", forgeProvider.getForgeVersion(), "client"));
 				Files.copy(forgeOutput, minecraftForgeJar, StandardCopyOption.REPLACE_EXISTING);
 			}
 			if(!Files.exists(minecraftClientSrg)) {
 				getProject().getLogger().lifecycle(":remapping Minecraft (CadixDev, official -> srg)");
-				remapSrg(minecraftClientJar, minecraftClientSrg, false);
+				//remapSrg(minecraftClientJar, minecraftClientSrg, false);
+				remap("official", "srg", minecraftClientJar, minecraftClientSrg);
 			}
 		
 			getProject().getLogger().lifecycle(":moving Forge-modified classes..");
@@ -151,10 +149,10 @@ public class MinecraftProvider extends DependencyProvider {
 			}
 		}
 		
-		if (!Files.exists(minecraftMergedJar)) {
+		/*if (!Files.exists(minecraftMergedJar)) {
 			getProject().getLogger().lifecycle(":remapping Minecraft (CadixDev, srg -> official)");
 			remapSrg(minecraftMergedSrg, minecraftMergedJar, true);
-		}
+		}*/
 
 		JarProcessorManager processorManager = new JarProcessorManager(getProject());
 		getExtension().setJarProcessorManager(processorManager);
@@ -171,8 +169,7 @@ public class MinecraftProvider extends DependencyProvider {
 	}
 
 	private void initFiles() {
-		patchProvider = getExtension().getDependencyManager().getProvider(ForgeProvider.class);
-		mcpConfigProvider = getExtension().getDependencyManager().getProvider(McpConfigProvider.class);
+		forgeProvider = getExtension().getDependencyManager().getProvider(ForgeProvider.class);
 		mappingsProvider = getExtension().getMappingsProvider();
 		mappingsProvider.minecraftVersion = minecraftVersion;
 		minecraftJson = new File(getExtension().getUserCache(), "minecraft-" + minecraftVersion + "-info.json");
@@ -180,12 +177,11 @@ public class MinecraftProvider extends DependencyProvider {
 		minecraftClientSrg = getJarPathNoForge("client-srg");
 		minecraftForgeJar = getJarPath("forgeonly-patched-srg");
 		minecraftMergedSrg = getJarPath("merged-patched-srg");
-		minecraftMergedJar = getJarPath("merged-patched");
 	}
 
 	private Path getJarPath(String type) {
 		return getExtension().getUserCache().toPath().resolve(
-				String.format("minecraft-%s-forge-%s-%s.jar", minecraftVersion, patchProvider.getForgeVersion(), type));
+				String.format("minecraft-%s-forge-%s-%s.jar", minecraftVersion, forgeProvider.getForgeVersion(), type));
 	}
 
 	private Path getJarPathNoForge(String type) {
@@ -261,8 +257,8 @@ public class MinecraftProvider extends DependencyProvider {
 		return getLibraryProvider().getLibraries().stream().map(File::toPath).toArray(Path[]::new);
 	}
 
-	private void remapSrg(Path input, Path output, boolean reverse) throws IOException {
-		try (Atlas atlas = new Atlas()) {
+	private void remap(String fromM, String toM, Path input, Path output) throws IOException {
+		/*try (Atlas atlas = new Atlas()) {
 			MappingSet mappings = new TSrgMappingFormat().read(mcpConfigProvider.getTsrgPath());
 			if(reverse) {
 				mappings = mappings.reverse();
@@ -272,12 +268,35 @@ public class MinecraftProvider extends DependencyProvider {
 			for(Path lib : getLibraryArray()) {
 				atlas.use(lib);
 			}
+			atlas.use(forgeProvider.getUniversalSrg());
 			atlas.run(input, output);
+		}*/
+		getProject().getLogger().lifecycle(":remapping minecraft (TinyRemapper, " + fromM + " -> " + toM + ")");
+
+		TinyRemapper remapper = getTinyRemapper(fromM, toM);
+
+		try (OutputConsumerPath outputConsumer = new OutputConsumerPath.Builder(output).build()) {
+			outputConsumer.addNonClassFiles(input);
+			remapper.readClassPath(getLibraryArray());
+			remapper.readInputs(input);
+			remapper.apply(outputConsumer);
+		} catch (Exception e) {
+			throw new RuntimeException("Failed to remap JAR " + input + " with mappings from " + mappingsProvider.tinySrg, e);
+		} finally {
+			remapper.finish();
 		}
+	}
+	
+	public TinyRemapper getTinyRemapper(String fromM, String toM) throws IOException {
+		return TinyRemapper.newRemapper()
+				.withMappings(TinyRemapperMappingsHelper.create(getExtension().getMappingsProvider().getMappings(), fromM, toM, true))
+				.renameInvalidLocals(true)
+				.rebuildSourceFilenames(true)
+				.build();
 	}
 
 	public File getMergedJar() {
-		return minecraftMergedJar.toFile();
+		return minecraftMergedSrg.toFile();
 	}
 
 	public String getMinecraftVersion() {

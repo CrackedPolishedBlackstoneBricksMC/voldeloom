@@ -27,6 +27,7 @@ package net.fabricmc.loom.providers;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.net.URL;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
@@ -34,6 +35,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.nio.file.StandardOpenOption;
 import java.util.function.Consumer;
 
 import com.google.common.net.UrlEscapers;
@@ -53,6 +55,11 @@ import net.fabricmc.stitch.Command;
 import net.fabricmc.stitch.commands.CommandProposeFieldNames;
 import net.fabricmc.stitch.commands.tinyv2.CommandMergeTinyV2;
 import net.fabricmc.stitch.commands.tinyv2.CommandReorderTinyV2;
+
+import io.github.nuclearfarts.tinysrg.TinySrg;
+import io.github.nuclearfarts.tinysrg.TinyV2Writer;
+import io.github.nuclearfarts.tinysrg.TsrgMappings;
+
 import net.fabricmc.loom.util.DeletingFileVisitor;
 
 public class MappingsProvider extends DependencyProvider {
@@ -68,6 +75,8 @@ public class MappingsProvider extends DependencyProvider {
 	public File tinyMappings;
 	public File tinyMappingsJar;
 	public File mappingsMixinExport;
+	// wooooo
+	public Path tinySrg;
 
 	public MappingsProvider(Project project) {
 		super(project);
@@ -78,7 +87,7 @@ public class MappingsProvider extends DependencyProvider {
 	}
 
 	public TinyTree getMappings() throws IOException {
-		return MappingsCache.INSTANCE.get(tinyMappings.toPath());
+		return MappingsCache.INSTANCE.get(tinySrg);
 	}
 
 	@Override
@@ -91,7 +100,9 @@ public class MappingsProvider extends DependencyProvider {
 		File mappingsJar = dependency.resolveFile().orElseThrow(() -> new RuntimeException("Could not find yarn mappings: " + dependency));
 
 		this.mappingsName = StringUtils.removeSuffix(dependency.getDependency().getGroup() + "." + dependency.getDependency().getName(), "-unmerged");
-		this.minecraftVersion = minecraftProvider.getMinecraftVersion();
+		String yarnVersion = dependency.getDependency().getVersion();
+		char separator = yarnVersion.contains("+build.") ? '+' : yarnVersion.contains("-") ? '-' : '.';
+		minecraftVersion = yarnVersion.substring(0, yarnVersion.lastIndexOf(separator));
 
 		// Only do this for official yarn, there isn't really a way we can get the mc version for all mappings
 		// FIXME check disabled since i had to change dependency order
@@ -129,6 +140,13 @@ public class MappingsProvider extends DependencyProvider {
 
 		if (!tinyMappingsJar.exists()) {
 			ZipUtil.pack(new ZipEntrySource[] {new FileSource("mappings/mappings.tiny", tinyMappings)}, tinyMappingsJar);
+		}
+		
+		if(!Files.exists(tinySrg)) {
+			TinyTree tinySrgTree = TinySrg.addSrg(MappingsCache.INSTANCE.get(tinyMappings.toPath()), new TsrgMappings(getDependencyManager().getProvider(McpConfigProvider.class).getTsrgPath()));
+			try(OutputStream out = Files.newOutputStream(tinySrg, StandardOpenOption.CREATE)) {
+				TinyV2Writer.write(tinySrgTree, out);
+			}
 		}
 		
 		addDependency(tinyMappingsJar, Constants.MAPPINGS_FINAL);
@@ -253,6 +271,7 @@ public class MappingsProvider extends DependencyProvider {
 
 		baseTinyMappings = mappingsDir.resolve(mappingsName + "-tiny-" + minecraftVersion + "-" + mappingsVersion + "-base");
 		mappingsMixinExport = new File(getExtension().getProjectBuildCache(), "mixin-map-" + minecraftVersion + "-" + mappingsVersion + ".tiny");
+		tinySrg = mappingsDir.resolve(mappingsName + "-tiny-" + minecraftVersion + "-" + mappingsVersion + "-srgmerged.tiny");
 	}
 
 	public void cleanFiles() {

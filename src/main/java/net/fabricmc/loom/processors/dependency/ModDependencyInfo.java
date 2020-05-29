@@ -28,7 +28,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.nio.file.Path;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
@@ -60,14 +59,6 @@ public class ModDependencyInfo {
 
 	public String getRemappedFilename() {
 		return String.format("%s-%s@%s", name, version, remapData.mappingsSuffix + classifier.replace(':', '-'));
-	}
-	
-	public String getObfMappedFilename() {
-		return String.format("%s-%s@%s.jar", name, version, "official" + classifier.replace(':', '-'));
-	}
-	
-	public Path getObfMapped() {
-		return getInputFile().toPath().resolveSibling(getObfMappedFilename());
 	}
 
 	public File getRemappedOutput() {

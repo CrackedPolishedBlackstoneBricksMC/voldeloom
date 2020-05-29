@@ -30,25 +30,27 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
+import java.nio.file.StandardOpenOption;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.jar.Attributes;
 import java.util.jar.JarFile;
+import java.util.jar.Manifest;
 import java.util.zip.ZipEntry;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import org.apache.commons.io.IOUtils;
-import org.cadixdev.atlas.Atlas;
-import org.cadixdev.bombe.asm.jar.JarEntryRemappingTransformer;
-import org.cadixdev.lorenz.MappingSet;
-import org.cadixdev.lorenz.asm.LorenzRemapper;
-import org.cadixdev.lorenz.io.srg.tsrg.TSrgMappingFormat;
 import org.gradle.api.Project;
 import org.objectweb.asm.commons.Remapper;
 import org.zeroturnaround.zip.ZipUtil;
@@ -56,8 +58,8 @@ import org.zeroturnaround.zip.transform.StringZipEntryTransformer;
 import org.zeroturnaround.zip.transform.ZipEntryTransformerEntry;
 
 import net.fabricmc.loom.LoomGradleExtension;
+import net.fabricmc.loom.providers.ForgeProvider;
 import net.fabricmc.loom.providers.MappingsProvider;
-import net.fabricmc.loom.providers.McpConfigProvider;
 import net.fabricmc.loom.providers.MinecraftMappedProvider;
 import net.fabricmc.loom.util.accesswidener.AccessWidener;
 import net.fabricmc.loom.util.accesswidener.AccessWidenerRemapper;
@@ -85,6 +87,26 @@ public class ModProcessor {
 		for (ModDependencyInfo info : processList) {
 			if (!info.getRemappedOutput().exists()) {
 				throw new RuntimeException("Failed to remap mod" + info);
+			} else if(info.name.equals("forgeuniversal")) {
+				ForgeProvider forgeProvider = project.getExtensions().getByType(LoomGradleExtension.class).getDependencyManager().getProvider(ForgeProvider.class);
+				try(JarFile unprocessed = new JarFile(forgeProvider.getUniversalSrg().toFile())) {
+					Manifest manifest = unprocessed.getManifest();
+					for(Iterator<Map.Entry<String, Attributes>> iter = manifest.getEntries().entrySet().iterator(); iter.hasNext();) {
+						Map.Entry<String, Attributes> entry = iter.next();
+						if(entry.getKey().contains(".")) {
+							iter.remove();
+						} else {
+							entry.getValue().remove("SHA-256-Digest");
+						}
+					}
+					try(FileSystem processed = FileSystems.newFileSystem(info.getRemappedOutput().toPath(), null)) {
+						try(OutputStream out = Files.newOutputStream(processed.getPath("META-INF", "MANIFEST.MF"), StandardOpenOption.CREATE)) {
+							manifest.write(out);
+						}
+						Files.deleteIfExists(processed.getPath("META-INF", "FORGE.DSA"));
+						Files.deleteIfExists(processed.getPath("META-INF", "FORGE.SF"));
+					}
+				}
 			}
 
 			stripNestedJars(info.getRemappedOutput());
@@ -122,24 +144,8 @@ public class ModProcessor {
 
 	private static void remapJars(Project project, List<ModDependencyInfo> processList) throws IOException {
 		LoomGradleExtension extension = project.getExtensions().getByType(LoomGradleExtension.class);
-		try(Atlas atlas = new Atlas()) {
-			MappingSet srgObf = new TSrgMappingFormat().read(extension.getDependencyManager().getProvider(McpConfigProvider.class).getTsrgPath()).reverse();
-			atlas.use(extension.getMinecraftProvider().getSrgForgeJar());
-			/*List<JarFile> jars = new ArrayList<>(processList.size());
-			for(ModDependencyInfo info : processList) {
-				JarFile modJar = new JarFile(info.getInputFile().toPath());
-				atlas.use(modJar);
-			}*/
-			// FIXME support for mods that depend on each other's inheritance! likely needs a change in atlas
-			atlas.install(ctx -> new JarEntryRemappingTransformer(new LorenzRemapper(srgObf, ctx.inheritanceProvider())));
-			
-			for(ModDependencyInfo info : processList) {
-				atlas.run(info.getInputFile().toPath(), info.getObfMapped());
-			}
-		}
 		
-		
-		String fromM = "official";
+		String fromM = "srg";
 		String toM = "named";
 
 		MinecraftMappedProvider mappedProvider = extension.getMinecraftMappedProvider();
@@ -164,14 +170,14 @@ public class ModProcessor {
 
 		for (ModDependencyInfo info : processList) {
 			InputTag tag = remapper.createInputTag();
-			remapper.readInputsAsync(tag, info.getObfMapped());
+			remapper.readInputsAsync(tag, info.getInputFile().toPath());
 			tagMap.put(info, tag);
 		}
 
 		// Apply this in a second loop as we need to ensure all the inputs are on the classpath before remapping.
 		for (ModDependencyInfo info : processList) {
 			OutputConsumerPath outputConsumer = new OutputConsumerPath.Builder(info.getRemappedOutput().toPath()).build();
-			outputConsumer.addNonClassFiles(info.getObfMapped());
+			outputConsumer.addNonClassFiles(info.getInputFile().toPath());
 			outputConsumerMap.put(info, outputConsumer);
 			String accessWidener = info.getAccessWidener();
 

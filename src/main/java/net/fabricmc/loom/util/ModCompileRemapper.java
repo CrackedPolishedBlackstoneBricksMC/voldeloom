@@ -49,6 +49,7 @@ import org.gradle.language.base.artifact.SourcesArtifact;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.processors.dependency.ModDependencyInfo;
 import net.fabricmc.loom.processors.dependency.RemapData;
+import net.fabricmc.loom.providers.ForgeProvider;
 
 public class ModCompileRemapper {
 	public static void remapDependencies(Project project, String mappingsSuffix, LoomGradleExtension extension, Configuration modCompile, Configuration modCompileRemapped, Configuration regularCompile, SourceRemapper sourceRemapper) {
@@ -98,10 +99,16 @@ public class ModCompileRemapper {
 			}
 		}
 
+		if(modCompile.getName().equals("modImplementation")) {
+			System.out.println("injecting forge universal");
+			ForgeProvider forgeProvider = extension.getDependencyManager().getProvider(ForgeProvider.class);
+			modDependencies.add(new ModDependencyInfo("net.minecraftforge", "forgeuniversal", forgeProvider.getForgeVersion(), "", forgeProvider.getUniversalSrg().toFile(), remapData));
+		}
+		
 		List<ModDependencyInfo> processList = modDependencies.stream()
 				.filter(ModDependencyInfo::requiresRemapping)
 				.collect(Collectors.toList());
-
+		
 		try {
 			ModProcessor.processMods(project, processList);
 		} catch (IOException e) {
@@ -110,7 +117,7 @@ public class ModCompileRemapper {
 		
 		// Add all of the remapped mods onto the config
 		for (ModDependencyInfo modDependency : modDependencies) {
-			
+			System.out.println(modDependency.getRemappedFilename());
 			project.getDependencies().add(modCompileRemapped.getName(), project.getDependencies().module(modDependency.getRemappedNotation()));
 		}
 	}

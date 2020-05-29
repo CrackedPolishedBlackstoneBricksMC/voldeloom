@@ -52,7 +52,7 @@ public class MinecraftMappedProvider extends DependencyProvider {
 
 	@Override
 	public void provide(DependencyInfo dependency, Consumer<Runnable> postPopulationScheduler) throws Exception {
-		if (!getExtension().getMappingsProvider().tinyMappings.exists()) {
+		if (!getExtension().getMappingsProvider().tinySrg.toFile().exists()) {
 			throw new RuntimeException("mappings file not found");
 		}
 
@@ -90,7 +90,7 @@ public class MinecraftMappedProvider extends DependencyProvider {
 	}
 
 	private void mapMinecraftJar() throws IOException {
-		String fromM = "official";
+		String fromM = "srg";
 
 		MappingsProvider mappingsProvider = getExtension().getMappingsProvider();
 
@@ -111,7 +111,7 @@ public class MinecraftMappedProvider extends DependencyProvider {
 				remapper.readInputs(input);
 				remapper.apply(outputConsumer);
 			} catch (Exception e) {
-				throw new RuntimeException("Failed to remap JAR " + input + " with mappings from " + mappingsProvider.tinyMappings, e);
+				throw new RuntimeException("Failed to remap JAR " + input + " with mappings from " + mappingsProvider.tinySrg, e);
 			} finally {
 				remapper.finish();
 			}
