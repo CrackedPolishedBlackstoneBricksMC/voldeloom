@@ -18,7 +18,7 @@ import java.util.function.Consumer;
 import org.apache.commons.io.IOUtils;
 import org.gradle.api.Project;
 import org.gradle.api.artifacts.Configuration;
-
+import org.gradle.api.artifacts.ResolvedArtifact;
 import net.fabricmc.loom.util.Constants;
 import net.fabricmc.loom.util.DependencyProvider;
 
@@ -29,6 +29,7 @@ public class ForgeProvider extends DependencyProvider {
 	private Path installer;
 	private Path userdev;
 	private Path universalSrg;
+	private ResolvedArtifact universalArtifact;
 	
 	public ForgeProvider(Project project) {
 		super(project);
@@ -48,14 +49,16 @@ public class ForgeProvider extends DependencyProvider {
 		// Gradle gets REALLY funky when qualifiers are involved.
 		// Resolving files for the installer dep specifically gives BOTH userdev and installer.
 		// So... we do this instead.
-		for(File f : conf.getFiles()) {
+		for(ResolvedArtifact a : conf.getResolvedConfiguration().getResolvedArtifacts()) {
 			//System.out.println(f);
+			File f = a.getFile();
 			if(f.toString().contains("userdev")) {
 				userdevArtifact = f.toPath();
 			} else if(f.toString().contains("installer")) {
 				installer = f.toPath();
 			} else if(f.toString().contains("universal")) {
 				universalSrg = f.toPath();
+				universalArtifact = a;
 			}
 		}
 		
@@ -109,5 +112,9 @@ public class ForgeProvider extends DependencyProvider {
 	
 	public Path getUniversalSrg() {
 		return universalSrg;
+	}
+	
+	public ResolvedArtifact getUniversalArtifact() {
+		return universalArtifact;
 	}
 }

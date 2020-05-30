@@ -103,6 +103,10 @@ public class ModCompileRemapper {
 			System.out.println("injecting forge universal");
 			ForgeProvider forgeProvider = extension.getDependencyManager().getProvider(ForgeProvider.class);
 			modDependencies.add(new ModDependencyInfo("net.minecraftforge", "forgeuniversal", forgeProvider.getForgeVersion(), "", forgeProvider.getUniversalSrg().toFile(), remapData));
+			File universalSrc = findSources(dependencies, forgeProvider.getUniversalArtifact());
+			if(universalSrc != null) {
+				scheduleSourcesRemapping(project, sourceRemapper, universalSrc, "net.minecraftforge:forgeuniversal:" + forgeProvider.getForgeVersion() + " (" + mappingsSuffix + ")", String.format("forgeuniversal-%s@%s", forgeProvider.getForgeVersion(), mappingsSuffix), modStore);
+			}
 		}
 		
 		List<ModDependencyInfo> processList = modDependencies.stream()

@@ -34,6 +34,10 @@ repositories {
 		name = "Forge"
 		url = 'https://files.minecraftforge.net/maven/'
 	}
+	maven {
+		name = "JitPack"
+		url = "https://jitpack.io"
+	}
 	mavenCentral()
 	mavenLocal()
 }
@@ -61,13 +65,8 @@ dependencies {
 		transitive = false
 	}
 	
-	// cadixdev remapper since we need to work with tsrg
-	implementation 'org.cadixdev:lorenz:0.5.2'
-	implementation 'org.cadixdev:lorenz-asm:0.5.2'
-	implementation 'org.cadixdev:atlas:0.2.0'
-	
 	// forge-related stuff
-	implementation 'io.github.nuclearfarts:tinysrg:0.1.0'
+	implementation 'com.github.Nuclearfarts:tinysrg:0.1.1'
 	implementation 'net.minecraftforge:installer:2.0.14'
 	runtime 'net.sf.jopt-simple:jopt-simple:5.0.4' // fix your pom forge
 	

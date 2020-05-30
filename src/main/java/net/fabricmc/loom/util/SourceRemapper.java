@@ -150,8 +150,8 @@ public class SourceRemapper {
 		MappingSet mappings = extension.getOrCreateSrcMappingCache(toNamed ? 1 : 0, () -> {
 			try {
 				TinyTree m = mappingsProvider.getMappings();
-				project.getLogger().lifecycle(":loading " + (toNamed ? "intermediary -> named" : "named -> intermediary") + " source mappings");
-				return new TinyReader(m, toNamed ? "intermediary" : "named", toNamed ? "named" : "intermediary").read();
+				project.getLogger().lifecycle(":loading " + (toNamed ? "srg -> named" : "named -> srg") + " source mappings");
+				return new TinyReader(m, toNamed ? "srg" : "named", toNamed ? "named" : "srg").read();
 			} catch (Exception e) {
 				throw new RuntimeException(e);
 			}
@@ -167,7 +167,7 @@ public class SourceRemapper {
 			}
 
 			m.getClassPath().add(extension.getMinecraftMappedProvider().getMappedJar().toPath());
-			m.getClassPath().add(extension.getMinecraftMappedProvider().getIntermediaryJar().toPath());
+			m.getClassPath().add(extension.getMinecraftProvider().getSrgForgeJar());
 
 			m.getProcessors().add(MercuryRemapper.create(mappings));
 
