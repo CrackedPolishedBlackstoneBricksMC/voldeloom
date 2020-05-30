@@ -60,6 +60,12 @@ public class MinecraftLibraryProvider {
 				project.getDependencies().add(Constants.MINECRAFT_DEPENDENCIES, project.getDependencies().module(library.getArtifactName()));
 			}
 		}
+		
+		for(String forgeDep : new String[] {"net.minecraftforge:eventbus:2.2.0:service", "net.minecraftforge:unsafe:0.1.0-milestone.0.1+df18fe0",
+				"cpw.mods:modlauncher:5.1.0", "cpw.mods:grossjava9hacks:1.3.0", "net.minecraftforge:forgespi:2.1.2", "net.minecraftforge:accesstransformers:2.1.2:shadowed", 
+				"net.minecraftforge:coremods:2.0.3"}) {
+			project.getDependencies().add(Constants.MINECRAFT_DEPENDENCIES, project.getDependencies().module(forgeDep));
+		}
 	}
 
 	public Collection<File> getLibraries() {
