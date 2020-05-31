@@ -49,7 +49,6 @@ import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.providers.MappingsProvider;
 import net.fabricmc.loom.providers.MinecraftMappedProvider;
 import net.fabricmc.loom.util.SourceRemapper;
-import net.fabricmc.lorenztiny.LorenzTiny;
 import net.fabricmc.mapping.tree.TinyMappingFactory;
 import net.fabricmc.mapping.tree.TinyTree;
 
@@ -97,7 +96,7 @@ public class MigrateMappingsTask extends AbstractLoomTask {
 		try {
 			TinyTree currentMappings = mappingsProvider.getMappings();
 			TinyTree targetMappings = getMappings(mappings);
-			migrateMappings(project, extension.getMinecraftMappedProvider(), inputDir, outputDir, currentMappings, targetMappings);
+			//migrateMappings(project, extension.getMinecraftMappedProvider(), inputDir, outputDir, currentMappings, targetMappings);
 			project.getLogger().lifecycle(":remapped project written to " + outputDir.toAbsolutePath());
 		} catch (IOException e) {
 			throw new IllegalArgumentException("Error while loading mappings", e);
@@ -145,10 +144,11 @@ public class MigrateMappingsTask extends AbstractLoomTask {
 		}
 	}
 
-	private static void migrateMappings(Project project, MinecraftMappedProvider minecraftMappedProvider,
+	/*private static void migrateMappings(Project project, MinecraftMappedProvider minecraftMappedProvider,
 										Path inputDir, Path outputDir, TinyTree currentMappings, TinyTree targetMappings
 	) throws IOException {
 		project.getLogger().lifecycle(":joining mappings");
+		
 		MappingSet mappingSet = LorenzTiny.readMappings(currentMappings, targetMappings,
 						"intermediary", "named").read();
 
@@ -168,5 +168,5 @@ public class MigrateMappingsTask extends AbstractLoomTask {
 
 		project.getLogger().lifecycle(":cleaning file descriptors");
 		System.gc();
-	}
+	}*/
 }

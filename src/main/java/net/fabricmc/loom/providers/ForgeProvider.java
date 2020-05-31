@@ -19,6 +19,10 @@ import org.apache.commons.io.IOUtils;
 import org.gradle.api.Project;
 import org.gradle.api.artifacts.Configuration;
 import org.gradle.api.artifacts.ResolvedArtifact;
+import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.ClassWriter;
+
+import net.fabricmc.loom.forge.asm.UserdevLaunchHandlerVisitor;
 import net.fabricmc.loom.util.Constants;
 import net.fabricmc.loom.util.DependencyProvider;
 
@@ -79,7 +83,7 @@ public class ForgeProvider extends DependencyProvider {
 				}
 				// copy dev stuff classes.
 				Files.createDirectories(transformedFs.getPath("io", "github", "nuclearfarts", "yarnforgedev"));
-				for(String clazz : new String[] {"Srg2YarnMappingService", "TinyMappingHelper"}) {
+				for(String clazz : new String[] {"Srg2YarnMappingService", "TinyMappingHelper", "DevModLocator"}) {
 					System.out.println(clazz);
 					String fileName = "/io/github/nuclearfarts/yarnforgedev/" + clazz + ".class";
 					try(InputStream in = getClass().getResourceAsStream(fileName)) {
@@ -90,6 +94,10 @@ public class ForgeProvider extends DependencyProvider {
 				}
 				try(PrintStream out = new PrintStream(Files.newOutputStream(transformedFs.getPath("META-INF", "services", "cpw.mods.modlauncher.api.INameMappingService"), StandardOpenOption.TRUNCATE_EXISTING))) {
 					out.println("io.github.nuclearfarts.yarnforgedev.Srg2YarnMappingService");
+				}
+				
+				try(PrintStream out = new PrintStream(Files.newOutputStream(transformedFs.getPath("META-INF", "services", "net.minecraftforge.forgespi.locating.IModLocator"), StandardOpenOption.APPEND))) {
+					out.println("io.github.nuclearfarts.yarnforgedev.DevModLocator");
 				}
 			}
 		}

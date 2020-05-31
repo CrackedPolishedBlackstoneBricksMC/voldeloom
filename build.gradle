@@ -25,6 +25,9 @@ if (ENV.BUILD_NUMBER) {
 
 repositories {
 	maven {
+		url = "https://oss.sonatype.org/content/groups/public/"
+	}
+	maven {
 		name = "Fabric"
 		url = 'https://maven.fabricmc.net/'
 	}
@@ -59,7 +62,7 @@ dependencies {
 		transitive = false
 	}
 
-	implementation ('net.fabricmc:lorenz-tiny:1.0.0+build.1') {
+	implementation ('net.fabricmc:lorenz-tiny:2.0.0+build.2') {
 		transitive = false
 	}
 	
@@ -68,15 +71,17 @@ dependencies {
 	implementation 'net.minecraftforge:installer:2.0.14'
 	runtime 'net.sf.jopt-simple:jopt-simple:5.0.4' // fix your pom forge
 	
-	// compile the naming service
+	// compile the modlauncher-y stuff
 	compileOnly 'cpw.mods:modlauncher:5.1.0'
+	compileOnly 'net.minecraftforge:forgespi:2.1.2'
+	compileOnly 'net.minecraftforge:forge:1.15.2-31.2.5:launcher'
 
 	// decompilers
 	implementation ('net.fabricmc:procyon-fabric-compilertools:0.5.35.13')
 	implementation ('org.jetbrains:intellij-fernflower:1.2.0.15')
 
 	// source code remapping
-	implementation ('org.cadixdev:mercury:0.1.0.fabric-SNAPSHOT')
+	implementation ('org.cadixdev:mercury:0.1.0-SNAPSHOT')
 
 	// Kapt integration
 	compileOnly("org.jetbrains.kotlin:kotlin-gradle-plugin:1.3.72")
@@ -111,7 +116,7 @@ task javadocJar(type: Jar, dependsOn: javadoc) {
 gradlePlugin {
 	plugins {
 		fabricLoom {
-			id = "fabric-loom"
+			id = project.name
 			implementationClass = "net.fabricmc.loom.LoomGradlePlugin"
 		}
 	}

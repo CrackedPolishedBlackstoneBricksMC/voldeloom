@@ -41,6 +41,7 @@ import org.zeroturnaround.zip.ZipUtil;
 
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.providers.MappingsProvider;
+import net.fabricmc.lorenztiny.TinyMappingFormat;
 import net.fabricmc.mapping.tree.ClassDef;
 import net.fabricmc.mapping.tree.FieldDef;
 import net.fabricmc.mapping.tree.MethodDef;
@@ -104,6 +105,7 @@ public class SourceRemapper {
 		}
 
 		Path srcPath = source.toPath();
+		System.out.println(srcPath);
 		boolean isSrcTmp = false;
 
 		if (!source.isDirectory()) {
@@ -151,7 +153,7 @@ public class SourceRemapper {
 			try {
 				TinyTree m = mappingsProvider.getMappings();
 				project.getLogger().lifecycle(":loading " + (toNamed ? "srg -> named" : "named -> srg") + " source mappings");
-				return new TinyReader(m, toNamed ? "srg" : "named", toNamed ? "named" : "srg").read();
+				return TinyMappingFormat.STANDARD.read(mappingsProvider.tinySrg, toNamed ? "srg" : "named", toNamed ? "named" : "srg");//new TinyReader(m, toNamed ? "srg" : "named", toNamed ? "named" : "srg").read();
 			} catch (Exception e) {
 				throw new RuntimeException(e);
 			}

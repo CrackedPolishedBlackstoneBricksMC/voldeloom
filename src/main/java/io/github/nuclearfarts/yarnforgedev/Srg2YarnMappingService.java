@@ -16,7 +16,7 @@ public class Srg2YarnMappingService implements INameMappingService {
 	
 	public Srg2YarnMappingService() {
 		try {
-			System.out.println(System.getProperty("yarnforgedev.srgyarn"));
+			System.out.println("SRG to Yarn mapping service using mappings " + System.getProperty("yarnforgedev.srgyarn"));
 			srg2yarn = new TinyMappingHelper(TinyMappingFactory.loadWithDetection(Files.newBufferedReader(Paths.get(System.getProperty("yarnforgedev.srgyarn")))), "srg", "named");
 		} catch (IOException e) {
 			e.printStackTrace();
