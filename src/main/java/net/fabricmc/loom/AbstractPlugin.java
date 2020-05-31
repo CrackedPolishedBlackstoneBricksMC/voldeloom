@@ -64,6 +64,7 @@ import net.fabricmc.loom.util.SetupIntelijRunConfigs;
 import net.fabricmc.loom.util.mixin.JavaApInvoker;
 import net.fabricmc.loom.util.mixin.KaptApInvoker;
 import net.fabricmc.loom.util.mixin.ScalaApInvoker;
+import net.fabricmc.loom.util.FabricApiExtension;
 
 public class AbstractPlugin implements Plugin<Project> {
 	protected Project project;
@@ -88,6 +89,7 @@ public class AbstractPlugin implements Plugin<Project> {
 		project.apply(ImmutableMap.of("plugin", "idea"));
 
 		project.getExtensions().create("minecraft", LoomGradleExtension.class, project);
+		project.getExtensions().create("fabricApi", FabricApiExtension.class, project);
 
 		// Force add Mojang repository
 		addMavenRepo(target, "Mojang", "https://libraries.minecraft.net/");

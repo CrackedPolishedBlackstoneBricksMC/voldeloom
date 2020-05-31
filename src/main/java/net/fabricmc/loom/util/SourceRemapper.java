@@ -41,7 +41,7 @@ import org.zeroturnaround.zip.ZipUtil;
 
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.providers.MappingsProvider;
-import net.fabricmc.lorenztiny.TinyMappingFormat;
+import net.fabricmc.lorenztiny.TinyMappingsReader;
 import net.fabricmc.mapping.tree.ClassDef;
 import net.fabricmc.mapping.tree.FieldDef;
 import net.fabricmc.mapping.tree.MethodDef;
@@ -152,8 +152,8 @@ public class SourceRemapper {
 		MappingSet mappings = extension.getOrCreateSrcMappingCache(toNamed ? 1 : 0, () -> {
 			try {
 				TinyTree m = mappingsProvider.getMappings();
-				project.getLogger().lifecycle(":loading " + (toNamed ? "srg -> named" : "named -> srg") + " source mappings");
-				return TinyMappingFormat.STANDARD.read(mappingsProvider.tinySrg, toNamed ? "srg" : "named", toNamed ? "named" : "srg");//new TinyReader(m, toNamed ? "srg" : "named", toNamed ? "named" : "srg").read();
+				project.getLogger().lifecycle(":loading " + (toNamed ? "intermediary -> named" : "named -> intermediary") + " source mappings");
+				return new TinyMappingsReader(m, toNamed ? "intermediary" : "named", toNamed ? "named" : "intermediary").read();
 			} catch (Exception e) {
 				throw new RuntimeException(e);
 			}
@@ -214,39 +214,5 @@ public class SourceRemapper {
 		String name = path.getFileName().toString();
 		// ".java" is not a valid java file
 		return name.endsWith(".java") && name.length() != 5;
-	}
-
-	public static class TinyReader extends MappingsReader {
-		private final TinyTree mappings;
-		private final String from, to;
-
-		public TinyReader(TinyTree m, String from, String to) {
-			this.mappings = m;
-			this.from = from;
-			this.to = to;
-		}
-
-		@Override
-		public MappingSet read(final MappingSet mappings) {
-			for (ClassDef classDef : this.mappings.getClasses()) {
-				ClassMapping classMapping = mappings.getOrCreateClassMapping(classDef.getName(from))
-								.setDeobfuscatedName(classDef.getName(to));
-
-				for (FieldDef field : classDef.getFields()) {
-					classMapping.getOrCreateFieldMapping(field.getName(from), field.getDescriptor(from))
-									.setDeobfuscatedName(field.getName(to));
-				}
-
-				for (MethodDef method : classDef.getMethods()) {
-					classMapping.getOrCreateMethodMapping(method.getName(from), method.getDescriptor(from))
-									.setDeobfuscatedName(method.getName(to));
-				}
-			}
-
-			return mappings;
-		}
-
-		@Override
-		public void close() { }
 	}
 }
