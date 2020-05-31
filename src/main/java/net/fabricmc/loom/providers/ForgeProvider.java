@@ -19,10 +19,6 @@ import org.apache.commons.io.IOUtils;
 import org.gradle.api.Project;
 import org.gradle.api.artifacts.Configuration;
 import org.gradle.api.artifacts.ResolvedArtifact;
-import org.objectweb.asm.ClassReader;
-import org.objectweb.asm.ClassWriter;
-
-import net.fabricmc.loom.forge.asm.UserdevLaunchHandlerVisitor;
 import net.fabricmc.loom.util.Constants;
 import net.fabricmc.loom.util.DependencyProvider;
 
