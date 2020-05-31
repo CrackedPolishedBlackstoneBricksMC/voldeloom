@@ -62,7 +62,7 @@ public class MinecraftLibraryProvider {
 		}
 		
 		for(String forgeDep : new String[] {"net.minecraftforge:eventbus:2.2.0:service", "net.minecraftforge:unsafe:0.1.0-milestone.0.1+df18fe0",
-				"cpw.mods:modlauncher:5.1.0", "cpw.mods:grossjava9hacks:1.3.0", "net.minecraftforge:forgespi:2.1.2", "net.minecraftforge:accesstransformers:2.1.2:shadowed",//"com.github.Nuclearfarts:AccessTransformers:master-SNAPSHOT", 
+				"cpw.mods:modlauncher:5.1.0", "cpw.mods:grossjava9hacks:1.3.0", "net.minecraftforge:forgespi:2.1.2", "com.github.Nuclearfarts:AccessTransformers:jitpack-SNAPSHOT:shadowed", 
 				"net.minecraftforge:coremods:2.0.3", "org.ow2.asm:asm:8.0", "org.ow2.asm:asm-tree:8.0", "org.ow2.asm:asm-commons:8.0", "net.fabricmc:tiny-mappings-parser:0.2.2.14",
 				"com.electronwill.night-config:core:3.6.2", "com.electronwill.night-config:toml:3.6.2", "org.apache.maven:maven-artifact:3.6.0", "net.jodah:typetools:0.8.1",
 				"org.apache.logging.log4j:log4j-api:2.11.2", "org.apache.logging.log4j:log4j-core:2.11.2"}) {
