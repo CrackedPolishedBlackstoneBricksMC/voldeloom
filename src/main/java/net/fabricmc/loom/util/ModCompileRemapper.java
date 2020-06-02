@@ -28,7 +28,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 import java.util.zip.ZipFile;
 
 import org.gradle.api.Project;
@@ -52,32 +51,37 @@ import net.fabricmc.loom.processors.dependency.RemapData;
 import net.fabricmc.loom.providers.ForgeProvider;
 
 public class ModCompileRemapper {
-	public static void remapDependencies(Project project, String mappingsSuffix, LoomGradleExtension extension, Configuration modCompile, Configuration modCompileRemapped, Configuration regularCompile, SourceRemapper sourceRemapper) {
+	public static void remapDependencies(Project project, String mappingsSuffix, LoomGradleExtension extension, SourceRemapper sourceRemapper) {
 		Logger logger = project.getLogger();
 		DependencyHandler dependencies = project.getDependencies();
 
 		final File modStore = extension.getRemappedModCache();
 		final RemapData remapData = new RemapData(mappingsSuffix, modStore);
 
-		final List<ModDependencyInfo> modDependencies = new ArrayList<>();
+		for (RemappedConfigurationEntry entry : Constants.MOD_COMPILE_ENTRIES) {
+			Configuration sourceConfig = project.getConfigurations().getByName(entry.getSourceConfiguration());
+			Configuration remappedConfig = project.getConfigurations().getByName(entry.getRemappedConfiguration());
+			Configuration regularConfig = project.getConfigurations().getByName(entry.getTargetConfiguration(project.getConfigurations()));
 
-		for (ResolvedArtifact artifact : modCompile.getResolvedConfiguration().getResolvedArtifacts()) {
-			String group;
-			String name;
-			String version;
-			String classifierSuffix = artifact.getClassifier() == null ? "" : (":" + artifact.getClassifier());
+			List<ModDependencyInfo> modDependencies = new ArrayList<>();
 
-			if (artifact.getId().getComponentIdentifier() instanceof ModuleComponentIdentifier) {
-				group = ((ModuleComponentIdentifier) artifact.getId().getComponentIdentifier()).getGroup();
-				name = ((ModuleComponentIdentifier) artifact.getId().getComponentIdentifier()).getModule();
-				version = ((ModuleComponentIdentifier) artifact.getId().getComponentIdentifier()).getVersion();
-			} else {
-				group = "net.fabricmc.synthetic";
-				name = artifact.getId().getComponentIdentifier().getDisplayName().replace('.', '-').replace(" :", "-");
-				version = "0.1.0";
-			}
+			for (ResolvedArtifact artifact : sourceConfig.getResolvedConfiguration().getResolvedArtifacts()) {
+				String group;
+				String name;
+				String version;
+				String classifierSuffix = artifact.getClassifier() == null ? "" : (":" + artifact.getClassifier());
 
-			final String notation = group + ":" + name + ":" + version + classifierSuffix;
+				if (artifact.getId().getComponentIdentifier() instanceof ModuleComponentIdentifier) {
+					group = ((ModuleComponentIdentifier) artifact.getId().getComponentIdentifier()).getGroup();
+					name = ((ModuleComponentIdentifier) artifact.getId().getComponentIdentifier()).getModule();
+					version = ((ModuleComponentIdentifier) artifact.getId().getComponentIdentifier()).getVersion();
+				} else {
+					group = "net.fabricmc.synthetic";
+					name = artifact.getId().getComponentIdentifier().getDisplayName().replace('.', '-').replace(" :", "-");
+					version = "0.1.0";
+				}
+
+				final String notation = group + ":" + name + ":" + version + classifierSuffix;
 
 			// TODO re-implement check for mod
 			/*if (!isFabricMod(project, logger, artifact, notation)) {
@@ -85,44 +89,39 @@ public class ModCompileRemapper {
 				continue;
 			}*/
 
-			File sources = findSources(dependencies, artifact);
+				File sources = findSources(dependencies, artifact);
 
-			ModDependencyInfo info = new ModDependencyInfo(group, name, version, classifierSuffix, artifact.getFile(), remapData);
-			modDependencies.add(info);
+				ModDependencyInfo info = new ModDependencyInfo(group, name, version, classifierSuffix, artifact.getFile(), sources, remappedConfig, remapData);
+				modDependencies.add(info);
 
-			String remappedLog = group + ":" + name + ":" + version + classifierSuffix + " (" + mappingsSuffix + ")";
-			String remappedFilename = String.format("%s-%s@%s", name, version, mappingsSuffix + classifierSuffix.replace(':', '-'));
-			project.getLogger().info(":providing " + remappedLog);
+				String remappedLog = group + ":" + name + ":" + version + classifierSuffix + " (" + mappingsSuffix + ")";
+				project.getLogger().info(":providing " + remappedLog);
 
-			if (sources != null) {
-				scheduleSourcesRemapping(project, sourceRemapper, sources, remappedLog, remappedFilename, modStore);
+				if (sources != null) {
+					scheduleSourcesRemapping(project, sourceRemapper, info.sourcesFile, info.getRemappedNotation(), info.getRemappedFilename(), modStore);
+				}
 			}
-		}
 
-		if(modCompile.getName().equals("modImplementation")) {
-			System.out.println("injecting forge universal");
-			ForgeProvider forgeProvider = extension.getDependencyManager().getProvider(ForgeProvider.class);
-			modDependencies.add(new ModDependencyInfo("net.minecraftforge", "forgeuniversal", forgeProvider.getForgeVersion(), "", forgeProvider.getUniversalSrg().toFile(), remapData));
-			File universalSrc = findSources(dependencies, forgeProvider.getUniversalArtifact());
-			if(universalSrc != null) {
-				scheduleSourcesRemapping(project, sourceRemapper, universalSrc, "net.minecraftforge:forgeuniversal:" + forgeProvider.getForgeVersion() + " (" + mappingsSuffix + ")", String.format("forgeuniversal-%s@%s", forgeProvider.getForgeVersion(), mappingsSuffix), modStore);
+			if(entry.getSourceConfiguration().equals("modImplementation")) {
+				System.out.println("injecting forge universal");
+				ForgeProvider forgeProvider = extension.getDependencyManager().getProvider(ForgeProvider.class);
+				File universalSrc = findSources(dependencies, forgeProvider.getUniversalArtifact());
+				modDependencies.add(new ModDependencyInfo("net.minecraftforge", "forgeuniversal", forgeProvider.getForgeVersion(), "", forgeProvider.getUniversalSrg().toFile(), universalSrc, remappedConfig, remapData));
+				if(universalSrc != null) {
+					scheduleSourcesRemapping(project, sourceRemapper, universalSrc, "net.minecraftforge:forgeuniversal:" + forgeProvider.getForgeVersion() + " (" + mappingsSuffix + ")", String.format("forgeuniversal-%s@%s", forgeProvider.getForgeVersion(), mappingsSuffix), modStore);
+				}
 			}
-		}
 		
-		List<ModDependencyInfo> processList = modDependencies.stream()
-				.filter(ModDependencyInfo::requiresRemapping)
-				.collect(Collectors.toList());
-		
-		try {
-			ModProcessor.processMods(project, processList);
-		} catch (IOException e) {
-			throw new RuntimeException("Failed to remap mods", e);
-		}
-		
-		// Add all of the remapped mods onto the config
-		for (ModDependencyInfo modDependency : modDependencies) {
-			System.out.println(modDependency.getRemappedFilename());
-			project.getDependencies().add(modCompileRemapped.getName(), project.getDependencies().module(modDependency.getRemappedNotation()));
+			try {
+				ModProcessor.processMods(project, modDependencies);
+			} catch (IOException e) {
+				throw new RuntimeException("Failed to remap mods", e);
+			}
+
+			// Add all of the remapped mods onto the config
+			for (ModDependencyInfo info : modDependencies) {
+				project.getDependencies().add(info.targetConfig.getName(), project.getDependencies().module(info.getRemappedNotation()));
+			}
 		}
 	}
 
