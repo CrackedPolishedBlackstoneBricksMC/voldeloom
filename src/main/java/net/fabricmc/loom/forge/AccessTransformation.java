@@ -14,6 +14,7 @@ public class AccessTransformation {
 		ACCESS_MAP.put("public", Opcodes.ACC_PUBLIC);
 		ACCESS_MAP.put("protected", Opcodes.ACC_PROTECTED);
 		ACCESS_MAP.put("private", Opcodes.ACC_PRIVATE);
+		ACCESS_MAP.put("default", 0);
 	}
 	
 	private final int newAccess;
