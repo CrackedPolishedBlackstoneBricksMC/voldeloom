@@ -124,11 +124,11 @@ public class MappingsProvider extends DependencyProvider {
 // 				server.load(new CsvApplierAcceptor(merged, notMyAwfulHack, CsvApplierAcceptor.NEWNAME_SERVER_IN, CsvApplierAcceptor.NEWNAME_OUT));
 				
 				TinyWriter3Column writer = new TinyWriter3Column("official", "intermediary", "named");
-				merged.load(writer);
+				client.load(writer);
 				writer.acceptSecond();
 				MappingAcceptor fieldMapper = new CsvApplierAcceptor(writer, mcpZipFs.getPath("conf", "fields.csv"), CsvApplierAcceptor.GENERIC_IN, CsvApplierAcceptor.GENERIC_OUT);
 				MappingAcceptor methodMapper = new CsvApplierAcceptor(fieldMapper, mcpZipFs.getPath("conf", "methods.csv"), CsvApplierAcceptor.GENERIC_IN, CsvApplierAcceptor.GENERIC_OUT);
-				merged.load(methodMapper);
+				client.load(methodMapper);
 				mappingsDir.toFile().mkdirs();
 				tinyMappings.createNewFile();
 				try(OutputStream out = new BufferedOutputStream(new FileOutputStream(tinyMappings))) {
