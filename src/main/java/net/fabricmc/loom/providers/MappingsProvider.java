@@ -118,10 +118,10 @@ public class MappingsProvider extends DependencyProvider {
 				Pair<Map<String, String>, Collection<String>> data = SrgMappingProvider.calcInfo(minecraftProvider.getMergedJar());
 				SrgMappingProvider client = new SrgMappingProvider(mcpZipFs.getPath("conf", "client.srg"), data.getLeft(), data.getRight());
 				SrgMappingProvider server = new SrgMappingProvider(mcpZipFs.getPath("conf", "server.srg"), data.getLeft(), data.getRight());
-				Path notMyAwfulHack = mcpZipFs.getPath("conf", "newids.csv");
-				AcceptorProvider merged = new AcceptorProvider();
-				client.load(new CsvApplierAcceptor(merged, notMyAwfulHack, CsvApplierAcceptor.NEWNAME_CLIENT_IN, CsvApplierAcceptor.NEWNAME_OUT));
-				server.load(new CsvApplierAcceptor(merged, notMyAwfulHack, CsvApplierAcceptor.NEWNAME_SERVER_IN, CsvApplierAcceptor.NEWNAME_OUT));
+// 				Path notMyAwfulHack = mcpZipFs.getPath("conf", "newids.csv");
+// 				AcceptorProvider merged = new AcceptorProvider();
+// 				client.load(new CsvApplierAcceptor(merged, notMyAwfulHack, CsvApplierAcceptor.NEWNAME_CLIENT_IN, CsvApplierAcceptor.NEWNAME_OUT));
+// 				server.load(new CsvApplierAcceptor(merged, notMyAwfulHack, CsvApplierAcceptor.NEWNAME_SERVER_IN, CsvApplierAcceptor.NEWNAME_OUT));
 				
 				TinyWriter3Column writer = new TinyWriter3Column("official", "intermediary", "named");
 				merged.load(writer);
