@@ -126,8 +126,8 @@ public class MinecraftProvider extends DependencyProvider {
 		minecraftJson = new File(getExtension().getUserCache(), "minecraft-" + minecraftVersion + "-info.json");
 		minecraftClientJar = new File(getExtension().getUserCache(), "minecraft-" + minecraftVersion + "-client.jar");
 		minecraftServerJar = new File(getExtension().getUserCache(), "minecraft-" + minecraftVersion + "-server.jar");
-		minecraftMergedJar = new File(getExtension().getUserCache(), "minecraft-" + minecraftVersion + "-merged.jar");
-		minecraftPatchedMergedJar = new File(getExtension().getUserCache(), "minecraft-" + minecraftJarStuff + "-merged.jar");
+		minecraftMergedJar = new File(getExtension().getUserCache(), "minecraft-" + minecraftVersion + "-client.jar");
+		minecraftPatchedMergedJar = new File(getExtension().getUserCache(), "minecraft-" + minecraftJarStuff + "-client.jar");
 	}
 
 	private void downloadMcJson(boolean offline) throws IOException {
@@ -196,12 +196,12 @@ public class MinecraftProvider extends DependencyProvider {
 	}
 
 	private void mergeJars(Logger logger) throws IOException {
-		logger.lifecycle(":merging jars");
-
-		try (JarMerger jarMerger = new JarMerger(minecraftClientJar, minecraftServerJar, minecraftMergedJar)) {
-			jarMerger.enableSyntheticParamsOffset();
-			jarMerger.merge();
-		}
+// 		logger.lifecycle(":merging jars");
+// 
+// 		try (JarMerger jarMerger = new JarMerger(minecraftClientJar, minecraftServerJar, minecraftMergedJar)) {
+// 			jarMerger.enableSyntheticParamsOffset();
+// 			jarMerger.merge();
+// 		}
 	}
 
 	public File getMergedJar() {
