@@ -54,11 +54,11 @@ public class ForgeProvider extends DependencyProvider {
 		atConfig = new ForgeATConfig();
 		forgeVersion = dependency.getDependency().getVersion();
 		forge = dependency.resolveFile().orElseThrow(() -> new RuntimeException("No forge dep!"));
-		try(FileSystem zipFs = FileSystems.newFileSystem(URI.create("jar:" + forge.toURI()), FS_ENV)) {
-			atConfig.load(Files.newInputStream(zipFs.getPath("fml_at.cfg")));
-			atConfig.load(Files.newInputStream(zipFs.getPath("forge_at.cfg")));
-			zipFs.close();
-		}
+// 		try(FileSystem zipFs = FileSystems.newFileSystem(URI.create("jar:" + forge.toURI()), FS_ENV)) {
+// 			atConfig.load(Files.newInputStream(zipFs.getPath("fml_at.cfg")));
+// 			atConfig.load(Files.newInputStream(zipFs.getPath("forge_at.cfg")));
+// 			zipFs.close();
+// 		}
 		//remap(dependency.resolveFile().orElseThrow(() -> new RuntimeException("No forge dep!")), mappedForge);
 		
 		
