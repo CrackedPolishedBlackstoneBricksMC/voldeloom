@@ -122,9 +122,12 @@ public class MappingsProvider extends DependencyProvider {
 				AcceptorProvider merged = new AcceptorProvider();
 				client.load(new CsvApplierAcceptor(merged, notMyAwfulHack, CsvApplierAcceptor.NEWNAME_CLIENT_IN, CsvApplierAcceptor.NEWNAME_OUT));
 				server.load(new CsvApplierAcceptor(merged, notMyAwfulHack, CsvApplierAcceptor.NEWNAME_SERVER_IN, CsvApplierAcceptor.NEWNAME_OUT));
+				Path notMyAwfulHack2 = mcpZipFs.getPath("forge/fml/conf", "packages.csv");
+				AcceptorProvider packaged = new AcceptorProvider();
+				merged.load(new CsvApplierAcceptor(packaged, notMyAwfulHack2, CsvApplierAcceptor.PACKAGES_IN, CsvApplierAcceptor.PACKAGES_OUT));
 				
 				TinyWriter3Column writer = new TinyWriter3Column("official", "intermediary", "named");
-				merged.load(writer);
+				packaged.load(writer);
 				writer.acceptSecond();
 				MappingAcceptor fieldMapper = new CsvApplierAcceptor(writer, mcpZipFs.getPath("conf", "fields.csv"), CsvApplierAcceptor.GENERIC_IN, CsvApplierAcceptor.GENERIC_OUT);
 				MappingAcceptor methodMapper = new CsvApplierAcceptor(fieldMapper, mcpZipFs.getPath("conf", "methods.csv"), CsvApplierAcceptor.GENERIC_IN, CsvApplierAcceptor.GENERIC_OUT);

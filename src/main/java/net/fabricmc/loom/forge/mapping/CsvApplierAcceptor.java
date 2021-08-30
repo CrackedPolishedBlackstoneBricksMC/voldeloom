@@ -18,17 +18,27 @@ public class CsvApplierAcceptor implements MappingAcceptor {
 	public static final int GENERIC_IN = 0;
 	public static final int GENERIC_OUT = 1;
 	public static final int NEWNAME_OUT = 2;
+	public static final int PACKAGES_IN = -5;
+	public static final int PACKAGES_OUT = 1;
 	
 	private final Map<String, String> map = new HashMap<>();
 	private MappingAcceptor underlying;
 	
 	public CsvApplierAcceptor(MappingAcceptor underlying, Path mcpCsv, int unnamedIdx, int namedIdx) throws IOException {
 		this.underlying = underlying;
+		boolean packages = unnamedIdx == PACKAGES_IN;
+		if (packages) unnamedIdx = 0;
 		try(Scanner csvScanner = new Scanner(new BufferedInputStream(Files.newInputStream(mcpCsv)))) {
+			boolean firstLine = true;
 			while(csvScanner.hasNextLine()) {
+				if (firstLine) {
+					firstLine = false;
+					// packages CSV has a header as the first line
+					if (packages) continue;
+				}
 				String[] line = csvScanner.nextLine().split(",");
 				if(!line[unnamedIdx].equals("*")) {
-					map.put(line[unnamedIdx], line[namedIdx]);
+					map.put((packages ? "net/minecraft/src/" : "")+line[unnamedIdx], line[namedIdx]);
 				}
 			}
 		}
