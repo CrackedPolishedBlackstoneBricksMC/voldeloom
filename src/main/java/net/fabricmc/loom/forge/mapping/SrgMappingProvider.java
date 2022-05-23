@@ -52,14 +52,16 @@ public class SrgMappingProvider implements IMappingProvider {
 						System.out.println("Could not load descriptor for mapped field, skipping: " + line[1]);
 						break;
 					}
-					String[] splitUnmapped = line[1].split("/");
-					String mappedName = line[2].substring(line[2].lastIndexOf('/') + 1, line[2].length());
-					fields.add(Pair.of(new Member(splitUnmapped[0], splitUnmapped[1], fieldDescs.get(line[1])), mappedName));
+					String unmappedClass = line[1].substring(0, line[1].lastIndexOf('/'));
+					String unmappedName = line[1].substring(line[1].lastIndexOf('/')+1);
+					String mappedName = line[2].substring(line[2].lastIndexOf('/')+1);
+					fields.add(Pair.of(new Member(unmappedClass, unmappedName, fieldDescs.get(line[1])), mappedName));
 					break;
 				case "MD:":
-					splitUnmapped = line[1].split("/");
+					unmappedClass = line[1].substring(0, line[1].lastIndexOf('/'));
+					unmappedName = line[1].substring(line[1].lastIndexOf('/')+1);
 					mappedName = line[3].substring(line[3].lastIndexOf('/') + 1, line[3].length());
-					methods.add(Pair.of(new Member(splitUnmapped[0], splitUnmapped[1], line[2]), mappedName));
+					methods.add(Pair.of(new Member(unmappedClass, unmappedName, line[2]), mappedName));
 					break;
 				default:
 					break;
