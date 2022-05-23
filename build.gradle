@@ -10,9 +10,9 @@ plugins {
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
 
-group = 'net.fabricmc'
-archivesBaseName = project.name
-version = '0.2.7-CURSEDFORGE'
+group = 'com.unascribed'
+archivesBaseName = 'voldeloom'
+version = '1.0+1.2.5'
 
 def build = "local"
 def ENV = System.getenv()
@@ -88,7 +88,7 @@ task javadocJar(type: Jar, dependsOn: javadoc) {
 gradlePlugin {
 	plugins {
 		fabricLoom {
-			id = "fabric-loom"
+			id = "com.unascribed.voldeloom"
 			implementationClass = "net.fabricmc.loom.LoomGradlePlugin"
 		}
 	}
@@ -108,14 +108,17 @@ publishing {
 		}
 	}
 	repositories {
-		maven {
-			url "http://mavenupload.modmuss50.me/"
-			if (project.hasProperty('mavenPass')) {
+		if (project.hasProperty("publish-username")) {
+			maven {
+				url "https://repo-api.sleeping.town/"
 				credentials {
-					username 'buildslave'
-					password project.getProperty('mavenPass')
+					username project.hasProperty("publish-username") ? project.getProperty("publish-username") : null
+					password project.hasProperty("publish-password") ? project.getProperty("publish-password") : null
 				}
 			}
+		}
+		maven {
+			url file('build/maven').toURI().toString()
 		}
 	}
 }
