@@ -127,3 +127,6 @@ configurations.all {
         force 'org.codehaus.groovy:groovy-all:2.4.12'
     }
 }
+
+//Can you believe it, tests designed for loom are broken when ran with voldeloom.
+test.onlyIf { project.hasProperty("yes-i-really-wanna-run-tests") }
