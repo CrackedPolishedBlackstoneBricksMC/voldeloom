@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.HashSet;
 
+import net.fabricmc.loom.AbstractPlugin;
 import org.gradle.api.Project;
 
 import net.fabricmc.loom.LoomGradleExtension;
@@ -59,10 +60,10 @@ public class MinecraftLibraryProvider {
 
 				project.getDependencies().add(Constants.MINECRAFT_DEPENDENCIES, project.getDependencies().module(library.getArtifactName()));
 				// voldeloom: add loader's dependencies. versions this old simply do not depend on these.
-				project.getDependencies().add("runtime", project.getDependencies().module("org.apache.logging.log4j:log4j-core:2.8.1"));
-				project.getDependencies().add("runtime", project.getDependencies().module("org.apache.logging.log4j:log4j-api:2.8.1"));
-				project.getDependencies().add("runtime", project.getDependencies().module("com.google.code.gson:gson:2.8.6"));
-				project.getDependencies().add("runtime", project.getDependencies().module("com.google.guava:guava:28.0-jre"));
+				project.getDependencies().add(AbstractPlugin.runtimeOrRuntimeOnly, project.getDependencies().module("org.apache.logging.log4j:log4j-core:2.8.1"));
+				project.getDependencies().add(AbstractPlugin.runtimeOrRuntimeOnly, project.getDependencies().module("org.apache.logging.log4j:log4j-api:2.8.1"));
+				project.getDependencies().add(AbstractPlugin.runtimeOrRuntimeOnly, project.getDependencies().module("com.google.code.gson:gson:2.8.6"));
+				project.getDependencies().add(AbstractPlugin.runtimeOrRuntimeOnly, project.getDependencies().module("com.google.guava:guava:28.0-jre"));
 			}
 		}
 	}
