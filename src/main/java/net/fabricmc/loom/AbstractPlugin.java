@@ -36,6 +36,7 @@ import groovy.util.Node;
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
 import org.gradle.api.Task;
+import org.gradle.api.UnknownDomainObjectException;
 import org.gradle.api.UnknownTaskException;
 import org.gradle.api.artifacts.Configuration;
 import org.gradle.api.artifacts.Dependency;
@@ -68,6 +69,10 @@ import net.fabricmc.loom.util.SetupIntelijRunConfigs;
 public class AbstractPlugin implements Plugin<Project> {
 	protected Project project;
 
+	//(WEIRD VOLDELOOM STUFF)
+	public static String compileOrImplementation;
+	public static String runtimeOrRuntimeOnly;
+
 	public static boolean isRootProject(Project project) {
 		return project.getRootProject() == project;
 	}
@@ -86,6 +91,19 @@ public class AbstractPlugin implements Plugin<Project> {
 		project.apply(ImmutableMap.of("plugin", "java"));
 		project.apply(ImmutableMap.of("plugin", "eclipse"));
 		project.apply(ImmutableMap.of("plugin", "idea"));
+
+		//(WEIRD VOLDELOOM STUFF)
+		//Gradle 7 decided to rename "compile" to "implementation" and "runtime" to "runtimeOnly"
+		//They're basically the same thing so we can just swap out the names as-appropriate
+		try {
+			project.getConfigurations().getByName("compile");
+			compileOrImplementation = "compile";
+			runtimeOrRuntimeOnly = "runtime";
+		} catch (UnknownDomainObjectException e) {
+			compileOrImplementation = "implementation";
+			runtimeOrRuntimeOnly = "runtimeOnly";
+		}
+		//(/WEIRD VOLDELOOM STUFF)
 
 		project.getExtensions().create("minecraft", LoomGradleExtension.class, project);
 
@@ -126,7 +144,7 @@ public class AbstractPlugin implements Plugin<Project> {
 			}
 		}
 
-		extendsFrom("compile", Constants.MINECRAFT_NAMED);
+		extendsFrom(compileOrImplementation, Constants.MINECRAFT_NAMED);
 
 		if (!extension.ideSync()) {
 			extendsFrom("annotationProcessor", Constants.MINECRAFT_NAMED);
@@ -135,7 +153,7 @@ public class AbstractPlugin implements Plugin<Project> {
 
 		extendsFrom(Constants.MINECRAFT_NAMED, Constants.MINECRAFT_DEPENDENCIES);
 
-		extendsFrom("compile", Constants.MAPPINGS_FINAL);
+		extendsFrom(compileOrImplementation, Constants.MAPPINGS_FINAL);
 
 		if (!extension.ideSync()) {
 			extendsFrom("annotationProcessor", Constants.MAPPINGS_FINAL);
