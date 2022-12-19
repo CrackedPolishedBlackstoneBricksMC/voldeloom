@@ -1,23 +1,17 @@
 # quat was here!!!!!!
 
-/bin
-/build
+/**/bin
+/**/build
 /**/.gradle
-/.classpath
-/.project
-/.settings
-/.metadata
-/download
-.idea/
+/**/.classpath
+/**/.project
+/**/.settings
+/**/.metadata
+/**/download
+/**/.idea/
 
-# gradle haxx
-/**/mcp726a.zip
-/**/mcp726a-forged.zip
-/**/forge*.zip
-/**/forge*.jar
-
-# personal use
-lol.sh
+# hmmmmm
+*.zip
 *.jar
 
 # Dammit krita
