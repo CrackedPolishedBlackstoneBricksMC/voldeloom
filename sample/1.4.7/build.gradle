@@ -8,7 +8,7 @@ buildscript {
 		mavenCentral()
 		gradlePluginPortal()
 		maven { url "https://maven.fabricmc.net" }
-		//maven { url "https://repo.sleeping.town" } //Commented out to use the version of voldeloom in the settings.gradle includeBuild
+		//maven { url "https://repo.sleeping.town" } //Commented out to use the version of voldeloom in the settings.gradle includeBuild (hopefully??)
 	}
 	dependencies {
 		classpath "com.unascribed:voldeloom:1.0.2+1.4.7"
@@ -16,23 +16,6 @@ buildscript {
 }
 
 apply plugin: "com.unascribed.voldeloom"
-
-repositories {
-	maven {
-		url = "https://maven.minecraftforge.net/"
-		content {
-			includeGroup "net.minecraftforge"
-			
-			//Gradle 5 and above, by default, assume an artifact doesn't exist
-			//if it can't find a maven_metadata.xml, to cut down on the amount
-			//of spurious 404 requests. But Forge doesn't publish any maven pom
-			//files for their old versions. This opts in to the old behavior.
-			metadataSources {
-				artifact()
-			}
-		}
-	}
-}
 
 def forgeVersion = "1.4.7-6.6.2.534"
 def minecraftVersion = "1.4.7"

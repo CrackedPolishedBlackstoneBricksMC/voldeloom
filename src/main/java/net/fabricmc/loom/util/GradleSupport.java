@@ -27,13 +27,20 @@ package net.fabricmc.loom.util;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
+import org.gradle.api.Action;
 import org.gradle.api.Project;
+import org.gradle.api.UnknownDomainObjectException;
+import org.gradle.api.artifacts.repositories.ArtifactRepository;
 import org.gradle.api.file.ProjectLayout;
 import org.gradle.api.file.RegularFileProperty;
 import org.gradle.api.model.ObjectFactory;
 
 //This is used to bridge the gap over large gradle api changes.
 public class GradleSupport {
+	//(WEIRD VOLDELOOM STUFF)
+	public static String compileOrImplementation;
+	public static String runtimeOrRuntimeOnly;
+	
 	public static RegularFileProperty getfileProperty(Project project) {
 		try {
 			//First try the new method,
@@ -61,5 +68,43 @@ public class GradleSupport {
 		Method method = layout.getClass().getDeclaredMethod("fileProperty");
 		method.setAccessible(true);
 		return (RegularFileProperty) method.invoke(layout);
+	}
+	
+	//(VOLDELOOM-DISASTER) Gradle 7 decided to rename "compile" to "implementation" and "runtime" to "runtimeOnly"
+	//They're basically the same thing so we can just swap out the names as-appropriate.
+	public static void detectConfigurationNames(Project project) {
+		try {
+			project.getConfigurations().getByName("compile");
+			compileOrImplementation = "compile";
+			runtimeOrRuntimeOnly = "runtime";
+		} catch (UnknownDomainObjectException e) {
+			compileOrImplementation = "implementation";
+			runtimeOrRuntimeOnly = "runtimeOnly";
+		}
+	}
+	
+	//(VOLDELOOM-DISASTER) includeGroup is an optimization that avoids making spurious HTTP requests to unrelated repos.
+	//This doesn't exist in Gradle 4, which this project currently compiles against.
+	public static void maybeSetIncludeGroup(ArtifactRepository repo, String includeGroup) {
+		Method contentMethod;
+		try {
+			contentMethod = repo.getClass().getDeclaredMethod("content", Action.class);
+		} catch (NoSuchMethodException e) {
+			//We expect this in gradle 4.x.
+			return;
+		}
+		
+		try {
+			Action<Object> erasedAction = (obj) -> {
+				try {
+					obj.getClass().getMethod("includeGroup", String.class).invoke(obj, includeGroup);
+				} catch (ReflectiveOperationException e) {
+					throw new RuntimeException(e);
+				}
+			};
+			contentMethod.invoke(repo, erasedAction);
+		} catch (ReflectiveOperationException e) {
+			throw new RuntimeException(e);
+		}
 	}
 }

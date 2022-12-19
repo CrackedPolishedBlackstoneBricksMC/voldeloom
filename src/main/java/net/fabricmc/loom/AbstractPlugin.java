@@ -33,10 +33,10 @@ import java.util.Set;
 
 import com.google.common.collect.ImmutableMap;
 import groovy.util.Node;
+import net.fabricmc.loom.util.GradleSupport;
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
 import org.gradle.api.Task;
-import org.gradle.api.UnknownDomainObjectException;
 import org.gradle.api.UnknownTaskException;
 import org.gradle.api.artifacts.Configuration;
 import org.gradle.api.artifacts.Dependency;
@@ -69,10 +69,6 @@ import net.fabricmc.loom.util.SetupIntelijRunConfigs;
 public class AbstractPlugin implements Plugin<Project> {
 	protected Project project;
 
-	//(WEIRD VOLDELOOM STUFF)
-	public static String compileOrImplementation;
-	public static String runtimeOrRuntimeOnly;
-
 	public static boolean isRootProject(Project project) {
 		return project.getRootProject() == project;
 	}
@@ -91,26 +87,29 @@ public class AbstractPlugin implements Plugin<Project> {
 		project.apply(ImmutableMap.of("plugin", "java"));
 		project.apply(ImmutableMap.of("plugin", "eclipse"));
 		project.apply(ImmutableMap.of("plugin", "idea"));
-
-		//(WEIRD VOLDELOOM STUFF)
-		//Gradle 7 decided to rename "compile" to "implementation" and "runtime" to "runtimeOnly"
-		//They're basically the same thing so we can just swap out the names as-appropriate
-		try {
-			project.getConfigurations().getByName("compile");
-			compileOrImplementation = "compile";
-			runtimeOrRuntimeOnly = "runtime";
-		} catch (UnknownDomainObjectException e) {
-			compileOrImplementation = "implementation";
-			runtimeOrRuntimeOnly = "runtimeOnly";
-		}
-		//(/WEIRD VOLDELOOM STUFF)
+		GradleSupport.detectConfigurationNames(project);
 
 		project.getExtensions().create("minecraft", LoomGradleExtension.class, project);
 
 		LoomGradleExtension extension = project.getExtensions().getByType(LoomGradleExtension.class);
-		// Force add Mojang repository
-		addMavenRepo(target, "Mojang", "https://libraries.minecraft.net/");
-
+		// Add Mojang's repository
+		target.getRepositories().maven(repo -> {
+			repo.setName("Mojang");
+			repo.setUrl("https://libraries.minecraft.net/");
+		});
+		
+		//(VOLDELOOM-DISASTER) Add Forge's repository as well, and set up the incantations required to make it work
+		target.getRepositories().maven(repo -> {
+			repo.setName("Minecraft Forge");
+			repo.setUrl("https://maven.minecraftforge.net/");
+			GradleSupport.maybeSetIncludeGroup(repo, "net.minecraftforge");
+			
+			//Gradle 5 and above, by default, assumes an artifact doesn't exist if it can't find a maven_metadata.xml, to cut down on the amount
+			//of spurious 404 requests. But Forge doesn't publish any maven pom files for their old versions, so this opts in to the old behavior.
+			//I don't believe this breaks Gradle 4.
+			repo.metadataSources(MavenArtifactRepository.MetadataSources::artifact);
+		});
+		
 		Configuration modCompileClasspathConfig = project.getConfigurations().maybeCreate(Constants.MOD_COMPILE_CLASSPATH);
 		modCompileClasspathConfig.setTransitive(true);
 		Configuration modCompileClasspathMappedConfig = project.getConfigurations().maybeCreate(Constants.MOD_COMPILE_CLASSPATH_MAPPED);
@@ -144,7 +143,7 @@ public class AbstractPlugin implements Plugin<Project> {
 			}
 		}
 
-		extendsFrom(compileOrImplementation, Constants.MINECRAFT_NAMED);
+		extendsFrom(GradleSupport.compileOrImplementation, Constants.MINECRAFT_NAMED);
 
 		if (!extension.ideSync()) {
 			extendsFrom("annotationProcessor", Constants.MINECRAFT_NAMED);
@@ -153,7 +152,7 @@ public class AbstractPlugin implements Plugin<Project> {
 
 		extendsFrom(Constants.MINECRAFT_NAMED, Constants.MINECRAFT_DEPENDENCIES);
 
-		extendsFrom(compileOrImplementation, Constants.MAPPINGS_FINAL);
+		extendsFrom(GradleSupport.compileOrImplementation, Constants.MAPPINGS_FINAL);
 
 		if (!extension.ideSync()) {
 			extendsFrom("annotationProcessor", Constants.MAPPINGS_FINAL);
@@ -213,22 +212,7 @@ public class AbstractPlugin implements Plugin<Project> {
 			}
 		});
 	}
-
-	/**
-	 * Permit to add a Maven repository to a target project.
-	 *
-	 * @param target The garget project
-	 * @param name   The name of the repository
-	 * @param url    The URL of the repository
-	 * @return An object containing the name and the URL of the repository that can be modified later
-	 */
-	public MavenArtifactRepository addMavenRepo(Project target, final String name, final String url) {
-		return target.getRepositories().maven(repo -> {
-			repo.setName(name);
-			repo.setUrl(url);
-		});
-	}
-
+	
 	/**
 	 * Add Minecraft dependencies to IDE dependencies.
 	 */
@@ -282,7 +266,7 @@ public class AbstractPlugin implements Plugin<Project> {
 			});
 
 			project1.getRepositories().mavenCentral();
-			project1.getRepositories().jcenter();
+			//project1.getRepositories().jcenter(); //(VOLDELOOM-DISASTER) jcenter is dead, this can't lead to anything good
 
 			LoomDependencyManager dependencyManager = new LoomDependencyManager();
 			extension.setDependencyManager(dependencyManager);

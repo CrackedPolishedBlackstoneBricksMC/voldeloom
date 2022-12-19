@@ -24,7 +24,6 @@
 
 package net.fabricmc.loom.util;
 
-import net.fabricmc.loom.AbstractPlugin;
 import org.gradle.api.artifacts.ConfigurationContainer;
 
 public class RemappedConfigurationEntry {
@@ -62,7 +61,7 @@ public class RemappedConfigurationEntry {
 
 	public String getTargetConfiguration(ConfigurationContainer container) {
 		if (container.findByName(targetConfiguration) == null) {
-			return AbstractPlugin.compileOrImplementation;
+			return GradleSupport.compileOrImplementation;
 		}
 
 		return targetConfiguration;
