@@ -133,10 +133,11 @@ public class MigrateMappingsTask extends AbstractLoomTask {
 		return Iterables.getOnlyElement(files);
 	}
 
+	@SuppressWarnings("RedundantCast") //newFileSystem type ascription is needed for Java forwards-compatibility reasons
 	private static TinyTree getMappings(File mappings) throws IOException {
 		Path temp = Files.createTempFile("mappings", ".tiny");
 
-		try (FileSystem fileSystem = FileSystems.newFileSystem(mappings.toPath(), null)) {
+		try (FileSystem fileSystem = FileSystems.newFileSystem(mappings.toPath(), (ClassLoader) null)) {
 			Files.copy(fileSystem.getPath("mappings/mappings.tiny"), temp, StandardCopyOption.REPLACE_EXISTING);
 		}
 

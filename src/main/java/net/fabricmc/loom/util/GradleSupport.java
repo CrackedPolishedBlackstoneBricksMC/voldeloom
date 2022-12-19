@@ -28,6 +28,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
 import org.gradle.api.Project;
+import org.gradle.api.file.ProjectLayout;
 import org.gradle.api.file.RegularFileProperty;
 import org.gradle.api.model.ObjectFactory;
 
@@ -35,13 +36,16 @@ import org.gradle.api.model.ObjectFactory;
 public class GradleSupport {
 	public static RegularFileProperty getfileProperty(Project project) {
 		try {
-			//First try the new method, if that fails fall back.
+			//First try the new method,
 			return getfilePropertyModern(project);
 		} catch (Exception e) {
-			//Nope
+			try {
+				//if that fails fall back.
+				return getfilePropertyLegacy(project);
+			} catch (Exception ee) {
+				throw new RuntimeException("Unable to getfileProperty... pensive");
+			}
 		}
-
-		return getfilePropertyLegacy(project);
 	}
 
 	private static RegularFileProperty getfilePropertyModern(Project project) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
@@ -51,7 +55,11 @@ public class GradleSupport {
 		return (RegularFileProperty) method.invoke(objectFactory);
 	}
 
-	private static RegularFileProperty getfilePropertyLegacy(Project project) {
-		return project.getLayout().fileProperty();
+	//VOLDELOOM-DISASTER: Rewrote this to use reflection too, so it at least compiles against modern Gradle
+	private static RegularFileProperty getfilePropertyLegacy(Project project) throws ReflectiveOperationException {
+		ProjectLayout layout = project.getLayout();
+		Method method = layout.getClass().getDeclaredMethod("fileProperty");
+		method.setAccessible(true);
+		return (RegularFileProperty) method.invoke(layout);
 	}
 }
