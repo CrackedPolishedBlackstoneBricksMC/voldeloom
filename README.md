@@ -1,6 +1,3 @@
-# fabric-loom
-Gradle plugin for Fabric
+# Voldeloom-disastertime
 
-Usage: `gradlew setup idea`
-(Use `./gradle` on macOS and Linux)
-
+Gradle plugin for ~~Fabric~~ ancient versions of Forge. Based on an ancient version of Fabric Loom.
