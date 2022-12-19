@@ -1,0 +1,82 @@
+import java.nio.file.Path
+import java.nio.file.FileSystems
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
+
+buildscript {
+	repositories {
+		mavenCentral()
+		gradlePluginPortal()
+		maven { url "https://maven.fabricmc.net" }
+		//maven { url "https://repo.sleeping.town" } //Commented out to use the version of voldeloom in the settings.gradle includeBuild
+	}
+	dependencies {
+		classpath "com.unascribed:voldeloom:1.0.2+1.4.7"
+	}
+}
+
+apply plugin: "com.unascribed.voldeloom"
+
+repositories {
+	maven {
+		url = "https://maven.minecraftforge.net/"
+		content {
+			includeGroup "net.minecraftforge"
+			
+			//Gradle 5 and above, by default, assume an artifact doesn't exist
+			//if it can't find a maven_metadata.xml, to cut down on the amount
+			//of spurious 404 requests. But Forge doesn't publish any maven pom
+			//files for their old versions. This opts in to the old behavior.
+			metadataSources {
+				artifact()
+			}
+		}
+	}
+}
+
+def forgeVersion = "1.4.7-6.6.2.534"
+def minecraftVersion = "1.4.7"
+
+def mcp = "mcp726a.zip"
+def forgeSource = "forge${forgeVersion}-src.zip"
+def mcpForged = "mcp726a-forged.zip"
+
+void get(File file, String url) {
+	println "Downloading ${url} to ${file}... (might take a bit)"
+	file.withOutputStream { it << new URL(url).openStream() }
+	if(file.length() == 0) throw new IllegalStateException("${url} downloaded as 0 bytes. Archive.org sometimes returns 0-byte files on 404s, double-check the url?")
+}
+
+if(!file(mcp).exists()) get(file(mcp), "https://archive.org/download/minecraftcoderpack/minecraftcoderpack.zip/minecraftcoderpack%2F${minecraftVersion}%2F${mcp}")
+if(!file(forgeSource).exists()) get(file(forgeSource), "https://maven.minecraftforge.net/net/minecraftforge/forge/${forgeVersion}/forge-${forgeVersion}-src.zip")
+if(!file(mcpForged).exists()) {
+	println "Merging Forge config into MCP..."
+	
+	Path mcpZipPath = file(mcp).toPath()
+	Path forgeZipPath = file(forgeSource).toPath()
+	Path mcpForgedPath = file(mcpForged).toPath()
+	
+	Files.copy(mcpZipPath, mcpForgedPath, StandardCopyOption.REPLACE_EXISTING)
+	
+	//modify the zip in-place with zip filesystem.
+	//Take forge's mcp config (located at forge.zip/forge/fml/conf) and paste it over mcp.zip (at mcp726a-forged.zip/conf)
+	//Why the ClassLoader type ascription? Because of this https://bugs.openjdk.org/browse/JDK-8223197
+	FileSystems.newFileSystem(mcpForgedPath, (ClassLoader) null).withCloseable {mcpForgedFs ->
+		FileSystems.newFileSystem(forgeZipPath, (ClassLoader) null).withCloseable {forgeZipFs ->
+			Files.walk(forgeZipFs.getPath("/forge/fml/conf")).forEach {src ->
+				if (Files.isRegularFile(src)) {
+					Path dst = mcpForgedFs.getPath(src.toString().substring("/forge/fml".length())) //hopefully this works lol
+					println "Copying ${src} (${src.fileSystem}) into ${dst} (${dst.fileSystem})"
+					Files.createDirectories(dst.parent)
+					Files.copy(src, dst, StandardCopyOption.REPLACE_EXISTING)
+				}
+			}
+		}
+	}
+}
+
+dependencies {
+	minecraft "com.mojang:minecraft:1.4.7"
+	forge "net.minecraftforge:forge:1.4.7-6.6.2.534:universal@zip"
+	mappings files(mcpForged)
+}

@@ -1,22 +1,26 @@
-# Ignore everything
-/*
+# quat was here!!!!!!
 
-# Folders
-!/gradle
-!/src
+/bin
+/build
+/**/.gradle
+/.classpath
+/.project
+/.settings
+/.metadata
+/download
+.idea/
 
-# Files
-!/.gitattributes
-!/.gitignore
-!/.editorconfig
-!/build.gradle
-!/gradle.properties
-!/gradlew
-!/gradlew.bat
-!/HEADER
-!/LICENSE
-!/README.md
-!/settings.gradle
-!/Jenkinsfile
-!/.travis.yml
-!/checkstyle.xml
+# gradle haxx
+/**/mcp726a.zip
+/**/mcp726a-forged.zip
+/**/forge*.zip
+/**/forge*.jar
+
+# personal use
+lol.sh
+*.jar
+
+# Dammit krita
+*.png~
+*.kra~
+*autosave.kra
