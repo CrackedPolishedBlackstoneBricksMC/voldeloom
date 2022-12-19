@@ -20,8 +20,6 @@ idk lol. Println
 
 ## Common problems (for consumers)
 
-*Weird NPEs when only sketching in the build.gradle:* Currently it crashes if mappings are not defined.
-
-*zip END header not found:* Check your mcp zip, it's usually obtained from the Internet Archive and IA likes to return zero-byte files on 404 errors. Or at least, the janky file downloaded included in buildscripts likes to silently fail with zero-byte files. Ideally this shouldn't happen.
+*Weird NPEs when only sketching in the build.gradle:* Currently it crashes if a set of mappings is not defined. Ideally it should skip mappings-related tasks instead.
 
 *`Failed to provide null:unspecified:null : conf/packages.csv`:* Mapping parsing/jar remapping/something in that area blew up. If this failed due to missing `packages.csv`, use a mcp zip merged with a forge zip; this is janky as hell I know you shouldn't have to do this. want to fix that.

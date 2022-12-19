@@ -27,7 +27,6 @@ def mcpForged = "mcp726a-forged.zip"
 void get(File file, String url) {
 	println "Downloading ${url} to ${file}... (might take a bit)"
 	file.withOutputStream { it << new URL(url).openStream() }
-	if(file.length() == 0) throw new IllegalStateException("${url} downloaded as 0 bytes. Archive.org sometimes returns 0-byte files on 404s, double-check the url?")
 }
 
 if(!file(mcp).exists()) get(file(mcp), "https://archive.org/download/minecraftcoderpack/minecraftcoderpack.zip/minecraftcoderpack%2F${minecraftVersion}%2F${mcp}")

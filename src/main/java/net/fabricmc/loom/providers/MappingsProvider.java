@@ -39,6 +39,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.zip.ZipError;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.tools.ant.util.StringUtils;
@@ -114,6 +115,17 @@ public class MappingsProvider extends DependencyProvider {
 		tinyMappingsJar = new File(getExtension().getUserCache(), mappingsJar.getName().replace(".jar", "-" + jarClassifier + ".jar"));
 		
 		if (!tinyMappings.exists()) {
+			long filesize;
+			try {
+				filesize = Files.size(mappingsJar.toPath());
+			} catch (Exception e) {
+				throw new RuntimeException("Problem statting mappings zip", e);
+			}
+			if(filesize == 0) {
+				throw new RuntimeException("The mappings zip at " + mappingsJar.toPath() + " is a 0-byte file. Please double-check the URL and redownload. " +
+					"If you obtained this from the Internet Archive, note that it likes to return 0-byte files instead of 404 errors.");
+			}
+			
 			try(FileSystem mcpZipFs = FileSystems.newFileSystem(URI.create("jar:" + mappingsJar.toURI()), FS_ENV)) {
 				Pair<Map<String, String>, Collection<String>> data = SrgMappingProvider.calcInfo(minecraftProvider.getMergedJar());
 				SrgMappingProvider client = new SrgMappingProvider(mcpZipFs.getPath("conf", "client.srg"), data.getLeft(), data.getRight());

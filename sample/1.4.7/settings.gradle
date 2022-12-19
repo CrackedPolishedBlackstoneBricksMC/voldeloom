@@ -1,3 +1,4 @@
 rootProject.name = "voldeloom-sample-1.4.7"
 
+//If you're starting a new project from this buildscript, remove this line, please.
 includeBuild("../../")
