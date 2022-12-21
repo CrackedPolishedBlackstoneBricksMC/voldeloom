@@ -80,6 +80,93 @@ and the current set of forge extensions
 * `TinyWriter3Column` is used to write an `official intermediary named` file, which miiiiight be retrieved later for doing remapping somewhere idk (it's "mappings_final")
 * `ForgeATProvider` is a tiny remapper imappingprovider acceptor thingie
 
+## Flow through the system
+
+`LoomGradlePlugin` is the entry point when you call `apply plugin`. It's split across `AbstractPlugin` and that class, for some reason. AbstractPlugin happens first so i will document that
+
+* Log message is printed
+* `java`, `eclipse`, and `idea` plugins are applied (for some reason), as if you typed `apply plugin: "eclipse"`
+* (my fork) `GradleSupport.detectConfigurationNames` determines if you're on a `compile` or `implementation`-flavored version of Gradle
+* An *extension* is created, LoomGradleExtension; this is what defines the `minecraft {` block you can type some settings into. I think more recent versions call this `loom`
+* A couple maven repos are added, as if you typed them in to a `repositories {` block (Mojang's, and (my fork) Minecraft Forge)
+* Several [*configurations*](https://docs.gradle.org/current/dsl/org.gradle.api.artifacts.Configuration.html) are created
+  * `modCompileClasspath`
+  * `modCompileClasspathMapped`, extends `annotationProcessor` if `!idea.sync.active`
+  * `minecraftNamed` - extends `compile`/`implementation`, extends `annotationProcessor` if `!idea.sync.active`
+  * `minecraftDependencies`
+  * `minecraft` - extends `compile`/`implementation`
+  * `include`
+    * for jar in jar stuff
+  * `mappings`
+    * for the mappings version
+  * `mappings_final`
+    * extends `compile`/`implementation`, extends `annotationProcessor` if `!idea.sync.active`
+  * `forge` for voldeloom cursed forge stuff
+  * and a couple for mod dependencies:
+  * `modCompile` - extends `modCompileClasspath`
+    * and `compile` is set to extend `modCompileClasspathMapped`
+  * `modApi` - extends `modCompileClasspath`
+    * and `api` is set to extend `modCompileClasspathMapped`
+  * `modImplementation` - extends `modCompileClasspath`
+    * and `implementation` is set to extend `modCompileClasspathMapped`
+  * `modRuntime`
+    * and `runtime` is set to extend `modCompileClasspathMapped`
+  * `modCompileOnly` - extends `modCompileClasspath`
+    * and `compileOnly` is set to extend `modCompileClasspathMapped`
+
+`configureIDEs` is called to configure IntelliJ IDEA:
+* adds `.gradle`, `.build`, `.idea`, and `out` to the IDEA module's exclusion dirs
+* configures the IDEA module to download javadoc and sources
+* configures `inheritOutputDirs` (see [here](https://github.com/gradle/gradle/blob/c5a095b265396cd4ee498ff71ddece098a3b7c73/subprojects/ide/src/main/java/org/gradle/plugins/ide/idea/model/IdeaModule.java#L437-L449)?)
+  * I thiiiiink this makes it so you don't need to reteach intellij that yes, you would like build artifacts in the `build/` directory please? (intellij users will know whats up)
+
+`configureCompile` is called to configure javac. It uses [JavaPluginConvention](https://github.com/gradle/gradle/blob/c5a095b265396cd4ee498ff71ddece098a3b7c73/subprojects/plugins/src/main/java/org/gradle/api/plugins/JavaPluginConvention.java), which is apparently deprecated as of gradle 7, but when Loom was written it used gradle 4 where it was not deprecated.
+
+I believe it locates the same thing that you locate when you write a `java {` block in your gradle.
+
+* Sets the Javadoc classpath to include the main source set's output plus the main source set's compilation classpath. Why is this done, who knows.
+* If `!idea.sync.active`, `fabric_mixin_compile_extensions` is added to the annotation processor list.
+* In an `afterEvaluate` block:
+  * A billion maven repos are added for some reason. FabricMC's, Mojang's (again), Maven Central, before i removed it in my fork even JCenter.
+  * A `flatDir` maven repo is also added for the directories `UserLocalCacheFiles` (under the root project's `build/loom-cache` dir) and `UserLocalRemappedMods` (`.gradle/loom-cache/remapped_mods`).
+  * A `LoomDependencyManager` is created and added to the `LoomGradleExtension`.
+  * A `ForgeProvider`, `MinecraftProvider`, `MappingsProvider`, and `LaunchProvider` are added to the dependency manager.
+  * `handleDependencies` is called on the dependency manager.
+    * TODO: looks like a rabbit hole, study further
+  * The `idea` task is set to be `finalizedBy` the `genIdeaWorkspace` task. Similarly for `eclipse` and `genEclipseRuns`.
+  * If `extension.autoGenIDERuns` is set (defaults to true), a static helper in the `SetupIntellijRunConfigs` class is called to do that.
+  * If `extension.remapMod` is set (defaults to true), it "`// Enables the default mod remapper`".
+    * The `jar` and `remapJar` tasks are located.
+    * If `remapJar` doesn't have an input:
+      * `jar` is set to a classifier of `"dev"` and `remapJar` is set to a classifier of `""`.
+      * `remapJar`'s input is set to `jar`'s output (using a kind of janky deprecated-in-gradle7 method, `getArchivePath`)
+    * The Loom gradle extension gets `addUnmappedMod` called on it, set to `jar`'s output.
+    * `remapJar`'s addNestedDependencies is set to `true`.
+    * `remapJar`'s output is registered to the `archives` artifact configuration.
+    * `remapJar` is set to depend on `jar`.
+    * `build` is set to depend on `remapJar`.
+    * A small kludge (relating to `addNestedDependencies`) is executed which ensures they're built first. Or something, idk
+    * `remapSourcesJar` is configured; `build` depends on it, and it depends on `sourcesJar`.
+
+Finally we are out of `AbstractPlugin`, but work continues in `LoomGradlePlugin`:
+
+* Several executable tasks are registered:
+  * `cleanLoomBinaries`, `cleanLoomMappings`, `cleanLoom` (which does both)
+  * `migrateMappings`
+  * `remapJar`
+  * `genSourcesDecompile`, `genSourcesRemapLineNumbers`, `genSources`
+  * `downloadAssets`
+  * `genIdeaWorkspace`, `genEclipseRuns`, `vscode`
+  * `remapSourcesJar`
+  * and finally, `runClient` and `runServer`
+
+Also a big afterEvaluate block is registered to the project:
+
+* Dependencies are set between `genSources` and the other tasks (idk why here)
+* `genSourcesDecompile`'s input and output files are configured, which includes mappings
+* `genSourcesRemapLineNumbers`'s outputs are set as well
+* `genSources` is set to copy `xxx-linemapped` over to the place where the project mappings provider expects it (lol)
+
 ## ?
 
 what is a fabric installer json? (LoomDependencyManager) probably something to do with run configs
