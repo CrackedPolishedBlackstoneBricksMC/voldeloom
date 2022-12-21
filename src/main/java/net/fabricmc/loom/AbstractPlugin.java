@@ -81,7 +81,7 @@ public class AbstractPlugin implements Plugin<Project> {
 	public void apply(Project target) {
 		this.project = target;
 
-		project.getLogger().lifecycle("Voldeloom: " + AbstractPlugin.class.getPackage().getImplementationVersion());
+		project.getLogger().lifecycle("Voldeloom " + AbstractPlugin.class.getPackage().getImplementationVersion() + "(Java version " + System.getProperty("java.version") + ")");
 
 		// Apply default plugins
 		project.apply(ImmutableMap.of("plugin", "java"));
