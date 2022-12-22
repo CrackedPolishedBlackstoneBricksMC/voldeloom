@@ -23,7 +23,10 @@ Main focus is on Gradle 7. Gradle 4 probably doesn't work yet
 
 What doesn't work yet:
 
-* Minecraft versions other than 1.4.7 don't work (the goal is to merge the differences between the 1.2.5/1.5.2 branches into something runtime-configurable)
+* Minecraft versions other than 1.4.7 don't work
+  * the long-term goal is to merge the differences between the 1.2.5/1.5.2 branches into something runtime-configurable
+  * but the short-term goal is to make 1.4.7 work!
+* Actually getting in to a world doesn't work (it's more switchmap crap, `Block.canSustainPlant` noclassdefs)
 * The standalone server doesn't work yet
 * Run configs (as opposed to using the runClient gradle task) are broken
 * Asset index is broken (i don't think 1.4 supported changing the asset index?) -> no sound and 1 trillion failed s3 requests in the log
