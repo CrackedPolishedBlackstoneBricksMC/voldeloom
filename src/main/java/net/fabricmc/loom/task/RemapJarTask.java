@@ -55,6 +55,7 @@ public class RemapJarTask extends Jar {
 
 	public RemapJarTask() {
 		super();
+		setGroup("fabric");
 		input = GradleSupport.getfileProperty(getProject());
 		addNestedDependencies = getProject().getObjects().property(Boolean.class);
 	}

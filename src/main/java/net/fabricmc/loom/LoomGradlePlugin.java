@@ -75,6 +75,7 @@ public class LoomGradlePlugin extends AbstractPlugin {
 		tasks.register("cleanLoomMappings", CleanLoomMappings.class);
 
 		tasks.register("cleanLoom").configure(task -> {
+			task.setGroup("fabric");
 			task.dependsOn(tasks.getByName("cleanLoomBinaries"));
 			task.dependsOn(tasks.getByName("cleanLoomMappings"));
 		});
