@@ -24,6 +24,20 @@
 
 package net.fabricmc.loom.task;
 
+import net.fabricmc.loom.LoomGradleExtension;
+import net.fabricmc.loom.providers.MappingsProvider;
+import net.fabricmc.loom.util.GradleSupport;
+import net.fabricmc.loom.util.MixinRefmapHelper;
+import net.fabricmc.loom.util.TinyRemapperMappingsHelper;
+import net.fabricmc.tinyremapper.OutputConsumerPath;
+import net.fabricmc.tinyremapper.TinyRemapper;
+import net.fabricmc.tinyremapper.TinyUtils;
+import org.gradle.api.Project;
+import org.gradle.api.file.RegularFileProperty;
+import org.gradle.api.tasks.InputFile;
+import org.gradle.api.tasks.TaskAction;
+import org.gradle.jvm.tasks.Jar;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.nio.file.Files;
@@ -31,33 +45,13 @@ import java.nio.file.Path;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
-import org.gradle.api.Project;
-import org.gradle.api.file.RegularFileProperty;
-import org.gradle.api.provider.Property;
-import org.gradle.api.tasks.Input;
-import org.gradle.api.tasks.InputFile;
-import org.gradle.api.tasks.TaskAction;
-import org.gradle.jvm.tasks.Jar;
-
-import net.fabricmc.loom.LoomGradleExtension;
-import net.fabricmc.loom.providers.MappingsProvider;
-import net.fabricmc.loom.util.GradleSupport;
-import net.fabricmc.loom.util.MixinRefmapHelper;
-import net.fabricmc.loom.util.NestedJars;
-import net.fabricmc.loom.util.TinyRemapperMappingsHelper;
-import net.fabricmc.tinyremapper.OutputConsumerPath;
-import net.fabricmc.tinyremapper.TinyRemapper;
-import net.fabricmc.tinyremapper.TinyUtils;
-
 public class RemapJarTask extends Jar {
 	private RegularFileProperty input;
-	private Property<Boolean> addNestedDependencies;
 
 	public RemapJarTask() {
 		super();
 		setGroup("fabric");
 		input = GradleSupport.getfileProperty(getProject());
-		addNestedDependencies = getProject().getObjects().property(Boolean.class);
 	}
 
 	@TaskAction
@@ -123,12 +117,6 @@ public class RemapJarTask extends Jar {
 			project.getLogger().debug("Transformed mixin reference maps in output JAR!");
 		}
 
-		if (getAddNestedDependencies().getOrElse(false)) {
-			if (NestedJars.addNestedJars(project, output)) {
-				project.getLogger().debug("Added nested jar paths to mod json");
-			}
-		}
-
 		/*try {
 			if (modJar.exists()) {
 				Files.move(modJar, modJarUnmappedCopy);
@@ -144,10 +132,5 @@ public class RemapJarTask extends Jar {
 	@InputFile
 	public RegularFileProperty getInput() {
 		return input;
-	}
-
-	@Input
-	public Property<Boolean> getAddNestedDependencies() {
-		return addNestedDependencies;
 	}
 }

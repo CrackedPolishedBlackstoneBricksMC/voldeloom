@@ -24,16 +24,20 @@
 
 package net.fabricmc.loom;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-
 import com.google.common.collect.ImmutableMap;
 import groovy.util.Node;
+import net.fabricmc.loom.forge.ForgeProvider;
+import net.fabricmc.loom.providers.LaunchProvider;
+import net.fabricmc.loom.providers.MappingsProvider;
+import net.fabricmc.loom.providers.MinecraftProvider;
+import net.fabricmc.loom.task.RemapJarTask;
+import net.fabricmc.loom.task.RemapSourcesJarTask;
+import net.fabricmc.loom.util.Constants;
 import net.fabricmc.loom.util.GradleSupport;
+import net.fabricmc.loom.util.GroovyXmlUtil;
+import net.fabricmc.loom.util.LoomDependencyManager;
+import net.fabricmc.loom.util.RemappedConfigurationEntry;
+import net.fabricmc.loom.util.SetupIntelijRunConfigs;
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
 import org.gradle.api.Task;
@@ -53,18 +57,12 @@ import org.gradle.api.tasks.javadoc.Javadoc;
 import org.gradle.api.tasks.scala.ScalaCompile;
 import org.gradle.plugins.ide.idea.model.IdeaModel;
 
-import net.fabricmc.loom.forge.ForgeProvider;
-import net.fabricmc.loom.providers.LaunchProvider;
-import net.fabricmc.loom.providers.MappingsProvider;
-import net.fabricmc.loom.providers.MinecraftProvider;
-import net.fabricmc.loom.task.RemapJarTask;
-import net.fabricmc.loom.task.RemapSourcesJarTask;
-import net.fabricmc.loom.util.Constants;
-import net.fabricmc.loom.util.GroovyXmlUtil;
-import net.fabricmc.loom.util.LoomDependencyManager;
-import net.fabricmc.loom.util.NestedJars;
-import net.fabricmc.loom.util.RemappedConfigurationEntry;
-import net.fabricmc.loom.util.SetupIntelijRunConfigs;
+import java.io.File;
+import java.io.IOException;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 
 public class AbstractPlugin implements Plugin<Project> {
 	protected Project project;
@@ -299,24 +297,10 @@ public class AbstractPlugin implements Plugin<Project> {
 				}
 
 				extension.addUnmappedMod(jarTask.getArchivePath().toPath());
-				remapJarTask.getAddNestedDependencies().set(true);
 
 				project1.getArtifacts().add("archives", remapJarTask);
 				remapJarTask.dependsOn(jarTask);
 				project1.getTasks().getByName("build").dependsOn(remapJarTask);
-
-				Map<Project, Set<Task>> taskMap = project.getAllTasks(true);
-
-				for (Map.Entry<Project, Set<Task>> entry : taskMap.entrySet()) {
-					Set<Task> taskSet = entry.getValue();
-
-					for (Task task : taskSet) {
-						if (task instanceof RemapJarTask && ((RemapJarTask) task).getAddNestedDependencies().getOrElse(false)) {
-							//Run all the sub project remap jars tasks before the root projects jar, this is to allow us to include projects
-							NestedJars.getRequiredTasks(project1).forEach(task::dependsOn);
-						}
-					}
-				}
 
 				try {
 					AbstractArchiveTask sourcesTask = (AbstractArchiveTask) project1.getTasks().getByName("sourcesJar");
