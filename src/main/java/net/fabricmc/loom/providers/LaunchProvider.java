@@ -24,6 +24,11 @@
 
 package net.fabricmc.loom.providers;
 
+import net.fabricmc.loom.util.Constants;
+import net.fabricmc.loom.util.DependencyProvider;
+import org.apache.commons.io.FileUtils;
+import org.gradle.api.Project;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -33,12 +38,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.StringJoiner;
 import java.util.function.Consumer;
-
-import org.apache.commons.io.FileUtils;
-import org.gradle.api.Project;
-
-import net.fabricmc.loom.util.Constants;
-import net.fabricmc.loom.util.DependencyProvider;
 
 public class LaunchProvider extends DependencyProvider {
 	public LaunchProvider(Project project) {
@@ -60,7 +59,7 @@ public class LaunchProvider extends DependencyProvider {
 
 		FileUtils.writeStringToFile(getExtension().getDevLauncherConfig(), launchConfig.asString(), StandardCharsets.UTF_8);
 
-		addDependency("net.fabricmc:dev-launch-injector:" + Constants.DEV_LAUNCH_INJECTOR_VERSION, "runtimeOnly");
+		//addDependency("net.fabricmc:dev-launch-injector:" + Constants.DEV_LAUNCH_INJECTOR_VERSION, "runtimeOnly");
 	}
 
 	@Override

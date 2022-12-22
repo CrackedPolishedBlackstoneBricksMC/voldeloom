@@ -17,6 +17,18 @@ buildscript {
 
 apply plugin: "com.unascribed.voldeloom"
 
+java {
+	toolchain {
+		//Last version able to set a --release as low as 6.
+		languageVersion = JavaLanguageVersion.of(11)
+	}
+}
+
+compileJava {
+	//Required to target old versions of Forge correctly.
+	options.release.set(6)
+}
+
 def forgeVersion = "1.4.7-6.6.2.534"
 def minecraftVersion = "1.4.7"
 
@@ -61,8 +73,10 @@ dependencies {
 	minecraft "com.mojang:minecraft:1.4.7"
 	forge "net.minecraftforge:forge:1.4.7-6.6.2.534:universal@zip"
 	mappings files(mcpForged)
+	
+	implementation files("./run/.minecraft/lib/asm-all-4.0.jar") //launchwrapper needs this
 }
 
 minecraft {
-	loaderLaunchMethod = "direct"
+	loaderLaunchMethod = "launchwrapper2"
 }

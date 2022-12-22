@@ -24,46 +24,38 @@
 
 package net.fabricmc.loom.task;
 
-import java.io.File;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.function.Function;
-
-import org.gradle.api.Project;
-import org.gradle.api.tasks.JavaExec;
-
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.providers.MappingsProvider;
 import net.fabricmc.loom.util.MinecraftVersionInfo;
 import net.fabricmc.loom.util.RunConfig;
+import org.gradle.api.Project;
+import org.gradle.api.tasks.JavaExec;
+
+import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Function;
 
 public abstract class AbstractRunTask extends JavaExec {
-	private final Function<Project, RunConfig> configProvider;
-	private RunConfig config;
-
-	public AbstractRunTask(Function<Project, RunConfig> config) {
-		super();
+	public AbstractRunTask(Function<Project, RunConfig> configProvider) {
 		setGroup("fabric");
-		this.configProvider = config;
-	}
 
-	@Override
-	public void exec() {
-		if (config == null) {
-			config = configProvider.apply(getProject());
-		}
+		RunConfig config = configProvider.apply(getProject());
 
-		LoomGradleExtension extension = this.getProject().getExtensions().getByType(LoomGradleExtension.class);
+		LoomGradleExtension extension = LoomGradleExtension.get(getProject());
 		MinecraftVersionInfo minecraftVersionInfo = extension.getMinecraftProvider().getVersionInfo();
 		MappingsProvider mappingsProvider = extension.getMappingsProvider();
 
 		List<String> libs = new ArrayList<>();
 
-		for (File file : getProject().getConfigurations().getByName("runtimeClasspath").getFiles()) {
+		for(File file : getProject().getConfigurations().getByName("runtimeClasspath").getFiles()) {
+			//TODO(VOLDELOOM-DISASTER) this is a big hack loooooll, it conflicts with a forge library
+			if(file.toString().endsWith("guava-28.0-jre.jar")) {
+				continue;
+			}
+
 			libs.add(file.getAbsolutePath());
 		}
 
@@ -103,43 +95,16 @@ public abstract class AbstractRunTask extends JavaExec {
 		}
 
 		args(argsSplit);
-		setWorkingDir(new File(getProject().getRootDir(), extension.runDir));
+		//jvmArgs(config.vmArgs); //uncommenting this breaks the loading process i dunno why
+		systemProperties(config.systemProperties);
 
-		super.exec();
-	}
+		getMainClass().set(config.mainClass); //todo gradle 4? this is relatively new
+		//setMain(config.mainClass);
 
-	@Override
-	public void setWorkingDir(File dir) {
-		if (config == null) {
-			config = configProvider.apply(getProject());
+		File workingDir = new File(getProject().getRootDir(), extension.runDir);
+		if(!workingDir.exists()) {
+			workingDir.mkdirs();
 		}
-
-		if (!dir.exists()) {
-			dir.mkdirs();
-		}
-
-		super.setWorkingDir(dir);
-	}
-
-	@Override
-	public String getMain() {
-		if (config == null) {
-			config = configProvider.apply(getProject());
-		}
-
-		return config.mainClass;
-	}
-
-	@Override
-	public List<String> getJvmArgs() {
-		if (config == null) {
-			config = configProvider.apply(getProject());
-		}
-
-		LoomGradleExtension extension = this.getProject().getExtensions().getByType(LoomGradleExtension.class);
-		List<String> superArgs = super.getJvmArgs();
-		List<String> args = new ArrayList<>(superArgs != null ? superArgs : Collections.emptyList());
-		args.addAll(Arrays.asList(config.vmArgs.split(" ")));
-		return args;
+		setWorkingDir(workingDir);
 	}
 }

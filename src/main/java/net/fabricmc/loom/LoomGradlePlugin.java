@@ -43,6 +43,7 @@ import net.fabricmc.loom.task.RunServerTask;
 import net.fabricmc.loom.task.fernflower.FernFlowerTask;
 import org.gradle.api.Project;
 import org.gradle.api.Task;
+import org.gradle.api.tasks.JavaExec;
 import org.gradle.api.tasks.TaskContainer;
 
 import java.io.File;
@@ -173,10 +174,13 @@ public class LoomGradlePlugin extends AbstractPlugin {
 			t.setGroup("minecraftMapped");
 		});
 		
-		tasks.register("ZZZZZZ-sandbox-task-wahoo", task -> {
-			task.setGroup("fabric");
-			
-			
-		});
+		tasks.register("ZZZZZZ-sandbox-task-wahoo", DoesIsGradleTheBroken.class);
+	}
+	
+	public static class DoesIsGradleTheBroken extends JavaExec {
+		public DoesIsGradleTheBroken() {
+			//setMain("agency.highlysuspect.Test");
+			setClasspath(getProject().files("G:\\Dev\\mc\\voldeloom\\sample\\1.4.7\\build\\libs\\voldeloom-sample-1.4.7.jar"));
+		}
 	}
 }

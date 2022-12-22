@@ -68,7 +68,9 @@ public class ShimForgeClientLibraries extends DefaultTask {
 		
 		void download(Project project, Path libsDir) throws IOException {
 			Path targetPath = libsDir.resolve(targetFilename);
-			DownloadUtil.downloadIfChanged(sourceURL, targetPath.toFile(), project.getLogger(), false);
+			if(!Files.exists(targetPath)) {
+				DownloadUtil.downloadIfChanged(sourceURL, targetPath.toFile(), project.getLogger(), false);
+			}
 		}
 		
 		//and the following is because java url makes a Fucking Http Request in hashCode()

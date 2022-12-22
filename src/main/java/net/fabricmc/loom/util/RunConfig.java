@@ -44,17 +44,21 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
 public class RunConfig {
-	public String configName;
-	public String projectName;
-	public String mainClass;
-	public String runDir;
-	public String vmArgs;
-	public String programArgs;
+	public String configName = "";
+	public String projectName = "";
+	public String mainClass = "";
+	public String runDir = "";
+	public String vmArgs = "";
+	public String programArgs = "";
+	
+	//TODO fold these in to run configs and stuff too, i had to hack these on because i Suck at Gradle
+	public Map<String, String> systemProperties = new HashMap<>();
 
 	public Element genRuns(Element doc) throws IOException, ParserConfigurationException, TransformerException {
 		Element root = this.addXml(doc, "component", ImmutableMap.of("name", "ProjectRunConfigurationManager"));
@@ -97,11 +101,37 @@ public class RunConfig {
 		runConfig.runDir = "file://$PROJECT_DIR$/" + extension.runDir;
 		runConfig.vmArgs = "";
 
+		project.getLogger().lifecycle("LOADER LAUNCH METHOD: " + extension.getLoaderLaunchMethod());
+		
 		switch (extension.getLoaderLaunchMethod()) {
+			//TODO(VOLDELOOM-DISASTER): The `direct` launch method was a good learning resource, but i don't think it actually works
 			case "direct":
 				runConfig.mainClass = mode.equals("client") ? "net.minecraft.client.Minecraft" : "net.minecraft.server.MinecraftServer";
 				runConfig.programArgs = "";
-				runConfig.vmArgs = "-Dminecraft.applet.TargetDirectory=" + encodeEscaped(project.getRootDir() + "/run/.minecraft"); //(VOLDELOOM-DISASTER) CLIENT LIBRARY SHIM
+				
+				//TODO these are set in regular Loom in LaunchProvider, but why doesn't it get set here?
+				runConfig.systemProperties.put("minecraft.applet.TargetDirectory", project.getRootDir().toPath().resolve("run").resolve(".minecraft").toAbsolutePath().toString());
+				runConfig.systemProperties.put("java.library.path", extension.getNativesDirectory().getAbsolutePath());
+				runConfig.systemProperties.put("org.lwjgl.librarypath", extension.getNativesDirectory().getAbsolutePath());
+				//the fml relauncher always takes arg 0 as player name, and arg 1 as session key (or -)
+				runConfig.programArgs += "Player - ";
+				
+				//TODO: 1.4.7 doesn't actually support assetIndex parameters! I think this was a launchwrapper addition?
+				runConfig.programArgs += "--assetIndex " + extension.getMinecraftProvider().getVersionInfo().assetIndex.getFabricId(extension.getMinecraftProvider().getMinecraftVersion());
+				runConfig.programArgs += " --assetsDir " + encodeEscaped(new File(extension.getUserCache(), "assets").getAbsolutePath());
+				break;
+			case "launchwrapper2":
+				runConfig.mainClass = "net.minecraft.launchwrapper.Launch";
+				runConfig.programArgs = "";
+				runConfig.programArgs += "--tweakClass net.minecraft.launchwrapper.VanillaTweaker";
+				//TODO VanillaTweaker doesn't seem to do anything with these either, whys that
+				runConfig.programArgs += " --assetIndex " + extension.getMinecraftProvider().getVersionInfo().assetIndex.getFabricId(extension.getMinecraftProvider().getMinecraftVersion());
+				runConfig.programArgs += " --assetsDir " + encodeEscaped(new File(extension.getUserCache(), "assets").getAbsolutePath());
+				runConfig.programArgs += " --gameDir " + project.getRootDir().toPath().resolve("run").resolve(".minecraft").toAbsolutePath();
+				runConfig.programArgs += " PlayerName -";
+				runConfig.systemProperties.put("minecraft.applet.TargetDirectory", project.getRootDir().toPath().resolve("run").resolve(".minecraft").toAbsolutePath().toString());
+				runConfig.systemProperties.put("java.library.path", extension.getNativesDirectory().getAbsolutePath());
+				runConfig.systemProperties.put("org.lwjgl.librarypath", extension.getNativesDirectory().getAbsolutePath());
 				break;
 			case "launchwrapper":
 				runConfig.mainClass = "net.minecraft.launchwrapper.Launch";
@@ -153,7 +183,7 @@ public class RunConfig {
 		populate(project, extension, ideaClient, "client");
 		ideaClient.configName = "Minecraft Client";
 		ideaClient.vmArgs += getOSClientJVMArgs();
-		ideaClient.vmArgs += " -Dfabric.dli.main=" + getMainClass("client", extension);
+		//ideaClient.vmArgs += " -Dfabric.dli.main=" + getMainClass("client", extension);
 
 		return ideaClient;
 	}
