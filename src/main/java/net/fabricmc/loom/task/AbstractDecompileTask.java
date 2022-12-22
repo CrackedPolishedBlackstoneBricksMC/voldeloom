@@ -24,12 +24,12 @@
 
 package net.fabricmc.loom.task;
 
-import java.io.File;
-
 import org.gradle.api.file.FileCollection;
 import org.gradle.api.tasks.InputFile;
 import org.gradle.api.tasks.InputFiles;
 import org.gradle.api.tasks.OutputFile;
+
+import java.io.File;
 
 public abstract class AbstractDecompileTask extends AbstractLoomTask {
 	private Object input;

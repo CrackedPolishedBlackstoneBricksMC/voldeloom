@@ -24,16 +24,11 @@
 
 package net.fabricmc.loom.task.fernflower;
 
-import static java.text.MessageFormat.format;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Stack;
-import java.util.function.Supplier;
-
-import org.jetbrains.java.decompiler.main.extern.IFernflowerPreferences;
+import net.fabricmc.loom.LoomGradleExtension;
+import net.fabricmc.loom.task.AbstractDecompileTask;
+import net.fabricmc.loom.task.ForkingJavaExecTask;
+import net.fabricmc.loom.util.ConsumingOutputStream;
+import net.fabricmc.loom.util.OperatingSystem;
 import org.gradle.api.internal.project.ProjectInternal;
 import org.gradle.api.logging.LogLevel;
 import org.gradle.api.tasks.Input;
@@ -42,11 +37,16 @@ import org.gradle.internal.logging.progress.ProgressLogger;
 import org.gradle.internal.logging.progress.ProgressLoggerFactory;
 import org.gradle.internal.service.ServiceRegistry;
 import org.gradle.process.ExecResult;
+import org.jetbrains.java.decompiler.main.extern.IFernflowerPreferences;
 
-import net.fabricmc.loom.task.AbstractDecompileTask;
-import net.fabricmc.loom.task.ForkingJavaExecTask;
-import net.fabricmc.loom.util.ConsumingOutputStream;
-import net.fabricmc.loom.util.OperatingSystem;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Stack;
+import java.util.function.Supplier;
+
+import static java.text.MessageFormat.format;
 
 /**
  * Created by covers1624 on 9/02/19.
@@ -79,7 +79,7 @@ public class FernFlowerTask extends AbstractDecompileTask implements ForkingJava
 		}
 
 		args.add("-t=" + getNumThreads());
-		args.add("-m=" + getExtension().getMappingsProvider().tinyMappings.getAbsolutePath());
+		args.add("-m=" + LoomGradleExtension.get(getProject()).getMappingsProvider().tinyMappings.getAbsolutePath());
 
 		//TODO, Decompiler breaks on jemalloc, J9 module-info.class?
 		getLibraries().forEach(f -> args.add("-e=" + f.getAbsolutePath()));

@@ -24,14 +24,14 @@
 
 package net.fabricmc.loom.task;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-
+import net.fabricmc.loom.LoomGradleExtension;
+import net.fabricmc.loom.util.RunConfig;
 import org.apache.commons.io.FileUtils;
 import org.gradle.api.tasks.TaskAction;
 
-import net.fabricmc.loom.util.RunConfig;
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
 public class GenEclipseRunsTask extends AbstractLoomTask {
 	@TaskAction
@@ -50,7 +50,7 @@ public class GenEclipseRunsTask extends AbstractLoomTask {
 			FileUtils.writeStringToFile(serverRunConfigs, serverRunConfig, StandardCharsets.UTF_8);
 		}
 
-		File runDir = new File(getProject().getRootDir(), getExtension().runDir);
+		File runDir = new File(getProject().getRootDir(), LoomGradleExtension.get(getProject()).runDir);
 
 		if (!runDir.exists()) {
 			runDir.mkdirs();

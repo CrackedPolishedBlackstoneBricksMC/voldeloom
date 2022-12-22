@@ -26,17 +26,9 @@ package net.fabricmc.loom.task;
 
 import org.gradle.api.DefaultTask;
 
-import net.fabricmc.loom.LoomGradleExtension;
-import org.gradle.api.tasks.Internal;
-
+//TODO(VOLDELOOM-DISASTER): remove, all it does is set the group now
 public abstract class AbstractLoomTask extends DefaultTask {
 	public AbstractLoomTask() {
 		setGroup("fabric");
-	}
-
-	//(VOLDELOOM-DISASTER) This is not a java bean property (like gradle seems to think it is), it's just an internal helper. 
-	@Internal
-	protected LoomGradleExtension getExtension() {
-		return getProject().getExtensions().getByType(LoomGradleExtension.class);
 	}
 }

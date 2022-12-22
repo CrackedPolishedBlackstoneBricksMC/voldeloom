@@ -24,6 +24,24 @@
 
 package net.fabricmc.loom.providers;
 
+import net.fabricmc.loom.forge.mapping.AcceptorProvider;
+import net.fabricmc.loom.forge.mapping.CsvApplierAcceptor;
+import net.fabricmc.loom.forge.mapping.SrgMappingProvider;
+import net.fabricmc.loom.forge.mapping.TinyWriter3Column;
+import net.fabricmc.loom.processors.JarProcessorManager;
+import net.fabricmc.loom.processors.MinecraftProcessedProvider;
+import net.fabricmc.loom.util.Constants;
+import net.fabricmc.loom.util.DependencyProvider;
+import net.fabricmc.loom.util.VoldeloomFileHelpers;
+import net.fabricmc.mapping.tree.TinyTree;
+import net.fabricmc.stitch.util.Pair;
+import net.fabricmc.tinyremapper.IMappingProvider.MappingAcceptor;
+import org.apache.tools.ant.util.StringUtils;
+import org.gradle.api.Project;
+import org.zeroturnaround.zip.FileSource;
+import org.zeroturnaround.zip.ZipEntrySource;
+import org.zeroturnaround.zip.ZipUtil;
+
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -39,26 +57,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.function.Consumer;
-import java.util.zip.ZipError;
-
-import org.apache.commons.io.FileUtils;
-import org.apache.tools.ant.util.StringUtils;
-import org.gradle.api.Project;
-import org.zeroturnaround.zip.FileSource;
-import org.zeroturnaround.zip.ZipEntrySource;
-import org.zeroturnaround.zip.ZipUtil;
-
-import net.fabricmc.loom.util.Constants;
-import net.fabricmc.loom.util.DependencyProvider;
-import net.fabricmc.mapping.tree.TinyTree;
-import net.fabricmc.stitch.util.Pair;
-import net.fabricmc.tinyremapper.IMappingProvider.MappingAcceptor;
-import net.fabricmc.loom.forge.mapping.AcceptorProvider;
-import net.fabricmc.loom.forge.mapping.CsvApplierAcceptor;
-import net.fabricmc.loom.forge.mapping.SrgMappingProvider;
-import net.fabricmc.loom.forge.mapping.TinyWriter3Column;
-import net.fabricmc.loom.processors.JarProcessorManager;
-import net.fabricmc.loom.processors.MinecraftProcessedProvider;
 
 public class MappingsProvider extends DependencyProvider {
 	private static final Map<String, String> FS_ENV = Collections.singletonMap("create", "true");
@@ -80,8 +78,8 @@ public class MappingsProvider extends DependencyProvider {
 		super(project);
 	}
 
-	public void clean() throws IOException {
-		FileUtils.deleteDirectory(mappingsDir.toFile());
+	public void clean() {
+		VoldeloomFileHelpers.delete(getProject(), mappingsDir);
 	}
 
 	public TinyTree getMappings() throws IOException {

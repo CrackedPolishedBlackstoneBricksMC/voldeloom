@@ -24,8 +24,15 @@
 
 package net.fabricmc.loom.task;
 
-import java.io.File;
-import java.io.IOException;
+import net.fabricmc.loom.AbstractPlugin;
+import net.fabricmc.loom.LoomGradleExtension;
+import net.fabricmc.loom.util.RunConfig;
+import org.gradle.api.Project;
+import org.gradle.api.tasks.TaskAction;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -36,17 +43,8 @@ import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
-
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.NodeList;
-import org.xml.sax.SAXException;
-import org.gradle.api.Project;
-import org.gradle.api.tasks.TaskAction;
-
-import net.fabricmc.loom.AbstractPlugin;
-import net.fabricmc.loom.LoomGradleExtension;
-import net.fabricmc.loom.util.RunConfig;
+import java.io.File;
+import java.io.IOException;
 
 public class GenIdeaProjectTask extends AbstractLoomTask {
 	@TaskAction
@@ -58,7 +56,7 @@ public class GenIdeaProjectTask extends AbstractLoomTask {
 			return;
 		}
 
-		LoomGradleExtension extension = getExtension();
+		LoomGradleExtension extension = LoomGradleExtension.get(getProject());
 		project.getLogger().lifecycle(":Building idea workspace");
 
 		File file = project.file(project.getName() + ".iws");

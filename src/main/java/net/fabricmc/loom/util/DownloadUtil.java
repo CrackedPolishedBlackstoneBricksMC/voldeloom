@@ -24,6 +24,11 @@
 
 package net.fabricmc.loom.util;
 
+import com.google.common.io.Files;
+import org.apache.commons.io.FileUtils;
+import org.gradle.api.Project;
+import org.gradle.api.logging.Logger;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -31,11 +36,6 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.zip.GZIPInputStream;
-
-import com.google.common.io.Files;
-import org.apache.commons.io.FileUtils;
-import org.gradle.api.Project;
-import org.gradle.api.logging.Logger;
 
 public class DownloadUtil {
 	/**

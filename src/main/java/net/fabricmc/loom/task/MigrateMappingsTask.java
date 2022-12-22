@@ -24,18 +24,15 @@
 
 package net.fabricmc.loom.task;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.FileSystem;
-import java.nio.file.FileSystems;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
-import java.util.Set;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
+import net.fabricmc.loom.LoomGradleExtension;
+import net.fabricmc.loom.providers.MappingsProvider;
+import net.fabricmc.loom.providers.MinecraftMappedProvider;
+import net.fabricmc.loom.util.SourceRemapper;
+import net.fabricmc.lorenztiny.LorenzTiny;
+import net.fabricmc.mapping.tree.TinyMappingFactory;
+import net.fabricmc.mapping.tree.TinyTree;
 import org.cadixdev.lorenz.MappingSet;
 import org.cadixdev.mercury.Mercury;
 import org.cadixdev.mercury.remapper.MercuryRemapper;
@@ -45,13 +42,15 @@ import org.gradle.api.Project;
 import org.gradle.api.tasks.TaskAction;
 import org.gradle.api.tasks.options.Option;
 
-import net.fabricmc.loom.LoomGradleExtension;
-import net.fabricmc.loom.providers.MappingsProvider;
-import net.fabricmc.loom.providers.MinecraftMappedProvider;
-import net.fabricmc.loom.util.SourceRemapper;
-import net.fabricmc.lorenztiny.LorenzTiny;
-import net.fabricmc.mapping.tree.TinyMappingFactory;
-import net.fabricmc.mapping.tree.TinyTree;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.util.Set;
 
 public class MigrateMappingsTask extends AbstractLoomTask {
 	private Path inputDir;
@@ -81,7 +80,7 @@ public class MigrateMappingsTask extends AbstractLoomTask {
 	@TaskAction
 	public void doTask() throws Throwable {
 		Project project = getProject();
-		LoomGradleExtension extension = getExtension();
+		LoomGradleExtension extension = LoomGradleExtension.get(project);
 
 		project.getLogger().lifecycle(":loading mappings");
 

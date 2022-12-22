@@ -24,22 +24,19 @@
 
 package net.fabricmc.loom.task;
 
-import java.io.IOException;
-
-import org.gradle.api.Project;
-import org.gradle.api.tasks.TaskAction;
-
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.providers.MinecraftAssetsProvider;
 import net.fabricmc.loom.providers.MinecraftNativesProvider;
+import org.gradle.api.tasks.TaskAction;
+
+import java.io.IOException;
 
 public class DownloadAssetsTask extends AbstractLoomTask {
 	@TaskAction
 	public void downloadAssets() throws IOException {
-		Project project = this.getProject();
-		LoomGradleExtension extension = getExtension();
+		LoomGradleExtension extension = LoomGradleExtension.get(getProject());
 
-		MinecraftAssetsProvider.provide(extension.getMinecraftProvider(), project);
-		MinecraftNativesProvider.provide(extension.getMinecraftProvider(), project);
+		MinecraftAssetsProvider.provide(extension.getMinecraftProvider(), getProject());
+		MinecraftNativesProvider.provide(extension.getMinecraftProvider(), getProject());
 	}
 }

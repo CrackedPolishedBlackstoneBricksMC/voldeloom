@@ -24,6 +24,18 @@
 
 package net.fabricmc.loom.providers;
 
+import com.google.gson.Gson;
+import net.fabricmc.loom.LoomGradleExtension;
+import net.fabricmc.loom.util.Checksum;
+import net.fabricmc.loom.util.Constants;
+import net.fabricmc.loom.util.DownloadUtil;
+import net.fabricmc.loom.util.MinecraftVersionInfo;
+import net.fabricmc.loom.util.assets.AssetIndex;
+import net.fabricmc.loom.util.assets.AssetObject;
+import net.fabricmc.loom.util.progress.ProgressLogger;
+import org.gradle.api.GradleException;
+import org.gradle.api.Project;
+
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
@@ -35,29 +47,15 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import com.google.gson.Gson;
-import org.gradle.api.GradleException;
-import org.gradle.api.Project;
-
-import net.fabricmc.loom.LoomGradleExtension;
-import net.fabricmc.loom.util.Checksum;
-import net.fabricmc.loom.util.Constants;
-import net.fabricmc.loom.util.DownloadUtil;
-import net.fabricmc.loom.util.MinecraftVersionInfo;
-import net.fabricmc.loom.util.assets.AssetIndex;
-import net.fabricmc.loom.util.assets.AssetObject;
-import net.fabricmc.loom.util.progress.ProgressLogger;
-
 public class MinecraftAssetsProvider {
 	public static void provide(MinecraftProvider minecraftProvider, Project project) throws IOException {
-		LoomGradleExtension extension = project.getExtensions().getByType(LoomGradleExtension.class);
 		boolean offline = project.getGradle().getStartParameter().isOffline();
 
 		MinecraftVersionInfo versionInfo = minecraftProvider.getVersionInfo();
 		MinecraftVersionInfo.AssetIndex assetIndex = versionInfo.assetIndex;
 
 		// get existing cache files
-		File assets = new File(extension.getUserCache(), "assets");
+		File assets = new File(LoomGradleExtension.get(project).getUserCache(), "assets");
 
 		if (!assets.exists()) {
 			assets.mkdirs();

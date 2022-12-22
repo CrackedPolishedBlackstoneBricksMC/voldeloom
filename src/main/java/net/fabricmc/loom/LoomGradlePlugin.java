@@ -24,16 +24,6 @@
 
 package net.fabricmc.loom;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Locale;
-
-import org.gradle.api.Project;
-import org.gradle.api.Task;
-import org.gradle.api.tasks.TaskContainer;
-
 import net.fabricmc.loom.providers.MappingsProvider;
 import net.fabricmc.loom.providers.MinecraftLibraryProvider;
 import net.fabricmc.loom.task.AbstractDecompileTask;
@@ -50,6 +40,15 @@ import net.fabricmc.loom.task.RemapSourcesJarTask;
 import net.fabricmc.loom.task.RunClientTask;
 import net.fabricmc.loom.task.RunServerTask;
 import net.fabricmc.loom.task.fernflower.FernFlowerTask;
+import org.gradle.api.Project;
+import org.gradle.api.Task;
+import org.gradle.api.tasks.TaskContainer;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Locale;
 
 public class LoomGradlePlugin extends AbstractPlugin {
 	public static File getMappedByproduct(Project project, String suffix) {
@@ -131,7 +130,7 @@ public class LoomGradlePlugin extends AbstractPlugin {
 			genSourcesTask.doLast((tt) -> {
 				if (Files.exists(linemappedJarPath)) {
 					try {
-						Files.deleteIfExists(mappedJarPath);
+						project.delete(mappedJarPath);
 						Files.copy(linemappedJarPath, mappedJarPath);
 					} catch (IOException e) {
 						throw new RuntimeException(e);
@@ -167,6 +166,12 @@ public class LoomGradlePlugin extends AbstractPlugin {
 		tasks.register("runServer", RunServerTask.class, t -> {
 			t.dependsOn("assemble");
 			t.setGroup("minecraftMapped");
+		});
+		
+		tasks.register("ZZZZZZ-sandbox-task-wahoo", task -> {
+			task.setGroup("fabric");
+			
+			
 		});
 	}
 }
