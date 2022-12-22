@@ -109,7 +109,7 @@ public class RunConfig {
 				runConfig.mainClass = mode.equals("client") ? "net.minecraft.client.Minecraft" : "net.minecraft.server.MinecraftServer";
 				runConfig.programArgs = "";
 				
-				//TODO these are set in regular Loom in LaunchProvider, but why doesn't it get set here?
+				//Loom's LaunchProvider sets these too but launchprovider works with dev-launch-injector concepts, i don't use it atm
 				runConfig.systemProperties.put("minecraft.applet.TargetDirectory", project.getRootDir().toPath().resolve("run").resolve(".minecraft").toAbsolutePath().toString());
 				runConfig.systemProperties.put("java.library.path", extension.getNativesDirectory().getAbsolutePath());
 				runConfig.systemProperties.put("org.lwjgl.librarypath", extension.getNativesDirectory().getAbsolutePath());
@@ -133,6 +133,7 @@ public class RunConfig {
 				runConfig.systemProperties.put("java.library.path", extension.getNativesDirectory().getAbsolutePath());
 				runConfig.systemProperties.put("org.lwjgl.librarypath", extension.getNativesDirectory().getAbsolutePath());
 				break;
+				//below is old shit from loom
 			case "launchwrapper":
 				runConfig.mainClass = "net.minecraft.launchwrapper.Launch";
 				runConfig.programArgs = "--tweakClass " + ("client".equals(mode) ? Constants.DEFAULT_FABRIC_CLIENT_TWEAKER : Constants.DEFAULT_FABRIC_SERVER_TWEAKER);

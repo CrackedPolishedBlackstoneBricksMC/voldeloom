@@ -4,7 +4,53 @@ Gradle plugin for ~~Fabric~~ ancient versions of Forge. Based on an ancient vers
 
 This is the `disaster-time` branch, aka "quat's playground". Here be dragons. It's me. I'm the dragon.
 
+Also this is **not** intended to be merged upstream as-is, i.e. i'm also taking the opportunity to format stuff and clean up the code a bit, blah blah. Not trying to "change things just to change things", but also not trying to stick to upstream for the sake of keeping a small diff
+
+# current status
+
+What works:
+
+* Zero-byte mcp zips now loudly explode early, instead of printing cryptic errors about a corrupt zip
+* Forge's Maven is configured for you, replete with the `metadataSources` forward-compat hack for gradle 5+
+* `genSources` decompiles the whole game apart from ~5 methods due to MCP errata (moved switchmap classes)
+  * Attaching and browsing sources works in IDEA
+  * "find usages" works too
+* Setting `loaderLaunchMethod` to `launchwrapper2` causes the `runClient` task to successfully start a copy of Minecraft Forge 1.4.7
+  * the `launchwrapper2` crap is temporary it will become the default
+  * Breakpoints and debugging work
+  * The `shimForgeClientLibraries` task predownloads Forge's runtime-downloaded deps and places them in the location Forge expects, because the URLs hardcoded in forge are long dead
+Main focus is on Gradle 7. Gradle 4 probably doesn't work yet
+
+What doesn't work yet:
+
+* Minecraft versions other than 1.4.7 don't work (the goal is to merge the differences between the 1.2.5/1.5.2 branches into something runtime-configurable)
+* The standalone server doesn't work yet
+* Run configs (as opposed to using the runClient gradle task) are broken
+* Asset index is broken (i don't think 1.4 supported changing the asset index?) -> no sound and 1 trillion failed s3 requests in the log
+* I snipped out a thing that replaced the stock `SideOnly` annotations with `Environment` ones, but there's still Environment leftovers for some reason
+* I don't know how broken Eclipse is
+* `modCompile` configurations and friends probably don't work, but you knew that already
+* Probably a lot of other things don't work
+
+What I'd like to fix:
+
+* Fix remapping exploding when packages.csv is missing
+* An in-gradle method of downloading MCP and applying the forge access transformers, instead of that funny shit in the buildscript
+* still lots of leftovers from e.g. DevLaunchInjector (which is not used), mixin, jar-in-jar, unused launch methods etc etc that does not apply to forge at all
+  * I could go scorched-earth on this stuff but it might be handy to keep around if someone does a cursed "fabric on top of forge" project? I guess?
+* Launchwrapper needs a little assistance getting ASM on the classpath
+* There's a goofy ahh hack in `AbstractRunTask` to filter out someone's Guava dependency, cause it conflicts with the one Forge needs, and crashes
+* Ideally the game should be launched with a copy of java 6 or 8, right now i think gradle itself has to be running on an appropriate jdk
+
+What I'd like to add:
+
+* Quiltflower lol (kinda a java 11 moment though)
+* Backport the much nicer run-config stuff from newer versions of Loom (multiple run configs, run configs in subprojects, less hardcoded arguments for run configs, etc)
+* Possibly do a custom launchwrapper tweaker, will be optional
+
 ## Sample projects
+
+TODO: there's also atm only one sample project, for 1.4.7
 
 There doesn't seem to be a nice way to develop a Gradle plugin and actually *use* the plugin to see if it works (no, not "write automated tests for the plugin", *actually* use it) at the same time. This is because Gradle is a terrible piece of shit.
 
@@ -22,36 +68,19 @@ Need to investigate this further, see if this root-not-actually-root situation h
 
 ## Debugging the plugin
 
-idk lol. Println.
+~~idk lol. Println.~~ Breakpoints seem to work now? I don't think breakpoints work if you hit the "refresh gradle" button, but debugging tasks like `clean` works and can hit breakpoints inside the gradle plugin
 
-I think gradle internally supports remote debugging through a system property
-
-## Common problems (for consumers)
+## Common problems for consumers
 
 *Weird NPEs when only sketching in the build.gradle:* Currently it crashes if a set of mappings is not defined. Ideally it should skip mappings-related tasks instead, or use some kind of passthrough mappings instead of `null`. Hm.
 
-*`Failed to provide null:unspecified:null : conf/packages.csv`:* Mapping parsing, jar remapping, or something else in that area blew up. If this failed due to missing `packages.csv`, use a mcp zip merged with a forge zip; this is janky as hell I know you shouldn't have to do this. want to fix that.
+*`Failed to provide null:unspecified:null : conf/packages.csv`:* Mapping parsing, jar remapping, or something else in that area blew up. If this failed due to missing `packages.csv`, use a mcp zip merged with a forge zip. want to fix that.
 
 # Just taking notes
 
 How far is it safe to diverge from Loom's practices? I mean obviously there's no point in trying to keep up with upstream changes in Loom patch-for-patch, we're way too far gone by this point. Some stuff is the way it is due to this project's history as a cursed frankenstein plugin that was taped together, other stuff is the way it is for a good reason.
 
 Same for "removing remnants of fabric", it's very possible that someone could make some "fabric loader on top of forge" bullshit and i don't want to close the door to that right away lolll
-
-## differences between disaster-time and other voldelooms
-
-* i auto configure the forge maven repository
-  * maybe this isn't such a good idea to do automatically? break it out into a helper function
-  * basically it needs a little `metadataSources` workaround on gradle 5+ and it's annoying
-* cryptic corrupt-zip errors when your mcp zip is fucked: i at least throw an exception when i see a 0 byte file
-
-### and things i want to add
-
-Figure out why sources don't attach themself correctly in intellij, "find usages" is broken, etc
-
-try and clean things up, remove remnants of fabric where appropriate
-
-Run configs would be an obvious huge bonus... lol
 
 ## gradle support woes
 
@@ -177,7 +206,7 @@ Including this SHA-1 hash `e04c5335922c5e457f0a7cd62c93c4a7f699f829` might make 
 
 Forge for 1.4 downloads additional library jars at *runtime*, using hardcoded URLs, for some God forsaken reason. These download URLs have long since been taken off the air. I'm hearing that putting the URLs given in the error log into the Wayback Machine gives hits, so if you're showing up here from Google, you can do that. Frustratingly the log message doesn't print where the files are expected to go: it's `.minecraft/libs`. `.minecraft` is in a platform-dependent location; on Windows it's under `%APPDATA%` (just type that into windows explorer including the percent signs).
 
-As a launcher developer, though, I'd like to shim this so it's not an issue. (The actual system is that *any* Forge coremod can download libraries from any URL provided in the jar, btw.)
+As a launcher developer, though, I'd like to shim this so it's not an issue. (The actual system is that *any* Forge coremod can download libraries from any URL provided in the jar, btw)
 
 The provenance of the file path:
 
@@ -204,9 +233,9 @@ In summary:
 
 To shim the library downloading process, we need to guess the directory or control it. I think it makes sense to control the `.minecraft` directory to be inside the run directory. So we can download libraries there.
 
-Note: if `minecraft.applet.TargetDirectory` doesn't exist Forge will NPE about logging, due to a swallowed exception in `FMLRelaunchLog.<init>`
+Note: if `minecraft.applet.TargetDirectory` doesn't exist, Forge will NPE about logging due to a swallowed exception in `FMLRelaunchLog.<init>`.
 
-A good resource for other library versions: https://github.com/PrismLauncher/PrismLauncher/blob/develop/launcher/minecraft/VersionFilterData.cpp
+A good resource for other downloaded libraries used by other versions of Forge -> https://github.com/PrismLauncher/PrismLauncher/blob/develop/launcher/minecraft/VersionFilterData.cpp and `https://files.prismlauncher.org/fmllibs/` acts as a mirror service too
 
 ### but wait there's more
 
@@ -214,12 +243,12 @@ Launchwrapper! Launchwrapper is a thing! If you use `VanillaTweakInjector` you g
 
 ## ?
 
-what is a fabric installer json? (LoomDependencyManager) probably something to do with run configs
+what is a "fabric installer json?" (LoomDependencyManager) probably something to do with run configs
 
 `ModCompileRemapper` specifically looks for fabric mods, i think this has to do with mod dependencies
 
-It's probably safe to delete instances of jij stuff because Forge does not natively support nested jars
+It's probably safe to delete instances of jij stuff because Forge does not natively support nested jars and it's really not necessary to hack that on with a mod
 
 abstractdecompiletask uses a "line map file"
 
-Forge seems to depend on ASM but that dependency is being lost along the way, possibly (at least, i see red errors in the genSources jar)
+~~Forge seems to depend on ASM but that dependency is being lost along the way, possibly (at least, i see red errors in the genSources jar)~~ goddamn autodownloaded dependencies lol
