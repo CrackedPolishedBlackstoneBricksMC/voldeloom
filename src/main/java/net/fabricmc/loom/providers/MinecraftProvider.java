@@ -41,7 +41,7 @@ import org.gradle.api.Project;
 import org.gradle.api.logging.Logger;
 
 import net.fabricmc.loom.forge.ForgePatchApplier;
-import net.fabricmc.loom.forge.provider.ForgeProvider;
+import net.fabricmc.loom.forge.ForgeProvider;
 import net.fabricmc.loom.util.Checksum;
 import net.fabricmc.loom.util.Constants;
 import net.fabricmc.loom.util.DependencyProvider;

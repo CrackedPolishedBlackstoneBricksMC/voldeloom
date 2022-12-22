@@ -1,12 +1,9 @@
-package net.fabricmc.loom.forge.asm;
+package net.fabricmc.loom.forge;
 
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.FieldVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
-
-import net.fabricmc.loom.forge.AccessTransformation;
-import net.fabricmc.loom.forge.ForgeATConfig;
 
 public class ATClassVisitor extends ClassVisitor {
 

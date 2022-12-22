@@ -1,5 +1,11 @@
 package net.fabricmc.loom.forge;
 
+import net.fabricmc.loom.LoomGradleExtension;
+import net.fabricmc.loom.processors.JarProcessor;
+import org.gradle.api.Project;
+import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.ClassWriter;
+
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -13,16 +19,6 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.Collections;
 import java.util.Map;
-
-import org.gradle.api.Project;
-import org.objectweb.asm.ClassReader;
-import org.objectweb.asm.ClassWriter;
-
-import net.fabricmc.loom.LoomGradleExtension;
-import net.fabricmc.loom.forge.asm.ATClassVisitor;
-import net.fabricmc.loom.forge.asm.EnvironmentAnnotationFixClassVisitor;
-import net.fabricmc.loom.forge.provider.ForgeProvider;
-import net.fabricmc.loom.processors.JarProcessor;
 
 public class ASMFixesProcessor implements JarProcessor {
 
@@ -57,7 +53,9 @@ public class ASMFixesProcessor implements JarProcessor {
 		try(InputStream input = new BufferedInputStream(Files.newInputStream(p))) {
 			ClassReader classReader = new ClassReader(input);
 			ClassWriter classWriter = new ClassWriter(0);
-			classReader.accept(new EnvironmentAnnotationFixClassVisitor(new ATClassVisitor(classWriter, atConfig)), 0);
+			//(VOLDELOOM-DISASTER) Original plugin remapped Forge's SideOnly into the fabric Environment annotations.
+			//I don't know why this was done, because SideOnly annotations are already in the jar, and work fine.
+			classReader.accept(new ATClassVisitor(classWriter, atConfig), 0);
 			input.close();
 			byte[] clazz = classWriter.toByteArray();
 			Files.copy(new ByteArrayInputStream(clazz), p, StandardCopyOption.REPLACE_EXISTING);

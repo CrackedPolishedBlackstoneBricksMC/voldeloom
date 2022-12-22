@@ -1,19 +1,6 @@
-package net.fabricmc.loom.forge.provider;
+package net.fabricmc.loom.forge;
 
-import java.io.File;
-import java.io.IOException;
-import java.net.URI;
-import java.nio.file.FileSystem;
-import java.nio.file.FileSystems;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Collections;
-import java.util.Map;
-import java.util.function.Consumer;
-
-import org.gradle.api.Project;
 import net.fabricmc.loom.LoomGradleExtension;
-import net.fabricmc.loom.forge.ForgeATConfig;
 import net.fabricmc.loom.providers.MappingsProvider;
 import net.fabricmc.loom.providers.MinecraftMappedProvider;
 import net.fabricmc.loom.providers.MinecraftProvider;
@@ -21,8 +8,17 @@ import net.fabricmc.loom.util.Constants;
 import net.fabricmc.loom.util.DependencyProvider;
 import net.fabricmc.loom.util.TinyRemapperMappingsHelper;
 import net.fabricmc.tinyremapper.IMappingProvider;
-import net.fabricmc.tinyremapper.OutputConsumerPath;
-import net.fabricmc.tinyremapper.TinyRemapper;
+import org.gradle.api.Project;
+
+import java.io.File;
+import java.io.IOException;
+import java.net.URI;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.util.Collections;
+import java.util.Map;
+import java.util.function.Consumer;
 
 public class ForgeProvider extends DependencyProvider {
 	

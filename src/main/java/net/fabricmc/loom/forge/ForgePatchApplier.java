@@ -14,11 +14,7 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Collections;
 import java.util.Map;
 
-import org.gradle.api.Project;
-
 import net.fabricmc.loom.LoomGradleExtension;
-import net.fabricmc.loom.forge.provider.ForgeProvider;
-import net.fabricmc.loom.processors.JarProcessor;
 
 public class ForgePatchApplier {
 
