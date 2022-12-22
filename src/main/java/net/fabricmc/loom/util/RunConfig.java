@@ -24,6 +24,22 @@
 
 package net.fabricmc.loom.util;
 
+import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import net.fabricmc.loom.LoomGradleExtension;
+import net.fabricmc.loom.providers.MinecraftProvider;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
+import org.gradle.api.Project;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.TransformerException;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -31,24 +47,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.transform.TransformerException;
-
-import com.google.common.base.Strings;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-import org.gradle.api.Project;
-
-import net.fabricmc.loom.LoomGradleExtension;
-import net.fabricmc.loom.providers.MinecraftProvider;
 
 public class RunConfig {
 	public String configName;
@@ -100,15 +98,19 @@ public class RunConfig {
 		runConfig.vmArgs = "";
 
 		switch (extension.getLoaderLaunchMethod()) {
-		case "launchwrapper":
-			runConfig.mainClass = "net.minecraft.launchwrapper.Launch";
-			runConfig.programArgs = "--tweakClass " + ("client".equals(mode) ? Constants.DEFAULT_FABRIC_CLIENT_TWEAKER : Constants.DEFAULT_FABRIC_SERVER_TWEAKER);
-			break;
-		default:
-			runConfig.mainClass = "net.fabricmc.devlaunchinjector.Main";
-			runConfig.programArgs = "";
-			runConfig.vmArgs = "-Dfabric.dli.config=" + encodeEscaped(extension.getDevLauncherConfig().getAbsolutePath()) + " -Dfabric.dli.env=" + mode.toLowerCase();
-			break;
+			case "direct":
+				runConfig.mainClass = mode.equals("client") ? "net.minecraft.client.Minecraft" : "net.minecraft.server.MinecraftServer";
+				runConfig.programArgs = "";
+				break;
+			case "launchwrapper":
+				runConfig.mainClass = "net.minecraft.launchwrapper.Launch";
+				runConfig.programArgs = "--tweakClass " + ("client".equals(mode) ? Constants.DEFAULT_FABRIC_CLIENT_TWEAKER : Constants.DEFAULT_FABRIC_SERVER_TWEAKER);
+				break;
+			default:
+				runConfig.mainClass = "net.fabricmc.devlaunchinjector.Main";
+				runConfig.programArgs = "";
+				runConfig.vmArgs = "-Dfabric.dli.config=" + encodeEscaped(extension.getDevLauncherConfig().getAbsolutePath()) + " -Dfabric.dli.env=" + mode.toLowerCase();
+				break;
 		}
 
 		if (extension.getLoaderLaunchMethod().equals("launchwrapper")) {

@@ -16,6 +16,10 @@ So:
 * In IDEA, you can right-click on each sample project's `build.gradle` and press "Link Gradle Project" towards the bottom of the dropdown. It's like how IntelliJ is able to discover subprojects and put them in the gradle tool window, but it needs a bit of manual assistance cause this isn't a subproject. Then you get gradle IDE integration. Works better than I expect it to, in this obvious nightmare scenario.
 * Note that the plugin will be *compiled against* the version of Gradle used in the sample project. I had to blindly rewrite some legacy-handling code to use reflection because the method was removed. Will see what I can do.
 
+Due to this cursed Gradle setup, the "root project" is not actually the "root project" and run configs generate in the wrong spot. Basically you need to make a `sample/1.4.7/.idea` directory, voldeloom will think it belongs to the root project and dump run configs into that, copypaste them back into `./.idea`, restart. There's your run configs.
+
+Need to investigate this further, see if this root-not-actually-root situation happens in real projects too... probably need to backport some of the more modern fabric-loom run config stuff if I can...
+
 ## Debugging the plugin
 
 idk lol. Println.
@@ -176,3 +180,5 @@ what is a fabric installer json? (LoomDependencyManager) probably something to d
 It's probably safe to delete instances of jij stuff because Forge does not natively support nested jars
 
 abstractdecompiletask uses a "line map file"
+
+Forge seems to depend on ASM but that dependency is being lost along the way, possibly (at least, i see red errors in the genSources jar)

@@ -24,16 +24,15 @@
 
 package net.fabricmc.loom.util;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-
-import org.apache.commons.io.FileUtils;
-import org.gradle.api.Project;
-
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.providers.MinecraftAssetsProvider;
 import net.fabricmc.loom.providers.MinecraftNativesProvider;
+import org.apache.commons.io.FileUtils;
+import org.gradle.api.Project;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
 public class SetupIntelijRunConfigs {
 	public static void setup(Project project) {
@@ -59,7 +58,7 @@ public class SetupIntelijRunConfigs {
 	}
 
 	private static void generate(Project project) throws IOException {
-		LoomGradleExtension extension = project.getExtensions().getByType(LoomGradleExtension.class);
+		LoomGradleExtension extension = LoomGradleExtension.get(project);
 
 		if (extension.ideSync()) {
 			//Ensures the assets are downloaded when idea is syncing a project

@@ -62,3 +62,7 @@ dependencies {
 	forge "net.minecraftforge:forge:1.4.7-6.6.2.534:universal@zip"
 	mappings files(mcpForged)
 }
+
+minecraft {
+	loaderLaunchMethod = "direct"
+}

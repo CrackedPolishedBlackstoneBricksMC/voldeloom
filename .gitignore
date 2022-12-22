@@ -13,6 +13,7 @@
 # hmmmmm
 *.zip
 *.jar
+*.iml
 
 # Dammit krita
 *.png~
