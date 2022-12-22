@@ -171,6 +171,45 @@ Also a big afterEvaluate block is registered to the project:
 * `genSourcesRemapLineNumbers`'s outputs are set as well
 * `genSources` is set to copy `xxx-linemapped` over to the place where the project mappings provider expects it (lol)
 
+## RelaunchLibraryManager
+
+Including this SHA-1 hash `e04c5335922c5e457f0a7cd62c93c4a7f699f829` might make this page show up on Google. TODO: write a blog post explaining this too, including the same hash.
+
+Forge for 1.4 downloads additional library jars at *runtime*, using hardcoded URLs, for some God forsaken reason. These download URLs have long since been taken off the air. I'm hearing that putting the URLs given in the error log into the Wayback Machine gives hits, so if you're showing up here from Google, you can do that. Frustratingly the log message doesn't print where the files are expected to go: it's `.minecraft/libs`. `.minecraft` is in a platform-dependent location; on Windows it's under `%APPDATA%` (just type that into windows explorer including the percent signs).
+
+As a launcher developer, though, I'd like to shim this so it's not an issue.
+
+The provenance of the file path:
+
+* `RelaunchLibraryManager.performDownload` parameter `target`
+* `target` comes from `RelaunchLibraryManager.downloadFile` parameter `libFile`
+* `libFile` comes from `RelaunchLibraryManager.handleLaunch` local `libDir` + targFileName (the file name)
+* `libDir` is set from taking parameter `mcDir` and appending a `lib` folder
+* `mcDir` comes from `FMLRelauncher.setupHome` parameter `minecraftHome`
+* `setupHome` might be called from `FMLRelauncher.relaunchApplet` or `relaunchClient`, which calls `FMLRelauncher.computeExistingClientHome`:
+  * if the system property `minecraft.applet.TargetDirectory` is set:
+    * `/` is replaced with `File.separatorChar` in the value of the property
+    * `Minecraft.minecraftDir` is reflectively set to the result
+  * `getMinecraftDir` is called reflectively. The result is ignored
+    * If `minecraft.minecraftDir == null`, `getAppDir` is called to compute the value
+      * This method fails to decompile (see quat_notes/getappdir) but it basically finds the `.minecraft` directory
+  * The value of `Minecraft.minecraftDir` is read reflectively, returned, and in both cases is passed directly to `setupHome`
+* Or `setupHome` might be called from `FMLRelauncher.setupServer`:
+  * The hardcoded path `.` is passed to `setupHome`
+
+In summary:
+
+* On the client, the library path less the `/lib` suffix can be controlled with the `minecraft.applet.TargetDirectory` system property.
+* On the server, the path is the current directory plus the `/lib` suffix.
+
+To shim the library downloading process, we need to guess the directory or control it. I think it makes sense to control the `.minecraft` directory to be inside the run directory. So we can download libraries there.
+
+(The actual system is that *any* Forge coremod can download libraries, but in the general case of course we can't shim everything)
+
+Note: if `minecraft.applet.TargetDirectory` doesn't exist Forge will NPE about logging, due to a swallowed exception in `FMLRelaunchLog.<init>`
+
+A good resource for other library versions: https://github.com/PrismLauncher/PrismLauncher/blob/develop/launcher/minecraft/VersionFilterData.cpp
+
 ## ?
 
 what is a fabric installer json? (LoomDependencyManager) probably something to do with run configs

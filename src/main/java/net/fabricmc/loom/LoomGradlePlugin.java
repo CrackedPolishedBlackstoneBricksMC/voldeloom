@@ -24,6 +24,7 @@
 
 package net.fabricmc.loom;
 
+import net.fabricmc.loom.forge.ShimForgeClientLibraries;
 import net.fabricmc.loom.providers.MappingsProvider;
 import net.fabricmc.loom.providers.MinecraftLibraryProvider;
 import net.fabricmc.loom.task.AbstractDecompileTask;
@@ -50,6 +51,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Locale;
 
+@SuppressWarnings("UnstableApiUsage")
 public class LoomGradlePlugin extends AbstractPlugin {
 	public static File getMappedByproduct(Project project, String suffix) {
 		LoomGradleExtension extension = project.getExtensions().getByType(LoomGradleExtension.class);
@@ -157,9 +159,12 @@ public class LoomGradlePlugin extends AbstractPlugin {
 		});
 
 		tasks.register("remapSourcesJar", RemapSourcesJarTask.class);
-
+		
+		//(VOLDELOOM-DISASTER) CLIENT LIBRARY SHIM
+		tasks.register("shimForgeClientLibraries", ShimForgeClientLibraries.class);
+		
 		tasks.register("runClient", RunClientTask.class, t -> {
-			t.dependsOn("assemble", "downloadAssets");
+			t.dependsOn("assemble", "downloadAssets", "shimForgeClientLibraries");
 			t.setGroup("minecraftMapped");
 		});
 

@@ -101,6 +101,7 @@ public class RunConfig {
 			case "direct":
 				runConfig.mainClass = mode.equals("client") ? "net.minecraft.client.Minecraft" : "net.minecraft.server.MinecraftServer";
 				runConfig.programArgs = "";
+				runConfig.vmArgs = "-Dminecraft.applet.TargetDirectory=" + encodeEscaped(project.getRootDir() + "/run/.minecraft"); //(VOLDELOOM-DISASTER) CLIENT LIBRARY SHIM
 				break;
 			case "launchwrapper":
 				runConfig.mainClass = "net.minecraft.launchwrapper.Launch";
