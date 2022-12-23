@@ -1,5 +1,7 @@
 package net.fabricmc.loom.forge;
 
+import net.fabricmc.loom.LoomGradleExtension;
+
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
@@ -14,14 +16,11 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Collections;
 import java.util.Map;
 
-import net.fabricmc.loom.LoomGradleExtension;
-
 public class ForgePatchApplier {
 
 	private static final Map<String, String> FS_ENV = Collections.singletonMap("create", "true");
 
 	public static void process(File mc, LoomGradleExtension extension) {
-		System.out.println(mc.getAbsolutePath());
 		ForgeProvider forgeProvider = extension.getDependencyManager().getProvider(ForgeProvider.class);
 		
 		File forge = forgeProvider.getForge();
@@ -30,9 +29,6 @@ public class ForgePatchApplier {
 				Files.walk(forgeFs.getPath("/")).forEach(path -> {
 					try {
 						if(!Files.isDirectory(path)) {
-							if(path.toString().contains("amq$1")) {
-								System.out.println(path);
-							}
 							Files.copy(path, mcFs.getPath(path.toString()), StandardCopyOption.REPLACE_EXISTING);
 						} else if(!Files.exists(mcFs.getPath(path.toString()))) {
 							Files.createDirectory(mcFs.getPath(path.toString()));
@@ -41,15 +37,14 @@ public class ForgePatchApplier {
 						throw new RuntimeException("Exception patching minecraft: ", e);
 					}
 				});
-				Files.walkFileTree(mcFs.getPath("META-INF"), new MetaInfDeleter());
+				Files.walkFileTree(mcFs.getPath("META-INF"), new DeletingFileVisitor());
 			}
 		} catch (IOException e) {
 			throw new RuntimeException("Exception patching minecraft: ", e);
 		}
 	}
 	
-	private static class MetaInfDeleter extends SimpleFileVisitor<Path> {
-
+	private static class DeletingFileVisitor extends SimpleFileVisitor<Path> {
 		@Override
 		public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
 			Files.delete(file);
@@ -61,6 +56,5 @@ public class ForgePatchApplier {
 			Files.delete(dir);
 			return FileVisitResult.CONTINUE;
 		}
-		
 	}
 }

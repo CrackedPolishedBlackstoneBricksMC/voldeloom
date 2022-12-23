@@ -142,7 +142,7 @@ public class ModProcessor {
 
 		Path inputPath = input.getAbsoluteFile().toPath();
 		Path mc = mappedProvider.getIntermediaryJar().toPath();
-		Path[] mcDeps = mappedProvider.getMapperPaths().stream().map(File::toPath).toArray(Path[]::new);
+		Path[] mcDeps = mappedProvider.getMinecraftDependencies().stream().map(File::toPath).toArray(Path[]::new);
 		Set<Path> modCompiles = new HashSet<>();
 
 		for (RemappedConfigurationEntry entry : Constants.MOD_COMPILE_ENTRIES) {

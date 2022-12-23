@@ -53,7 +53,6 @@ import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
@@ -70,10 +69,8 @@ public class MappingsProvider extends DependencyProvider {
 
 	private Path mappingsDir;
 
-	// The mappings we use in practice
 	public File tinyMappings;
 	public File tinyMappingsJar;
-	//public File mappingsMixinExport;
 
 	public MappingsProvider(Project project) {
 		super(project);
@@ -169,10 +166,6 @@ public class MappingsProvider extends DependencyProvider {
 
 		mappedProvider.initFiles(minecraftProvider, this);
 		mappedProvider.provide(dependency, postPopulationScheduler);
-	}
-
-	public static void extractMappings(FileSystem jar, Path extractTo) throws IOException {
-		Files.copy(jar.getPath("mappings/mappings.tiny"), extractTo, StandardCopyOption.REPLACE_EXISTING);
 	}
 	
 	private void initFiles() {

@@ -284,3 +284,13 @@ abstractdecompiletask uses a "line map file"
 ~~Forge seems to depend on ASM but that dependency is being lost along the way, possibly (at least, i see red errors in the genSources jar)~~ goddamn autodownloaded dependencies lol
 
 investigate `MinecraftLibraryProvider`, that libraries folder doesnt seem to exist...?
+
+MinecraftMappedProvider calls MapJarsTiny:
+
+* works in global gradle cache `.gradle/caches/fabric-loom/`
+* source was `minecraft-1.4.7-forge-1.4.7-6.6.2.534-merged.jar`
+* outputMapped ("named") is `1.4.7-forge-1.4.7-6.6.2.534-mapped-null.unspecified-1.0/minecraft-1.4.7-forge-1.4.7-6.6.2.534-mapped-null.unspecified-1.0.jar`
+  * contains mcp names
+* outputIntermediary ("intermediary") is `minecraft-1.4.7-forge-1.4.7-6.6.2.534-intermediary-null.unspecified-1.0.jar`
+  * contains SRG names, good ol field_1234_a
+  * (recall that srg classes == mcp classes unlike Yarn)

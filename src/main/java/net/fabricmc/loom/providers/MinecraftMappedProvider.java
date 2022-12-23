@@ -26,13 +26,14 @@ package net.fabricmc.loom.providers;
 
 import net.fabricmc.loom.util.Constants;
 import net.fabricmc.loom.util.DependencyProvider;
-import net.fabricmc.loom.util.MapJarsTiny;
+import net.fabricmc.loom.util.TinyRemapperSession;
 import net.fabricmc.loom.util.WellKnownLocations;
 import org.gradle.api.Project;
 
 import java.io.File;
 import java.util.Collection;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 public class MinecraftMappedProvider extends DependencyProvider {
 	private File minecraftMappedJar;
@@ -55,17 +56,20 @@ public class MinecraftMappedProvider extends DependencyProvider {
 		}
 
 		if (!minecraftMappedJar.exists() || !getIntermediaryJar().exists()) {
-			if (minecraftMappedJar.exists()) {
-				minecraftMappedJar.delete();
-			}
-
+			if(minecraftMappedJar.exists()) minecraftMappedJar.delete();
+			if(minecraftIntermediaryJar.exists()) minecraftIntermediaryJar.delete();
+			
 			minecraftMappedJar.getParentFile().mkdirs();
-
-			if (minecraftIntermediaryJar.exists()) {
-				minecraftIntermediaryJar.delete();
-			}
-
-			new MapJarsTiny().mapJars(minecraftProvider, this, this.minecraftMappedJar, this.minecraftIntermediaryJar, getProject());
+			
+			new TinyRemapperSession()
+				.setMappings(getExtension().getMappingsProvider().getMappings())
+				.setInputJar(minecraftProvider.getMergedJar().toPath())
+				.setInputNamingScheme("official")
+				.setInputClasspath(getMinecraftDependencies().stream().map(File::toPath).collect(Collectors.toList()))
+				.addOutputJar("intermediary", this.minecraftIntermediaryJar.toPath())
+				.addOutputJar("named", this.minecraftMappedJar.toPath())
+				.setLogger(getProject().getLogger()::lifecycle)
+				.run();
 		}
 
 		if (!minecraftMappedJar.exists()) {
@@ -96,7 +100,7 @@ public class MinecraftMappedProvider extends DependencyProvider {
 		return String.format("%s-%s-%s-%s", minecraftProvider.getJarStuff(), type, getExtension().getMappingsProvider().mappingsName, getExtension().getMappingsProvider().mappingsVersion);
 	}
 
-	public Collection<File> getMapperPaths() {
+	public Collection<File> getMinecraftDependencies() {
 		return minecraftProvider.getLibraryProvider().getLibraries();
 	}
 
