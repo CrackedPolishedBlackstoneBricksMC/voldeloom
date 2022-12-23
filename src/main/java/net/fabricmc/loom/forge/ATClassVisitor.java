@@ -19,7 +19,7 @@ public class ATClassVisitor extends ClassVisitor {
 		visiting = name;
 		AccessTransformation at;
 		if ((at = atConfig.accessTransformers.get(name)) != null) {
-			System.out.println("AT for type " + name);
+			//System.out.println("AT for type " + name);
 			super.visit(version, at.transform(access), name, signature, superName, interfaces);
 		} else {
 			super.visit(version, access, name, signature, superName, interfaces);
@@ -29,7 +29,7 @@ public class ATClassVisitor extends ClassVisitor {
 	public MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
 		AccessTransformation at;
 		if ((at = atConfig.accessTransformers.get(visiting + "." + name + descriptor)) != null) {
-			System.out.println("AT for method " + visiting + "." + name + descriptor);
+			//System.out.println("AT for method " + visiting + "." + name + descriptor);
 			return super.visitMethod(at.transform(access), name, descriptor, signature, exceptions);
 		} else {
 			return super.visitMethod(access, name, descriptor, signature, exceptions);
@@ -39,7 +39,7 @@ public class ATClassVisitor extends ClassVisitor {
 	public FieldVisitor visitField(int access, String name, String descriptor, String signature, Object value) {
 		AccessTransformation at;
 		if ((at = atConfig.accessTransformers.get(visiting + "." + name)) != null) {
-			System.out.println("AT for field " + visiting + "." + name);
+			// System.out.println("AT for field " + visiting + "." + name);
 			return super.visitField(at.transform(access), name, descriptor, signature, value);
 		} else {
 			return super.visitField(access, name, descriptor, signature, value);

@@ -4,7 +4,11 @@ import org.gradle.api.Project;
 
 import java.io.File;
 
-//(VOLDELOOM-DISASTER) Moved from LoomGradleExtensions
+/**
+ * Various file paths that are used throughout the plugin.
+ * These used to be on LoomGradleExtension, but I've been moving extraneous things out of that class,
+ * to better understand where its various pieces are used.
+ */
 @SuppressWarnings("ResultOfMethodCallIgnored") //mkdirs
 public class WellKnownLocations {
 	public static File getUserCache(Project project) {

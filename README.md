@@ -245,7 +245,7 @@ Launchwrapper! Launchwrapper is a thing! If you use `VanillaTweakInjector` you g
 
 ## What is a DependencyProvider?
 
-This is a small framework for programatically adding dynamic dependencies to the project in afterEvaluate. By "dynamic", I mean that the contents of the dependency themselves depend on other things in the project, such as the configured minecraft and mappings version.
+This is a small framework for programatically adding derived dependencies to the project in afterEvaluate. By "derived", I mean that the contents of the dependency varies based on other things in the project, such as the mapped version of Minecraft being derived from the Minecraft version and mappings version.
 
 This is pretty much where the Magic:tm: happens - it's why you're able to dep on "minecraft remapped to MCP" when only "minecraft" and "MCP" exist as off-the-shelf artifacts.
 
@@ -265,6 +265,98 @@ These generally roll their own caching system, i.e. MinecraftMappedProvider chec
 All this comes to a head in `LoomDependencyManager`, which is a part of `LoomGradleExtensions` and is configured at the beginning of the afterEvaluate block. `addProvider` stores them into a list, and the control flow is extremely complex for some reason but I think `provide` gets called on each one in turn?
 
 The `Consumer<Runnable> postPopulationScheduler` argument accepts things to run after handling all those dependencies. It goes unused in Voldeloom.
+
+Also, watch out for things that *look* like providers but are actually ad-hoc utilty classes, like `MinecraftLibraryProvider`.
+
+`DependencyProvider.DependencyInfo` is a wrapper around an artifact provided by a configuration. It mainly wraps `configuration.resolve`, with some convenience methods for asserting a configuration will only ever contain one dependency no more no less (like `forge`, you shouldn't have two `forge`s), and for trying to excavate some group/name/version data out of filenames and mod files when non-Maven artifacts are in the configuration.
+
+## LoomDependencyManager#handleDependencies
+
+Deeply magical method
+
+this happens when "setting up loom dependencies" is logged. cant stand how terse loom's stock logging is sometimes lol
+
+* all registered dep providers (so, ForgeProvider, MinecraftProvider, MappingsProvider, and LaunchProvider) are sorted into categories, based off of their target configuration (they happen to be `forge`, `minecraft`, `mappings`, and `minecraftNamed` respectively)
+  * the ProviderList system can handle more than one provider per configuration, but this feature happens to go unused
+* the provider for the `mappings` configuration is stowed off to the side 
+* for each category of dep providers:
+  * its configuration is retrieved (`forge` `minecraft` `mappings` `minecraftNamed`)
+  * for each artifact in its configuration:
+    * a `DependencyInfo` is created for the artifact, actually this happens deeper-in but you can do a lil loop invariant motion
+    * for each dep provider in the category (only one):
+      * `provide` is called, with the dependency info, and a handle to add things to `afterTasks` (unused)
+* retrieve the `mappings` configuration stored off to the side
+  * call `ModCompileRemapper.remapDependencies` another one of those giant magic methods
+* run all `afterTasks` (none in voldeloom) 
+
+## what each provider actually does
+
+What's funny is that there's actually dependencies *between* providers too, but there isn't actually a system for that, providers just call `provide` on each other. Then the provider scheduler might run the provider again and it'd just see that it already output something and fail.
+
+### `ForgeProvider`
+
+* creates a new `ForgeATConfig` object
+* resolves the `forge` dependency and asserts it contains one file
+* sets `forgeVersion` to the version of that dep
+* roots around in the forge jar, looking for `fml_at.cfg` and `forge_at.cfg` and passes them to `atConfig`
+* doesn't do anything else yet!
+
+these at.cfg files are in official names (the proguarded ones) so they need to be remapped, and that's what the (freestanding) `mapForge` method does. it rings up the `LoomGradleExtension` `mappingsProvider` and remaps the access transformers
+
+all the magic happens in the `ForgeATConfig` object which is really Neat java code im too dumb for
+
+### `MinecraftProvider`
+
+interesting: whatever files are actually provided by your `minecraft` dep in your buildscript, just isn't looked at. only the version is looked at and used to index the vanilla version_manifest.json
+
+* sets `minecraftVersion` to the version of the minecraft dep
+* sets `minecraftJarStuff` to that plus "-forge-" and the version of the forge dep (yeah)
+* sets five file paths, `minecraftJson`/`clientJar`/`serverJar`/`mergedJar`/`patchedMergedJar`, all in the global user gradle cache
+* downloads the mc json and version manifest files if they don't exist yet
+  * this is the minecraft-blahblah-info.json you see in your loom-cache folder inyour global user gradle cache
+* parses it with gson into `versionInfo` field
+* (commented this out in my fork) adds Loom itself as a compileOnly dep to your project???? hoh?? what does this have to do with Anything
+* downloads minecraft-blahblah-client and minecraft-blahblah-server jars
+* creates a new `MinecraftLibraryProvider`, stashes it in a field, and calls `provide` on it
+  * this is not a real dep provider it's just named the same way
+  * basically it parses out each of the Maven dependencies for this version (other than natives) and sticks them as real dependencies in your project's `minecraftDependencies` configuration, as well as keeping a reference to them for later use by remappers and other shit that wants it on the classpath 
+* if the patched merged jar doesn't exist:
+  * if the merged jar doesn't exist:
+    * merge client and server jars using FabricMC Stitch
+    * if it fails, the client and server jars are deleted (so i guess it assumes the merging process only fails due to corrupt zips)
+  * copies `minecraftMergedJar` to `minecraftPatchedMergedJar` and patches it in-place with `ForgePatchApplier` (this seems like a bad idea)
+
+now `ForgePatchApplier` isn't a dep provider either but i think it's important to explore what it does... and stop me if this sounds familiar
+
+* locates the `ForgeProvider`, blindly assumes it's already ran (uh oh) and grabs the forge jar
+* opens the minecraft jar
+* copies all files in the forge jar into the minecraft jar
+* deletes META-INF
+
+yep! it does that
+
+### `MappingsProvider`
+
+* gets the minecraft provider and assumes it's already ran
+  * this is real "we have a task graph at home" moments
+* this is the one that logs "setting up mappings"
+* resolves the artifact specified in `mappings` in your buildscript (into `mappingsJar`)
+* does some horrendous bullshit string mangling i have no idea what for lol :cowboy:
+* *tries* to figure out "tinyMappings" and "tinyMappingsJar" filenames by replacing `.jar` suffixes but, uhhh if the mappings don't end in `.jar` it leaves the filename the same lol
+* if `tinyMappings` doesn't exist:
+  * opens `mappingsJar`, which i guess in this case is actually an mcp *zip*
+  * it does a lot of strange MCP munging that i should probably research how it works next
+  * but basically it reads several cfg files out of the `mappingsJar` and hands them to a couple of dedicated mcp-parser classes in voldeloom
+  * `fields.csv` and `methods.csv` also enter the picture somehow
+  * once everything is loaded and parsed, a `TinyWriter3Column` is used to write `tinyMappings`
+* `tinyMappingsJar` is created by simply packing `tinyMappings` into a jar with the file placed at `mappings/mappings.tiny`, i guess this is for tiny-remapper bullshit
+* `tinyMappingsJar` is added to `mappingsFinal` configuration
+
+now that that's done, this (of all places! here!) is where `JarProcessorManager` is initialized. ok another rabbit hole to research later
+
+### `LaunchProvider`
+
+comparatively this one is very very simple, it just writes the `launch.cfg` file for dev-launch-injector and adds DLI as a dep to your project (but i commented it out)
 
 ## ?
 

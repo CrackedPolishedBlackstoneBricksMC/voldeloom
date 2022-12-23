@@ -76,9 +76,14 @@ public class MinecraftProvider extends DependencyProvider {
 		minecraftVersion = dependency.getDependency().getVersion();
 		minecraftJarStuff = dependency.getDependency().getVersion() + "-forge-" + forge.getForgeVersion();
 		boolean offline = getProject().getGradle().getStartParameter().isOffline();
-
-		initFiles();
-
+		
+		File userCache = WellKnownLocations.getUserCache(getProject());
+		minecraftJson = new File(userCache, "minecraft-" + minecraftVersion + "-info.json");
+		minecraftClientJar = new File(userCache, "minecraft-" + minecraftVersion + "-client.jar");
+		minecraftServerJar = new File(userCache, "minecraft-" + minecraftVersion + "-server.jar");
+		minecraftMergedJar = new File(userCache, "minecraft-" + minecraftVersion + "-merged.jar");
+		minecraftPatchedMergedJar = new File(userCache, "minecraft-" + minecraftJarStuff + "-merged.jar");
+		
 		downloadMcJson(offline);
 
 		try (FileReader reader = new FileReader(minecraftJson)) {
@@ -86,7 +91,8 @@ public class MinecraftProvider extends DependencyProvider {
 		}
 
 		// Add Loom as an annotation processor
-		addDependency(getProject().files(this.getClass().getProtectionDomain().getCodeSource().getLocation()), "compileOnly");
+		//(VOLDELOOM-DISASTER) what the hell? loll
+		//addDependency(getProject().files(this.getClass().getProtectionDomain().getCodeSource().getLocation()), "compileOnly");
 
 		if (offline) {
 			if (minecraftClientJar.exists() && minecraftServerJar.exists()) {
@@ -121,15 +127,7 @@ public class MinecraftProvider extends DependencyProvider {
 			ForgePatchApplier.process(minecraftPatchedMergedJar, getExtension());
 		}
 	}
-
-	private void initFiles() {
-		minecraftJson = new File(WellKnownLocations.getUserCache(getProject()), "minecraft-" + minecraftVersion + "-info.json");
-		minecraftClientJar = new File(WellKnownLocations.getUserCache(getProject()), "minecraft-" + minecraftVersion + "-client.jar");
-		minecraftServerJar = new File(WellKnownLocations.getUserCache(getProject()), "minecraft-" + minecraftVersion + "-server.jar");
-		minecraftMergedJar = new File(WellKnownLocations.getUserCache(getProject()), "minecraft-" + minecraftVersion + "-merged.jar");
-		minecraftPatchedMergedJar = new File(WellKnownLocations.getUserCache(getProject()), "minecraft-" + minecraftJarStuff + "-merged.jar");
-	}
-
+	
 	private void downloadMcJson(boolean offline) throws IOException {
 		File manifests = new File(WellKnownLocations.getUserCache(getProject()), "version_manifest.json");
 

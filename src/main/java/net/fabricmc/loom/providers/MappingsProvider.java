@@ -98,7 +98,7 @@ public class MappingsProvider extends DependencyProvider {
 		this.minecraftVersion = minecraftProvider.getJarStuff();
 		this.mappingsVersion = version;
 
-		initFiles();
+		this.mappingsDir = WellKnownLocations.getUserCache(getProject()).toPath().resolve("mappings");
 
 		String[] depStringSplit = dependency.getDepString().split(":");
 		String jarClassifier = "final";
@@ -168,10 +168,6 @@ public class MappingsProvider extends DependencyProvider {
 		mappedProvider.provide(dependency, postPopulationScheduler);
 	}
 	
-	private void initFiles() {
-		mappingsDir = WellKnownLocations.getUserCache(getProject()).toPath().resolve("mappings");
-	}
-
 	@Override
 	public String getTargetConfig() {
 		return Constants.MAPPINGS;

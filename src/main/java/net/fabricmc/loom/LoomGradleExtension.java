@@ -24,7 +24,6 @@
 
 package net.fabricmc.loom;
 
-import com.google.gson.JsonObject;
 import net.fabricmc.loom.processors.JarProcessorManager;
 import net.fabricmc.loom.providers.MappingsProvider;
 import net.fabricmc.loom.providers.MinecraftMappedProvider;
@@ -43,6 +42,10 @@ import java.util.List;
 import java.util.function.Supplier;
 
 public class LoomGradleExtension {
+	public LoomGradleExtension(Project project) {
+		this.project = project;
+	}
+	
 	public String runDir = "run";
 	public String loaderLaunchMethod;
 	public boolean remapMod = true;
@@ -53,41 +56,33 @@ public class LoomGradleExtension {
 	private List<Path> unmappedModsBuilt = new ArrayList<>();
 
 	//Not to be set in the build.gradle
-	private Project project;
+	private final Project project;
 	private LoomDependencyManager dependencyManager;
 	private JarProcessorManager jarProcessorManager;
-	private JsonObject installerJson;
-	private MappingSet[] srcMappingCache = new MappingSet[2];
-	private Mercury[] srcMercuryCache = new Mercury[2];
+	private final MappingSet[] srcMappingCache = new MappingSet[2];
+	private final Mercury[] srcMercuryCache = new Mercury[2];
 
+	//(for SourceRemapper tasks)
 	public MappingSet getOrCreateSrcMappingCache(int id, Supplier<MappingSet> factory) {
 		return srcMappingCache[id] != null ? srcMappingCache[id] : (srcMappingCache[id] = factory.get());
 	}
-
+	
+	//(for SourceRemapper tasks)
 	public Mercury getOrCreateSrcMercuryCache(int id, Supplier<Mercury> factory) {
 		return srcMercuryCache[id] != null ? srcMercuryCache[id] : (srcMercuryCache[id] = factory.get());
 	}
 
-	public LoomGradleExtension(Project project) {
-		this.project = project;
-	}
-
+	//set in LoomGradlePlugin afterEvaluate
 	public void addUnmappedMod(Path file) {
 		unmappedModsBuilt.add(file);
 	}
 
+	//AbstractRunTask and SourceRemapper
 	public List<Path> getUnmappedMods() {
 		return Collections.unmodifiableList(unmappedModsBuilt);
 	}
 
-	public void setInstallerJson(JsonObject object) {
-		this.installerJson = object;
-	}
-
-	public JsonObject getInstallerJson() {
-		return installerJson;
-	}
-
+	//several places, including run configs, launch provider, and MinecraftNativesProvider
 	public File getNativesDirectory() {
 		File natives = new File(WellKnownLocations.getUserCache(project), "natives/" + getMinecraftProvider().getMinecraftVersion());
 		if (!natives.exists()) natives.mkdirs();

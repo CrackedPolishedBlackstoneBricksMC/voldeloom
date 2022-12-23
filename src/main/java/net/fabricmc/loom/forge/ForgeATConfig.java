@@ -1,18 +1,15 @@
 package net.fabricmc.loom.forge;
 
+import net.fabricmc.tinyremapper.IMappingProvider;
+import net.fabricmc.tinyremapper.IMappingProvider.Member;
+
 import java.io.InputStream;
 import java.nio.file.Path;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.Set;
-
-import org.objectweb.asm.commons.Remapper;
-
-import net.fabricmc.tinyremapper.IMappingProvider;
-import net.fabricmc.tinyremapper.IMappingProvider.Member;
 
 public class ForgeATConfig implements IMappingProvider.MappingAcceptor {
 

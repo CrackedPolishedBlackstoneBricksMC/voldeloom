@@ -25,7 +25,6 @@
 package net.fabricmc.loom.providers;
 
 import net.fabricmc.loom.util.Constants;
-import net.fabricmc.loom.util.GradleSupport;
 import net.fabricmc.loom.util.MinecraftVersionInfo;
 import net.fabricmc.loom.util.WellKnownLocations;
 import org.gradle.api.Project;
@@ -36,41 +35,34 @@ import java.util.Collection;
 import java.util.HashSet;
 
 public class MinecraftLibraryProvider {
-	public File MINECRAFT_LIBS;
-
-	private Collection<File> libs = new HashSet<>();
+	private final Collection<File> libs = new HashSet<>();
 
 	public void provide(MinecraftProvider minecraftProvider, Project project) throws IOException {
 		MinecraftVersionInfo versionInfo = minecraftProvider.getVersionInfo();
-
-		initFiles(project, minecraftProvider);
-
-		for (MinecraftVersionInfo.Library library : versionInfo.libraries) {
-			if (library.allowed() && !library.isNative() && library.getFile(MINECRAFT_LIBS) != null && !library.getArtifactName().contains("org.ow2.asm")) { // voldeloom: exclude forge's ASM 4 dep.
-				// TODO: Add custom library locations
-
-				// By default, they are all available on all sides
-				/* boolean isClientOnly = false;
-
-				if (library.name.contains("java3d") || library.name.contains("paulscode") || library.name.contains("lwjgl") || library.name.contains("twitch") || library.name.contains("jinput") || library.name.contains("text2speech") || library.name.contains("objc")) {
-					isClientOnly = true;
-				} */
+		
+		File minecraftLibs = new File(WellKnownLocations.getUserCache(project), "libraries");
+		
+		for(MinecraftVersionInfo.Library library : versionInfo.libraries) {
+			if(library.allowed() && !library.isNative() && library.getFile(minecraftLibs) != null) {
+				if(library.getArtifactName().contains("org.ow2.asm")) {
+					//voldeloom: conflicts with forge's ASM 4 dep
+					continue;
+				}
 
 				project.getDependencies().add(Constants.MINECRAFT_DEPENDENCIES, project.getDependencies().module(library.getArtifactName()));
-				// voldeloom: add loader's dependencies. versions this old simply do not depend on these.
-				project.getDependencies().add(GradleSupport.runtimeOrRuntimeOnly, project.getDependencies().module("org.apache.logging.log4j:log4j-core:2.8.1"));
-				project.getDependencies().add(GradleSupport.runtimeOrRuntimeOnly, project.getDependencies().module("org.apache.logging.log4j:log4j-api:2.8.1"));
-				project.getDependencies().add(GradleSupport.runtimeOrRuntimeOnly, project.getDependencies().module("com.google.code.gson:gson:2.8.6"));
-				project.getDependencies().add(GradleSupport.runtimeOrRuntimeOnly, project.getDependencies().module("com.google.guava:guava:28.0-jre"));
 			}
 		}
+		
+		// voldeloom: add loader's dependencies. versions this old simply do not depend on these.
+		//(VOLDELOOM-DISASTER) don't actually; i think whoever wrote that was referring to fabric loader, gson 2.8.6 came out in 2019
+		//maybe they were doing some kind of fabric-on-forge thing? :pausefrogeline:
+		//project.getDependencies().add(GradleSupport.runtimeOrRuntimeOnly, project.getDependencies().module("org.apache.logging.log4j:log4j-core:2.8.1"));
+		//project.getDependencies().add(GradleSupport.runtimeOrRuntimeOnly, project.getDependencies().module("org.apache.logging.log4j:log4j-api:2.8.1"));
+		//project.getDependencies().add(GradleSupport.runtimeOrRuntimeOnly, project.getDependencies().module("com.google.code.gson:gson:2.8.6"));
+		//project.getDependencies().add(GradleSupport.runtimeOrRuntimeOnly, project.getDependencies().module("com.google.guava:guava:28.0-jre"));
 	}
 
 	public Collection<File> getLibraries() {
 		return libs;
-	}
-
-	private void initFiles(Project project, MinecraftProvider minecraftProvider) {
-		MINECRAFT_LIBS = new File(WellKnownLocations.getUserCache(project), "libraries");
 	}
 }
