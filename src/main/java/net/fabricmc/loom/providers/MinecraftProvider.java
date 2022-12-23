@@ -48,7 +48,6 @@ import java.io.IOException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;
-import java.util.function.Consumer;
 import java.util.zip.ZipError;
 
 public class MinecraftProvider extends DependencyProvider {
@@ -71,7 +70,7 @@ public class MinecraftProvider extends DependencyProvider {
 	}
 
 	@Override
-	public void provide(DependencyInfo dependency, Consumer<Runnable> postPopulationScheduler) throws Exception {
+	public void provide(DependencyInfo dependency) throws Exception {
 		ForgeProvider forge = getExtension().getDependencyManager().getProvider(ForgeProvider.class);
 		minecraftVersion = dependency.getDependency().getVersion();
 		minecraftJarStuff = dependency.getDependency().getVersion() + "-forge-" + forge.getForgeVersion();

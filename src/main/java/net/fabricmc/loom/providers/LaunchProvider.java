@@ -38,7 +38,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.StringJoiner;
-import java.util.function.Consumer;
 
 public class LaunchProvider extends DependencyProvider {
 	public LaunchProvider(Project project) {
@@ -46,7 +45,7 @@ public class LaunchProvider extends DependencyProvider {
 	}
 
 	@Override
-	public void provide(DependencyInfo dependency, Consumer<Runnable> postPopulationScheduler) throws IOException {
+	public void provide(DependencyInfo dependency) throws IOException {
 		final LaunchConfig launchConfig = new LaunchConfig()
 				.property("fabric.development", "true")
 

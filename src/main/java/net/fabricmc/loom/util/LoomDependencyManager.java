@@ -71,8 +71,6 @@ public class LoomDependencyManager {
 	}
 
 	public void handleDependencies(Project project) {
-		List<Runnable> afterTasks = new ArrayList<>();
-
 		MappingsProvider mappingsProvider = null;
 
 		project.getLogger().lifecycle(":setting up loom dependencies");
@@ -102,7 +100,7 @@ public class LoomDependencyManager {
 				
 				for (DependencyProvider provider : list.providers) {
 					try {
-						provider.provide(info, afterTasks::add);
+						provider.provide(info);
 					} catch (Exception e) {
 						throw new RuntimeException("Failed to provide " + dependency.getGroup() + ":" + dependency.getName() + ":" + dependency.getVersion() + " : " + e.getMessage(), e);
 					}
@@ -111,6 +109,8 @@ public class LoomDependencyManager {
 		}
 
 		{
+			List<Runnable> afterTasks = new ArrayList<>();
+			
 			String mappingsKey = mappingsProvider.mappingsName + "." + mappingsProvider.minecraftVersion.replace(' ', '_').replace('.', '_').replace('-', '_') + "." + mappingsProvider.mappingsVersion;
 			LoomGradleExtension extension = project.getExtensions().getByType(LoomGradleExtension.class);
 
@@ -125,10 +125,10 @@ public class LoomDependencyManager {
 					afterTasks::add
 				);
 			}
-		}
-
-		for (Runnable runnable : afterTasks) {
-			runnable.run();
+			
+			for (Runnable runnable : afterTasks) {
+				runnable.run();
+			}
 		}
 	}
 }

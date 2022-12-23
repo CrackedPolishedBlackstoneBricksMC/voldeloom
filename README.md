@@ -287,7 +287,7 @@ this happens when "setting up loom dependencies" is logged. cant stand how terse
       * `provide` is called, with the dependency info, and a handle to add things to `afterTasks` (unused)
 * retrieve the `mappings` configuration stored off to the side
   * call `ModCompileRemapper.remapDependencies` another one of those giant magic methods
-* run all `afterTasks` (none in voldeloom) 
+* run all `afterTasks` (none in voldeloom, apart from remapDependencies for source remapping stuff)
 
 ## what each provider actually does
 
@@ -354,9 +354,36 @@ yep! it does that
 
 now that that's done, this (of all places! here!) is where `JarProcessorManager` is initialized. ok another rabbit hole to research later
 
+MappingsProvider is also the holder of the "mapped provider" a k a the holder for minecraft-mapped-to-mcp-names
+
 ### `LaunchProvider`
 
 comparatively this one is very very simple, it just writes the `launch.cfg` file for dev-launch-injector and adds DLI as a dep to your project (but i commented it out)
+
+### `MinecraftMappedProvider`
+
+assumes the mappings provider and minecraft provider have already ran
+
+slaps em together with tiny-remapper and adds it to the project classpath... or does it?
+
+#### `MinecraftProcessedProvider`
+
+*extends* MinecraftMappedProvider. the goal of this is to fix up the minecraft jar by running it through "jar processors"
+
+## jar processor manager. how deep does it go
+
+well in voldeloom there are only two. and there's *always* two, so it always ends up printing "using project based jar storage"
+
+* `CursedLibDeleterProcessor` - strips `argo.` and `org.` classes out of the jar
+* `ASMFixesProcessor`
+  * *finally* calls `mapForge` on the forge provider
+  * applies the newly-remapped forge access transformers to the jar
+
+## the impression i get after being tail deep in these "library providers" and "jar processors" and whatnot
+
+Why weren't these written as tasks? Probably cause its too late to add dependencies when task execution begins. So you need some sort of franken system that happens in `afterEvaluate`
+
+I feel like this system either *wants* to be backed by a task graph, or *wants* to be simplified into straight-shot control flow, because right now it's some mixture of both where it's technically broken up into task-like pieces, but they actually have an ordering anyway
 
 ## ?
 
@@ -376,6 +403,7 @@ abstractdecompiletask uses a "line map file"
 ~~Forge seems to depend on ASM but that dependency is being lost along the way, possibly (at least, i see red errors in the genSources jar)~~ goddamn autodownloaded dependencies lol
 
 investigate `MinecraftLibraryProvider`, that libraries folder doesnt seem to exist...?
+* This class is really weird actually. It has a Collection<File> thats probably supposed to contain library paths, but it's never written to. DOes this break anything? If so, what
 
 MinecraftMappedProvider calls MapJarsTiny:
 

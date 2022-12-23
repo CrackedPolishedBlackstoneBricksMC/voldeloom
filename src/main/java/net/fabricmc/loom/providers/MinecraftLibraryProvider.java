@@ -35,6 +35,7 @@ import java.util.Collection;
 import java.util.HashSet;
 
 public class MinecraftLibraryProvider {
+	//TODO: Never written to...!
 	private final Collection<File> libs = new HashSet<>();
 
 	public void provide(MinecraftProvider minecraftProvider, Project project) throws IOException {

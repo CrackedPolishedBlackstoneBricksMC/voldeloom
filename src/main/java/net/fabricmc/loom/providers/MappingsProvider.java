@@ -56,7 +56,6 @@ import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
-import java.util.function.Consumer;
 
 public class MappingsProvider extends DependencyProvider {
 	private static final Map<String, String> FS_ENV = Collections.singletonMap("create", "true");
@@ -85,7 +84,7 @@ public class MappingsProvider extends DependencyProvider {
 	}
 
 	@Override
-	public void provide(DependencyInfo dependency, Consumer<Runnable> postPopulationScheduler) throws Exception {
+	public void provide(DependencyInfo dependency) throws Exception {
 		MinecraftProvider minecraftProvider = getDependencyManager().getProvider(MinecraftProvider.class);
 
 		getProject().getLogger().lifecycle(":setting up mappings (" + dependency.getDependency().getName() + " " + dependency.getResolvedVersion() + ")");
@@ -161,11 +160,12 @@ public class MappingsProvider extends DependencyProvider {
 			mappedProvider = new MinecraftProcessedProvider(getProject(), processorManager);
 			getProject().getLogger().lifecycle("Using project based jar storage");
 		} else {
-			mappedProvider = new MinecraftMappedProvider(getProject());
+			throw new IllegalStateException("VOLDELOOM: i think this code path is unused");
+			//mappedProvider = new MinecraftMappedProvider(getProject());
 		}
 
 		mappedProvider.initFiles(minecraftProvider, this);
-		mappedProvider.provide(dependency, postPopulationScheduler);
+		mappedProvider.provide(dependency);
 	}
 	
 	@Override

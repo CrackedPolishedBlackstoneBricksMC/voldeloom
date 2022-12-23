@@ -45,7 +45,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public abstract class DependencyProvider {
@@ -58,7 +57,7 @@ public abstract class DependencyProvider {
 		this.extension = project.getExtensions().getByType(LoomGradleExtension.class);
 	}
 
-	public abstract void provide(DependencyInfo dependency, Consumer<Runnable> postPopulationScheduler) throws Exception;
+	public abstract void provide(DependencyInfo dependency) throws Exception;
 
 	public abstract String getTargetConfig();
 

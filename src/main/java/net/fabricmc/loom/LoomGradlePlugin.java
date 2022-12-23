@@ -245,6 +245,7 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		LoomGradleExtension extension = project.getExtensions().getByType(LoomGradleExtension.class);
 		
 		//TODO(VOLDELOOM-DISASTER) research what da hecj this does
+		// Hi its me from the future. It does literally fucking everything
 		LoomDependencyManager dependencyManager = new LoomDependencyManager();
 		extension.setDependencyManager(dependencyManager);
 		

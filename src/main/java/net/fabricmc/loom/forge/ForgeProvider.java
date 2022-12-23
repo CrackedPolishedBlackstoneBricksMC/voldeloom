@@ -16,7 +16,6 @@ import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.util.Collections;
 import java.util.Map;
-import java.util.function.Consumer;
 
 public class ForgeProvider extends DependencyProvider {
 	
@@ -43,7 +42,7 @@ public class ForgeProvider extends DependencyProvider {
 	}
 	
 	@Override
-	public void provide(DependencyInfo dependency, Consumer<Runnable> postPopulationScheduler) throws Exception {
+	public void provide(DependencyInfo dependency) throws Exception {
 		atConfig = new ForgeATConfig();
 		forgeVersion = dependency.getDependency().getVersion();
 		forge = dependency.resolveFile().orElseThrow(() -> new RuntimeException("No forge dep!"));

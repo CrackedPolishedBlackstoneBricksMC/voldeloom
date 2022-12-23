@@ -34,7 +34,6 @@ import org.gradle.api.Project;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.function.Consumer;
 
 public class MinecraftProcessedProvider extends MinecraftMappedProvider {
 	public static final String PROJECT_MAPPED_CLASSIFIER = "projectmapped";
@@ -49,7 +48,7 @@ public class MinecraftProcessedProvider extends MinecraftMappedProvider {
 	}
 
 	@Override
-	protected void addDependencies(DependencyInfo dependency, Consumer<Runnable> postPopulationScheduler) {
+	protected void addDependencies(DependencyInfo dependency) {
 		if (jarProcessorManager.isInvalid(projectMappedJar)) {
 			getProject().getLogger().lifecycle(":processing mapped jar");
 			invalidateJars();

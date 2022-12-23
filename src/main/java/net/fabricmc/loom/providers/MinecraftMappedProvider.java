@@ -32,7 +32,6 @@ import org.gradle.api.Project;
 
 import java.io.File;
 import java.util.Collection;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public class MinecraftMappedProvider extends DependencyProvider {
@@ -46,7 +45,7 @@ public class MinecraftMappedProvider extends DependencyProvider {
 	}
 
 	@Override
-	public void provide(DependencyInfo dependency, Consumer<Runnable> postPopulationScheduler) throws Exception {
+	public void provide(DependencyInfo dependency) throws Exception {
 		if (!getExtension().getMappingsProvider().tinyMappings.exists()) {
 			throw new RuntimeException("mappings file not found");
 		}
@@ -76,10 +75,10 @@ public class MinecraftMappedProvider extends DependencyProvider {
 			throw new RuntimeException("mapped jar not found");
 		}
 
-		addDependencies(dependency, postPopulationScheduler);
+		addDependencies(dependency);
 	}
 
-	protected void addDependencies(DependencyInfo dependency, Consumer<Runnable> postPopulationScheduler) {
+	protected void addDependencies(DependencyInfo dependency) {
 		getProject().getRepositories().flatDir(repository -> repository.dir(getJarDirectory(WellKnownLocations.getUserCache(getProject()), "mapped")));
 
 		getProject().getDependencies().add(Constants.MINECRAFT_NAMED,
