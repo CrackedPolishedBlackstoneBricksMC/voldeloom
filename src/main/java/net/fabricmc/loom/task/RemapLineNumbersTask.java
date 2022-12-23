@@ -24,20 +24,25 @@
 
 package net.fabricmc.loom.task;
 
-import java.io.File;
-import java.io.IOException;
-
+import net.fabricmc.loom.task.fernflower.FernFlowerTask;
+import net.fabricmc.loom.util.LineNumberRemapper;
+import net.fabricmc.loom.util.progress.ProgressLogger;
+import net.fabricmc.stitch.util.StitchUtil;
+import org.gradle.api.DefaultTask;
 import org.gradle.api.Project;
 import org.gradle.api.tasks.InputFile;
 import org.gradle.api.tasks.OutputFile;
 import org.gradle.api.tasks.TaskAction;
 
-import net.fabricmc.loom.task.fernflower.FernFlowerTask;
-import net.fabricmc.loom.util.LineNumberRemapper;
-import net.fabricmc.loom.util.progress.ProgressLogger;
-import net.fabricmc.stitch.util.StitchUtil;
+import java.io.File;
+import java.io.IOException;
 
-public class RemapLineNumbersTask extends AbstractLoomTask {
+public class RemapLineNumbersTask extends DefaultTask {
+	public RemapLineNumbersTask() {
+		setGroup("fabric");
+		getOutputs().upToDateWhen(t -> false);
+	}
+	
 	private Object input;
 	private Object output;
 	private Object lineMapFile;

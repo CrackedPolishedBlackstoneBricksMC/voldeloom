@@ -52,6 +52,11 @@ import static java.text.MessageFormat.format;
  * Created by covers1624 on 9/02/19.
  */
 public class FernFlowerTask extends AbstractDecompileTask implements ForkingJavaExecTask {
+	public FernFlowerTask() {
+		setGroup("fabric");
+		getOutputs().upToDateWhen(t -> false);
+	}
+	
 	private boolean noFork = false;
 	private int numThreads = Runtime.getRuntime().availableProcessors();
 

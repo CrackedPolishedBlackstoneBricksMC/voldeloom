@@ -24,6 +24,7 @@
 
 package net.fabricmc.loom.util;
 
+import org.gradle.api.artifacts.Configuration;
 import org.gradle.api.artifacts.ConfigurationContainer;
 
 public class RemappedConfigurationEntry {
@@ -58,12 +59,20 @@ public class RemappedConfigurationEntry {
 	public String getRemappedConfiguration() {
 		return sourceConfiguration + "Mapped";
 	}
+	
+	public Configuration maybeCreateSourceConfiguration(ConfigurationContainer configurations) {
+		return configurations.maybeCreate(getSourceConfiguration());
+	}
+	
+	public Configuration maybeCreateRemappedConfiguration(ConfigurationContainer configurations) {
+		return configurations.maybeCreate(getRemappedConfiguration());
+	}
 
-	public String getTargetConfiguration(ConfigurationContainer container) {
-		if (container.findByName(targetConfiguration) == null) {
-			return GradleSupport.compileOrImplementation;
+	public Configuration maybeCreateTargetConfiguration(ConfigurationContainer configurations) {
+		if (configurations.findByName(targetConfiguration) == null) {
+			return GradleSupport.getCompileOrImplementationConfiguration(configurations);
+		} else {
+			return configurations.maybeCreate(targetConfiguration);
 		}
-
-		return targetConfiguration;
 	}
 }

@@ -24,26 +24,30 @@
 
 package net.fabricmc.loom.task;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import net.fabricmc.loom.LoomGradleExtension;
+import net.fabricmc.loom.util.RunConfig;
+import org.apache.commons.io.FileUtils;
+import org.gradle.api.DefaultTask;
+import org.gradle.api.Project;
+import org.gradle.api.tasks.TaskAction;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import org.apache.commons.io.FileUtils;
-import org.gradle.api.Project;
-import org.gradle.api.tasks.TaskAction;
-
-import net.fabricmc.loom.LoomGradleExtension;
-import net.fabricmc.loom.util.RunConfig;
-
 //Recommended vscode plugins:
 // https://marketplace.visualstudio.com/items?itemName=redhat.java
 // https://marketplace.visualstudio.com/items?itemName=vscjava.vscode-java-debug
 // https://marketplace.visualstudio.com/items?itemName=vscjava.vscode-java-pack
-public class GenVsCodeProjectTask extends AbstractLoomTask {
+public class GenVsCodeProjectTask extends DefaultTask {
+	public GenVsCodeProjectTask() {
+		setGroup("ide");
+	}
+	
 	@TaskAction
 	public void genRuns() {
 		Project project = getProject();

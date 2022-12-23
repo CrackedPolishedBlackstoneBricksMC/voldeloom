@@ -24,16 +24,16 @@
 
 package net.fabricmc.loom.task;
 
-import java.io.File;
-
+import net.fabricmc.loom.util.SourceRemapper;
+import org.gradle.api.DefaultTask;
 import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.InputFile;
 import org.gradle.api.tasks.OutputFile;
 import org.gradle.api.tasks.TaskAction;
 
-import net.fabricmc.loom.util.SourceRemapper;
+import java.io.File;
 
-public class RemapSourcesJarTask extends AbstractLoomTask {
+public class RemapSourcesJarTask extends DefaultTask {
 	private Object input;
 	private Object output;
 	private String direction = "intermediary";

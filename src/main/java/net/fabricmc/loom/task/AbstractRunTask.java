@@ -40,7 +40,7 @@ import java.util.function.Function;
 
 public abstract class AbstractRunTask extends JavaExec {
 	public AbstractRunTask(Function<Project, RunConfig> configProvider) {
-		setGroup("fabric");
+		setGroup("minecraftMapped");
 
 		RunConfig config = configProvider.apply(getProject());
 

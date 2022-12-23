@@ -36,6 +36,7 @@ import net.fabricmc.mapping.tree.TinyTree;
 import org.cadixdev.lorenz.MappingSet;
 import org.cadixdev.mercury.Mercury;
 import org.cadixdev.mercury.remapper.MercuryRemapper;
+import org.gradle.api.DefaultTask;
 import org.gradle.api.GradleException;
 import org.gradle.api.IllegalDependencyNotation;
 import org.gradle.api.Project;
@@ -52,12 +53,14 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.Set;
 
-public class MigrateMappingsTask extends AbstractLoomTask {
+public class MigrateMappingsTask extends DefaultTask {
 	private Path inputDir;
 	private Path outputDir;
 	private String mappings;
 
 	public MigrateMappingsTask() {
+		setGroup("fabric");
+		getOutputs().upToDateWhen(t -> false);
 		inputDir = getProject().file("src/main/java").toPath();
 		outputDir = getProject().file("remappedSrc").toPath();
 	}

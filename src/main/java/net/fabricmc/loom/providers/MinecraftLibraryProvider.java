@@ -24,17 +24,16 @@
 
 package net.fabricmc.loom.providers;
 
+import net.fabricmc.loom.LoomGradleExtension;
+import net.fabricmc.loom.util.Constants;
+import net.fabricmc.loom.util.GradleSupport;
+import net.fabricmc.loom.util.MinecraftVersionInfo;
+import org.gradle.api.Project;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.HashSet;
-
-import net.fabricmc.loom.util.GradleSupport;
-import org.gradle.api.Project;
-
-import net.fabricmc.loom.LoomGradleExtension;
-import net.fabricmc.loom.util.Constants;
-import net.fabricmc.loom.util.MinecraftVersionInfo;
 
 public class MinecraftLibraryProvider {
 	public File MINECRAFT_LIBS;

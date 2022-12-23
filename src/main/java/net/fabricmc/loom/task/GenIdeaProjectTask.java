@@ -24,9 +24,9 @@
 
 package net.fabricmc.loom.task;
 
-import net.fabricmc.loom.AbstractPlugin;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.util.RunConfig;
+import org.gradle.api.DefaultTask;
 import org.gradle.api.Project;
 import org.gradle.api.tasks.TaskAction;
 import org.w3c.dom.Document;
@@ -46,13 +46,17 @@ import javax.xml.transform.stream.StreamResult;
 import java.io.File;
 import java.io.IOException;
 
-public class GenIdeaProjectTask extends AbstractLoomTask {
+public class GenIdeaProjectTask extends DefaultTask {
+	public GenIdeaProjectTask() {
+		setGroup("ide");
+	}
+	
 	@TaskAction
 	public void genIdeaRuns() throws IOException, ParserConfigurationException, SAXException, TransformerException {
 		Project project = this.getProject();
 
 		//Only generate the idea runs on the root project
-		if (!AbstractPlugin.isRootProject(project)) {
+		if (project != project.getRootProject()) {
 			return;
 		}
 

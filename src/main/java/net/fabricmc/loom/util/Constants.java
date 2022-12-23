@@ -24,9 +24,9 @@
 
 package net.fabricmc.loom.util;
 
-import java.util.List;
-
 import com.google.common.collect.ImmutableList;
+
+import java.util.List;
 
 public class Constants {
 	public static final String DEFAULT_FABRIC_CLIENT_TWEAKER = "net.fabricmc.loader.launch.FabricClientTweaker";
@@ -47,7 +47,7 @@ public class Constants {
 			new RemappedConfigurationEntry("modCompileOnly", "compileOnly", true, "")
 	);
 
-	public static final String INCLUDE = "include";
+	//public static final String INCLUDE = "include"; //voldeloom: Jar-in-jar is not supported
 	public static final String MINECRAFT = "minecraft";
 	public static final String MINECRAFT_DEPENDENCIES = "minecraftLibraries";
 	public static final String MINECRAFT_NAMED = "minecraftNamed";

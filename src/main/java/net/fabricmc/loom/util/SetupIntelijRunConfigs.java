@@ -25,6 +25,7 @@
 package net.fabricmc.loom.util;
 
 import net.fabricmc.loom.LoomGradleExtension;
+import net.fabricmc.loom.LoomGradlePlugin;
 import net.fabricmc.loom.providers.MinecraftAssetsProvider;
 import net.fabricmc.loom.providers.MinecraftNativesProvider;
 import org.apache.commons.io.FileUtils;
@@ -60,7 +61,7 @@ public class SetupIntelijRunConfigs {
 	private static void generate(Project project) throws IOException {
 		LoomGradleExtension extension = LoomGradleExtension.get(project);
 
-		if (extension.ideSync()) {
+		if (LoomGradlePlugin.ideaSync()) {
 			//Ensures the assets are downloaded when idea is syncing a project
 			MinecraftAssetsProvider.provide(extension.getMinecraftProvider(), project);
 			MinecraftNativesProvider.provide(extension.getMinecraftProvider(), project);

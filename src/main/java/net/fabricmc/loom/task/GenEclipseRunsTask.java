@@ -27,13 +27,18 @@ package net.fabricmc.loom.task;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.util.RunConfig;
 import org.apache.commons.io.FileUtils;
+import org.gradle.api.DefaultTask;
 import org.gradle.api.tasks.TaskAction;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
-public class GenEclipseRunsTask extends AbstractLoomTask {
+public class GenEclipseRunsTask extends DefaultTask {
+	public GenEclipseRunsTask() {
+		setGroup("ide");
+	}
+	
 	@TaskAction
 	public void genRuns() throws IOException {
 		File clientRunConfigs = new File(getProject().getRootDir(), getProject().getName() + "_client.launch");

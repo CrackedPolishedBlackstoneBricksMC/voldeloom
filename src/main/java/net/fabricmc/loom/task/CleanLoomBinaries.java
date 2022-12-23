@@ -26,9 +26,14 @@ package net.fabricmc.loom.task;
 
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.util.VoldeloomFileHelpers;
+import org.gradle.api.DefaultTask;
 import org.gradle.api.tasks.TaskAction;
 
-public class CleanLoomBinaries extends AbstractLoomTask {
+public class CleanLoomBinaries extends DefaultTask {
+	public CleanLoomBinaries() {
+		setGroup("fabric");
+	}
+	
 	@TaskAction
 	public void run() {
 		LoomGradleExtension extension = LoomGradleExtension.get(getProject());

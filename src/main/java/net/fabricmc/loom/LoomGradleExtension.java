@@ -212,8 +212,8 @@ public class LoomGradleExtension {
 	private <T> T recurseProjects(Function<Project, T> projectTFunction) {
 		Project p = this.project;
 		T result;
-
-		while (!AbstractPlugin.isRootProject(p)) {
+		
+		while (p.getRootProject() != p) {
 			if ((result = projectTFunction.apply(p)) != null) {
 				return result;
 			}
@@ -310,10 +310,6 @@ public class LoomGradleExtension {
 		}
 
 		return refmapName;
-	}
-
-	public boolean ideSync() {
-		return Boolean.parseBoolean(System.getProperty("idea.sync.active", "false"));
 	}
 	
 	public static LoomGradleExtension get(Project project) {

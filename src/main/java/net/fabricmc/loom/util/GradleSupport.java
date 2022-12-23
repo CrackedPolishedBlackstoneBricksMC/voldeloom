@@ -24,16 +24,18 @@
 
 package net.fabricmc.loom.util;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-
 import org.gradle.api.Action;
 import org.gradle.api.Project;
 import org.gradle.api.UnknownDomainObjectException;
+import org.gradle.api.artifacts.Configuration;
+import org.gradle.api.artifacts.ConfigurationContainer;
 import org.gradle.api.artifacts.repositories.ArtifactRepository;
 import org.gradle.api.file.ProjectLayout;
 import org.gradle.api.file.RegularFileProperty;
 import org.gradle.api.model.ObjectFactory;
+
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 
 //This is used to bridge the gap over large gradle api changes.
 public class GradleSupport {
@@ -71,8 +73,8 @@ public class GradleSupport {
 	}
 	
 	//(VOLDELOOM-DISASTER) Gradle 7 decided to rename "compile" to "implementation" and "runtime" to "runtimeOnly"
-	//They're basically the same thing so we can just swap out the names as-appropriate.
-	public static void detectConfigurationNames(Project project) {
+	//They're basically the same thing, so we can just swap out the names as-appropriate.
+	public static void init(Project project) {
 		try {
 			project.getConfigurations().getByName("compile");
 			compileOrImplementation = "compile";
@@ -81,6 +83,10 @@ public class GradleSupport {
 			compileOrImplementation = "implementation";
 			runtimeOrRuntimeOnly = "runtimeOnly";
 		}
+	}
+	
+	public static Configuration getCompileOrImplementationConfiguration(ConfigurationContainer configurations) {
+		return configurations.getByName(compileOrImplementation);
 	}
 	
 	//(VOLDELOOM-DISASTER) includeGroup is an optimization that avoids making spurious HTTP requests to unrelated repos.

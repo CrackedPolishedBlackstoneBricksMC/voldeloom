@@ -24,6 +24,7 @@
 
 package net.fabricmc.loom.task;
 
+import org.gradle.api.DefaultTask;
 import org.gradle.api.file.FileCollection;
 import org.gradle.api.tasks.InputFile;
 import org.gradle.api.tasks.InputFiles;
@@ -31,7 +32,7 @@ import org.gradle.api.tasks.OutputFile;
 
 import java.io.File;
 
-public abstract class AbstractDecompileTask extends AbstractLoomTask {
+public abstract class AbstractDecompileTask extends DefaultTask {
 	private Object input;
 	private Object output;
 	private Object lineMapFile;
