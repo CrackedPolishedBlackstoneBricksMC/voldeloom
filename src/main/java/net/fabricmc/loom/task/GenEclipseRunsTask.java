@@ -24,7 +24,7 @@
 
 package net.fabricmc.loom.task;
 
-import net.fabricmc.loom.LoomGradleExtension;
+import net.fabricmc.loom.util.LoomTaskExt;
 import net.fabricmc.loom.util.RunConfig;
 import org.apache.commons.io.FileUtils;
 import org.gradle.api.DefaultTask;
@@ -34,7 +34,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
-public class GenEclipseRunsTask extends DefaultTask {
+public class GenEclipseRunsTask extends DefaultTask implements LoomTaskExt {
 	public GenEclipseRunsTask() {
 		setGroup("ide");
 	}
@@ -44,8 +44,8 @@ public class GenEclipseRunsTask extends DefaultTask {
 		File clientRunConfigs = new File(getProject().getRootDir(), getProject().getName() + "_client.launch");
 		File serverRunConfigs = new File(getProject().getRootDir(), getProject().getName() + "_server.launch");
 
-		String clientRunConfig = RunConfig.clientRunConfig(getProject()).fromDummy("eclipse_run_config_template.xml");
-		String serverRunConfig = RunConfig.serverRunConfig(getProject()).fromDummy("eclipse_run_config_template.xml");
+		String clientRunConfig = RunConfig.clientRunConfig(getProject(), getLoomGradleExtension()).fromDummy("eclipse_run_config_template.xml");
+		String serverRunConfig = RunConfig.serverRunConfig(getProject(), getLoomGradleExtension()).fromDummy("eclipse_run_config_template.xml");
 
 		if (!clientRunConfigs.exists() || RunConfig.needsUpgrade(clientRunConfigs)) {
 			FileUtils.writeStringToFile(clientRunConfigs, clientRunConfig, StandardCharsets.UTF_8);
@@ -55,7 +55,7 @@ public class GenEclipseRunsTask extends DefaultTask {
 			FileUtils.writeStringToFile(serverRunConfigs, serverRunConfig, StandardCharsets.UTF_8);
 		}
 
-		File runDir = new File(getProject().getRootDir(), LoomGradleExtension.get(getProject()).runDir);
+		File runDir = new File(getProject().getRootDir(), getLoomGradleExtension().runDir);
 
 		if (!runDir.exists()) {
 			runDir.mkdirs();

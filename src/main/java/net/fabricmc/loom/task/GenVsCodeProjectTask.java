@@ -27,6 +27,7 @@ package net.fabricmc.loom.task;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import net.fabricmc.loom.LoomGradleExtension;
+import net.fabricmc.loom.util.LoomTaskExt;
 import net.fabricmc.loom.util.RunConfig;
 import org.apache.commons.io.FileUtils;
 import org.gradle.api.DefaultTask;
@@ -43,7 +44,7 @@ import java.util.List;
 // https://marketplace.visualstudio.com/items?itemName=redhat.java
 // https://marketplace.visualstudio.com/items?itemName=vscjava.vscode-java-debug
 // https://marketplace.visualstudio.com/items?itemName=vscjava.vscode-java-pack
-public class GenVsCodeProjectTask extends DefaultTask {
+public class GenVsCodeProjectTask extends DefaultTask implements LoomTaskExt {
 	public GenVsCodeProjectTask() {
 		setGroup("ide");
 	}
@@ -51,7 +52,7 @@ public class GenVsCodeProjectTask extends DefaultTask {
 	@TaskAction
 	public void genRuns() {
 		Project project = getProject();
-		LoomGradleExtension extension = LoomGradleExtension.get(getProject());
+		LoomGradleExtension extension = getLoomGradleExtension();
 		File projectDir = project.file(".vscode");
 
 		if (!projectDir.exists()) {
@@ -65,8 +66,8 @@ public class GenVsCodeProjectTask extends DefaultTask {
 		}
 
 		VsCodeLaunch launch = new VsCodeLaunch();
-		launch.add(RunConfig.clientRunConfig(project));
-		launch.add(RunConfig.serverRunConfig(project));
+		launch.add(RunConfig.clientRunConfig(project, extension));
+		launch.add(RunConfig.serverRunConfig(project, extension));
 
 		Gson gson = new GsonBuilder().setPrettyPrinting().create();
 		String json = gson.toJson(launch);

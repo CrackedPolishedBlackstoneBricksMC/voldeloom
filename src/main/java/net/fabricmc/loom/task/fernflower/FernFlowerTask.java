@@ -24,10 +24,10 @@
 
 package net.fabricmc.loom.task.fernflower;
 
-import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.task.AbstractDecompileTask;
 import net.fabricmc.loom.task.ForkingJavaExecTask;
 import net.fabricmc.loom.util.ConsumingOutputStream;
+import net.fabricmc.loom.util.LoomTaskExt;
 import net.fabricmc.loom.util.OperatingSystem;
 import org.gradle.api.internal.project.ProjectInternal;
 import org.gradle.api.logging.LogLevel;
@@ -51,7 +51,7 @@ import static java.text.MessageFormat.format;
 /**
  * Created by covers1624 on 9/02/19.
  */
-public class FernFlowerTask extends AbstractDecompileTask implements ForkingJavaExecTask {
+public class FernFlowerTask extends AbstractDecompileTask implements ForkingJavaExecTask, LoomTaskExt {
 	public FernFlowerTask() {
 		setGroup("fabric");
 		getOutputs().upToDateWhen(t -> false);
@@ -84,7 +84,7 @@ public class FernFlowerTask extends AbstractDecompileTask implements ForkingJava
 		}
 
 		args.add("-t=" + getNumThreads());
-		args.add("-m=" + LoomGradleExtension.get(getProject()).getMappingsProvider().tinyMappings.getAbsolutePath());
+		args.add("-m=" + getLoomGradleExtension().getMappingsProvider().tinyMappings.getAbsolutePath());
 
 		//TODO, Decompiler breaks on jemalloc, J9 module-info.class?
 		getLibraries().forEach(f -> args.add("-e=" + f.getAbsolutePath()));

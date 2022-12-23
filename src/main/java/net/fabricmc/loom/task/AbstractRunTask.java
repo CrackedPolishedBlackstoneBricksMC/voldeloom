@@ -26,6 +26,7 @@ package net.fabricmc.loom.task;
 
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.providers.MappingsProvider;
+import net.fabricmc.loom.util.LoomTaskExt;
 import net.fabricmc.loom.util.MinecraftVersionInfo;
 import net.fabricmc.loom.util.RunConfig;
 import org.gradle.api.Project;
@@ -36,15 +37,18 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 
-public abstract class AbstractRunTask extends JavaExec {
-	public AbstractRunTask(Function<Project, RunConfig> configProvider) {
+public abstract class AbstractRunTask extends JavaExec implements LoomTaskExt {
+	public AbstractRunTask(BiFunction<Project, LoomGradleExtension, RunConfig> configProvider) {
 		setGroup("minecraftMapped");
-
-		RunConfig config = configProvider.apply(getProject());
-
-		LoomGradleExtension extension = LoomGradleExtension.get(getProject());
+		
+		//TODO, does this happen too early? Original Loom did not have it this early
+		// I moved it up while debugging something nasty but i think the problem was not related to the execution time of this stuff.
+		
+		LoomGradleExtension extension = getLoomGradleExtension();
+		RunConfig config = configProvider.apply(getProject(), extension);
+		
 		MinecraftVersionInfo minecraftVersionInfo = extension.getMinecraftProvider().getVersionInfo();
 		MappingsProvider mappingsProvider = extension.getMappingsProvider();
 

@@ -118,7 +118,7 @@ public class RunConfig {
 				
 				//TODO: 1.4.7 doesn't actually support assetIndex parameters! I think this was a launchwrapper addition?
 				runConfig.programArgs += "--assetIndex " + extension.getMinecraftProvider().getVersionInfo().assetIndex.getFabricId(extension.getMinecraftProvider().getMinecraftVersion());
-				runConfig.programArgs += " --assetsDir " + encodeEscaped(new File(extension.getUserCache(), "assets").getAbsolutePath());
+				runConfig.programArgs += " --assetsDir " + encodeEscaped(new File(WellKnownLocations.getUserCache(project), "assets").getAbsolutePath());
 				break;
 			case "launchwrapper2":
 				runConfig.mainClass = "net.minecraft.launchwrapper.Launch";
@@ -126,7 +126,7 @@ public class RunConfig {
 				runConfig.programArgs += "--tweakClass net.minecraft.launchwrapper.VanillaTweaker";
 				//TODO VanillaTweaker doesn't seem to do anything with these either, whys that
 				runConfig.programArgs += " --assetIndex " + extension.getMinecraftProvider().getVersionInfo().assetIndex.getFabricId(extension.getMinecraftProvider().getMinecraftVersion());
-				runConfig.programArgs += " --assetsDir " + encodeEscaped(new File(extension.getUserCache(), "assets").getAbsolutePath());
+				runConfig.programArgs += " --assetsDir " + encodeEscaped(new File(WellKnownLocations.getUserCache(project), "assets").getAbsolutePath());
 				runConfig.programArgs += " --gameDir " + project.getRootDir().toPath().resolve("run").resolve(".minecraft").toAbsolutePath();
 				runConfig.programArgs += " PlayerName -";
 				runConfig.systemProperties.put("minecraft.applet.TargetDirectory", project.getRootDir().toPath().resolve("run").resolve(".minecraft").toAbsolutePath().toString());
@@ -141,7 +141,7 @@ public class RunConfig {
 			default:
 				runConfig.mainClass = "net.fabricmc.devlaunchinjector.Main";
 				runConfig.programArgs = "";
-				runConfig.vmArgs = "-Dfabric.dli.config=" + encodeEscaped(extension.getDevLauncherConfig().getAbsolutePath()) + " -Dfabric.dli.env=" + mode.toLowerCase();
+				runConfig.vmArgs = "-Dfabric.dli.config=" + encodeEscaped(WellKnownLocations.getDevLauncherConfig(project).getAbsolutePath()) + " -Dfabric.dli.env=" + mode.toLowerCase();
 				break;
 		}
 
@@ -175,8 +175,7 @@ public class RunConfig {
 		}
 	}
 
-	public static RunConfig clientRunConfig(Project project) {
-		LoomGradleExtension extension = project.getExtensions().getByType(LoomGradleExtension.class);
+	public static RunConfig clientRunConfig(Project project, LoomGradleExtension extension) {
 		MinecraftProvider minecraftProvider = extension.getMinecraftProvider();
 		MinecraftVersionInfo minecraftVersionInfo = minecraftProvider.getVersionInfo();
 
@@ -189,9 +188,7 @@ public class RunConfig {
 		return ideaClient;
 	}
 
-	public static RunConfig serverRunConfig(Project project) {
-		LoomGradleExtension extension = project.getExtensions().getByType(LoomGradleExtension.class);
-
+	public static RunConfig serverRunConfig(Project project, LoomGradleExtension extension) {
 		RunConfig ideaServer = new RunConfig();
 		populate(project, extension, ideaServer, "server");
 		ideaServer.configName = "Minecraft Server";

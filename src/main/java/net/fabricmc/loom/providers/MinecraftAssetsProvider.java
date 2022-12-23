@@ -30,6 +30,7 @@ import net.fabricmc.loom.util.Checksum;
 import net.fabricmc.loom.util.Constants;
 import net.fabricmc.loom.util.DownloadUtil;
 import net.fabricmc.loom.util.MinecraftVersionInfo;
+import net.fabricmc.loom.util.WellKnownLocations;
 import net.fabricmc.loom.util.assets.AssetIndex;
 import net.fabricmc.loom.util.assets.AssetObject;
 import net.fabricmc.loom.util.progress.ProgressLogger;
@@ -48,14 +49,15 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 public class MinecraftAssetsProvider {
-	public static void provide(MinecraftProvider minecraftProvider, Project project) throws IOException {
+	public static void provide(Project project, LoomGradleExtension extension) throws IOException {
 		boolean offline = project.getGradle().getStartParameter().isOffline();
 
+		MinecraftProvider minecraftProvider = extension.getMinecraftProvider();
 		MinecraftVersionInfo versionInfo = minecraftProvider.getVersionInfo();
 		MinecraftVersionInfo.AssetIndex assetIndex = versionInfo.assetIndex;
 
 		// get existing cache files
-		File assets = new File(LoomGradleExtension.get(project).getUserCache(), "assets");
+		File assets = new File(WellKnownLocations.getUserCache(project), "assets");
 
 		if (!assets.exists()) {
 			assets.mkdirs();

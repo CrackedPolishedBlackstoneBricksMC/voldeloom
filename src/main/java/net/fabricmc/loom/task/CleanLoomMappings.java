@@ -25,24 +25,26 @@
 package net.fabricmc.loom.task;
 
 import net.fabricmc.loom.LoomGradleExtension;
+import net.fabricmc.loom.util.LoomTaskExt;
 import net.fabricmc.loom.util.VoldeloomFileHelpers;
+import net.fabricmc.loom.util.WellKnownLocations;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.tasks.TaskAction;
 
-public class CleanLoomMappings extends DefaultTask {
+public class CleanLoomMappings extends DefaultTask implements LoomTaskExt {
 	public CleanLoomMappings() {
 		setGroup("fabric");
 	}
 	
 	@TaskAction
 	public void run() {
-		LoomGradleExtension extension = LoomGradleExtension.get(getProject());
+		LoomGradleExtension extension = getLoomGradleExtension();
 		extension.getMappingsProvider().clean();
 		
 		VoldeloomFileHelpers.delete(getProject(),
 			extension.getMinecraftMappedProvider().getIntermediaryJar(),
 			extension.getMinecraftMappedProvider().getMappedJar(),
-			extension.getRootProjectBuildCache()
+			WellKnownLocations.getRootProjectBuildCache(getProject())
 		);
 	}
 }

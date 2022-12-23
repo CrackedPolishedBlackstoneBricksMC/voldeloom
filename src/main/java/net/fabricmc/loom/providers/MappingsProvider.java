@@ -33,6 +33,7 @@ import net.fabricmc.loom.processors.MinecraftProcessedProvider;
 import net.fabricmc.loom.util.Constants;
 import net.fabricmc.loom.util.DependencyProvider;
 import net.fabricmc.loom.util.VoldeloomFileHelpers;
+import net.fabricmc.loom.util.WellKnownLocations;
 import net.fabricmc.mapping.tree.TinyTree;
 import net.fabricmc.stitch.util.Pair;
 import net.fabricmc.tinyremapper.IMappingProvider.MappingAcceptor;
@@ -110,7 +111,7 @@ public class MappingsProvider extends DependencyProvider {
 		}
 
 		tinyMappings = mappingsDir.resolve(StringUtils.removeSuffix(mappingsJar.getName(), ".jar") + ".tiny").toFile();
-		tinyMappingsJar = new File(getExtension().getUserCache(), mappingsJar.getName().replace(".jar", "-" + jarClassifier + ".jar"));
+		tinyMappingsJar = new File(WellKnownLocations.getUserCache(getProject()), mappingsJar.getName().replace(".jar", "-" + jarClassifier + ".jar"));
 		
 		if (!tinyMappings.exists()) {
 			long filesize;
@@ -175,8 +176,8 @@ public class MappingsProvider extends DependencyProvider {
 	}
 	
 	private void initFiles() {
-		mappingsDir = getExtension().getUserCache().toPath().resolve("mappings");
-		mappingsMixinExport = new File(getExtension().getProjectBuildCache(), "mixin-map-" + minecraftVersion + "-" + mappingsVersion + ".tiny");
+		mappingsDir = WellKnownLocations.getUserCache(getProject()).toPath().resolve("mappings");
+		mappingsMixinExport = new File(WellKnownLocations.getProjectBuildCache(getProject()), "mixin-map-" + minecraftVersion + "-" + mappingsVersion + ".tiny");
 	}
 
 	@Override

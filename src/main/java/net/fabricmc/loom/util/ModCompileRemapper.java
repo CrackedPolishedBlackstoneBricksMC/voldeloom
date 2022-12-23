@@ -24,11 +24,7 @@
 
 package net.fabricmc.loom.util;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Consumer;
-
+import net.fabricmc.loom.LoomGradleExtension;
 import org.gradle.api.Project;
 import org.gradle.api.artifacts.Configuration;
 import org.gradle.api.artifacts.Dependency;
@@ -44,7 +40,10 @@ import org.gradle.api.logging.Logger;
 import org.gradle.jvm.JvmLibrary;
 import org.gradle.language.base.artifact.SourcesArtifact;
 
-import net.fabricmc.loom.LoomGradleExtension;
+import java.io.File;
+import java.io.IOException;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 
 public class ModCompileRemapper {
 	public static void remapDependencies(Project project, String mappingsSuffix, LoomGradleExtension extension, Configuration modCompile, Configuration modCompileRemapped, Configuration regularCompile, Consumer<Runnable> postPopulationScheduler) {
@@ -81,7 +80,7 @@ public class ModCompileRemapper {
 			String remappedFilename = String.format("%s-%s@%s", name, version, mappingsSuffix + classifierSuffix.replace(':', '-'));
 			project.getLogger().info(":providing " + remappedLog);
 
-			File modStore = extension.getRemappedModCache();
+			File modStore = WellKnownLocations.getRemappedModCache(project);
 
 			remapArtifact(project, modCompileRemapped, artifact, remappedFilename, modStore);
 

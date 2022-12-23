@@ -24,15 +24,15 @@
 
 package net.fabricmc.loom.providers;
 
-import java.io.File;
-import java.util.Collection;
-import java.util.function.Consumer;
-
-import org.gradle.api.Project;
-
 import net.fabricmc.loom.util.Constants;
 import net.fabricmc.loom.util.DependencyProvider;
 import net.fabricmc.loom.util.MapJarsTiny;
+import net.fabricmc.loom.util.WellKnownLocations;
+import org.gradle.api.Project;
+
+import java.io.File;
+import java.util.Collection;
+import java.util.function.Consumer;
 
 public class MinecraftMappedProvider extends DependencyProvider {
 	private File minecraftMappedJar;
@@ -76,7 +76,7 @@ public class MinecraftMappedProvider extends DependencyProvider {
 	}
 
 	protected void addDependencies(DependencyInfo dependency, Consumer<Runnable> postPopulationScheduler) {
-		getProject().getRepositories().flatDir(repository -> repository.dir(getJarDirectory(getExtension().getUserCache(), "mapped")));
+		getProject().getRepositories().flatDir(repository -> repository.dir(getJarDirectory(WellKnownLocations.getUserCache(getProject()), "mapped")));
 
 		getProject().getDependencies().add(Constants.MINECRAFT_NAMED,
 				getProject().getDependencies().module("net.minecraft:minecraft:" + getJarVersionString("mapped")));
@@ -84,8 +84,8 @@ public class MinecraftMappedProvider extends DependencyProvider {
 
 	public void initFiles(MinecraftProvider minecraftProvider, MappingsProvider mappingsProvider) {
 		this.minecraftProvider = minecraftProvider;
-		minecraftIntermediaryJar = new File(getExtension().getUserCache(), "minecraft-" + getJarVersionString("intermediary") + ".jar");
-		minecraftMappedJar = new File(getJarDirectory(getExtension().getUserCache(), "mapped"), "minecraft-" + getJarVersionString("mapped") + ".jar");
+		minecraftIntermediaryJar = new File(WellKnownLocations.getUserCache(getProject()), "minecraft-" + getJarVersionString("intermediary") + ".jar");
+		minecraftMappedJar = new File(getJarDirectory(WellKnownLocations.getUserCache(getProject()), "mapped"), "minecraft-" + getJarVersionString("mapped") + ".jar");
 	}
 
 	protected File getJarDirectory(File parentDirectory, String type) {

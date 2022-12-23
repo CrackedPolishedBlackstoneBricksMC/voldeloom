@@ -2,6 +2,7 @@ package net.fabricmc.loom.forge;
 
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.util.DownloadUtil;
+import net.fabricmc.loom.util.LoomTaskExt;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.Project;
 import org.gradle.api.tasks.OutputDirectory;
@@ -17,7 +18,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 //(VOLDELOOM-DISASTER) CLIENT LIBRARY SHIM
-public class ShimForgeClientLibraries extends DefaultTask {
+public class ShimForgeClientLibraries extends DefaultTask implements LoomTaskExt {
 	public ShimForgeClientLibraries() {
 		setGroup("fabric");
 	}
@@ -25,7 +26,7 @@ public class ShimForgeClientLibraries extends DefaultTask {
 	//TODO: Will need adjusting if I ever backport multiple run configs. There is an `@OutputDirectories` in gradle
 	@OutputDirectory
 	public Path getForgeLibrariesDirectory() {
-		LoomGradleExtension ext = LoomGradleExtension.get(getProject());
+		LoomGradleExtension ext = getLoomGradleExtension();
 		File runDir = new File(getProject().getRootDir(), ext.runDir); //see AbstractRunTask, TODO factor this out
 		
 		//Client run configs set this directory as the .minecraft folder (see RunConfig). Forge additionally adds a `lib` suffix when searching for libs

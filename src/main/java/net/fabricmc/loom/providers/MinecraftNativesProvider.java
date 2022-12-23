@@ -24,24 +24,23 @@
 
 package net.fabricmc.loom.providers;
 
+import net.fabricmc.loom.LoomGradleExtension;
+import net.fabricmc.loom.util.DownloadUtil;
+import net.fabricmc.loom.util.MinecraftVersionInfo;
+import net.fabricmc.loom.util.WellKnownLocations;
+import org.gradle.api.Project;
+import org.zeroturnaround.zip.ZipUtil;
+
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 
-import org.zeroturnaround.zip.ZipUtil;
-import org.gradle.api.Project;
-
-import net.fabricmc.loom.LoomGradleExtension;
-import net.fabricmc.loom.util.DownloadUtil;
-import net.fabricmc.loom.util.MinecraftVersionInfo;
-
 public class MinecraftNativesProvider {
-	public static void provide(MinecraftProvider minecraftProvider, Project project) throws IOException {
-		LoomGradleExtension extension = project.getExtensions().getByType(LoomGradleExtension.class);
-		MinecraftVersionInfo versionInfo = minecraftProvider.getVersionInfo();
+	public static void provide(Project project, LoomGradleExtension extension) throws IOException {
+		MinecraftVersionInfo versionInfo = extension.getMinecraftProvider().getVersionInfo();
 
 		File nativesDir = extension.getNativesDirectory();
-		File jarStore = extension.getNativesJarStore();
+		File jarStore = WellKnownLocations.getNativesJarStore(project);
 
 		for (MinecraftVersionInfo.Library library : versionInfo.libraries) {
 			File libJarFile = library.getFile(jarStore);

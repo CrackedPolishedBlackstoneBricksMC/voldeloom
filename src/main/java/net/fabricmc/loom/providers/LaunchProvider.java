@@ -26,6 +26,7 @@ package net.fabricmc.loom.providers;
 
 import net.fabricmc.loom.util.Constants;
 import net.fabricmc.loom.util.DependencyProvider;
+import net.fabricmc.loom.util.WellKnownLocations;
 import org.apache.commons.io.FileUtils;
 import org.gradle.api.Project;
 
@@ -55,9 +56,9 @@ public class LaunchProvider extends DependencyProvider {
 				.argument("client", "--assetIndex")
 				.argument("client", getExtension().getMinecraftProvider().getVersionInfo().assetIndex.getFabricId(getExtension().getMinecraftProvider().getMinecraftVersion()))
 				.argument("client", "--assetsDir")
-				.argument("client", new File(getExtension().getUserCache(), "assets").getAbsolutePath());
+				.argument("client", new File(WellKnownLocations.getUserCache(getProject()), "assets").getAbsolutePath());
 
-		FileUtils.writeStringToFile(getExtension().getDevLauncherConfig(), launchConfig.asString(), StandardCharsets.UTF_8);
+		FileUtils.writeStringToFile(WellKnownLocations.getDevLauncherConfig(getProject()), launchConfig.asString(), StandardCharsets.UTF_8);
 
 		//addDependency("net.fabricmc:dev-launch-injector:" + Constants.DEV_LAUNCH_INJECTOR_VERSION, "runtimeOnly");
 	}

@@ -24,22 +24,9 @@
 
 package net.fabricmc.loom.providers;
 
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
-import java.util.Optional;
-import java.util.function.Consumer;
-import java.util.zip.ZipError;
-
 import com.google.common.io.Files;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import org.gradle.api.GradleException;
-import org.gradle.api.Project;
-import org.gradle.api.logging.Logger;
-
 import net.fabricmc.loom.forge.ForgePatchApplier;
 import net.fabricmc.loom.forge.ForgeProvider;
 import net.fabricmc.loom.util.Checksum;
@@ -49,7 +36,20 @@ import net.fabricmc.loom.util.DownloadUtil;
 import net.fabricmc.loom.util.ManifestVersion;
 import net.fabricmc.loom.util.MinecraftVersionInfo;
 import net.fabricmc.loom.util.StaticPathWatcher;
+import net.fabricmc.loom.util.WellKnownLocations;
 import net.fabricmc.stitch.merge.JarMerger;
+import org.gradle.api.GradleException;
+import org.gradle.api.Project;
+import org.gradle.api.logging.Logger;
+
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.util.Optional;
+import java.util.function.Consumer;
+import java.util.zip.ZipError;
 
 public class MinecraftProvider extends DependencyProvider {
 	private String minecraftVersion;
@@ -123,15 +123,15 @@ public class MinecraftProvider extends DependencyProvider {
 	}
 
 	private void initFiles() {
-		minecraftJson = new File(getExtension().getUserCache(), "minecraft-" + minecraftVersion + "-info.json");
-		minecraftClientJar = new File(getExtension().getUserCache(), "minecraft-" + minecraftVersion + "-client.jar");
-		minecraftServerJar = new File(getExtension().getUserCache(), "minecraft-" + minecraftVersion + "-server.jar");
-		minecraftMergedJar = new File(getExtension().getUserCache(), "minecraft-" + minecraftVersion + "-merged.jar");
-		minecraftPatchedMergedJar = new File(getExtension().getUserCache(), "minecraft-" + minecraftJarStuff + "-merged.jar");
+		minecraftJson = new File(WellKnownLocations.getUserCache(getProject()), "minecraft-" + minecraftVersion + "-info.json");
+		minecraftClientJar = new File(WellKnownLocations.getUserCache(getProject()), "minecraft-" + minecraftVersion + "-client.jar");
+		minecraftServerJar = new File(WellKnownLocations.getUserCache(getProject()), "minecraft-" + minecraftVersion + "-server.jar");
+		minecraftMergedJar = new File(WellKnownLocations.getUserCache(getProject()), "minecraft-" + minecraftVersion + "-merged.jar");
+		minecraftPatchedMergedJar = new File(WellKnownLocations.getUserCache(getProject()), "minecraft-" + minecraftJarStuff + "-merged.jar");
 	}
 
 	private void downloadMcJson(boolean offline) throws IOException {
-		File manifests = new File(getExtension().getUserCache(), "version_manifest.json");
+		File manifests = new File(WellKnownLocations.getUserCache(getProject()), "version_manifest.json");
 
 		if (offline) {
 			if (manifests.exists()) {

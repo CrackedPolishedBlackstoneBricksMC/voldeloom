@@ -25,6 +25,7 @@
 package net.fabricmc.loom.task;
 
 import net.fabricmc.loom.LoomGradleExtension;
+import net.fabricmc.loom.util.LoomTaskExt;
 import net.fabricmc.loom.util.RunConfig;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.Project;
@@ -46,7 +47,7 @@ import javax.xml.transform.stream.StreamResult;
 import java.io.File;
 import java.io.IOException;
 
-public class GenIdeaProjectTask extends DefaultTask {
+public class GenIdeaProjectTask extends DefaultTask implements LoomTaskExt {
 	public GenIdeaProjectTask() {
 		setGroup("ide");
 	}
@@ -60,7 +61,7 @@ public class GenIdeaProjectTask extends DefaultTask {
 			return;
 		}
 
-		LoomGradleExtension extension = LoomGradleExtension.get(getProject());
+		LoomGradleExtension extension = getLoomGradleExtension();
 		project.getLogger().lifecycle(":Building idea workspace");
 
 		File file = project.file(project.getName() + ".iws");
@@ -84,8 +85,8 @@ public class GenIdeaProjectTask extends DefaultTask {
 			throw new RuntimeException("Failed to generate intellij run configurations (runManager was not found)");
 		}
 
-		runManager.appendChild(RunConfig.clientRunConfig(project).genRuns(runManager));
-		runManager.appendChild(RunConfig.serverRunConfig(project).genRuns(runManager));
+		runManager.appendChild(RunConfig.clientRunConfig(project, extension).genRuns(runManager));
+		runManager.appendChild(RunConfig.serverRunConfig(project, extension).genRuns(runManager));
 
 		TransformerFactory transformerFactory = TransformerFactory.newInstance();
 		Transformer transformer = transformerFactory.newTransformer();

@@ -156,12 +156,13 @@ and the current set of forge extensions
      * and `runtime` is set to extend `modCompileClasspathMapped`
    * `modCompileOnly` - extends `modCompileClasspath`
      * and `compileOnly` is set to extend `modCompileClasspathMapped`
-7. some mixin annotation processor stuff happens, project is scanned for java compile tasks and mixin ap arguments are added
+7. ~~some mixin annotation processor stuff happens, project is scanned for java compile tasks and mixin ap arguments are added~~
    * this might be broken in voldeloom... it happens very early wtf
+   * removed it anyway
 8. some IntelliJ IDEA settings are configured, same stuff you could do if you wrote an `idea { }` block in the script
 9. for Some Reason the Javadoc classpath is set to the main compile classpath
    * i think this is like "semi opinionated gradle magic" that has nothing to do with mods
-10. If `!idea.sync.active`, `fabric_mixin_compile_extensions` is added as an `annotationProcessor` dependency
+10. ~~If `!idea.sync.active`, `fabric_mixin_compile_extensions` is added as an `annotationProcessor` dependency~~ removed
 11. All the Gradle tasks are registered
     * cleanLoomBinaries, cleanLoomMappings, cleanLoom
     * migrateMappings
@@ -179,7 +180,7 @@ Then we ask for an `afterEvaluate` callback, so the following is able to access 
     * `handleDependencies` is called on the dependency manager.
     * TODO: looks like a rabbit hole, study further
 2. Some `genSources` tasks are wired up and configured with the extension's mappings provider
-3. The same Mixin annotation processor arguments are added to the Scala compilation task, if it exists
+3. ~~The same Mixin annotation processor arguments are added to the Scala compilation task, if it exists~~ removed
 4. A couple more Maven repos are glued on? (Why now?)
    * FabricMC's, Mojang's (again), Maven Central, before i removed it in my fork even JCenter.
    * A `flatDir` maven repo is also added for the directories `UserLocalCacheFiles` (under the root project's `build/loom-cache` dir) and `UserLocalRemappedMods` (`.gradle/loom-cache/remapped_mods`)
@@ -239,6 +240,10 @@ A good resource for other downloaded libraries used by other versions of Forge -
 
 Launchwrapper! Launchwrapper is a thing! If you use `VanillaTweakInjector` you get a new `--gameDir` argument, which can be set to any path you want and acts the same as setting the `minecraft.applet.TargetDirectory` flag.
 
+## What is a DependencyProvider?
+
+THis is a Loom-specific mechanism for doing Something
+
 ## ?
 
 what is a "fabric installer json?" (LoomDependencyManager) probably something to do with run configs
@@ -250,3 +255,5 @@ It's probably safe to delete instances of jij stuff because Forge does not nativ
 abstractdecompiletask uses a "line map file"
 
 ~~Forge seems to depend on ASM but that dependency is being lost along the way, possibly (at least, i see red errors in the genSources jar)~~ goddamn autodownloaded dependencies lol
+
+investigate `MinecraftLibraryProvider`, that libraries folder doesnt seem to exist...?

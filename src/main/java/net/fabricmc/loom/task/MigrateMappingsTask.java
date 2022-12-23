@@ -29,6 +29,7 @@ import com.google.common.collect.Iterables;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.providers.MappingsProvider;
 import net.fabricmc.loom.providers.MinecraftMappedProvider;
+import net.fabricmc.loom.util.LoomTaskExt;
 import net.fabricmc.loom.util.SourceRemapper;
 import net.fabricmc.lorenztiny.LorenzTiny;
 import net.fabricmc.mapping.tree.TinyMappingFactory;
@@ -53,7 +54,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.Set;
 
-public class MigrateMappingsTask extends DefaultTask {
+public class MigrateMappingsTask extends DefaultTask implements LoomTaskExt {
 	private Path inputDir;
 	private Path outputDir;
 	private String mappings;
@@ -83,7 +84,7 @@ public class MigrateMappingsTask extends DefaultTask {
 	@TaskAction
 	public void doTask() throws Throwable {
 		Project project = getProject();
-		LoomGradleExtension extension = LoomGradleExtension.get(project);
+		LoomGradleExtension extension = getLoomGradleExtension();
 
 		project.getLogger().lifecycle(":loading mappings");
 

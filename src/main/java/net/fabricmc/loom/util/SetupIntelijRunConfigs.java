@@ -36,9 +36,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
 public class SetupIntelijRunConfigs {
-	public static void setup(Project project) {
-		LoomGradleExtension extension = project.getExtensions().getByType(LoomGradleExtension.class);
-
+	public static void setup(Project project, LoomGradleExtension extension) {
 		File projectDir = project.file(".idea");
 
 		if (!projectDir.exists()) {
@@ -46,7 +44,7 @@ public class SetupIntelijRunConfigs {
 		}
 
 		try {
-			generate(project);
+			generate(project, extension);
 		} catch (IOException e) {
 			throw new RuntimeException("Failed to generate run configs", e);
 		}
@@ -58,13 +56,11 @@ public class SetupIntelijRunConfigs {
 		}
 	}
 
-	private static void generate(Project project) throws IOException {
-		LoomGradleExtension extension = LoomGradleExtension.get(project);
-
+	private static void generate(Project project, LoomGradleExtension extension) throws IOException {
 		if (LoomGradlePlugin.ideaSync()) {
 			//Ensures the assets are downloaded when idea is syncing a project
-			MinecraftAssetsProvider.provide(extension.getMinecraftProvider(), project);
-			MinecraftNativesProvider.provide(extension.getMinecraftProvider(), project);
+			MinecraftAssetsProvider.provide(project, extension);
+			MinecraftNativesProvider.provide(project, extension);
 		}
 
 		File projectDir = project.file(".idea");
@@ -76,8 +72,8 @@ public class SetupIntelijRunConfigs {
 			runConfigsDir.mkdirs();
 		}
 
-		String clientRunConfig = RunConfig.clientRunConfig(project).fromDummy("idea_run_config_template.xml");
-		String serverRunConfig = RunConfig.serverRunConfig(project).fromDummy("idea_run_config_template.xml");
+		String clientRunConfig = RunConfig.clientRunConfig(project, extension).fromDummy("idea_run_config_template.xml");
+		String serverRunConfig = RunConfig.serverRunConfig(project, extension).fromDummy("idea_run_config_template.xml");
 
 		if (!clientRunConfigs.exists() || RunConfig.needsUpgrade(clientRunConfigs)) {
 			FileUtils.writeStringToFile(clientRunConfigs, clientRunConfig, StandardCharsets.UTF_8);

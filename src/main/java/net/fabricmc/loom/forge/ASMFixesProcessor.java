@@ -18,12 +18,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.Collections;
-import java.util.Map;
 
 public class ASMFixesProcessor implements JarProcessor {
-
-	private static final Map<String, String> FS_ENV = Collections.singletonMap("create", "true");
-	
 	private LoomGradleExtension extension;
 	
 	@Override
@@ -40,7 +36,7 @@ public class ASMFixesProcessor implements JarProcessor {
 			throw new RuntimeException("Problem remapping ATs", e1);
 		}
 		ForgeATConfig atConfig = forge.getATs();
-		try(FileSystem mcFs = FileSystems.newFileSystem(URI.create("jar:" + file.toURI()), FS_ENV)) {
+		try(FileSystem mcFs = FileSystems.newFileSystem(URI.create("jar:" + file.toURI()), Collections.singletonMap("create", "true"))) {
 			Files.walk(mcFs.getPath("/"))
 				.filter(p -> p.toString().endsWith(".class"))
 				.forEach(p -> transformClass(p, atConfig));
@@ -68,5 +64,4 @@ public class ASMFixesProcessor implements JarProcessor {
 	public boolean isInvalid(File file) {
 		return false;
 	}
-
 }

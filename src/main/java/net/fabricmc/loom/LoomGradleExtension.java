@@ -30,6 +30,7 @@ import net.fabricmc.loom.providers.MappingsProvider;
 import net.fabricmc.loom.providers.MinecraftMappedProvider;
 import net.fabricmc.loom.providers.MinecraftProvider;
 import net.fabricmc.loom.util.LoomDependencyManager;
+import net.fabricmc.loom.util.WellKnownLocations;
 import org.cadixdev.lorenz.MappingSet;
 import org.cadixdev.mercury.Mercury;
 import org.gradle.api.Project;
@@ -97,98 +98,14 @@ public class LoomGradleExtension {
 		return installerJson;
 	}
 
-	public File getUserCache() {
-		File userCache = new File(project.getGradle().getGradleUserHomeDir(), "caches" + File.separator + "fabric-loom");
-
-		if (!userCache.exists()) {
-			userCache.mkdirs();
-		}
-
-		return userCache;
-	}
-
-	public File getRootProjectPersistentCache() {
-		File projectCache = new File(project.getRootProject().file(".gradle"), "loom-cache");
-
-		if (!projectCache.exists()) {
-			projectCache.mkdirs();
-		}
-
-		return projectCache;
-	}
-
-	public File getProjectPersistentCache() {
-		File projectCache = new File(project.file(".gradle"), "loom-cache");
-
-		if (!projectCache.exists()) {
-			projectCache.mkdirs();
-		}
-
-		return projectCache;
-	}
-
-	public File getRootProjectBuildCache() {
-		File projectCache = new File(project.getRootProject().getBuildDir(), "loom-cache");
-
-		if (!projectCache.exists()) {
-			projectCache.mkdirs();
-		}
-
-		return projectCache;
-	}
-
-	public File getProjectBuildCache() {
-		File projectCache = new File(project.getBuildDir(), "loom-cache");
-
-		if (!projectCache.exists()) {
-			projectCache.mkdirs();
-		}
-
-		return projectCache;
-	}
-
-	public File getRemappedModCache() {
-		File remappedModCache = new File(getRootProjectPersistentCache(), "remapped_mods");
-
-		if (!remappedModCache.exists()) {
-			remappedModCache.mkdir();
-		}
-
-		return remappedModCache;
-	}
-
-	public File getNestedModCache() {
-		File nestedModCache = new File(getRootProjectPersistentCache(), "nested_mods");
-
-		if (!nestedModCache.exists()) {
-			nestedModCache.mkdir();
-		}
-
-		return nestedModCache;
-	}
-
-	public File getNativesJarStore() {
-		File natives = new File(getUserCache(), "natives/jars");
-
-		if (!natives.exists()) {
-			natives.mkdirs();
-		}
-
-		return natives;
-	}
-
 	public File getNativesDirectory() {
-		File natives = new File(getUserCache(), "natives/" + getMinecraftProvider().getMinecraftVersion());
+		File natives = new File(WellKnownLocations.getUserCache(project), "natives/" + getMinecraftProvider().getMinecraftVersion());
 
 		if (!natives.exists()) {
 			natives.mkdirs();
 		}
 
 		return natives;
-	}
-
-	public File getDevLauncherConfig() {
-		return new File(getRootProjectPersistentCache(), "launch.cfg");
 	}
 
 	@Nullable
@@ -310,9 +227,5 @@ public class LoomGradleExtension {
 		}
 
 		return refmapName;
-	}
-	
-	public static LoomGradleExtension get(Project project) {
-		return project.getExtensions().getByType(LoomGradleExtension.class);
 	}
 }

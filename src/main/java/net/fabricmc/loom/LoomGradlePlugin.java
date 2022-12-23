@@ -51,6 +51,7 @@ import net.fabricmc.loom.util.GroovyXmlUtil;
 import net.fabricmc.loom.util.LoomDependencyManager;
 import net.fabricmc.loom.util.RemappedConfigurationEntry;
 import net.fabricmc.loom.util.SetupIntelijRunConfigs;
+import net.fabricmc.loom.util.WellKnownLocations;
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
 import org.gradle.api.Task;
@@ -65,9 +66,7 @@ import org.gradle.api.publish.maven.MavenPublication;
 import org.gradle.api.tasks.SourceSet;
 import org.gradle.api.tasks.TaskContainer;
 import org.gradle.api.tasks.bundling.AbstractArchiveTask;
-import org.gradle.api.tasks.compile.JavaCompile;
 import org.gradle.api.tasks.javadoc.Javadoc;
-import org.gradle.api.tasks.scala.ScalaCompile;
 import org.gradle.plugins.ide.idea.model.IdeaModel;
 
 import java.io.File;
@@ -77,7 +76,6 @@ import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -169,39 +167,14 @@ public class LoomGradlePlugin implements Plugin<Project> {
 			}
 		}
 		
-		//TODO: I think this has to do with the Mixin annotation processor again
-		//Guarded by an ideaSync block because IDEA gets confused when the annotation processor runs during syncing, I think?
-		//I'm not really sure why it was like this - either APs don't work at all, or maybe only specifically Mixin's is broken, or what
-		if(!ideaSync()) {
-			annotationProcessor.extendsFrom(minecraftNamed);
-			annotationProcessor.extendsFrom(modCompileClasspathMapped);
-			annotationProcessor.extendsFrom(mappingsFinal);
-		}
-		
-		//TODO(VOLDELOOM-DISASTER): Mixin annotation processor stuff too and can be removed
-		Map<Project, Set<Task>> taskMap = project.getAllTasks(true);
-		for(Map.Entry<Project, Set<Task>> entry : taskMap.entrySet()) {
-			Project taskOwner = entry.getKey();
-			
-			for(Task task : entry.getValue()) {
-				if(task instanceof JavaCompile && !(task.getName().contains("Test")) && !(task.getName().contains("test"))) {
-					JavaCompile javaCompileTask = (JavaCompile) task;
-					javaCompileTask.doFirst(task1 -> {
-						taskOwner.getLogger().lifecycle(":setting java compiler args");
-						
-						try {
-							LoomGradleExtension extension = LoomGradleExtension.get(taskOwner);
-							javaCompileTask.getOptions().getCompilerArgs().add("-AinMapFileNamedIntermediary=" + extension.getMappingsProvider().tinyMappings.getCanonicalPath());
-							javaCompileTask.getOptions().getCompilerArgs().add("-AoutMapFileNamedIntermediary=" + extension.getMappingsProvider().mappingsMixinExport.getCanonicalPath());
-							javaCompileTask.getOptions().getCompilerArgs().add("-AoutRefMapFile=" + new File(javaCompileTask.getDestinationDir(), extension.getRefmapName()).getCanonicalPath());
-							javaCompileTask.getOptions().getCompilerArgs().add("-AdefaultObfuscationEnv=named:intermediary");
-						} catch (IOException e) {
-							e.printStackTrace();
-						}
-					});
-				}
-			}
-		}
+//		//TODO: I think this has to do with the Mixin annotation processor again
+//		//Guarded by an ideaSync block because IDEA gets confused when the annotation processor runs during syncing, I think?
+//		//I'm not really sure why it was like this - either APs don't work at all, or maybe only specifically Mixin's is broken, or what
+//		if(!ideaSync()) {
+//			annotationProcessor.extendsFrom(minecraftNamed);
+//			annotationProcessor.extendsFrom(modCompileClasspathMapped);
+//			annotationProcessor.extendsFrom(mappingsFinal);
+//		}
 		
 		//Preconfigure a couple things in IntelliJ. Nothing you can't do yourself by clicking on things, but, well, now you don't have to.
 		//This can also be configured by writing your own `idea { }` block in the script.
@@ -219,11 +192,6 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		SourceSet main = javaModule.getSourceSets().getByName(SourceSet.MAIN_SOURCE_SET_NAME);
 		Javadoc javadoc = (Javadoc) project.getTasks().getByName(JavaPlugin.JAVADOC_TASK_NAME);
 		javadoc.setClasspath(main.getOutput().plus(main.getCompileClasspath()));
-		
-		//More mixin annotation processor stuff...
-		if (!ideaSync()) {
-			project.getDependencies().add(JavaPlugin.ANNOTATION_PROCESSOR_CONFIGURATION_NAME, "net.fabricmc:fabric-mixin-compile-extensions:" + Constants.MIXIN_COMPILE_EXTENSIONS_VERSION);
-		}
 		
 		//And now, we add a bunch of Gradle tasks.
 		//Note that `register` doesn't add the task right away, but reflectively creates it and calls the closure to configure it when required.
@@ -270,7 +238,7 @@ public class LoomGradlePlugin implements Plugin<Project> {
 	}
 	
 	private void afterEvaluate(Project project) {
-		LoomGradleExtension extension = LoomGradleExtension.get(project);
+		LoomGradleExtension extension = project.getExtensions().getByType(LoomGradleExtension.class);
 		
 		//TODO(VOLDELOOM-DISASTER) research what da hecj this does
 		LoomDependencyManager dependencyManager = new LoomDependencyManager();
@@ -290,9 +258,9 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		MinecraftLibraryProvider libraryProvider = extension.getMinecraftProvider().getLibraryProvider();
 		MappingsProvider mappingsProvider = extension.getMappingsProvider();
 		File mappedJar = mappingsProvider.mappedProvider.getMappedJar();
-		File linemappedJar = getMappedByproduct(project, "-linemapped.jar");
-		File sourcesJar = getMappedByproduct(project, "-sources.jar");
-		File linemapFile = getMappedByproduct(project, "-sources.lmap");
+		File linemappedJar = getMappedByproduct(extension, "-linemapped.jar");
+		File sourcesJar = getMappedByproduct(extension, "-sources.jar");
+		File linemapFile = getMappedByproduct(extension, "-sources.lmap");
 		
 		genSourcesDecompileTask.setInput(mappedJar);
 		genSourcesDecompileTask.setOutput(sourcesJar);
@@ -318,30 +286,15 @@ public class LoomGradlePlugin implements Plugin<Project> {
 			}
 		});
 		
-		//Scala support. TODO(VOLDELOOM-DISASTER): this looks like Mixin annotation-processor stuff again, and can probably be removed in Voldeloom.
-		if (project.getPluginManager().hasPlugin("scala")) {
-			ScalaCompile task = (ScalaCompile) project.getTasks().getByName("compileScala");
-			project.getLogger().warn(":configuring scala compilation processing");
-			
-			try {
-				task.getOptions().getCompilerArgs().add("-AinMapFileNamedIntermediary=" + extension.getMappingsProvider().tinyMappings.getCanonicalPath());
-				task.getOptions().getCompilerArgs().add("-AoutMapFileNamedIntermediary=" + extension.getMappingsProvider().mappingsMixinExport.getCanonicalPath());
-				task.getOptions().getCompilerArgs().add("-AoutRefMapFile=" + new File(task.getDestinationDir(), extension.getRefmapName()).getCanonicalPath());
-				task.getOptions().getCompilerArgs().add("-AdefaultObfuscationEnv=named:intermediary");
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		}
-		
-		//Glue on a few more repositories. Late, because it's dependent on some stuff in LoomGradleExtension.
-		//TODO: It's not actually? These return constant values, determined only by the Project? Lol
+		//TODO: These formerly depended on LoomGradleExtension, but doesn't anymore. These return constant values, determined only by the Project.
+		// See about moving these up out of afterEvaluate.
 		project.getRepositories().flatDir(flatDirectoryArtifactRepository -> {
-			flatDirectoryArtifactRepository.dir(extension.getRootProjectBuildCache());
+			flatDirectoryArtifactRepository.dir(WellKnownLocations.getRootProjectBuildCache(project));
 			flatDirectoryArtifactRepository.setName("UserLocalCacheFiles");
 		});
 		
 		project.getRepositories().flatDir(flatDirectoryArtifactRepository -> {
-			flatDirectoryArtifactRepository.dir(extension.getRemappedModCache());
+			flatDirectoryArtifactRepository.dir(WellKnownLocations.getRemappedModCache(project));
 			flatDirectoryArtifactRepository.setName("UserLocalRemappedMods");
 		});
 		
@@ -365,7 +318,7 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		
 		//IntelliJ run configs jank
 		if(extension.autoGenIDERuns && project.getRootProject() == project) {
-			SetupIntelijRunConfigs.setup(project);
+			SetupIntelijRunConfigs.setup(project, extension);
 		}
 		
 		//TODO(VOLDELOOM-DISASTER): This is configurable for basically no reason lol
@@ -450,8 +403,8 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		return Boolean.parseBoolean(System.getProperty("idea.sync.active", "false"));
 	}
 	
-	public static File getMappedByproduct(Project project, String suffix) {
-		String path = LoomGradleExtension.get(project).getMappingsProvider().mappedProvider.getMappedJar().getAbsolutePath();
+	public static File getMappedByproduct(LoomGradleExtension extension, String suffix) {
+		String path = extension.getMappingsProvider().mappedProvider.getMappedJar().getAbsolutePath();
 		if (!path.toLowerCase(Locale.ROOT).endsWith(".jar")) throw new RuntimeException("Invalid mapped JAR path: " + path);
 		else return new File(path.substring(0, path.length() - 4) + suffix);
 	}

@@ -24,10 +24,10 @@
 
 package net.fabricmc.loom.providers;
 
-import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.util.Constants;
 import net.fabricmc.loom.util.GradleSupport;
 import net.fabricmc.loom.util.MinecraftVersionInfo;
+import net.fabricmc.loom.util.WellKnownLocations;
 import org.gradle.api.Project;
 
 import java.io.File;
@@ -41,7 +41,6 @@ public class MinecraftLibraryProvider {
 	private Collection<File> libs = new HashSet<>();
 
 	public void provide(MinecraftProvider minecraftProvider, Project project) throws IOException {
-		LoomGradleExtension extension = project.getExtensions().getByType(LoomGradleExtension.class);
 		MinecraftVersionInfo versionInfo = minecraftProvider.getVersionInfo();
 
 		initFiles(project, minecraftProvider);
@@ -72,7 +71,6 @@ public class MinecraftLibraryProvider {
 	}
 
 	private void initFiles(Project project, MinecraftProvider minecraftProvider) {
-		LoomGradleExtension extension = project.getExtensions().getByType(LoomGradleExtension.class);
-		MINECRAFT_LIBS = new File(extension.getUserCache(), "libraries");
+		MINECRAFT_LIBS = new File(WellKnownLocations.getUserCache(project), "libraries");
 	}
 }
