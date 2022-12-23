@@ -59,14 +59,10 @@ import org.gradle.api.UnknownTaskException;
 import org.gradle.api.artifacts.Configuration;
 import org.gradle.api.artifacts.Dependency;
 import org.gradle.api.artifacts.repositories.MavenArtifactRepository;
-import org.gradle.api.plugins.JavaPlugin;
-import org.gradle.api.plugins.JavaPluginConvention;
 import org.gradle.api.publish.PublishingExtension;
 import org.gradle.api.publish.maven.MavenPublication;
-import org.gradle.api.tasks.SourceSet;
 import org.gradle.api.tasks.TaskContainer;
 import org.gradle.api.tasks.bundling.AbstractArchiveTask;
-import org.gradle.api.tasks.javadoc.Javadoc;
 import org.gradle.plugins.ide.idea.model.IdeaModel;
 
 import java.io.File;
@@ -113,6 +109,15 @@ public class LoomGradlePlugin implements Plugin<Project> {
 			//I don't believe this breaks Gradle 4.
 			repo.metadataSources(MavenArtifactRepository.MetadataSources::artifact);
 		});
+		project.getRepositories().flatDir(repo -> {
+			//TODO(VOLDELOOM-DISASTER): Apparently unused, only used in CleanLoomMappings but never written to
+			repo.dir(WellKnownLocations.getRootProjectBuildCache(project));
+			repo.setName("UserLocalCacheFiles");
+		});
+		project.getRepositories().flatDir(repo -> {
+			repo.dir(WellKnownLocations.getRemappedModCache(project));
+			repo.setName("UserLocalRemappedMods");
+		});
 		
 		//Next, we define a bunch of Configurations. (More on them here: https://docs.gradle.org/current/dsl/org.gradle.api.artifacts.Configuration.html )
 		//A configuration is a set of artifacts and their dependencies. These are typically referenced by-name, so we don't need to shelve the objects anywhere.
@@ -124,7 +129,6 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		//In short, I think that if configuration A extends B, all the artifacts in B have to be ready before A can be ready.
 		
 		Configuration compileOrImplementation = GradleSupport.getCompileOrImplementationConfiguration(project.getConfigurations());
-		Configuration annotationProcessor = project.getConfigurations().getByName(JavaPlugin.ANNOTATION_PROCESSOR_CONFIGURATION_NAME);
 		
 		//All mods on the compilation classpath, including the mod under development.
 		Configuration modCompileClasspath = project.getConfigurations().maybeCreate(Constants.MOD_COMPILE_CLASSPATH).setTransitive(true);
@@ -188,10 +192,10 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		ideaModel.getModule().setInheritOutputDirs(true);
 		
 		//TODO what is this doing here lmao. I think this is some opinionated it-just-works stuff totally unrelated to Minecraft modding
-		JavaPluginConvention javaModule = (JavaPluginConvention) project.getConvention().getPlugins().get("java");
-		SourceSet main = javaModule.getSourceSets().getByName(SourceSet.MAIN_SOURCE_SET_NAME);
-		Javadoc javadoc = (Javadoc) project.getTasks().getByName(JavaPlugin.JAVADOC_TASK_NAME);
-		javadoc.setClasspath(main.getOutput().plus(main.getCompileClasspath()));
+//		JavaPluginConvention javaModule = (JavaPluginConvention) project.getConvention().getPlugins().get("java");
+//		SourceSet main = javaModule.getSourceSets().getByName(SourceSet.MAIN_SOURCE_SET_NAME);
+//		Javadoc javadoc = (Javadoc) project.getTasks().getByName(JavaPlugin.JAVADOC_TASK_NAME);
+//		javadoc.setClasspath(main.getOutput().plus(main.getCompileClasspath()));
 		
 		//And now, we add a bunch of Gradle tasks.
 		//Note that `register` doesn't add the task right away, but reflectively creates it and calls the closure to configure it when required.
@@ -286,33 +290,7 @@ public class LoomGradlePlugin implements Plugin<Project> {
 			}
 		});
 		
-		//TODO: These formerly depended on LoomGradleExtension, but doesn't anymore. These return constant values, determined only by the Project.
-		// See about moving these up out of afterEvaluate.
-		project.getRepositories().flatDir(flatDirectoryArtifactRepository -> {
-			flatDirectoryArtifactRepository.dir(WellKnownLocations.getRootProjectBuildCache(project));
-			flatDirectoryArtifactRepository.setName("UserLocalCacheFiles");
-		});
-		
-		project.getRepositories().flatDir(flatDirectoryArtifactRepository -> {
-			flatDirectoryArtifactRepository.dir(WellKnownLocations.getRemappedModCache(project));
-			flatDirectoryArtifactRepository.setName("UserLocalRemappedMods");
-		});
-		
-		//dont ask me why these are added again TODO test without them
-		project.getRepositories().maven(mavenArtifactRepository -> {
-			mavenArtifactRepository.setName("Fabric");
-			mavenArtifactRepository.setUrl("https://maven.fabricmc.net/");
-		});
-		
-		project.getRepositories().maven(mavenArtifactRepository -> {
-			mavenArtifactRepository.setName("Mojang");
-			mavenArtifactRepository.setUrl("https://libraries.minecraft.net/");
-		});
-		
-		project.getRepositories().mavenCentral();
-		//project.getRepositories().jcenter(); //(VOLDELOOM-DISASTER) jcenter is dead, this can't lead to anything good
-		
-		//TODO can this be configured earlier, with everything else?
+		//TODO can this be configured earlier, with everything else? Need to fix the idea workspace tasks before I can tell
 		project.getTasks().getByName("idea").finalizedBy(project.getTasks().getByName("genIdeaWorkspace"));
 		project.getTasks().getByName("eclipse").finalizedBy(project.getTasks().getByName("genEclipseRuns"));
 		
@@ -355,7 +333,8 @@ public class LoomGradlePlugin implements Plugin<Project> {
 			extension.addUnmappedMod(jarTask.getArchivePath().toPath());
 		}
 		
-		//Configure a few Maven publishing settings. I (quat)'m not familiar with maven publishing so idk what this does.
+		//Configure a few Maven publishing settings. I (quat)'m not familiar with maven publishing so idk
+		//I think this adds stuff declared in the modCompile, modImplementation etc configurations into the maven pom
 		PublishingExtension mavenPublish = project.getExtensions().findByType(PublishingExtension.class);
 		if(mavenPublish != null) {
 			List<MavenPublication> mavenPubs = mavenPublish.getPublications().stream()

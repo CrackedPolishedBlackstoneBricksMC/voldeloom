@@ -19,11 +19,12 @@ public class WellKnownLocations {
 		return rootProjectCache;
 	}
 	
-	public static File getProjectPersistentCache(Project project) {
-		File projectCache = new File(project.file(".gradle"), "loom-cache");
-		if (!projectCache.exists()) projectCache.mkdirs();
-		return projectCache;
-	}
+	//Unused
+//	public static File getProjectPersistentCache(Project project) {
+//		File projectCache = new File(project.file(".gradle"), "loom-cache");
+//		if (!projectCache.exists()) projectCache.mkdirs();
+//		return projectCache;
+//	}
 	
 	public static File getRootProjectBuildCache(Project project) {
 		File rootProjectBuildCache = new File(project.getRootProject().getBuildDir(), "loom-cache");
@@ -39,7 +40,7 @@ public class WellKnownLocations {
 	
 	public static File getRemappedModCache(Project project) {
 		File remappedModCache = new File(getRootProjectPersistentCache(project), "remapped_mods");
-		if (!remappedModCache.exists()) remappedModCache.mkdir();
+		if (!remappedModCache.exists()) remappedModCache.mkdirs();
 		return remappedModCache;
 	}
 	

@@ -27,11 +27,9 @@ package net.fabricmc.loom.task;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.providers.MappingsProvider;
 import net.fabricmc.loom.util.GradleSupport;
-import net.fabricmc.loom.util.MixinRefmapHelper;
 import net.fabricmc.loom.util.TinyRemapperMappingsHelper;
 import net.fabricmc.tinyremapper.OutputConsumerPath;
 import net.fabricmc.tinyremapper.TinyRemapper;
-import net.fabricmc.tinyremapper.TinyUtils;
 import org.gradle.api.Project;
 import org.gradle.api.file.RegularFileProperty;
 import org.gradle.api.tasks.InputFile;
@@ -75,16 +73,16 @@ public class RemapJarTask extends Jar {
 		);
 		Path[] classpath = classpathFiles.stream().map(File::toPath).filter((p) -> !input.equals(p) && Files.exists(p)).toArray(Path[]::new);
 
-		File mixinMapFile = mappingsProvider.mappingsMixinExport;
-		Path mixinMapPath = mixinMapFile.toPath();
+		//File mixinMapFile = mappingsProvider.mappingsMixinExport;
+		//Path mixinMapPath = mixinMapFile.toPath();
 
 		TinyRemapper.Builder remapperBuilder = TinyRemapper.newRemapper();
 
 		remapperBuilder = remapperBuilder.withMappings(TinyRemapperMappingsHelper.create(mappingsProvider.getMappings(), fromM, toM, false));
 
-		if (mixinMapFile.exists()) {
-			remapperBuilder = remapperBuilder.withMappings(TinyUtils.createTinyMappingProvider(mixinMapPath, fromM, toM));
-		}
+		//if (mixinMapFile.exists()) {
+		//	remapperBuilder = remapperBuilder.withMappings(TinyUtils.createTinyMappingProvider(mixinMapPath, fromM, toM));
+		//}
 
 		project.getLogger().lifecycle(":remapping " + input.getFileName());
 
@@ -113,9 +111,9 @@ public class RemapJarTask extends Jar {
 			throw new RuntimeException("Failed to remap " + input + " to " + output + " - file missing!");
 		}
 
-		if (MixinRefmapHelper.addRefmapName(extension.getRefmapName(), extension.getMixinJsonVersion(), output)) {
-			project.getLogger().debug("Transformed mixin reference maps in output JAR!");
-		}
+//		if (MixinRefmapHelper.addRefmapName(extension.getRefmapName(), extension.getMixinJsonVersion(), output)) {
+//			project.getLogger().debug("Transformed mixin reference maps in output JAR!");
+//		}
 
 		/*try {
 			if (modJar.exists()) {

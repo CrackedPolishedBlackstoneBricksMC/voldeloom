@@ -73,7 +73,7 @@ public class MappingsProvider extends DependencyProvider {
 	// The mappings we use in practice
 	public File tinyMappings;
 	public File tinyMappingsJar;
-	public File mappingsMixinExport;
+	//public File mappingsMixinExport;
 
 	public MappingsProvider(Project project) {
 		super(project);
@@ -177,7 +177,6 @@ public class MappingsProvider extends DependencyProvider {
 	
 	private void initFiles() {
 		mappingsDir = WellKnownLocations.getUserCache(getProject()).toPath().resolve("mappings");
-		mappingsMixinExport = new File(WellKnownLocations.getProjectBuildCache(getProject()), "mixin-map-" + minecraftVersion + "-" + mappingsVersion + ".tiny");
 	}
 
 	@Override

@@ -120,13 +120,17 @@ and the current set of forge extensions
 
 ~~`LoomGradlePlugin` is the entry point when you call `apply plugin`. It's split across `AbstractPlugin` and that class, for some reason. AbstractPlugin happens first so i will document that~~ I removed AbstractPlugin and merged the classes
 
-1. Log message is printed
+1. Hello log message is printed
 2. `java`, `eclipse`, and `idea` plugins are applied (for some reason), as if you typed `apply plugin: "eclipse"`
 3. (my fork) `GradleSupport.detectConfigurationNames` determines if you're on a `compile` or `implementation`-flavored version of Gradle
 4. An *extension* is created, LoomGradleExtension; this is what defines the `minecraft {` block you can type some settings into. I think more recent versions call this `loom`
    * The settings are not available right away (remember, we're still on the "apply plugin" line when evaluating the script)
-   * They will be available in a `project.afterEvaluate` block, or in task execution
-5. A couple maven repos are added, as if you typed them in to a `repositories {` block (Mojang's, and (my fork) Minecraft Forge)
+   * They will be available in a `project.afterEvaluate` block, or during task execution
+5. A couple maven repos are added, as if you typed them in to a `repositories {` block:
+   * Mojang's,
+   * (my fork) Minecraft Forge
+   * (my fork) Remapped mod cache, for mod dependencies (project .gradle/loom-cache/remapped_mods)
+     * (happens in afterEvaluate in the original)
 6. Several [*configurations*](https://docs.gradle.org/current/dsl/org.gradle.api.artifacts.Configuration.html) are created
    * `modCompileClasspath`
    * `modCompileClasspathMapped`, extends `annotationProcessor` if `!idea.sync.active`
@@ -156,12 +160,11 @@ and the current set of forge extensions
      * and `runtime` is set to extend `modCompileClasspathMapped`
    * `modCompileOnly` - extends `modCompileClasspath`
      * and `compileOnly` is set to extend `modCompileClasspathMapped`
-7. ~~some mixin annotation processor stuff happens, project is scanned for java compile tasks and mixin ap arguments are added~~
-   * this might be broken in voldeloom... it happens very early wtf
-   * removed it anyway
+7. ~~some mixin annotation processor stuff happens, project is scanned for java compile tasks and mixin ap arguments are added~~ removed
 8. some IntelliJ IDEA settings are configured, same stuff you could do if you wrote an `idea { }` block in the script
-9. for Some Reason the Javadoc classpath is set to the main compile classpath
-   * i think this is like "semi opinionated gradle magic" that has nothing to do with mods
+9. ~~for Some Reason the Javadoc classpath is set to the main compile classpath?~~
+   * I think this is like "semi opinionated gradle magic" that has nothing to do with mods lol
+   * Commented it out
 10. ~~If `!idea.sync.active`, `fabric_mixin_compile_extensions` is added as an `annotationProcessor` dependency~~ removed
 11. All the Gradle tasks are registered
     * cleanLoomBinaries, cleanLoomMappings, cleanLoom
@@ -181,9 +184,9 @@ Then we ask for an `afterEvaluate` callback, so the following is able to access 
     * TODO: looks like a rabbit hole, study further
 2. Some `genSources` tasks are wired up and configured with the extension's mappings provider
 3. ~~The same Mixin annotation processor arguments are added to the Scala compilation task, if it exists~~ removed
-4. A couple more Maven repos are glued on? (Why now?)
-   * FabricMC's, Mojang's (again), Maven Central, before i removed it in my fork even JCenter.
-   * A `flatDir` maven repo is also added for the directories `UserLocalCacheFiles` (under the root project's `build/loom-cache` dir) and `UserLocalRemappedMods` (`.gradle/loom-cache/remapped_mods`)
+4. ~~A couple more Maven repos are glued on? (Why now?)~~
+   * ~~FabricMC's, Mojang's (again), Maven Central, before i removed it in my fork even JCenter.~~ Removed
+   * ~~A `flatDir` maven repo is also added for the directories `UserLocalCacheFiles` (under the root project's `build/loom-cache` dir) and `UserLocalRemappedMods` (`.gradle/loom-cache/remapped_mods`)~~ Moved up
 5. The `idea` task is set to be `finalizedBy` the `genIdeaWorkspace` task. Similarly for `eclipse` and `genEclipseRuns`. (Why here? Idk)
 6. If `extension.autoGenIDERuns` is set (defaults to true) and this is the root project, a static helper in the `SetupIntellijRunConfigs` class is called to poop out files in `.idea/runConfigurations`
 7. If `extension.remapMod` is set (defaults to true), it "`// Enables the default mod remapper`".
@@ -242,11 +245,35 @@ Launchwrapper! Launchwrapper is a thing! If you use `VanillaTweakInjector` you g
 
 ## What is a DependencyProvider?
 
-THis is a Loom-specific mechanism for doing Something
+This is a small framework for programatically adding dynamic dependencies to the project in afterEvaluate. By "dynamic", I mean that the contents of the dependency themselves depend on other things in the project, such as the configured minecraft and mappings version.
+
+This is pretty much where the Magic:tm: happens - it's why you're able to dep on "minecraft remapped to MCP" when only "minecraft" and "MCP" exist as off-the-shelf artifacts.
+
+Implementations are all over the place, but by convention the `provide` method does two related things:
+
+1. Do a computation that relies on other real dependencies being resolved
+   * such as LaunchProvider writing a fabric dev-launch-injector script to project `.gradle/loom-cache/launch.cfg`
+   * or MinecraftMappedProvider combining the minecraft artifact & mappings artifact using tiny-remapper
+2. Call `addDependency` to add the relevant dependency to the project
+   * LaunchProvider adds dev-launch-injector to the `runtimeOnly` configuration, because the file is not useful without dli
+   * MinecraftMappedProvider adds a `flatDir` repo containing the remapped minecraft file, then adds the artifact to the `minecraftNamed` configuration
+
+These generally roll their own caching system, i.e. MinecraftMappedProvider checks to see if the file exists before calling into tiny-remapper the old-school way, with `File.exists`.
+
+`getTargetConfig` is a configuration relevant to the DependencyProvider, but not necessarily the one that actually ends up with the dependency in it (e.g. LaunchProvider writes to `runtimeOnly` but is actually says `minecraftNamed` is its target config)
+
+All this comes to a head in `LoomDependencyManager`, which is a part of `LoomGradleExtensions` and is configured at the beginning of the afterEvaluate block. `addProvider` stores them into a list, and the control flow is extremely complex for some reason but I think `provide` gets called on each one in turn?
+
+The `Consumer<Runnable> postPopulationScheduler` argument accepts things to run after handling all those dependencies. It goes unused in Voldeloom.
 
 ## ?
 
 what is a "fabric installer json?" (LoomDependencyManager) probably something to do with run configs
+
+* Nope. It's this type of file https://github.com/FabricMC/fabric-loader/blob/master/src/main/resources/fabric-installer.json and lists dependencies required for Fabric Loader itself. (Asm, tiny-mappings-parser, etc). It also stores the mainClass information for the Knot relauncher
+* Its primary purpose is ofcourse in the fabric installer graphical application, it downloads fabric-loader, peeks inside, then queries this file to find the rest of things it needs.
+* Loom pokes around through the project dependencies looking for a jar with this file in it, iterates through the json dependencies, and adds them as real Gradle dependencies
+  * Yeah its a mess
 
 `ModCompileRemapper` specifically looks for fabric mods, i think this has to do with mod dependencies
 

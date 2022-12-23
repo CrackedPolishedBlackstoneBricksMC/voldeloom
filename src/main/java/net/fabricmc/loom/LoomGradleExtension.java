@@ -34,29 +34,19 @@ import net.fabricmc.loom.util.WellKnownLocations;
 import org.cadixdev.lorenz.MappingSet;
 import org.cadixdev.mercury.Mercury;
 import org.gradle.api.Project;
-import org.gradle.api.artifacts.Configuration;
-import org.gradle.api.artifacts.Dependency;
-import org.gradle.api.plugins.BasePluginConvention;
 
-import javax.annotation.Nullable;
 import java.io.File;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
-import java.util.function.BiPredicate;
-import java.util.function.Function;
 import java.util.function.Supplier;
 
 public class LoomGradleExtension {
 	public String runDir = "run";
-	public String refmapName;
 	public String loaderLaunchMethod;
 	public boolean remapMod = true;
 	public boolean autoGenIDERuns = true;
-	public boolean extractJars = false;
 	public String customManifest = null;
 	public File accessWidener = null;
 
@@ -100,91 +90,8 @@ public class LoomGradleExtension {
 
 	public File getNativesDirectory() {
 		File natives = new File(WellKnownLocations.getUserCache(project), "natives/" + getMinecraftProvider().getMinecraftVersion());
-
-		if (!natives.exists()) {
-			natives.mkdirs();
-		}
-
+		if (!natives.exists()) natives.mkdirs();
 		return natives;
-	}
-
-	@Nullable
-	private static Dependency findDependency(Project p, Collection<Configuration> configs, BiPredicate<String, String> groupNameFilter) {
-		for (Configuration config : configs) {
-			for (Dependency dependency : config.getDependencies()) {
-				String group = dependency.getGroup();
-				String name = dependency.getName();
-
-				if (groupNameFilter.test(group, name)) {
-					p.getLogger().debug("Loom findDependency found: " + group + ":" + name + ":" + dependency.getVersion());
-					return dependency;
-				}
-			}
-		}
-
-		return null;
-	}
-
-	@Nullable
-	private <T> T recurseProjects(Function<Project, T> projectTFunction) {
-		Project p = this.project;
-		T result;
-		
-		while (p.getRootProject() != p) {
-			if ((result = projectTFunction.apply(p)) != null) {
-				return result;
-			}
-
-			p = p.getRootProject();
-		}
-
-		result = projectTFunction.apply(p);
-		return result;
-	}
-
-	@Nullable
-	private Dependency getMixinDependency() {
-		return recurseProjects((p) -> {
-			List<Configuration> configs = new ArrayList<>();
-			// check compile classpath first
-			Configuration possibleCompileClasspath = p.getConfigurations().findByName("compileClasspath");
-
-			if (possibleCompileClasspath != null) {
-				configs.add(possibleCompileClasspath);
-			}
-
-			// failing that, buildscript
-			configs.addAll(p.getBuildscript().getConfigurations());
-
-			return findDependency(p, configs, (group, name) -> {
-				if (name.equalsIgnoreCase("mixin") && group.equalsIgnoreCase("org.spongepowered")) {
-					return true;
-				}
-
-				if (name.equalsIgnoreCase("sponge-mixin") && group.equalsIgnoreCase("net.fabricmc")) {
-					return true;
-				}
-
-				return false;
-			});
-		});
-	}
-
-	@Nullable
-	public String getMixinJsonVersion() {
-		Dependency dependency = getMixinDependency();
-
-		if (dependency != null) {
-			if (dependency.getGroup().equalsIgnoreCase("net.fabricmc")) {
-				if (Objects.requireNonNull(dependency.getVersion()).split("\\.").length >= 4) {
-					return dependency.getVersion().substring(0, dependency.getVersion().lastIndexOf('.')) + "-SNAPSHOT";
-				}
-			}
-
-			return dependency.getVersion();
-		}
-
-		return null;
 	}
 
 	public String getLoaderLaunchMethod() {
@@ -217,15 +124,5 @@ public class LoomGradleExtension {
 
 	public void setJarProcessorManager(JarProcessorManager jarProcessorManager) {
 		this.jarProcessorManager = jarProcessorManager;
-	}
-
-	public String getRefmapName() {
-		if (refmapName == null || refmapName.isEmpty()) {
-			String defaultRefmapName = project.getConvention().getPlugin(BasePluginConvention.class).getArchivesBaseName() + "-refmap.json";
-			project.getLogger().warn("Could not find refmap definition, will be using default name: " + defaultRefmapName);
-			refmapName = defaultRefmapName;
-		}
-
-		return refmapName;
 	}
 }
