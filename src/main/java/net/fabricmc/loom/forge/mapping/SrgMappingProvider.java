@@ -1,5 +1,12 @@
 package net.fabricmc.loom.forge.mapping;
 
+import net.fabricmc.stitch.util.Pair;
+import net.fabricmc.tinyremapper.IMappingProvider;
+import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.ClassVisitor;
+import org.objectweb.asm.FieldVisitor;
+import org.objectweb.asm.Opcodes;
+
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.IOException;
@@ -10,19 +17,11 @@ import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Scanner;
-import org.objectweb.asm.ClassReader;
-import org.objectweb.asm.ClassVisitor;
-import org.objectweb.asm.FieldVisitor;
-import org.objectweb.asm.Opcodes;
-
-import net.fabricmc.stitch.util.Pair;
-import net.fabricmc.tinyremapper.IMappingProvider;
 
 public class SrgMappingProvider implements IMappingProvider {
 

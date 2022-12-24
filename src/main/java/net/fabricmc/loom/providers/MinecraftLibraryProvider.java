@@ -45,18 +45,22 @@ public class MinecraftLibraryProvider {
 		
 		for(MinecraftVersionInfo.Library library : versionInfo.libraries) {
 			if(library.allowed() && !library.isNative() && library.getFile(minecraftLibs) != null) {
-				
-				//project.getLogger().lifecycle("--- DEP --- " + library.getArtifactName());
-				
-				if(library.getArtifactName().contains("org.ow2.asm")) {
-					//voldeloom: conflicts with forge's ASM 4 dep
-					//(VOLDELOOM-DISASTER): does it?
-					//There's also 1.12 Launchwrapper lying around  btw, which also has srccompat 1.6
-					//Also for some reason Forge's maven slowheaders you if you get asm 4.1 or something, maybe its down idk
-					//Which means includeGroup is mandatory which means certified gradle4 moment
+				String depToAdd;
+				if(library.getArtifactName().equals("net.minecraft:launchwrapper:1.5")) {
+					//Substitute the version of Launchwrapper for the latest version (as of dec 24 2022).
+					//This version contains support for --assetIndex parameters, while still being compatible
+					//with source level 6.
+					//project.getLogger().lifecycle("<!> Substituting in Launchwrapper 1.12 instead of 1.5");
+					//depToAdd = "net.minecraft:launchwrapper:1.12";
+					
+					//Nope don't actually do that, it's dep hell (including Log4j dep hell), needs asm 5 but forge needs asm 4
+					//Might be drop-in substitutible but i'll have to check. For now I'll skip Launchwrapper entirely.
+					continue;
+				} else {
+					depToAdd = library.getArtifactName();
 				}
 
-				project.getDependencies().add(Constants.MINECRAFT_DEPENDENCIES, project.getDependencies().module(library.getArtifactName()));
+				project.getDependencies().add(Constants.MINECRAFT_DEPENDENCIES, depToAdd);
 			}
 		}
 		

@@ -414,3 +414,5 @@ MinecraftMappedProvider calls MapJarsTiny:
 * outputIntermediary ("intermediary") is `minecraft-1.4.7-forge-1.4.7-6.6.2.534-intermediary-null.unspecified-1.0.jar`
   * contains SRG names, good ol field_1234_a
   * (recall that srg classes == mcp classes unlike Yarn)
+
+the `Environment` annotations might be being added by JarMerger? like fabric has a little library for merging jars (maybe in stitch)

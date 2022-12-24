@@ -109,11 +109,9 @@ public class LoomGradlePlugin implements Plugin<Project> {
 			//I don't believe this breaks Gradle 4.
 			repo.metadataSources(MavenArtifactRepository.MetadataSources::artifact);
 		});
-		project.getRepositories().mavenCentral(repo -> {
-			//Needed for a dep of ASM 4.1 which is a dep of Launchwrapper which is a dep of Minecraft
-			repo.setName("Maven Central");
-			GradleSupport.maybeSetIncludeGroup(repo, "org.ow2");
-		});
+		//Needed for a dep of ASM 4.1 which is a dep of Launchwrapper which is a dep of Minecraft
+		//Also, apparently needed for random parent POMs like org.lwjgl.lwjgl:parent:2.9.0, don't ask me, i have no clue
+		project.getRepositories().mavenCentral();
 		project.getRepositories().flatDir(repo -> {
 			//TODO(VOLDELOOM-DISASTER): Apparently unused, only used in CleanLoomMappings but never written to
 			repo.dir(WellKnownLocations.getRootProjectBuildCache(project));

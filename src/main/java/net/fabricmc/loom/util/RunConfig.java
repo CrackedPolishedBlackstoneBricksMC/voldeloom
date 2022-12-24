@@ -101,28 +101,27 @@ public class RunConfig {
 			//TODO(VOLDELOOM-DISASTER): The `direct` launch method was a good learning resource, but i don't think it's actually useful
 			case "direct":
 				runConfig.mainClass = mode.equals("client") ? "net.minecraft.client.Minecraft" : "net.minecraft.server.MinecraftServer";
-				runConfig.programArgs = "";
 				
-				//Loom's LaunchProvider sets these too but launchprovider works with dev-launch-injector concepts, i don't use it atm
+				//Loom's LaunchProvider sets these too, but launchprovider works with dev-launch-injector concepts, i don't use dli at the moment
 				runConfig.systemProperties.put("minecraft.applet.TargetDirectory", project.getRootDir().toPath().resolve("run").toAbsolutePath().toString());
 				runConfig.systemProperties.put("java.library.path", extension.getNativesDirectory().getAbsolutePath());
 				runConfig.systemProperties.put("org.lwjgl.librarypath", extension.getNativesDirectory().getAbsolutePath());
-				//the fml relauncher always takes arg 0 as player name, and arg 1 as session key (or -)
-				runConfig.programArgs += "Player - ";
-				
-				//TODO: 1.4.7 doesn't actually support assetIndex parameters! I think this was a launchwrapper addition?
-				runConfig.programArgs += "--assetIndex " + extension.getMinecraftProvider().getVersionInfo().assetIndex.getFabricId(extension.getMinecraftProvider().getMinecraftVersion());
-				runConfig.programArgs += " --assetsDir " + encodeEscaped(new File(WellKnownLocations.getUserCache(project), "assets").getAbsolutePath());
+				if(mode.equals("client")) {
+					//the fml relauncher always takes arg 0 as player name and arg 1 as session key (or -), see Minecraft#fmlReentry
+					runConfig.programArgs = "Player - ";
+				}
 				break;
 			case "launchwrapper2":
+				//TODO: This launch method is somewhat useless because 1.4 doesn't actually support assetIndex parameters through Launchwrapper
+				// Launchwrapper *later* added them in like version 1.7 or something
+				// Launchwrapper is also currently skipped in MinecraftLibraryProvider due to it pulling in a couple extra deps
 				runConfig.mainClass = "net.minecraft.launchwrapper.Launch";
 				runConfig.programArgs = "";
-				runConfig.programArgs += "--tweakClass net.minecraft.launchwrapper.VanillaTweaker";
-				//TODO Nope, it's not a Launchwrapper addition either!
+				runConfig.programArgs += "PlayerName -";
+				runConfig.programArgs += " --tweakClass net.minecraft.launchwrapper.VanillaTweaker";
 				runConfig.programArgs += " --assetIndex " + extension.getMinecraftProvider().getVersionInfo().assetIndex.getFabricId(extension.getMinecraftProvider().getMinecraftVersion());
 				runConfig.programArgs += " --assetsDir " + encodeEscaped(new File(WellKnownLocations.getUserCache(project), "assets").getAbsolutePath());
 				runConfig.programArgs += " --gameDir " + project.getRootDir().toPath().resolve("run").toAbsolutePath();
-				runConfig.programArgs += " PlayerName -";
 				runConfig.systemProperties.put("minecraft.applet.TargetDirectory", project.getRootDir().toPath().resolve("run").toAbsolutePath().toString());
 				runConfig.systemProperties.put("java.library.path", extension.getNativesDirectory().getAbsolutePath());
 				runConfig.systemProperties.put("org.lwjgl.librarypath", extension.getNativesDirectory().getAbsolutePath());

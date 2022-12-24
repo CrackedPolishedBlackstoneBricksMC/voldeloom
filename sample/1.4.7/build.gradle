@@ -78,5 +78,5 @@ dependencies {
 }
 
 minecraft {
-	loaderLaunchMethod = "launchwrapper2"
+	loaderLaunchMethod = "direct"
 }

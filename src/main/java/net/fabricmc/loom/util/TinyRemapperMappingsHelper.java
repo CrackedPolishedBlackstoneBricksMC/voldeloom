@@ -43,7 +43,7 @@ public class TinyRemapperMappingsHelper {
 		return (acceptor) -> {
 			for (ClassDef classDef : mappings.getClasses()) {
 				String className = classDef.getName(from);
-				acceptor.acceptClass(className, classDef.getName(to));
+				acceptor.acceptClass(className, classDef.getName(to).replace("net/minecraft/src/Block$1", "net/minecraft/block/Block$1")); //TODO(VOLDELOOM-DISASTER) HACK fix for ingame instantly crashing, mcp errata possibly? mayb wrong order of operations when managing mappings/packages?
 
 				for (FieldDef field : classDef.getFields()) {
 					acceptor.acceptField(memberOf(className, field.getName(from), field.getDescriptor(from)), field.getName(to));
