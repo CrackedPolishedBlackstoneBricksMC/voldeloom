@@ -94,7 +94,7 @@ public class GradleSupport {
 	public static void maybeSetIncludeGroup(ArtifactRepository repo, String includeGroup) {
 		Method contentMethod;
 		try {
-			contentMethod = repo.getClass().getDeclaredMethod("content", Action.class);
+			contentMethod = repo.getClass().getMethod("content", Action.class);
 		} catch (NoSuchMethodException e) {
 			//We expect this in gradle 4.x.
 			return;
@@ -103,7 +103,9 @@ public class GradleSupport {
 		try {
 			Action<Object> erasedAction = (obj) -> {
 				try {
-					obj.getClass().getMethod("includeGroup", String.class).invoke(obj, includeGroup);
+					Method what = obj.getClass().getMethod("includeGroup", String.class);
+					what.setAccessible(true);
+					what.invoke(obj, includeGroup);
 				} catch (ReflectiveOperationException e) {
 					throw new RuntimeException(e);
 				}

@@ -104,7 +104,7 @@ public class RunConfig {
 				runConfig.programArgs = "";
 				
 				//Loom's LaunchProvider sets these too but launchprovider works with dev-launch-injector concepts, i don't use it atm
-				runConfig.systemProperties.put("minecraft.applet.TargetDirectory", project.getRootDir().toPath().resolve("run").resolve(".minecraft").toAbsolutePath().toString());
+				runConfig.systemProperties.put("minecraft.applet.TargetDirectory", project.getRootDir().toPath().resolve("run").toAbsolutePath().toString());
 				runConfig.systemProperties.put("java.library.path", extension.getNativesDirectory().getAbsolutePath());
 				runConfig.systemProperties.put("org.lwjgl.librarypath", extension.getNativesDirectory().getAbsolutePath());
 				//the fml relauncher always takes arg 0 as player name, and arg 1 as session key (or -)
@@ -121,9 +121,9 @@ public class RunConfig {
 				//TODO Nope, it's not a Launchwrapper addition either!
 				runConfig.programArgs += " --assetIndex " + extension.getMinecraftProvider().getVersionInfo().assetIndex.getFabricId(extension.getMinecraftProvider().getMinecraftVersion());
 				runConfig.programArgs += " --assetsDir " + encodeEscaped(new File(WellKnownLocations.getUserCache(project), "assets").getAbsolutePath());
-				runConfig.programArgs += " --gameDir " + project.getRootDir().toPath().resolve("run").resolve(".minecraft").toAbsolutePath();
+				runConfig.programArgs += " --gameDir " + project.getRootDir().toPath().resolve("run").toAbsolutePath();
 				runConfig.programArgs += " PlayerName -";
-				runConfig.systemProperties.put("minecraft.applet.TargetDirectory", project.getRootDir().toPath().resolve("run").resolve(".minecraft").toAbsolutePath().toString());
+				runConfig.systemProperties.put("minecraft.applet.TargetDirectory", project.getRootDir().toPath().resolve("run").toAbsolutePath().toString());
 				runConfig.systemProperties.put("java.library.path", extension.getNativesDirectory().getAbsolutePath());
 				runConfig.systemProperties.put("org.lwjgl.librarypath", extension.getNativesDirectory().getAbsolutePath());
 				break;

@@ -30,7 +30,7 @@ public class ShimForgeClientLibraries extends DefaultTask implements LoomTaskExt
 		File runDir = new File(getProject().getRootDir(), ext.runDir); //see AbstractRunTask, TODO factor this out
 		
 		//Client run configs set this directory as the .minecraft folder (see RunConfig). Forge additionally adds a `lib` suffix when searching for libs
-		return runDir.toPath().resolve(".minecraft").resolve("lib");
+		return runDir.toPath().resolve("lib");
 	}
 	
 	@TaskAction
@@ -69,7 +69,7 @@ public class ShimForgeClientLibraries extends DefaultTask implements LoomTaskExt
 		
 		void download(Project project, Path libsDir) throws IOException {
 			Path targetPath = libsDir.resolve(targetFilename);
-			if(!Files.exists(targetPath)) {
+			if(Files.notExists(targetPath)) {
 				DownloadUtil.downloadIfChanged(sourceURL, targetPath.toFile(), project.getLogger(), false);
 			}
 		}

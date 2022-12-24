@@ -45,9 +45,15 @@ public class MinecraftLibraryProvider {
 		
 		for(MinecraftVersionInfo.Library library : versionInfo.libraries) {
 			if(library.allowed() && !library.isNative() && library.getFile(minecraftLibs) != null) {
+				
+				//project.getLogger().lifecycle("--- DEP --- " + library.getArtifactName());
+				
 				if(library.getArtifactName().contains("org.ow2.asm")) {
 					//voldeloom: conflicts with forge's ASM 4 dep
-					continue;
+					//(VOLDELOOM-DISASTER): does it?
+					//There's also 1.12 Launchwrapper lying around  btw, which also has srccompat 1.6
+					//Also for some reason Forge's maven slowheaders you if you get asm 4.1 or something, maybe its down idk
+					//Which means includeGroup is mandatory which means certified gradle4 moment
 				}
 
 				project.getDependencies().add(Constants.MINECRAFT_DEPENDENCIES, project.getDependencies().module(library.getArtifactName()));

@@ -74,7 +74,7 @@ dependencies {
 	forge "net.minecraftforge:forge:1.4.7-6.6.2.534:universal@zip"
 	mappings files(mcpForged)
 	
-	implementation files("./run/.minecraft/lib/asm-all-4.0.jar") //launchwrapper needs this
+	//implementation files("./run/lib/asm-all-4.0.jar") //launchwrapper needs this
 }
 
 minecraft {
