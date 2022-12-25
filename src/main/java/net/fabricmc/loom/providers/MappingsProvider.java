@@ -33,7 +33,6 @@ import net.fabricmc.loom.forge.mapping.TinyWriter3Column;
 import net.fabricmc.loom.processors.JarProcessorManager;
 import net.fabricmc.loom.processors.MinecraftProcessedProvider;
 import net.fabricmc.loom.util.Constants;
-import net.fabricmc.loom.util.DependencyProvider;
 import net.fabricmc.loom.util.VoldeloomFileHelpers;
 import net.fabricmc.loom.util.WellKnownLocations;
 import net.fabricmc.mapping.tree.TinyTree;
@@ -155,19 +154,13 @@ public class MappingsProvider extends DependencyProvider {
 		if (!tinyMappingsJar.exists()) {
 			ZipUtil.pack(new ZipEntrySource[] {new FileSource("mappings/mappings.tiny", tinyMappings)}, tinyMappingsJar);
 		}
-
-		addDependency(tinyMappingsJar, Constants.MAPPINGS_FINAL);
 		
+		//add it as a project dependency
+		project.getDependencies().add(Constants.MAPPINGS_FINAL, project.files(tinyMappingsJar));
+		
+		//WHY ARE JAR PROCESSORS HERE????????????
 		JarProcessorManager processorManager = new JarProcessorManager(project);
-
-		if (processorManager.active()) {
-			mappedProvider = new MinecraftProcessedProvider(project, extension, processorManager);
-			//project.getLogger().lifecycle("Using project based jar storage");
-		} else {
-			throw new IllegalStateException("VOLDELOOM: i think this code path is unused");
-			//mappedProvider = new MinecraftMappedProvider(getProject());
-		}
-
+		mappedProvider = new MinecraftProcessedProvider(project, extension, processorManager);
 		mappedProvider.initFiles(minecraftProvider, this);
 		mappedProvider.decorateProject();
 	}

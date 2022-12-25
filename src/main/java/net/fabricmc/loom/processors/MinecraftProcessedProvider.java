@@ -44,7 +44,7 @@ public class MinecraftProcessedProvider extends MinecraftMappedProvider {
 	private final JarProcessorManager jarProcessorManager;
 
 	public MinecraftProcessedProvider(Project project, LoomGradleExtension extension, JarProcessorManager jarProcessorManager) {
-		super(project, extension, "Vanilla Minecraft, projectmapped");
+		super(project, extension);
 		this.jarProcessorManager = jarProcessorManager;
 	}
 

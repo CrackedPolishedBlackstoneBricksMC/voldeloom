@@ -3,7 +3,7 @@ package net.fabricmc.loom.forge;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.providers.MinecraftMergedProvider;
 import net.fabricmc.loom.providers.MinecraftProvider;
-import net.fabricmc.loom.util.DependencyProvider;
+import net.fabricmc.loom.providers.DependencyProvider;
 import net.fabricmc.loom.util.WellKnownLocations;
 import org.gradle.api.Project;
 

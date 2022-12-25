@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package net.fabricmc.loom.util;
+package net.fabricmc.loom.providers;
 
 import com.google.common.collect.Iterables;
 import com.google.gson.Gson;
@@ -69,14 +69,6 @@ public abstract class DependencyProvider {
 	}
 
 	public abstract void decorateProject() throws Exception;
-
-	public void addDependency(Object thing, String configuration) {
-		if (thing instanceof File) {
-			thing = project.files(thing);
-		}
-
-		project.getDependencies().add(configuration, thing);
-	}
 	
 	protected DependencyInfo getSingleDependency(String targetConfig) {
 		Configuration config = project.getConfigurations().getByName(targetConfig);

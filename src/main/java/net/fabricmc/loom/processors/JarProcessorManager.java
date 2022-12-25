@@ -24,16 +24,15 @@
 
 package net.fabricmc.loom.processors;
 
+import net.fabricmc.loom.LoomGradleExtension;
+import net.fabricmc.loom.forge.ASMFixesProcessor;
+import net.fabricmc.loom.forge.CursedLibDeleterProcessor;
+import org.gradle.api.Project;
+
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-
-import org.gradle.api.Project;
-
-import net.fabricmc.loom.LoomGradleExtension;
-import net.fabricmc.loom.forge.ASMFixesProcessor;
-import net.fabricmc.loom.forge.CursedLibDeleterProcessor;
 
 public class JarProcessorManager {
 	private final Project project;
@@ -58,7 +57,7 @@ public class JarProcessorManager {
 	}
 
 	public boolean active() {
-		return !jarProcessors.isEmpty();
+		return true;
 	}
 
 	public boolean isInvalid(File file) {

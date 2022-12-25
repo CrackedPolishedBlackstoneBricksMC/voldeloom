@@ -25,7 +25,6 @@
 package net.fabricmc.loom.providers;
 
 import net.fabricmc.loom.LoomGradleExtension;
-import net.fabricmc.loom.util.DependencyProvider;
 import net.fabricmc.loom.util.WellKnownLocations;
 import org.apache.commons.io.FileUtils;
 import org.gradle.api.Project;

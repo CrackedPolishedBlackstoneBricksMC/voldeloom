@@ -3,7 +3,7 @@ package net.fabricmc.loom.forge;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.providers.MappingsProvider;
 import net.fabricmc.loom.util.Constants;
-import net.fabricmc.loom.util.DependencyProvider;
+import net.fabricmc.loom.providers.DependencyProvider;
 import net.fabricmc.loom.util.TinyRemapperMappingsHelper;
 import net.fabricmc.tinyremapper.IMappingProvider;
 import org.gradle.api.Project;
