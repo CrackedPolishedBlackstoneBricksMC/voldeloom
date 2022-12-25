@@ -15,41 +15,40 @@ What works:
 * `genSources` decompiles the whole game apart from ~5 methods due to MCP errata (moved switchmap classes)
   * Attaching and browsing sources works in IDEA
   * "find usages" works too
-* Setting `loaderLaunchMethod` to `launchwrapper2` causes the `runClient` task to successfully start a copy of Minecraft Forge 1.4.7
-  * the `launchwrapper2` crap is temporary it will become the default
-  * Breakpoints and debugging work
+* Setting `loaderLaunchMethod` to `direct` causes the `runClient` task to successfully start a copy of Minecraft Forge 1.4.7
+  * Getting in-game works(due to a kludge, but it does work)
+  * Breakpoints and debugging seem to work (line nos are off in `Minecraft` due to decompiler crap but yeah)
   * The `shimForgeClientLibraries` task predownloads Forge's runtime-downloaded deps and places them in the location Forge expects, because the URLs hardcoded in forge are long dead
+
 Main focus is on Gradle 7. Gradle 4 probably doesn't work yet
 
 What doesn't work yet:
 
 * Minecraft versions other than 1.4.7 don't work
-  * the long-term goal is to merge the differences between the 1.2.5/1.5.2 branches into something runtime-configurable
-  * but the short-term goal is to make 1.4.7 work!
-* Actually getting in to a world doesn't work (it's more switchmap crap, `Block.canSustainPlant` noclassdefs)
-* The standalone server doesn't work yet
-* Run configs (as opposed to using the runClient gradle task) are broken
-* Asset index is broken (i don't think 1.4 supported changing the asset index?) -> no sound and 1 trillion failed s3 requests in the log
+  * The long-term goal is to merge the differences between the 1.2.5/1.5.2 branches into something runtime-configurable
+  * But the short-term goal is to make 1.4.7 work!
+* The standalone server doesn't work yet, I don't think it will be hard i just have to do it
+* Similarly for run configs
+* Asset index is broken because 1.4-era launchwrapper didn't support changing the asset index -> no sound and 1 trillion failed s3 requests in the log
 * I snipped out a thing that replaced the stock `SideOnly` annotations with `Environment` ones, but there's still Environment leftovers for some reason
+  * They're hardcoded in stitch JarMerger it turns out
 * I don't know how broken Eclipse is
-* `modCompile` configurations and friends probably don't work, but you knew that already
+* `modCompile` configurations and friends probably don't work, but you probably knew that already
 * Probably a lot of other things don't work
 
 What I'd like to fix:
 
 * Fix remapping exploding when packages.csv is missing
 * An in-gradle method of downloading MCP and applying the forge access transformers, instead of that funny shit in the buildscript
-* still lots of leftovers from e.g. DevLaunchInjector (which is not used), mixin, jar-in-jar, unused launch methods etc etc that does not apply to forge at all
-  * I could go scorched-earth on this stuff but it might be handy to keep around if someone does a cursed "fabric on top of forge" project? I guess?
-* Launchwrapper needs a little assistance getting ASM on the classpath
-* There's a goofy ahh hack in `AbstractRunTask` to filter out someone's Guava dependency, cause it conflicts with the one Forge needs, and crashes
+* I've removed a lot of Fabric ecosystem leftovers (mixin, jij, fabric-installer, etc) but there might be a few stragglers
+* The Launchwrapper launch method needs a little assistance getting ASM on the classpath, i guess it's not a big deal because Launchwrapper is pointless on this version
 * Ideally the game should be launched with a copy of java 6 or 8, right now i think gradle itself has to be running on an appropriate jdk
 
 What I'd like to add:
 
 * Quiltflower lol (kinda a java 11 moment though)
-* Backport the much nicer run-config stuff from newer versions of Loom (multiple run configs, run configs in subprojects, less hardcoded arguments for run configs, etc)
-* Possibly do a custom launchwrapper tweaker, will be optional
+* Backport the much nicer run-config stuff from newer versions of Loom (multiple run configs, run configs in subprojects, less hardcoded arguments for run configs, etc). Maybe possible?
+* Possibly do a custom launchwrapper tweaker for some niceties like `assetIndex` support (if i can't get newer versions of launchwrapper to behave), will be optional
 
 ## Sample projects
 
@@ -178,10 +177,12 @@ and the current set of forge extensions
 
 Then we ask for an `afterEvaluate` callback, so the following is able to access the settings configured in the `minecraft { }` block:
 
-1. A `LoomDependencyManager` is created and added to the `LoomGradleExtension`.
-    * A `ForgeProvider`, `MinecraftProvider`, `MappingsProvider`, and `LaunchProvider` are added to the dependency manager.
-    * `handleDependencies` is called on the dependency manager.
+1. ~~A `LoomDependencyManager` is created and added to the `LoomGradleExtension`.~~
+    * ~~A `ForgeProvider`, `MinecraftProvider`, `MappingsProvider`, and `LaunchProvider` are added to the dependency manager.~~
+    * ~~`handleDependencies` is called on the dependency manager.~~
     * TODO: looks like a rabbit hole, study further
+    * Hi, it sure was a rabbit hole! I came out the other side and cleaned the whole mess up
+    * My eventual goal is to replace these with Gradle tasks if it's possible; failing that, something that pretty much looks like gradle tasks
 2. Some `genSources` tasks are wired up and configured with the extension's mappings provider
 3. ~~The same Mixin annotation processor arguments are added to the Scala compilation task, if it exists~~ removed
 4. ~~A couple more Maven repos are glued on? (Why now?)~~
@@ -260,6 +261,10 @@ Implementations are all over the place, but by convention the `provide` method d
 
 These generally roll their own caching system, i.e. MinecraftMappedProvider checks to see if the file exists before calling into tiny-remapper the old-school way, with `File.exists`.
 
+`DependencyProvider.DependencyInfo` is a wrapper around an artifact provided by a configuration. It mainly wraps `configuration.resolve`, with some convenience methods for asserting a configuration will only ever contain one dependency no more no less (like `forge`, you shouldn't have two `forge`s), and for trying to excavate some group/name/version data out of filenames and mod files when non-Maven artifacts are in the configuration.
+
+***(The rest of this section is outdated because i completely gutted the logic from `LoomDependencyManager`)***
+
 `getTargetConfig` is a configuration relevant to the DependencyProvider, but not necessarily the one that actually ends up with the dependency in it (e.g. LaunchProvider writes to `runtimeOnly` but is actually says `minecraftNamed` is its target config)
 
 All this comes to a head in `LoomDependencyManager`, which is a part of `LoomGradleExtensions` and is configured at the beginning of the afterEvaluate block. `addProvider` stores them into a list, and the control flow is extremely complex for some reason but I think `provide` gets called on each one in turn?
@@ -267,8 +272,6 @@ All this comes to a head in `LoomDependencyManager`, which is a part of `LoomGra
 The `Consumer<Runnable> postPopulationScheduler` argument accepts things to run after handling all those dependencies. It goes unused in Voldeloom.
 
 Also, watch out for things that *look* like providers but are actually ad-hoc utilty classes, like `MinecraftLibraryProvider`.
-
-`DependencyProvider.DependencyInfo` is a wrapper around an artifact provided by a configuration. It mainly wraps `configuration.resolve`, with some convenience methods for asserting a configuration will only ever contain one dependency no more no less (like `forge`, you shouldn't have two `forge`s), and for trying to excavate some group/name/version data out of filenames and mod files when non-Maven artifacts are in the configuration.
 
 ## LoomDependencyManager#handleDependencies
 
@@ -291,7 +294,9 @@ this happens when "setting up loom dependencies" is logged. cant stand how terse
 
 ## what each provider actually does
 
-What's funny is that there's actually dependencies *between* providers too, but there isn't actually a system for that, providers just call `provide` on each other. Then the provider scheduler might run the provider again and it'd just see that it already output something and fail.
+***(This section is fairly outdated because I've been splitting the providers into more bite-sized pieces)***
+
+What's funny is that there's actually dependencies *between* providers too, but there isn't actually a system for that, providers just call `provide` on each other. Then the provider scheduler might run the provider again and it'd just see that it already output something and fail. ***This is still true actually lol, accessing my version of dep providers in the wrong order will cause a fail, but I'm trying to write things in a way where the relations between providers remain fairly contained***
 
 ### `ForgeProvider`
 
@@ -368,9 +373,13 @@ slaps em together with tiny-remapper and adds it to the project classpath... or 
 
 #### `MinecraftProcessedProvider`
 
+***Outdated because I removed the inheritance relationship***
+
 *extends* MinecraftMappedProvider. the goal of this is to fix up the minecraft jar by running it through "jar processors"
 
 ## jar processor manager. how deep does it go
+
+***Outdated because I folded this into MinecraftForgeProcessedProvider***
 
 well in voldeloom there are only two. and there's *always* two, so it always ends up printing "using project based jar storage"
 
@@ -398,12 +407,13 @@ what is a "fabric installer json?" (LoomDependencyManager) probably something to
 
 It's probably safe to delete instances of jij stuff because Forge does not natively support nested jars and it's really not necessary to hack that on with a mod
 
-abstractdecompiletask uses a "line map file"
+abstractdecompiletask uses a "line map file" what is that
 
 ~~Forge seems to depend on ASM but that dependency is being lost along the way, possibly (at least, i see red errors in the genSources jar)~~ goddamn autodownloaded dependencies lol
 
 investigate `MinecraftLibraryProvider`, that libraries folder doesnt seem to exist...?
-* This class is really weird actually. It has a Collection<File> thats probably supposed to contain library paths, but it's never written to. DOes this break anything? If so, what
+
+* This class is really weird actually. It has a Collection<File> thats probably supposed to contain library paths, but it's never written to. Does this break anything? Apparently not. If so, what
 
 MinecraftMappedProvider calls MapJarsTiny:
 
@@ -417,4 +427,4 @@ MinecraftMappedProvider calls MapJarsTiny:
 
 the `Environment` annotations might be being added by JarMerger? like fabric has a little library for merging jars (maybe in stitch)
 
-Adding Gradle tasks to the project in `afterEvaluate`: Yes, it's possible. So this is handy if the name and number of tasks depends on the settings in LoomGradleExtension
+Adding Gradle tasks to the project in `afterEvaluate`: Yes, it's possible. So this is handy if the name and number of tasks depends on the settings in LoomGradleExtension. `create` calls the configuration closure right away, but `register` doesn't call the closure until Gradle has worked out the task graph. You can still, say, create a task then add it as a dependency of another task, when you use `register`. For registering dynamic numbers of tasks there's also the "rule" system. You can't create anonymous tasks... every task needs to be identified by a name

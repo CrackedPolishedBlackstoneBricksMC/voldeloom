@@ -55,11 +55,6 @@ public abstract class AbstractRunTask extends JavaExec implements LoomTaskExt {
 		List<String> libs = new ArrayList<>();
 
 		for(File file : getProject().getConfigurations().getByName("runtimeClasspath").getFiles()) {
-			//TODO(VOLDELOOM-DISASTER) this is a big hack loooooll, it conflicts with a forge library
-			if(file.toString().endsWith("guava-28.0-jre.jar")) {
-				continue;
-			}
-
 			libs.add(file.getAbsolutePath());
 		}
 
