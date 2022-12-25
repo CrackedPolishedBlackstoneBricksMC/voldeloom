@@ -28,6 +28,8 @@ import net.fabricmc.loom.forge.ForgeProvider;
 import net.fabricmc.loom.forge.MinecraftForgePatchedProvider;
 import net.fabricmc.loom.providers.LaunchProvider;
 import net.fabricmc.loom.providers.MappingsProvider;
+import net.fabricmc.loom.providers.MinecraftForgeMappedProvider;
+import net.fabricmc.loom.providers.MinecraftForgeProcessedProvider;
 import net.fabricmc.loom.providers.MinecraftMergedProvider;
 import net.fabricmc.loom.providers.MinecraftProvider;
 import org.gradle.api.Project;
@@ -43,7 +45,9 @@ public class LoomDependencyManager {
 		forgeProvider = new ForgeProvider(project, extension);
 		minecraftProvider = new MinecraftProvider(project, extension);
 		minecraftMergedProvider = new MinecraftMergedProvider(project, extension);
-		forgePatchedProvider = new MinecraftForgePatchedProvider(project, extension);
+		minecraftForgePatchedProvider = new MinecraftForgePatchedProvider(project, extension);
+		minecraftForgeMappedProvider = new MinecraftForgeMappedProvider(project, extension);
+		minecraftForgeProcessedProvider = new MinecraftForgeProcessedProvider(project, extension);
 		mappingsProvider = new MappingsProvider(project, extension);
 		launchProvider = new LaunchProvider(project, extension);
 	}
@@ -51,7 +55,9 @@ public class LoomDependencyManager {
 	private final ForgeProvider forgeProvider;
 	private final MinecraftProvider minecraftProvider;
 	private final MinecraftMergedProvider minecraftMergedProvider;
-	private final MinecraftForgePatchedProvider forgePatchedProvider;
+	private final MinecraftForgePatchedProvider minecraftForgePatchedProvider;
+	private final MinecraftForgeMappedProvider minecraftForgeMappedProvider;
+	private final MinecraftForgeProcessedProvider minecraftForgeProcessedProvider;
 	private final MappingsProvider mappingsProvider;
 	private final LaunchProvider launchProvider;
 	
@@ -67,8 +73,16 @@ public class LoomDependencyManager {
 		return minecraftMergedProvider;
 	}
 	
-	public MinecraftForgePatchedProvider getForgePatchedProvider() {
-		return forgePatchedProvider;
+	public MinecraftForgePatchedProvider getMinecraftForgePatchedProvider() {
+		return minecraftForgePatchedProvider;
+	}
+	
+	public MinecraftForgeMappedProvider getMinecraftForgeMappedProvider() {
+		return minecraftForgeMappedProvider;
+	}
+	
+	public MinecraftForgeProcessedProvider getMinecraftForgeProcessedProvider() {
+		return minecraftForgeProcessedProvider;
 	}
 	
 	public MappingsProvider getMappingsProvider() {

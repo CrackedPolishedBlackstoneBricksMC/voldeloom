@@ -250,11 +250,24 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		//  Hi, it's me from farther in the future. Tyring to cut down on how magical this class is.
 		//   Hi! It's me from very shortly after, it's basically a functionless container for a couple of things now
 		LoomDependencyManager dependencyManager = extension.getDependencyManager();
+		//forge jar
 		dependencyManager.getForgeProvider().decorateProjectOrThrow();
+		
+		//vanilla minecraft
 		dependencyManager.getMinecraftProvider().decorateProjectOrThrow();
 		dependencyManager.getMinecraftMergedProvider().decorateProjectOrThrow();
-		dependencyManager.getForgePatchedProvider().decorateProjectOrThrow();
+		
+		//forge + vanilla
+		dependencyManager.getMinecraftForgePatchedProvider().decorateProjectOrThrow();
+		
+		//mappings
 		dependencyManager.getMappingsProvider().decorateProjectOrThrow();
+		
+		//forge + vanilla + mappings
+		dependencyManager.getMinecraftForgeMappedProvider().decorateProjectOrThrow();
+		dependencyManager.getMinecraftForgeProcessedProvider().decorateProjectOrThrow();
+		
+		//dev-launch-injector stuff that's not used at all
 		dependencyManager.getLaunchProvider().decorateProjectOrThrow();
 		
 		//very strange block related to `modCompile`etc configurations that i moved here from LoomDependencyManager
@@ -285,7 +298,7 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		Task genSourcesTask = project.getTasks().getByName("genSources");
 		
 		MinecraftLibraryProvider libraryProvider = extension.getDependencyManager().getMinecraftProvider().getLibraryProvider();
-		File mappedJar = dependencyManager.getMappingsProvider().mappedProvider.getMappedJar();
+		File mappedJar = dependencyManager.getMinecraftForgeProcessedProvider().getProcessedJar();
 		File linemappedJar = getMappedByproduct(extension, "-linemapped.jar");
 		File sourcesJar = getMappedByproduct(extension, "-sources.jar");
 		File linemapFile = getMappedByproduct(extension, "-sources.lmap");
@@ -407,7 +420,7 @@ public class LoomGradlePlugin implements Plugin<Project> {
 	}
 	
 	public static File getMappedByproduct(LoomGradleExtension extension, String suffix) {
-		String path = extension.getDependencyManager().getMappingsProvider().mappedProvider.getMappedJar().getAbsolutePath();
+		String path = extension.getDependencyManager().getMinecraftForgeProcessedProvider().getProcessedJar().getAbsolutePath();
 		if (!path.toLowerCase(Locale.ROOT).endsWith(".jar")) throw new RuntimeException("Invalid mapped JAR path: " + path);
 		else return new File(path.substring(0, path.length() - 4) + suffix);
 	}

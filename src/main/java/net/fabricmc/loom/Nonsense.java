@@ -7,7 +7,6 @@ import net.fabricmc.loom.forge.mapping.AcceptorProvider;
 import net.fabricmc.loom.forge.mapping.CsvApplierAcceptor;
 import net.fabricmc.loom.forge.mapping.SrgMappingProvider;
 import net.fabricmc.loom.forge.mapping.TinyWriter3Column;
-import net.fabricmc.loom.processors.JarProcessorManager;
 import net.fabricmc.loom.util.Constants;
 import net.fabricmc.loom.util.DownloadUtil;
 import net.fabricmc.loom.util.MinecraftVersionInfo;
@@ -169,7 +168,7 @@ public class Nonsense {
 		project.getDependencies().add(Constants.MAPPINGS_FINAL, project.file(tinyMappingsJar));
 		
 		project.getLogger().lifecycle("-> configuring jar processors");
-		JarProcessorManager processor = new JarProcessorManager(project);
+		//JarProcessorManager processor = new JarProcessorManager(project);
 		
 		//blah, blah blah
 		//TODO run jar processors (probably dont need a processor manager)

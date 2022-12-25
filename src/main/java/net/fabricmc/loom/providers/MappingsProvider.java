@@ -30,8 +30,6 @@ import net.fabricmc.loom.forge.mapping.AcceptorProvider;
 import net.fabricmc.loom.forge.mapping.CsvApplierAcceptor;
 import net.fabricmc.loom.forge.mapping.SrgMappingProvider;
 import net.fabricmc.loom.forge.mapping.TinyWriter3Column;
-import net.fabricmc.loom.processors.JarProcessorManager;
-import net.fabricmc.loom.processors.MinecraftProcessedProvider;
 import net.fabricmc.loom.util.Constants;
 import net.fabricmc.loom.util.VoldeloomFileHelpers;
 import net.fabricmc.loom.util.WellKnownLocations;
@@ -60,8 +58,6 @@ import java.util.Map;
 
 public class MappingsProvider extends DependencyProvider {
 	private static final Map<String, String> FS_ENV = Collections.singletonMap("create", "true");
-	
-	public MinecraftMappedProvider mappedProvider;
 
 	public String mappingsName;
 	public String minecraftVersion;
@@ -88,7 +84,7 @@ public class MappingsProvider extends DependencyProvider {
 	public void decorateProject() throws Exception {
 		//deps
 		MinecraftProvider minecraftProvider = extension.getDependencyManager().getMinecraftProvider();
-		MinecraftForgePatchedProvider forgePatchedProvider = extension.getDependencyManager().getForgePatchedProvider();
+		MinecraftForgePatchedProvider forgePatchedProvider = extension.getDependencyManager().getMinecraftForgePatchedProvider();
 		DependencyInfo mappingsDependency = getSingleDependency(Constants.MAPPINGS);
 		
 		project.getLogger().lifecycle("|-> setting up mappings (" + mappingsDependency.getDependency().getName() + " " + mappingsDependency.getResolvedVersion() + ")");
@@ -155,13 +151,7 @@ public class MappingsProvider extends DependencyProvider {
 			ZipUtil.pack(new ZipEntrySource[] {new FileSource("mappings/mappings.tiny", tinyMappings)}, tinyMappingsJar);
 		}
 		
-		//add it as a project dependency
+		//add it as a project dependency TODO move
 		project.getDependencies().add(Constants.MAPPINGS_FINAL, project.files(tinyMappingsJar));
-		
-		//WHY ARE JAR PROCESSORS HERE????????????
-		JarProcessorManager processorManager = new JarProcessorManager(project);
-		mappedProvider = new MinecraftProcessedProvider(project, extension, processorManager);
-		mappedProvider.initFiles(minecraftProvider, this);
-		mappedProvider.decorateProject();
 	}
 }

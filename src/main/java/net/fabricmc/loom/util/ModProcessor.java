@@ -29,7 +29,8 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.providers.MappingsProvider;
-import net.fabricmc.loom.providers.MinecraftMappedProvider;
+import net.fabricmc.loom.providers.MinecraftForgeMappedProvider;
+import net.fabricmc.loom.providers.MinecraftLibraryProvider;
 import net.fabricmc.tinyremapper.OutputConsumerPath;
 import net.fabricmc.tinyremapper.TinyRemapper;
 import org.apache.commons.io.IOUtils;
@@ -137,12 +138,13 @@ public class ModProcessor {
 		String fromM = "intermediary";
 		String toM = "named";
 		
-		MinecraftMappedProvider mappedProvider = extension.getDependencyManager().getMappingsProvider().mappedProvider;
+		MinecraftLibraryProvider libraryProvider = extension.getDependencyManager().getMinecraftProvider().getLibraryProvider(); //TODO
+		MinecraftForgeMappedProvider mappedProvider = extension.getDependencyManager().getMinecraftForgeMappedProvider();
 		MappingsProvider mappingsProvider = extension.getDependencyManager().getMappingsProvider();
 
 		Path inputPath = input.getAbsoluteFile().toPath();
 		Path mc = mappedProvider.getIntermediaryJar().toPath();
-		Path[] mcDeps = mappedProvider.getMinecraftDependencies().stream().map(File::toPath).toArray(Path[]::new);
+		Path[] mcDeps = libraryProvider.getLibraries().stream().map(File::toPath).toArray(Path[]::new);
 		Set<Path> modCompiles = new HashSet<>();
 
 		for (RemappedConfigurationEntry entry : Constants.MOD_COMPILE_ENTRIES) {

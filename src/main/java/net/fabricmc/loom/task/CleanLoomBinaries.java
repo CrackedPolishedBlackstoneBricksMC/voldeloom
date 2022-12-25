@@ -43,9 +43,10 @@ public class CleanLoomBinaries extends DefaultTask implements LoomTaskExt {
 		//TODO: replace this with a generic "clean" system
 		VoldeloomFileHelpers.delete(getProject(),
 			extension.getDependencyManager().getMinecraftMergedProvider().getMergedJar(),
-			extension.getDependencyManager().getForgePatchedProvider().getPatchedJar(),
-			extension.getDependencyManager().getMappingsProvider().mappedProvider.getIntermediaryJar(),
-			extension.getDependencyManager().getMappingsProvider().mappedProvider.getMappedJar(),
+			extension.getDependencyManager().getMinecraftForgePatchedProvider().getPatchedJar(),
+			extension.getDependencyManager().getMinecraftForgeMappedProvider().getIntermediaryJar(),
+			extension.getDependencyManager().getMinecraftForgeMappedProvider().getMappedJar(),
+			extension.getDependencyManager().getMinecraftForgeProcessedProvider().getProcessedJar(),
 			extension.getDependencyManager().getMinecraftProvider().getNativesDirectory(),
 			WellKnownLocations.getNativesJarStore(getProject())
 		);

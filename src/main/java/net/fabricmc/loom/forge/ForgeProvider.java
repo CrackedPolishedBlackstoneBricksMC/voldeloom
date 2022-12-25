@@ -50,7 +50,7 @@ public class ForgeProvider extends DependencyProvider {
 		}
 	}
 	
-	public void mapForge() throws IOException {
+	public void remapAccessTransformersNowThatAMappingsProviderIsAvailable() throws IOException {
 		String fromM = "official";
 		String toM = "named";
 
