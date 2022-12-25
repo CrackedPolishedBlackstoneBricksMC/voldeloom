@@ -24,6 +24,7 @@
 
 package net.fabricmc.loom.processors;
 
+import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.providers.MappingsProvider;
 import net.fabricmc.loom.providers.MinecraftMappedProvider;
 import net.fabricmc.loom.providers.MinecraftProvider;
@@ -42,8 +43,8 @@ public class MinecraftProcessedProvider extends MinecraftMappedProvider {
 
 	private final JarProcessorManager jarProcessorManager;
 
-	public MinecraftProcessedProvider(Project project, JarProcessorManager jarProcessorManager) {
-		super(project);
+	public MinecraftProcessedProvider(Project project, LoomGradleExtension extension, JarProcessorManager jarProcessorManager) {
+		super(project, extension, "Vanilla Minecraft, projectmapped");
 		this.jarProcessorManager = jarProcessorManager;
 	}
 

@@ -25,12 +25,9 @@
 package net.fabricmc.loom;
 
 import groovy.util.Node;
-import net.fabricmc.loom.forge.ForgeProvider;
 import net.fabricmc.loom.forge.ShimForgeClientLibraries;
-import net.fabricmc.loom.providers.LaunchProvider;
 import net.fabricmc.loom.providers.MappingsProvider;
 import net.fabricmc.loom.providers.MinecraftLibraryProvider;
-import net.fabricmc.loom.providers.MinecraftProvider;
 import net.fabricmc.loom.task.AbstractDecompileTask;
 import net.fabricmc.loom.task.CleanLoomBinaries;
 import net.fabricmc.loom.task.CleanLoomMappings;
@@ -251,44 +248,18 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		//TODO(VOLDELOOM-DISASTER) research what da hecj this does
 		// Hi its me from the future. It does literally fucking everything
 		//  Hi, it's me from farther in the future. Tyring to cut down on how magical this class is.
-		//   Hi! It's me from very shortly after, it's basically a functionless container for 4 things now.
-		LoomDependencyManager dependencyManager = new LoomDependencyManager();
-		extension.setDependencyManager(dependencyManager);
-		
-		ForgeProvider forgeProvider = new ForgeProvider(project);
-		dependencyManager.setForgeProvider(forgeProvider);
-		try {
-			forgeProvider.decorateProject();
-		} catch (Exception e) {
-			throw new RuntimeException("Failed to provide Forge", e);
-		}
-		
-		MinecraftProvider minecraftProvider = new MinecraftProvider(project);
-		dependencyManager.setMinecraftProvider(minecraftProvider);
-		try {
-			minecraftProvider.decorateProject();
-		} catch (Exception e) {
-			throw new RuntimeException("Failed to provide Minecraft", e);
-		}
-		
-		MappingsProvider mappingsProvider = new MappingsProvider(project);
-		dependencyManager.setMappingsProvider(mappingsProvider);
-		try {
-			mappingsProvider.decorateProject();
-		} catch (Exception e) {
-			throw new RuntimeException("Failed to provide mappings", e);
-		}
-		
-		LaunchProvider launchProvider = new LaunchProvider(project);
-		dependencyManager.setLaunchProvider(launchProvider);
-		try {
-			launchProvider.decorateProject();
-		} catch (Exception e) {
-			throw new RuntimeException("Failed to configure DevLaunchInjector", e);
-		}
+		//   Hi! It's me from very shortly after, it's basically a functionless container for a couple of things now
+		LoomDependencyManager dependencyManager = extension.getDependencyManager();
+		dependencyManager.getForgeProvider().decorateProjectOrThrow();
+		dependencyManager.getMinecraftProvider().decorateProjectOrThrow();
+		dependencyManager.getMinecraftMergedProvider().decorateProjectOrThrow();
+		dependencyManager.getForgePatchedProvider().decorateProjectOrThrow();
+		dependencyManager.getMappingsProvider().decorateProjectOrThrow();
+		dependencyManager.getLaunchProvider().decorateProjectOrThrow();
 		
 		//very strange block related to `modCompile`etc configurations that i moved here from LoomDependencyManager
 		{
+			MappingsProvider mappingsProvider = dependencyManager.getMappingsProvider();
 			List<Runnable> afterTasks = new ArrayList<>();
 			String mappingsKey = mappingsProvider.mappingsName + "." + mappingsProvider.minecraftVersion.replace(' ', '_').replace('.', '_').replace('-', '_') + "." + mappingsProvider.mappingsVersion;
 			for(RemappedConfigurationEntry entry1 : Constants.MOD_COMPILE_ENTRIES) {
@@ -314,7 +285,7 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		Task genSourcesTask = project.getTasks().getByName("genSources");
 		
 		MinecraftLibraryProvider libraryProvider = extension.getDependencyManager().getMinecraftProvider().getLibraryProvider();
-		File mappedJar = mappingsProvider.mappedProvider.getMappedJar();
+		File mappedJar = dependencyManager.getMappingsProvider().mappedProvider.getMappedJar();
 		File linemappedJar = getMappedByproduct(extension, "-linemapped.jar");
 		File sourcesJar = getMappedByproduct(extension, "-sources.jar");
 		File linemapFile = getMappedByproduct(extension, "-sources.lmap");

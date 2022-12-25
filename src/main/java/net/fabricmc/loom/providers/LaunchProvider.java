@@ -24,6 +24,7 @@
 
 package net.fabricmc.loom.providers;
 
+import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.util.DependencyProvider;
 import net.fabricmc.loom.util.WellKnownLocations;
 import org.apache.commons.io.FileUtils;
@@ -39,8 +40,8 @@ import java.util.Map;
 import java.util.StringJoiner;
 
 public class LaunchProvider extends DependencyProvider {
-	public LaunchProvider(Project project) {
-		super(project);
+	public LaunchProvider(Project project, LoomGradleExtension extension) {
+		super(project, extension);
 	}
 
 	@Override

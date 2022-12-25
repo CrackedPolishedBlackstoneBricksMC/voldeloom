@@ -24,6 +24,8 @@
 
 package net.fabricmc.loom.providers;
 
+import net.fabricmc.loom.LoomGradleExtension;
+import net.fabricmc.loom.forge.MinecraftForgePatchedProvider;
 import net.fabricmc.loom.forge.mapping.AcceptorProvider;
 import net.fabricmc.loom.forge.mapping.CsvApplierAcceptor;
 import net.fabricmc.loom.forge.mapping.SrgMappingProvider;
@@ -71,8 +73,8 @@ public class MappingsProvider extends DependencyProvider {
 	public File tinyMappings;
 	public File tinyMappingsJar;
 
-	public MappingsProvider(Project project) {
-		super(project);
+	public MappingsProvider(Project project, LoomGradleExtension extension) {
+		super(project, extension);
 	}
 
 	public void clean() {
@@ -85,10 +87,12 @@ public class MappingsProvider extends DependencyProvider {
 
 	@Override
 	public void decorateProject() throws Exception {
+		//deps
 		MinecraftProvider minecraftProvider = extension.getDependencyManager().getMinecraftProvider();
+		MinecraftForgePatchedProvider forgePatchedProvider = extension.getDependencyManager().getForgePatchedProvider();
 		DependencyInfo mappingsDependency = getSingleDependency(Constants.MAPPINGS);
 		
-		project.getLogger().lifecycle(":setting up mappings (" + mappingsDependency.getDependency().getName() + " " + mappingsDependency.getResolvedVersion() + ")");
+		project.getLogger().lifecycle("|-> setting up mappings (" + mappingsDependency.getDependency().getName() + " " + mappingsDependency.getResolvedVersion() + ")");
 
 		String version = mappingsDependency.getResolvedVersion();
 		File mappingsJar = mappingsDependency.resolveSingleFile().orElseThrow(() -> new RuntimeException("Could not find mcp mappings: " + mappingsDependency));
@@ -123,7 +127,7 @@ public class MappingsProvider extends DependencyProvider {
 			}
 			
 			try(FileSystem mcpZipFs = FileSystems.newFileSystem(URI.create("jar:" + mappingsJar.toURI()), FS_ENV)) {
-				Pair<Map<String, String>, Collection<String>> data = SrgMappingProvider.calcInfo(minecraftProvider.getMergedJar());
+				Pair<Map<String, String>, Collection<String>> data = SrgMappingProvider.calcInfo(forgePatchedProvider.getPatchedJar());
 				SrgMappingProvider client = new SrgMappingProvider(mcpZipFs.getPath("conf", "client.srg"), data.getLeft(), data.getRight());
 				SrgMappingProvider server = new SrgMappingProvider(mcpZipFs.getPath("conf", "server.srg"), data.getLeft(), data.getRight());
 				Path notMyAwfulHack = mcpZipFs.getPath("conf", "newids.csv");
@@ -155,11 +159,10 @@ public class MappingsProvider extends DependencyProvider {
 		addDependency(tinyMappingsJar, Constants.MAPPINGS_FINAL);
 		
 		JarProcessorManager processorManager = new JarProcessorManager(project);
-		extension.setJarProcessorManager(processorManager);
 
 		if (processorManager.active()) {
-			mappedProvider = new MinecraftProcessedProvider(project, processorManager);
-			project.getLogger().lifecycle("Using project based jar storage");
+			mappedProvider = new MinecraftProcessedProvider(project, extension, processorManager);
+			//project.getLogger().lifecycle("Using project based jar storage");
 		} else {
 			throw new IllegalStateException("VOLDELOOM: i think this code path is unused");
 			//mappedProvider = new MinecraftMappedProvider(getProject());
@@ -168,5 +171,4 @@ public class MappingsProvider extends DependencyProvider {
 		mappedProvider.initFiles(minecraftProvider, this);
 		mappedProvider.decorateProject();
 	}
-	
 }

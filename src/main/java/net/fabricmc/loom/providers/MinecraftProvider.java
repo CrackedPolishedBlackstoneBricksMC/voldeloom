@@ -27,7 +27,7 @@ package net.fabricmc.loom.providers;
 import com.google.common.io.Files;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import net.fabricmc.loom.forge.ForgePatchApplier;
+import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.forge.ForgeProvider;
 import net.fabricmc.loom.util.Checksum;
 import net.fabricmc.loom.util.Constants;
@@ -37,7 +37,6 @@ import net.fabricmc.loom.util.ManifestVersion;
 import net.fabricmc.loom.util.MinecraftVersionInfo;
 import net.fabricmc.loom.util.StaticPathWatcher;
 import net.fabricmc.loom.util.WellKnownLocations;
-import net.fabricmc.stitch.merge.JarMerger;
 import org.gradle.api.GradleException;
 import org.gradle.api.Project;
 import org.gradle.api.logging.Logger;
@@ -48,7 +47,6 @@ import java.io.IOException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;
-import java.util.zip.ZipError;
 
 public class MinecraftProvider extends DependencyProvider {
 	private String minecraftVersion;
@@ -60,47 +58,44 @@ public class MinecraftProvider extends DependencyProvider {
 	private File minecraftJson;
 	private File minecraftClientJar;
 	private File minecraftServerJar;
-	private File minecraftMergedJar;
-	private File minecraftPatchedMergedJar;
 
 	Gson gson = new Gson();
 
-	public MinecraftProvider(Project project) {
-		super(project);
+	public MinecraftProvider(Project project, LoomGradleExtension extension) {
+		super(project, extension);
 	}
 
 	@Override
 	public void decorateProject() throws Exception {
+		//deps
 		DependencyInfo minecraftDependency = getSingleDependency(Constants.MINECRAFT);
-		
-		ForgeProvider forge = extension.getDependencyManager().getForgeProvider();
 		minecraftVersion = minecraftDependency.getDependency().getVersion();
-		minecraftJarStuff = minecraftDependency.getDependency().getVersion() + "-forge-" + forge.getForgeVersion();
-		boolean offline = project.getGradle().getStartParameter().isOffline();
 		
+		//TODO remove this dep, move "jar stuff" to ForgePatchedProvider or remove it 
+		ForgeProvider forge = extension.getDependencyManager().getForgeProvider();
+		minecraftJarStuff = minecraftDependency.getDependency().getVersion() + "-forge-" + forge.getForgeVersion();
+		
+		//outputs (+versionInfo)
 		File userCache = WellKnownLocations.getUserCache(project);
 		minecraftJson = new File(userCache, "minecraft-" + minecraftVersion + "-info.json");
 		minecraftClientJar = new File(userCache, "minecraft-" + minecraftVersion + "-client.jar");
 		minecraftServerJar = new File(userCache, "minecraft-" + minecraftVersion + "-server.jar");
-		minecraftMergedJar = new File(userCache, "minecraft-" + minecraftVersion + "-merged.jar");
-		minecraftPatchedMergedJar = new File(userCache, "minecraft-" + minecraftJarStuff + "-merged.jar");
 		
+		//execution
+		boolean offline = project.getGradle().getStartParameter().isOffline();
 		downloadMcJson(offline);
 
-		try (FileReader reader = new FileReader(minecraftJson)) {
+		try(FileReader reader = new FileReader(minecraftJson)) {
 			versionInfo = gson.fromJson(reader, MinecraftVersionInfo.class);
 		}
 
-		// Add Loom as an annotation processor
-		//(VOLDELOOM-DISASTER) what the hell? loll
-		//addDependency(getProject().files(this.getClass().getProtectionDomain().getCodeSource().getLocation()), "compileOnly");
-
-		if (offline) {
-			if (minecraftClientJar.exists() && minecraftServerJar.exists()) {
+		if(offline) {
+			if(minecraftClientJar.exists() && minecraftServerJar.exists()) {
 				project.getLogger().debug("Found client and server jars, presuming up-to-date");
-			} else if (minecraftMergedJar.exists()) {
+			} else if(new File(userCache, "minecraft-" + minecraftVersion + "-merged.jar").exists()) {
+				//(Cheating a bit by predicting the output filename of MinecraftMergedProvider.)
 				//Strictly we don't need the split jars if the merged one exists, let's try go on
-				project.getLogger().warn("Missing game jar but merged jar present, things might end badly");
+				project.getLogger().warn("Missing a game jar but merged jar present, things might end badly");
 			} else {
 				throw new GradleException("Missing jar(s); Client: " + minecraftClientJar.exists() + ", Server: " + minecraftServerJar.exists());
 			}
@@ -108,25 +103,9 @@ public class MinecraftProvider extends DependencyProvider {
 			downloadJars(project.getLogger());
 		}
 
+		//TODO move up
 		libraryProvider = new MinecraftLibraryProvider();
 		libraryProvider.provide(this, project);
-
-		if (!minecraftPatchedMergedJar.exists()) {
-			if (!minecraftMergedJar.exists()) {
-				try {
-					mergeJars(project.getLogger());
-				} catch (ZipError e) {
-					DownloadUtil.delete(minecraftClientJar);
-					DownloadUtil.delete(minecraftServerJar);
-					
-					project.getLogger().error("Could not merge JARs! Deleting source JARs - please re-run the command and move on.", e);
-					throw new RuntimeException();
-				}
-			}
-			System.out.println("Copying Forge files...");
-			Files.copy(minecraftMergedJar, minecraftPatchedMergedJar);
-			ForgePatchApplier.process(minecraftPatchedMergedJar, extension);
-		}
 	}
 	
 	private void downloadMcJson(boolean offline) throws IOException {
@@ -193,18 +172,13 @@ public class MinecraftProvider extends DependencyProvider {
 			DownloadUtil.downloadIfChanged(new URL(versionInfo.downloads.get("server").url), minecraftServerJar, logger);
 		}
 	}
-
-	private void mergeJars(Logger logger) throws IOException {
-		logger.lifecycle(":merging jars");
-
-		try (JarMerger jarMerger = new JarMerger(minecraftClientJar, minecraftServerJar, minecraftMergedJar)) {
-			jarMerger.enableSyntheticParamsOffset();
-			jarMerger.merge();
-		}
+	
+	public File getClientJar() {
+		return minecraftClientJar;
 	}
-
-	public File getMergedJar() {
-		return minecraftPatchedMergedJar;
+	
+	public File getServerJar() {
+		return minecraftServerJar;
 	}
 
 	public String getMinecraftVersion() {

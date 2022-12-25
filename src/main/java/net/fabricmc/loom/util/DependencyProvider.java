@@ -52,19 +52,30 @@ public abstract class DependencyProvider {
 	protected final Project project;
 	protected final LoomGradleExtension extension;
 
-	public DependencyProvider(Project project) {
+	public DependencyProvider(Project project, LoomGradleExtension extension) {
 		this.project = project;
-		this.extension = project.getExtensions().getByType(LoomGradleExtension.class);
+		this.extension = extension;
+	}
+	
+	public final void decorateProjectOrThrow() {
+		String name = getClass().getSimpleName();
+		project.getLogger().lifecycle(":running dep provider '" + name + "'");
+		
+		try {
+			decorateProject();
+		} catch (Exception e) {
+			throw new RuntimeException("Failed to provide " + name, e);
+		}
 	}
 
 	public abstract void decorateProject() throws Exception;
 
-	public void addDependency(Object object, String target) {
-		if (object instanceof File) {
-			object = project.files(object);
+	public void addDependency(Object thing, String configuration) {
+		if (thing instanceof File) {
+			thing = project.files(thing);
 		}
 
-		project.getDependencies().add(target, object);
+		project.getDependencies().add(configuration, thing);
 	}
 	
 	protected DependencyInfo getSingleDependency(String targetConfig) {

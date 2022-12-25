@@ -24,7 +24,6 @@
 
 package net.fabricmc.loom;
 
-import net.fabricmc.loom.processors.JarProcessorManager;
 import org.cadixdev.lorenz.MappingSet;
 import org.cadixdev.mercury.Mercury;
 import org.gradle.api.Project;
@@ -36,18 +35,19 @@ import java.util.List;
 import java.util.function.Supplier;
 
 public class LoomGradleExtension {
-	public LoomGradleExtension(Project project) {}
+	public LoomGradleExtension(Project project) {
+		dependencyManager = new LoomDependencyManager(project, this);
+	}
 	
 	public String runDir = "run";
-	public String loaderLaunchMethod;
+	public String loaderLaunchMethod = "";
 	public boolean remapMod = true;
 	public boolean autoGenIDERuns = true;
 	public String customManifest = null;
 	
 	//Not to be set in the build.gradle
-	private List<Path> unmappedModsBuilt = new ArrayList<>();
-	private LoomDependencyManager dependencyManager;
-	private JarProcessorManager jarProcessorManager;
+	private final List<Path> unmappedModsBuilt = new ArrayList<>();
+	private final LoomDependencyManager dependencyManager;
 	private final MappingSet[] srcMappingCache = new MappingSet[2];
 	private final Mercury[] srcMercuryCache = new Mercury[2];
 
@@ -71,23 +71,7 @@ public class LoomGradleExtension {
 		return Collections.unmodifiableList(unmappedModsBuilt);
 	}
 	
-	public String getLoaderLaunchMethod() {
-		return loaderLaunchMethod != null ? loaderLaunchMethod : "";
-	}
-
 	public LoomDependencyManager getDependencyManager() {
 		return dependencyManager;
-	}
-	
-	public void setDependencyManager(LoomDependencyManager dependencyManager) {
-		this.dependencyManager = dependencyManager;
-	}
-	
-	public JarProcessorManager getJarProcessorManager() {
-		return jarProcessorManager;
-	}
-
-	public void setJarProcessorManager(JarProcessorManager jarProcessorManager) {
-		this.jarProcessorManager = jarProcessorManager;
 	}
 }

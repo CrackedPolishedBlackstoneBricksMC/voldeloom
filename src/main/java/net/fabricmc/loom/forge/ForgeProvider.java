@@ -21,8 +21,8 @@ public class ForgeProvider extends DependencyProvider {
 	private ForgeATConfig atConfig;
 	private String forgeVersion;
 	
-	public ForgeProvider(Project project) {
-		super(project);
+	public ForgeProvider(Project project, LoomGradleExtension extension) {
+		super(project, extension);
 	}
 
 	public File getForge() {
@@ -51,7 +51,6 @@ public class ForgeProvider extends DependencyProvider {
 	}
 	
 	public void mapForge() throws IOException {
-		LoomGradleExtension extension = this.extension;
 		String fromM = "official";
 		String toM = "named";
 

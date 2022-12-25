@@ -186,7 +186,7 @@ public class ModProcessor {
 	static JsonObject readInstallerJson(File file, Project project) {
 		try {
 			LoomGradleExtension extension = project.getExtensions().getByType(LoomGradleExtension.class);
-			String launchMethod = extension.getLoaderLaunchMethod();
+			String launchMethod = extension.loaderLaunchMethod;
 
 			String jsonStr;
 			int priority = 0;

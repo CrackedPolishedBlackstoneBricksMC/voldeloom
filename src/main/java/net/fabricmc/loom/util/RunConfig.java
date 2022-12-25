@@ -99,7 +99,7 @@ public class RunConfig {
 		runConfig.runDir = "file://$PROJECT_DIR$/" + extension.runDir;
 		runConfig.vmArgs = "";
 		
-		switch (extension.getLoaderLaunchMethod()) {
+		switch (extension.loaderLaunchMethod) {
 			//TODO(VOLDELOOM-DISASTER): The `direct` launch method was a good learning resource, but i don't think it's actually useful
 			case "direct":
 				runConfig.mainClass = mode.equals("client") ? "net.minecraft.client.Minecraft" : "net.minecraft.server.MinecraftServer";
@@ -189,7 +189,7 @@ public class RunConfig {
 
 	private static String getMainClass(String side, LoomGradleExtension extension) {
 		// Fallback to default class names, happens when in a loader dev env
-		if ("launchwrapper".equals(extension.getLoaderLaunchMethod())) {
+		if ("launchwrapper".equals(extension.loaderLaunchMethod)) {
 			return "net.minecraft.launchwrapper.Launch";
 		}
 

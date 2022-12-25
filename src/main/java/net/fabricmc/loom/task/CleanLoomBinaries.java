@@ -40,8 +40,10 @@ public class CleanLoomBinaries extends DefaultTask implements LoomTaskExt {
 	public void run() {
 		LoomGradleExtension extension = getLoomGradleExtension();
 		
+		//TODO: replace this with a generic "clean" system
 		VoldeloomFileHelpers.delete(getProject(),
-			extension.getDependencyManager().getMinecraftProvider().getMergedJar(),
+			extension.getDependencyManager().getMinecraftMergedProvider().getMergedJar(),
+			extension.getDependencyManager().getForgePatchedProvider().getPatchedJar(),
 			extension.getDependencyManager().getMappingsProvider().mappedProvider.getIntermediaryJar(),
 			extension.getDependencyManager().getMappingsProvider().mappedProvider.getMappedJar(),
 			extension.getDependencyManager().getMinecraftProvider().getNativesDirectory(),

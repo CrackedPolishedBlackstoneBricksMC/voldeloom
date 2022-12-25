@@ -25,9 +25,12 @@
 package net.fabricmc.loom;
 
 import net.fabricmc.loom.forge.ForgeProvider;
+import net.fabricmc.loom.forge.MinecraftForgePatchedProvider;
 import net.fabricmc.loom.providers.LaunchProvider;
 import net.fabricmc.loom.providers.MappingsProvider;
+import net.fabricmc.loom.providers.MinecraftMergedProvider;
 import net.fabricmc.loom.providers.MinecraftProvider;
+import org.gradle.api.Project;
 
 /**
  * TODO(VOLDELOOM-DISASTER): Phase this out in favor of, say, real Gradle tasks.
@@ -36,44 +39,43 @@ import net.fabricmc.loom.providers.MinecraftProvider;
  *  - it has to run *after* said dependency is set up (an ordering relationship)
  */
 public class LoomDependencyManager {
-	private ForgeProvider forgeProvider;
-	private MinecraftProvider minecraftProvider;
-	private MappingsProvider mappingsProvider;
-	private LaunchProvider launchProvider;
+	public LoomDependencyManager(Project project, LoomGradleExtension extension) {
+		forgeProvider = new ForgeProvider(project, extension);
+		minecraftProvider = new MinecraftProvider(project, extension);
+		minecraftMergedProvider = new MinecraftMergedProvider(project, extension);
+		forgePatchedProvider = new MinecraftForgePatchedProvider(project, extension);
+		mappingsProvider = new MappingsProvider(project, extension);
+		launchProvider = new LaunchProvider(project, extension);
+	}
+	
+	private final ForgeProvider forgeProvider;
+	private final MinecraftProvider minecraftProvider;
+	private final MinecraftMergedProvider minecraftMergedProvider;
+	private final MinecraftForgePatchedProvider forgePatchedProvider;
+	private final MappingsProvider mappingsProvider;
+	private final LaunchProvider launchProvider;
 	
 	public ForgeProvider getForgeProvider() {
-		if(forgeProvider == null) throw new IllegalStateException("Null ForgeProvider");
 		return forgeProvider;
 	}
 	
-	public void setForgeProvider(ForgeProvider forgeProvider) {
-		this.forgeProvider = forgeProvider;
-	}
-	
 	public MinecraftProvider getMinecraftProvider() {
-		if(minecraftProvider == null) throw new IllegalStateException("Null MinecraftProvider");
 		return minecraftProvider;
 	}
 	
-	public void setMinecraftProvider(MinecraftProvider minecraftProvider) {
-		this.minecraftProvider = minecraftProvider;
+	public MinecraftMergedProvider getMinecraftMergedProvider() {
+		return minecraftMergedProvider;
+	}
+	
+	public MinecraftForgePatchedProvider getForgePatchedProvider() {
+		return forgePatchedProvider;
 	}
 	
 	public MappingsProvider getMappingsProvider() {
-		if(mappingsProvider == null) throw new IllegalStateException("Null MappingsProvider");
 		return mappingsProvider;
 	}
 	
-	public void setMappingsProvider(MappingsProvider mappingsProvider) {
-		this.mappingsProvider = mappingsProvider;
-	}
-	
 	public LaunchProvider getLaunchProvider() {
-		if(launchProvider == null) throw new IllegalStateException("Null LaunchProvider");
 		return launchProvider;
-	}
-	
-	public void setLaunchProvider(LaunchProvider launchProvider) {
-		this.launchProvider = launchProvider;
 	}
 }

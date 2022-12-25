@@ -24,6 +24,7 @@
 
 package net.fabricmc.loom.providers;
 
+import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.util.Constants;
 import net.fabricmc.loom.util.DependencyProvider;
 import net.fabricmc.loom.util.TinyRemapperSession;
@@ -40,8 +41,12 @@ public class MinecraftMappedProvider extends DependencyProvider {
 
 	private MinecraftProvider minecraftProvider;
 
-	public MinecraftMappedProvider(Project project) {
-		super(project);
+	public MinecraftMappedProvider(Project project, LoomGradleExtension extension) {
+		super(project, extension);
+	}
+	
+	public MinecraftMappedProvider(Project project, LoomGradleExtension extension, String nameLeakyAbstraction) {
+		super(project, extension);
 	}
 
 	@Override
@@ -50,8 +55,8 @@ public class MinecraftMappedProvider extends DependencyProvider {
 			throw new RuntimeException("mappings file not found");
 		}
 		
-		if (!extension.getDependencyManager().getMinecraftProvider().getMergedJar().exists()) {
-			throw new RuntimeException("input merged jar not found");
+		if (!extension.getDependencyManager().getForgePatchedProvider().getPatchedJar().exists()) {
+			throw new RuntimeException("input merged+patched jar not found");
 		}
 
 		if (!minecraftMappedJar.exists() || !getIntermediaryJar().exists()) {
@@ -62,7 +67,7 @@ public class MinecraftMappedProvider extends DependencyProvider {
 			
 			new TinyRemapperSession()
 				.setMappings(extension.getDependencyManager().getMappingsProvider().getMappings())
-				.setInputJar(minecraftProvider.getMergedJar().toPath())
+				.setInputJar(extension.getDependencyManager().getForgePatchedProvider().getPatchedJar().toPath())
 				.setInputNamingScheme("official")
 				.setInputClasspath(getMinecraftDependencies().stream().map(File::toPath).collect(Collectors.toList()))
 				.addOutputJar("intermediary", this.minecraftIntermediaryJar.toPath())
@@ -110,5 +115,4 @@ public class MinecraftMappedProvider extends DependencyProvider {
 	public File getMappedJar() {
 		return minecraftMappedJar;
 	}
-	
 }
