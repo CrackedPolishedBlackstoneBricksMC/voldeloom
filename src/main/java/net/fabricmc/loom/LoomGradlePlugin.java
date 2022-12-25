@@ -48,7 +48,7 @@ import net.fabricmc.loom.task.fernflower.FernFlowerTask;
 import net.fabricmc.loom.util.Constants;
 import net.fabricmc.loom.util.GradleSupport;
 import net.fabricmc.loom.util.GroovyXmlUtil;
-import net.fabricmc.loom.util.LoomDependencyManager;
+import net.fabricmc.loom.util.ModCompileRemapper;
 import net.fabricmc.loom.util.RemappedConfigurationEntry;
 import net.fabricmc.loom.util.SetupIntelijRunConfigs;
 import net.fabricmc.loom.util.WellKnownLocations;
@@ -69,6 +69,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -250,26 +251,62 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		//TODO(VOLDELOOM-DISASTER) research what da hecj this does
 		// Hi its me from the future. It does literally fucking everything
 		//  Hi, it's me from farther in the future. Tyring to cut down on how magical this class is.
+		//   Hi! It's me from very shortly after, it's basically a functionless container for 4 things now.
 		LoomDependencyManager dependencyManager = new LoomDependencyManager();
 		extension.setDependencyManager(dependencyManager);
 		
 		ForgeProvider forgeProvider = new ForgeProvider(project);
 		dependencyManager.setForgeProvider(forgeProvider);
-		dependencyManager.runProvider(project, forgeProvider);
+		try {
+			forgeProvider.decorateProject();
+		} catch (Exception e) {
+			throw new RuntimeException("Failed to provide Forge", e);
+		}
 		
 		MinecraftProvider minecraftProvider = new MinecraftProvider(project);
 		dependencyManager.setMinecraftProvider(minecraftProvider);
-		dependencyManager.runProvider(project, minecraftProvider);
+		try {
+			minecraftProvider.decorateProject();
+		} catch (Exception e) {
+			throw new RuntimeException("Failed to provide Minecraft", e);
+		}
 		
 		MappingsProvider mappingsProvider = new MappingsProvider(project);
 		dependencyManager.setMappingsProvider(mappingsProvider);
-		dependencyManager.runProvider(project, mappingsProvider);
+		try {
+			mappingsProvider.decorateProject();
+		} catch (Exception e) {
+			throw new RuntimeException("Failed to provide mappings", e);
+		}
 		
 		LaunchProvider launchProvider = new LaunchProvider(project);
 		dependencyManager.setLaunchProvider(launchProvider);
-		dependencyManager.runProvider(project, launchProvider);
+		try {
+			launchProvider.decorateProject();
+		} catch (Exception e) {
+			throw new RuntimeException("Failed to configure DevLaunchInjector", e);
+		}
 		
-		dependencyManager.doWeirdModRemapStuff(project, extension);
+		//very strange block related to `modCompile`etc configurations that i moved here from LoomDependencyManager
+		{
+			List<Runnable> afterTasks = new ArrayList<>();
+			String mappingsKey = mappingsProvider.mappingsName + "." + mappingsProvider.minecraftVersion.replace(' ', '_').replace('.', '_').replace('-', '_') + "." + mappingsProvider.mappingsVersion;
+			for(RemappedConfigurationEntry entry1 : Constants.MOD_COMPILE_ENTRIES) {
+				ModCompileRemapper.remapDependencies(
+					project,
+					mappingsKey,
+					extension,
+					entry1.maybeCreateSourceConfiguration(project.getConfigurations()),
+					entry1.maybeCreateRemappedConfiguration(project.getConfigurations()),
+					entry1.maybeCreateTargetConfiguration(project.getConfigurations()),
+					afterTasks::add
+				);
+			}
+			
+			for(Runnable runnable : afterTasks) {
+				runnable.run();
+			}
+		}
 		
 		//Misc wiring-up of genSources-related tasks.
 		AbstractDecompileTask genSourcesDecompileTask = (AbstractDecompileTask) project.getTasks().getByName("genSourcesDecompile");

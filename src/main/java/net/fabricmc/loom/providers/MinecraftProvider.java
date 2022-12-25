@@ -70,10 +70,12 @@ public class MinecraftProvider extends DependencyProvider {
 	}
 
 	@Override
-	public void provide(DependencyInfo dependency) throws Exception {
+	public void decorateProject() throws Exception {
+		DependencyInfo minecraftDependency = getSingleDependency(Constants.MINECRAFT);
+		
 		ForgeProvider forge = extension.getDependencyManager().getForgeProvider();
-		minecraftVersion = dependency.getDependency().getVersion();
-		minecraftJarStuff = dependency.getDependency().getVersion() + "-forge-" + forge.getForgeVersion();
+		minecraftVersion = minecraftDependency.getDependency().getVersion();
+		minecraftJarStuff = minecraftDependency.getDependency().getVersion() + "-forge-" + forge.getForgeVersion();
 		boolean offline = project.getGradle().getStartParameter().isOffline();
 		
 		File userCache = WellKnownLocations.getUserCache(project);
@@ -224,13 +226,8 @@ public class MinecraftProvider extends DependencyProvider {
 	//several places, including run configs, launch provider, and MinecraftNativesProvider
 	//MOVED from LoomDependencyManager
 	public File getNativesDirectory() {
-		File natives = new File(WellKnownLocations.getUserCache(project), "natives/" + getMinecraftVersion());
+		File natives = new File(WellKnownLocations.getUserCache(project), "natives/" + minecraftVersion);
 		if (!natives.exists()) natives.mkdirs();
 		return natives;
-	}
-
-	@Override
-	public String getTargetConfig() {
-		return Constants.MINECRAFT;
 	}
 }

@@ -25,7 +25,6 @@
 package net.fabricmc.loom;
 
 import net.fabricmc.loom.processors.JarProcessorManager;
-import net.fabricmc.loom.util.LoomDependencyManager;
 import org.cadixdev.lorenz.MappingSet;
 import org.cadixdev.mercury.Mercury;
 import org.gradle.api.Project;

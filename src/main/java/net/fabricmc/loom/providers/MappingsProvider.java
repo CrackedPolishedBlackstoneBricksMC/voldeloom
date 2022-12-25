@@ -84,22 +84,23 @@ public class MappingsProvider extends DependencyProvider {
 	}
 
 	@Override
-	public void provide(DependencyInfo dependency) throws Exception {
+	public void decorateProject() throws Exception {
 		MinecraftProvider minecraftProvider = extension.getDependencyManager().getMinecraftProvider();
+		DependencyInfo mappingsDependency = getSingleDependency(Constants.MAPPINGS);
 		
-		project.getLogger().lifecycle(":setting up mappings (" + dependency.getDependency().getName() + " " + dependency.getResolvedVersion() + ")");
+		project.getLogger().lifecycle(":setting up mappings (" + mappingsDependency.getDependency().getName() + " " + mappingsDependency.getResolvedVersion() + ")");
 
-		String version = dependency.getResolvedVersion();
-		File mappingsJar = dependency.resolveFile().orElseThrow(() -> new RuntimeException("Could not find mcp mappings: " + dependency));
+		String version = mappingsDependency.getResolvedVersion();
+		File mappingsJar = mappingsDependency.resolveSingleFile().orElseThrow(() -> new RuntimeException("Could not find mcp mappings: " + mappingsDependency));
 
-		this.mappingsName = StringUtils.removeSuffix(dependency.getDependency().getGroup() + "." + dependency.getDependency().getName(), "-unmerged");
+		this.mappingsName = StringUtils.removeSuffix(mappingsDependency.getDependency().getGroup() + "." + mappingsDependency.getDependency().getName(), "-unmerged");
 
 		this.minecraftVersion = minecraftProvider.getJarStuff();
 		this.mappingsVersion = version;
 		
 		this.mappingsDir = WellKnownLocations.getUserCache(project).toPath().resolve("mappings");
 
-		String[] depStringSplit = dependency.getDepString().split(":");
+		String[] depStringSplit = mappingsDependency.getDepString().split(":");
 		String jarClassifier = "final";
 
 		if (depStringSplit.length >= 4) {
@@ -165,11 +166,7 @@ public class MappingsProvider extends DependencyProvider {
 		}
 
 		mappedProvider.initFiles(minecraftProvider, this);
-		mappedProvider.provide(dependency);
+		mappedProvider.decorateProject();
 	}
 	
-	@Override
-	public String getTargetConfig() {
-		return Constants.MAPPINGS;
-	}
 }

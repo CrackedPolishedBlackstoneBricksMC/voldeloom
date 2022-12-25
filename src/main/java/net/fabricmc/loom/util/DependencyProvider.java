@@ -33,6 +33,7 @@ import org.gradle.api.InvalidUserDataException;
 import org.gradle.api.Project;
 import org.gradle.api.artifacts.Configuration;
 import org.gradle.api.artifacts.Dependency;
+import org.gradle.api.artifacts.DependencySet;
 import org.gradle.api.artifacts.ResolvedDependency;
 import org.gradle.api.artifacts.SelfResolvingDependency;
 import org.zeroturnaround.zip.ZipUtil;
@@ -56,9 +57,7 @@ public abstract class DependencyProvider {
 		this.extension = project.getExtensions().getByType(LoomGradleExtension.class);
 	}
 
-	public abstract void provide(DependencyInfo dependency) throws Exception;
-
-	public abstract String getTargetConfig();
+	public abstract void decorateProject() throws Exception;
 
 	public void addDependency(Object object, String target) {
 		if (object instanceof File) {
@@ -66,6 +65,27 @@ public abstract class DependencyProvider {
 		}
 
 		project.getDependencies().add(target, object);
+	}
+	
+	protected DependencyInfo getSingleDependency(String targetConfig) {
+		Configuration config = project.getConfigurations().getByName(targetConfig);
+		DependencySet set = config.getDependencies();
+		
+		if(set.size() == 0) {
+			throw new IllegalStateException("Expected 1 dependency inside configuration " + config.getName() + ", found 0.");
+		} else if(set.size() == 1) {
+			return new DependencyInfo(project, set.iterator().next(), config);
+		} else {
+			StringBuilder error = new StringBuilder("Expected 1 dependency inside configuration ")
+				.append(config.getName())
+				.append(", found ")
+				.append(set.size()).append(":\n");
+			for(Dependency dep : set) {
+				error.append(dep.toString());
+				error.append('\n');
+			}
+			throw new IllegalStateException(error.toString());
+		}
 	}
 	
 	public static class DependencyInfo {
@@ -112,7 +132,7 @@ public abstract class DependencyProvider {
 			return sourceConfiguration.files(dependency);
 		}
 
-		public Optional<File> resolveFile() {
+		public Optional<File> resolveSingleFile() {
 			Set<File> files = resolve();
 
 			if (files.isEmpty()) {

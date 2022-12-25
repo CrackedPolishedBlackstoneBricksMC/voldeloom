@@ -24,7 +24,6 @@
 
 package net.fabricmc.loom.providers;
 
-import net.fabricmc.loom.util.Constants;
 import net.fabricmc.loom.util.DependencyProvider;
 import net.fabricmc.loom.util.WellKnownLocations;
 import org.apache.commons.io.FileUtils;
@@ -45,7 +44,7 @@ public class LaunchProvider extends DependencyProvider {
 	}
 
 	@Override
-	public void provide(DependencyInfo dependency) throws IOException {
+	public void decorateProject() throws IOException {
 		final LaunchConfig launchConfig = new LaunchConfig()
 				.property("fabric.development", "true")
 
@@ -61,12 +60,7 @@ public class LaunchProvider extends DependencyProvider {
 
 		//addDependency("net.fabricmc:dev-launch-injector:" + Constants.DEV_LAUNCH_INJECTOR_VERSION, "runtimeOnly");
 	}
-
-	@Override
-	public String getTargetConfig() {
-		return Constants.MINECRAFT_NAMED;
-	}
-
+	
 	public static class LaunchConfig {
 		private final Map<String, List<String>> values = new HashMap<>();
 

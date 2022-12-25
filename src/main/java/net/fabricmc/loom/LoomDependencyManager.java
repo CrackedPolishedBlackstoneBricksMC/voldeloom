@@ -22,19 +22,12 @@
  * SOFTWARE.
  */
 
-package net.fabricmc.loom.util;
+package net.fabricmc.loom;
 
-import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.forge.ForgeProvider;
 import net.fabricmc.loom.providers.LaunchProvider;
 import net.fabricmc.loom.providers.MappingsProvider;
 import net.fabricmc.loom.providers.MinecraftProvider;
-import net.fabricmc.loom.util.DependencyProvider.DependencyInfo;
-import org.gradle.api.Project;
-import org.gradle.api.artifacts.Configuration;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * TODO(VOLDELOOM-DISASTER): Phase this out in favor of, say, real Gradle tasks.
@@ -82,40 +75,5 @@ public class LoomDependencyManager {
 	
 	public void setLaunchProvider(LaunchProvider launchProvider) {
 		this.launchProvider = launchProvider;
-	}
-	
-	//TODO: replace this with method inside the providers, too
-	public void runProvider(Project project, DependencyProvider provider) {
-		Configuration configuration = project.getConfigurations().getByName(provider.getTargetConfig());
-		configuration.getDependencies().forEach(dependency -> {
-			DependencyProvider.DependencyInfo info = DependencyInfo.create(project, dependency, configuration);
-			
-			try {
-				provider.provide(info);
-			} catch (Exception e) {
-				throw new RuntimeException("Failed to provide " + dependency.getGroup() + ":" + dependency.getName() + ":" + dependency.getVersion() + " : " + e.getMessage(), e);
-			}
-		});
-	}
-	
-	//todo have not analyzed this code yet
-	public void doWeirdModRemapStuff(Project project, LoomGradleExtension extension) {
-		List<Runnable> afterTasks = new ArrayList<>();
-		String mappingsKey = mappingsProvider.mappingsName + "." + mappingsProvider.minecraftVersion.replace(' ', '_').replace('.', '_').replace('-', '_') + "." + mappingsProvider.mappingsVersion;
-		for (RemappedConfigurationEntry entry : Constants.MOD_COMPILE_ENTRIES) {
-			ModCompileRemapper.remapDependencies(
-				project,
-				mappingsKey,
-				extension,
-				entry.maybeCreateSourceConfiguration(project.getConfigurations()),
-				entry.maybeCreateRemappedConfiguration(project.getConfigurations()),
-				entry.maybeCreateTargetConfiguration(project.getConfigurations()),
-				afterTasks::add
-			);
-		}
-		
-		for (Runnable runnable : afterTasks) {
-			runnable.run();
-		}
 	}
 }

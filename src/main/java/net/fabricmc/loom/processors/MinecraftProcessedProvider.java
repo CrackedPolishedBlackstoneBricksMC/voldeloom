@@ -48,7 +48,7 @@ public class MinecraftProcessedProvider extends MinecraftMappedProvider {
 	}
 
 	@Override
-	protected void addDependencies(DependencyInfo dependency) {
+	protected void addDependencies() {
 		if (jarProcessorManager.isInvalid(projectMappedJar)) {
 			project.getLogger().lifecycle(":processing mapped jar");
 			invalidateJars();

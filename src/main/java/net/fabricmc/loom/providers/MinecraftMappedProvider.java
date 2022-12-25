@@ -45,7 +45,7 @@ public class MinecraftMappedProvider extends DependencyProvider {
 	}
 
 	@Override
-	public void provide(DependencyInfo dependency) throws Exception {
+	public void decorateProject() throws Exception {
 		if (!extension.getDependencyManager().getMappingsProvider().tinyMappings.exists()) {
 			throw new RuntimeException("mappings file not found");
 		}
@@ -74,11 +74,11 @@ public class MinecraftMappedProvider extends DependencyProvider {
 		if (!minecraftMappedJar.exists()) {
 			throw new RuntimeException("mapped jar not found");
 		}
-
-		addDependencies(dependency);
+		
+		addDependencies();
 	}
 
-	protected void addDependencies(DependencyInfo dependency) {
+	protected void addDependencies() {
 		project.getRepositories().flatDir(repository -> repository.dir(getJarDirectory(WellKnownLocations.getUserCache(project), "mapped")));
 		
 		project.getDependencies().add(Constants.MINECRAFT_NAMED,
@@ -110,9 +110,5 @@ public class MinecraftMappedProvider extends DependencyProvider {
 	public File getMappedJar() {
 		return minecraftMappedJar;
 	}
-
-	@Override
-	public String getTargetConfig() {
-		return Constants.MINECRAFT_NAMED;
-	}
+	
 }

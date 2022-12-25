@@ -15,12 +15,8 @@ import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.util.Collections;
-import java.util.Map;
 
 public class ForgeProvider extends DependencyProvider {
-	
-	private static final Map<String, String> FS_ENV = Collections.singletonMap("create", "true");
-	
 	private File forge;
 	private ForgeATConfig atConfig;
 	private String forgeVersion;
@@ -42,11 +38,13 @@ public class ForgeProvider extends DependencyProvider {
 	}
 	
 	@Override
-	public void provide(DependencyInfo dependency) throws Exception {
+	public void decorateProject() throws Exception {
+		DependencyInfo forgeDependency = getSingleDependency(Constants.FORGE);
+		
 		atConfig = new ForgeATConfig();
-		forgeVersion = dependency.getDependency().getVersion();
-		forge = dependency.resolveFile().orElseThrow(() -> new RuntimeException("No forge dep!"));
-		try(FileSystem zipFs = FileSystems.newFileSystem(URI.create("jar:" + forge.toURI()), FS_ENV)) {
+		forgeVersion = forgeDependency.getDependency().getVersion();
+		forge = forgeDependency.resolveSingleFile().orElseThrow(() -> new RuntimeException("No forge dep!"));
+		try(FileSystem zipFs = FileSystems.newFileSystem(URI.create("jar:" + forge.toURI()), Collections.emptyMap())) {
 			atConfig.load(Files.newInputStream(zipFs.getPath("fml_at.cfg")));
 			atConfig.load(Files.newInputStream(zipFs.getPath("forge_at.cfg")));
 		}
@@ -62,10 +60,5 @@ public class ForgeProvider extends DependencyProvider {
 		IMappingProvider mappings = TinyRemapperMappingsHelper.create(mappingsProvider.getMappings(), fromM, toM, false);
 		mappings.load(atConfig);
 		atConfig.finishRemapping();
-	}
-	
-	@Override
-	public String getTargetConfig() {
-		return Constants.FORGE;
 	}
 }
