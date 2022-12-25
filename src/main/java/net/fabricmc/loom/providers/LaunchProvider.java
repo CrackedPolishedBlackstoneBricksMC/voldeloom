@@ -49,15 +49,15 @@ public class LaunchProvider extends DependencyProvider {
 		final LaunchConfig launchConfig = new LaunchConfig()
 				.property("fabric.development", "true")
 
-				.property("client", "java.library.path", getExtension().getNativesDirectory().getAbsolutePath())
-				.property("client", "org.lwjgl.librarypath", getExtension().getNativesDirectory().getAbsolutePath())
+				.property("client", "java.library.path", extension.getDependencyManager().getMinecraftProvider().getNativesDirectory().getAbsolutePath())
+				.property("client", "org.lwjgl.librarypath", extension.getDependencyManager().getMinecraftProvider().getNativesDirectory().getAbsolutePath())
 
 				.argument("client", "--assetIndex")
-				.argument("client", getExtension().getMinecraftProvider().getVersionInfo().assetIndex.getFabricId(getExtension().getMinecraftProvider().getMinecraftVersion()))
+				.argument("client", extension.getDependencyManager().getMinecraftProvider().getVersionInfo().assetIndex.getFabricId(extension.getDependencyManager().getMinecraftProvider().getMinecraftVersion()))
 				.argument("client", "--assetsDir")
-				.argument("client", new File(WellKnownLocations.getUserCache(getProject()), "assets").getAbsolutePath());
-
-		FileUtils.writeStringToFile(WellKnownLocations.getDevLauncherConfig(getProject()), launchConfig.asString(), StandardCharsets.UTF_8);
+				.argument("client", new File(WellKnownLocations.getUserCache(project), "assets").getAbsolutePath());
+		
+		FileUtils.writeStringToFile(WellKnownLocations.getDevLauncherConfig(project), launchConfig.asString(), StandardCharsets.UTF_8);
 
 		//addDependency("net.fabricmc:dev-launch-injector:" + Constants.DEV_LAUNCH_INJECTOR_VERSION, "runtimeOnly");
 	}

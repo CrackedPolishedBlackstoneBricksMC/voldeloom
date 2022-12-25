@@ -44,13 +44,11 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 
 public class RemapJarTask extends Jar {
-	private RegularFileProperty input;
-
 	public RemapJarTask() {
-		super();
 		setGroup("fabric");
-		input = GradleSupport.getfileProperty(getProject());
 	}
+	
+	private final RegularFileProperty input = GradleSupport.getfileProperty(getProject());
 
 	@TaskAction
 	public void doTask() throws Throwable {
@@ -62,39 +60,25 @@ public class RemapJarTask extends Jar {
 		if (!Files.exists(input)) {
 			throw new FileNotFoundException(input.toString());
 		}
-
-		MappingsProvider mappingsProvider = extension.getMappingsProvider();
+		
+		MappingsProvider mappingsProvider = extension.getDependencyManager().getMappingsProvider();
 
 		String fromM = "named";
 		String toM = "official";
 
 		Set<File> classpathFiles = new LinkedHashSet<>(
-						project.getConfigurations().getByName("compileClasspath").getFiles()
+			project.getConfigurations().getByName("compileClasspath").getFiles()
 		);
 		Path[] classpath = classpathFiles.stream().map(File::toPath).filter((p) -> !input.equals(p) && Files.exists(p)).toArray(Path[]::new);
 
-		//File mixinMapFile = mappingsProvider.mappingsMixinExport;
-		//Path mixinMapPath = mixinMapFile.toPath();
-
-		TinyRemapper.Builder remapperBuilder = TinyRemapper.newRemapper();
-
-		remapperBuilder = remapperBuilder.withMappings(TinyRemapperMappingsHelper.create(mappingsProvider.getMappings(), fromM, toM, false));
-
-		//if (mixinMapFile.exists()) {
-		//	remapperBuilder = remapperBuilder.withMappings(TinyUtils.createTinyMappingProvider(mixinMapPath, fromM, toM));
-		//}
-
 		project.getLogger().lifecycle(":remapping " + input.getFileName());
-
 		StringBuilder rc = new StringBuilder("Remap classpath: ");
-
 		for (Path p : classpath) {
 			rc.append("\n - ").append(p.toString());
 		}
+		project.getLogger().info(rc.toString());
 
-		project.getLogger().debug(rc.toString());
-
-		TinyRemapper remapper = remapperBuilder.build();
+		TinyRemapper remapper = TinyRemapper.newRemapper().withMappings(TinyRemapperMappingsHelper.create(mappingsProvider.getMappings(), fromM, toM, false)).build();
 
 		try (OutputConsumerPath outputConsumer = new OutputConsumerPath.Builder(output).build()) {
 			outputConsumer.addNonClassFiles(input);
@@ -110,21 +94,6 @@ public class RemapJarTask extends Jar {
 		if (!Files.exists(output)) {
 			throw new RuntimeException("Failed to remap " + input + " to " + output + " - file missing!");
 		}
-
-//		if (MixinRefmapHelper.addRefmapName(extension.getRefmapName(), extension.getMixinJsonVersion(), output)) {
-//			project.getLogger().debug("Transformed mixin reference maps in output JAR!");
-//		}
-
-		/*try {
-			if (modJar.exists()) {
-				Files.move(modJar, modJarUnmappedCopy);
-				extension.addUnmappedMod(modJarUnmappedCopy);
-			}
-
-			Files.move(modJarOutput, modJar);
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}*/
 	}
 
 	@InputFile

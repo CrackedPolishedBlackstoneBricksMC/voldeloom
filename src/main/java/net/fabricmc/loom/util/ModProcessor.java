@@ -136,9 +136,9 @@ public class ModProcessor {
 		LoomGradleExtension extension = project.getExtensions().getByType(LoomGradleExtension.class);
 		String fromM = "intermediary";
 		String toM = "named";
-
-		MinecraftMappedProvider mappedProvider = extension.getMinecraftMappedProvider();
-		MappingsProvider mappingsProvider = extension.getMappingsProvider();
+		
+		MinecraftMappedProvider mappedProvider = extension.getDependencyManager().getMappingsProvider().mappedProvider;
+		MappingsProvider mappingsProvider = extension.getDependencyManager().getMappingsProvider();
 
 		Path inputPath = input.getAbsoluteFile().toPath();
 		Path mc = mappedProvider.getIntermediaryJar().toPath();

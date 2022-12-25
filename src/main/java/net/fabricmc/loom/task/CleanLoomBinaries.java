@@ -41,10 +41,10 @@ public class CleanLoomBinaries extends DefaultTask implements LoomTaskExt {
 		LoomGradleExtension extension = getLoomGradleExtension();
 		
 		VoldeloomFileHelpers.delete(getProject(),
-			extension.getMinecraftProvider().getMergedJar(),
-			extension.getMinecraftMappedProvider().getIntermediaryJar(),
-			extension.getMinecraftMappedProvider().getMappedJar(),
-			extension.getNativesDirectory(),
+			extension.getDependencyManager().getMinecraftProvider().getMergedJar(),
+			extension.getDependencyManager().getMappingsProvider().mappedProvider.getIntermediaryJar(),
+			extension.getDependencyManager().getMappingsProvider().mappedProvider.getMappedJar(),
+			extension.getDependencyManager().getMinecraftProvider().getNativesDirectory(),
 			WellKnownLocations.getNativesJarStore(getProject())
 		);
 	}

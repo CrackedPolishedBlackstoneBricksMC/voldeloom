@@ -49,8 +49,8 @@ public abstract class AbstractRunTask extends JavaExec implements LoomTaskExt {
 		LoomGradleExtension extension = getLoomGradleExtension();
 		RunConfig config = configProvider.apply(getProject(), extension);
 		
-		MinecraftVersionInfo minecraftVersionInfo = extension.getMinecraftProvider().getVersionInfo();
-		MappingsProvider mappingsProvider = extension.getMappingsProvider();
+		MinecraftVersionInfo minecraftVersionInfo = extension.getDependencyManager().getMinecraftProvider().getVersionInfo();
+		MappingsProvider mappingsProvider = extension.getDependencyManager().getMappingsProvider();
 
 		List<String> libs = new ArrayList<>();
 

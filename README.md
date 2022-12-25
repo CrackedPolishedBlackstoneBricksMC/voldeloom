@@ -416,3 +416,5 @@ MinecraftMappedProvider calls MapJarsTiny:
   * (recall that srg classes == mcp classes unlike Yarn)
 
 the `Environment` annotations might be being added by JarMerger? like fabric has a little library for merging jars (maybe in stitch)
+
+Adding Gradle tasks to the project in `afterEvaluate`: Yes, it's possible. So this is handy if the name and number of tasks depends on the settings in LoomGradleExtension

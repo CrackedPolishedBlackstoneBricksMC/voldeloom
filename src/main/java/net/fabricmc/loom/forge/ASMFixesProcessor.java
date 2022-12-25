@@ -29,7 +29,7 @@ public class ASMFixesProcessor implements JarProcessor {
 
 	@Override
 	public void process(File file) {
-		ForgeProvider forge = extension.getDependencyManager().getProvider(ForgeProvider.class);
+		ForgeProvider forge = extension.getDependencyManager().getForgeProvider();
 		try {
 			forge.mapForge();
 		} catch (IOException e1) {

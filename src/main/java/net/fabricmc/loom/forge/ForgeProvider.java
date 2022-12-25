@@ -53,11 +53,11 @@ public class ForgeProvider extends DependencyProvider {
 	}
 	
 	public void mapForge() throws IOException {
-		LoomGradleExtension extension = getExtension();
+		LoomGradleExtension extension = this.extension;
 		String fromM = "official";
 		String toM = "named";
 
-		MappingsProvider mappingsProvider = extension.getMappingsProvider();
+		MappingsProvider mappingsProvider = extension.getDependencyManager().getMappingsProvider();
 
 		IMappingProvider mappings = TinyRemapperMappingsHelper.create(mappingsProvider.getMappings(), fromM, toM, false);
 		mappings.load(atConfig);

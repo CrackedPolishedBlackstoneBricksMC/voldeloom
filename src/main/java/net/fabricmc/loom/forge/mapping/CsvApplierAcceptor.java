@@ -1,5 +1,8 @@
 package net.fabricmc.loom.forge.mapping;
 
+import net.fabricmc.tinyremapper.IMappingProvider.MappingAcceptor;
+import net.fabricmc.tinyremapper.IMappingProvider.Member;
+
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -7,9 +10,6 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Scanner;
-
-import net.fabricmc.tinyremapper.IMappingProvider.MappingAcceptor;
-import net.fabricmc.tinyremapper.IMappingProvider.Member;
 
 public class CsvApplierAcceptor implements MappingAcceptor {
 

@@ -53,7 +53,7 @@ public class SourceRemapper {
 
 	private static void remapSourcesInner(Project project, File source, File destination, boolean toNamed) throws Exception {
 		LoomGradleExtension extension = project.getExtensions().getByType(LoomGradleExtension.class);
-		MappingsProvider mappingsProvider = extension.getMappingsProvider();
+		MappingsProvider mappingsProvider = extension.getDependencyManager().getMappingsProvider();
 
 		MappingSet mappings = extension.getOrCreateSrcMappingCache(toNamed ? 1 : 0, () -> {
 			try {
@@ -75,9 +75,9 @@ public class SourceRemapper {
 					m.getClassPath().add(file);
 				}
 			}
-
-			m.getClassPath().add(extension.getMinecraftMappedProvider().getMappedJar().toPath());
-			m.getClassPath().add(extension.getMinecraftMappedProvider().getIntermediaryJar().toPath());
+			
+			m.getClassPath().add(extension.getDependencyManager().getMappingsProvider().mappedProvider.getMappedJar().toPath());
+			m.getClassPath().add(extension.getDependencyManager().getMappingsProvider().mappedProvider.getIntermediaryJar().toPath());
 
 			m.getProcessors().add(MercuryRemapper.create(mappings));
 

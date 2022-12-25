@@ -95,12 +95,12 @@ public class MigrateMappingsTask extends DefaultTask implements LoomTaskExt {
 		Files.createDirectories(outputDir);
 
 		File mappings = loadMappings();
-		MappingsProvider mappingsProvider = extension.getMappingsProvider();
+		MappingsProvider mappingsProvider = extension.getDependencyManager().getMappingsProvider();
 
 		try {
 			TinyTree currentMappings = mappingsProvider.getMappings();
 			TinyTree targetMappings = getMappings(mappings);
-			migrateMappings(project, extension.getMinecraftMappedProvider(), inputDir, outputDir, currentMappings, targetMappings);
+			migrateMappings(project, extension.getDependencyManager().getMappingsProvider().mappedProvider, inputDir, outputDir, currentMappings, targetMappings);
 			project.getLogger().lifecycle(":remapped project written to " + outputDir.toAbsolutePath());
 		} catch (IOException e) {
 			throw new IllegalArgumentException("Error while loading mappings", e);

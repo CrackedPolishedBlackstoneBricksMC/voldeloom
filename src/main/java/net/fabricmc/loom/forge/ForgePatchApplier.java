@@ -21,7 +21,7 @@ public class ForgePatchApplier {
 	private static final Map<String, String> FS_ENV = Collections.singletonMap("create", "true");
 
 	public static void process(File mc, LoomGradleExtension extension) {
-		ForgeProvider forgeProvider = extension.getDependencyManager().getProvider(ForgeProvider.class);
+		ForgeProvider forgeProvider = extension.getDependencyManager().getForgeProvider();
 		
 		File forge = forgeProvider.getForge();
 		try(FileSystem forgeFs = FileSystems.newFileSystem(URI.create("jar:" + forge.toURI()), FS_ENV)) {

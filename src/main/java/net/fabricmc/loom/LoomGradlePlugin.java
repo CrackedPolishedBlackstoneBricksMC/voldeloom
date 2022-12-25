@@ -249,22 +249,34 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		
 		//TODO(VOLDELOOM-DISASTER) research what da hecj this does
 		// Hi its me from the future. It does literally fucking everything
+		//  Hi, it's me from farther in the future. Tyring to cut down on how magical this class is.
 		LoomDependencyManager dependencyManager = new LoomDependencyManager();
 		extension.setDependencyManager(dependencyManager);
 		
-		dependencyManager.addProvider(new ForgeProvider(project));
-		dependencyManager.addProvider(new MinecraftProvider(project));
-		dependencyManager.addProvider(new MappingsProvider(project));
-		dependencyManager.addProvider(new LaunchProvider(project));
-		dependencyManager.handleDependencies(project);
+		ForgeProvider forgeProvider = new ForgeProvider(project);
+		dependencyManager.setForgeProvider(forgeProvider);
+		dependencyManager.runProvider(project, forgeProvider);
+		
+		MinecraftProvider minecraftProvider = new MinecraftProvider(project);
+		dependencyManager.setMinecraftProvider(minecraftProvider);
+		dependencyManager.runProvider(project, minecraftProvider);
+		
+		MappingsProvider mappingsProvider = new MappingsProvider(project);
+		dependencyManager.setMappingsProvider(mappingsProvider);
+		dependencyManager.runProvider(project, mappingsProvider);
+		
+		LaunchProvider launchProvider = new LaunchProvider(project);
+		dependencyManager.setLaunchProvider(launchProvider);
+		dependencyManager.runProvider(project, launchProvider);
+		
+		dependencyManager.doWeirdModRemapStuff(project, extension);
 		
 		//Misc wiring-up of genSources-related tasks.
 		AbstractDecompileTask genSourcesDecompileTask = (AbstractDecompileTask) project.getTasks().getByName("genSourcesDecompile");
 		RemapLineNumbersTask genSourcesRemapLineNumbersTask = (RemapLineNumbersTask) project.getTasks().getByName("genSourcesRemapLineNumbers");
 		Task genSourcesTask = project.getTasks().getByName("genSources");
 		
-		MinecraftLibraryProvider libraryProvider = extension.getMinecraftProvider().getLibraryProvider();
-		MappingsProvider mappingsProvider = extension.getMappingsProvider();
+		MinecraftLibraryProvider libraryProvider = extension.getDependencyManager().getMinecraftProvider().getLibraryProvider();
 		File mappedJar = mappingsProvider.mappedProvider.getMappedJar();
 		File linemappedJar = getMappedByproduct(extension, "-linemapped.jar");
 		File sourcesJar = getMappedByproduct(extension, "-sources.jar");
@@ -387,7 +399,7 @@ public class LoomGradlePlugin implements Plugin<Project> {
 	}
 	
 	public static File getMappedByproduct(LoomGradleExtension extension, String suffix) {
-		String path = extension.getMappingsProvider().mappedProvider.getMappedJar().getAbsolutePath();
+		String path = extension.getDependencyManager().getMappingsProvider().mappedProvider.getMappedJar().getAbsolutePath();
 		if (!path.toLowerCase(Locale.ROOT).endsWith(".jar")) throw new RuntimeException("Invalid mapped JAR path: " + path);
 		else return new File(path.substring(0, path.length() - 4) + suffix);
 	}

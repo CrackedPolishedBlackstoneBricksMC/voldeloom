@@ -37,9 +37,9 @@ import java.net.URL;
 
 public class MinecraftNativesProvider {
 	public static void provide(Project project, LoomGradleExtension extension) throws IOException {
-		MinecraftVersionInfo versionInfo = extension.getMinecraftProvider().getVersionInfo();
-
-		File nativesDir = extension.getNativesDirectory();
+		MinecraftVersionInfo versionInfo = extension.getDependencyManager().getMinecraftProvider().getVersionInfo();
+		
+		File nativesDir = extension.getDependencyManager().getMinecraftProvider().getNativesDirectory();
 		File jarStore = WellKnownLocations.getNativesJarStore(project);
 
 		for (MinecraftVersionInfo.Library library : versionInfo.libraries) {

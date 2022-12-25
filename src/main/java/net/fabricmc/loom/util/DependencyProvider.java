@@ -48,9 +48,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 public abstract class DependencyProvider {
-	private LoomDependencyManager dependencyManager;
-	private final Project project;
-	private final LoomGradleExtension extension;
+	protected final Project project;
+	protected final LoomGradleExtension extension;
 
 	public DependencyProvider(Project project) {
 		this.project = project;
@@ -61,10 +60,6 @@ public abstract class DependencyProvider {
 
 	public abstract String getTargetConfig();
 
-	public void addDependency(Object object) {
-		addDependency(object, "compile");
-	}
-
 	public void addDependency(Object object, String target) {
 		if (object instanceof File) {
 			object = project.files(object);
@@ -72,23 +67,7 @@ public abstract class DependencyProvider {
 
 		project.getDependencies().add(target, object);
 	}
-
-	public void register(LoomDependencyManager dependencyManager) {
-		this.dependencyManager = dependencyManager;
-	}
-
-	public LoomDependencyManager getDependencyManager() {
-		return dependencyManager;
-	}
-
-	public Project getProject() {
-		return project;
-	}
-
-	public LoomGradleExtension getExtension() {
-		return extension;
-	}
-
+	
 	public static class DependencyInfo {
 		final Project project;
 		final Dependency dependency;

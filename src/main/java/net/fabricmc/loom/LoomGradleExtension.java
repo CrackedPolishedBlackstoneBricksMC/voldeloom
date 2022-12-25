@@ -25,16 +25,11 @@
 package net.fabricmc.loom;
 
 import net.fabricmc.loom.processors.JarProcessorManager;
-import net.fabricmc.loom.providers.MappingsProvider;
-import net.fabricmc.loom.providers.MinecraftMappedProvider;
-import net.fabricmc.loom.providers.MinecraftProvider;
 import net.fabricmc.loom.util.LoomDependencyManager;
-import net.fabricmc.loom.util.WellKnownLocations;
 import org.cadixdev.lorenz.MappingSet;
 import org.cadixdev.mercury.Mercury;
 import org.gradle.api.Project;
 
-import java.io.File;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -42,21 +37,16 @@ import java.util.List;
 import java.util.function.Supplier;
 
 public class LoomGradleExtension {
-	public LoomGradleExtension(Project project) {
-		this.project = project;
-	}
+	public LoomGradleExtension(Project project) {}
 	
 	public String runDir = "run";
 	public String loaderLaunchMethod;
 	public boolean remapMod = true;
 	public boolean autoGenIDERuns = true;
 	public String customManifest = null;
-	public File accessWidener = null;
-
-	private List<Path> unmappedModsBuilt = new ArrayList<>();
-
+	
 	//Not to be set in the build.gradle
-	private final Project project;
+	private List<Path> unmappedModsBuilt = new ArrayList<>();
 	private LoomDependencyManager dependencyManager;
 	private JarProcessorManager jarProcessorManager;
 	private final MappingSet[] srcMappingCache = new MappingSet[2];
@@ -81,14 +71,7 @@ public class LoomGradleExtension {
 	public List<Path> getUnmappedMods() {
 		return Collections.unmodifiableList(unmappedModsBuilt);
 	}
-
-	//several places, including run configs, launch provider, and MinecraftNativesProvider
-	public File getNativesDirectory() {
-		File natives = new File(WellKnownLocations.getUserCache(project), "natives/" + getMinecraftProvider().getMinecraftVersion());
-		if (!natives.exists()) natives.mkdirs();
-		return natives;
-	}
-
+	
 	public String getLoaderLaunchMethod() {
 		return loaderLaunchMethod != null ? loaderLaunchMethod : "";
 	}
@@ -96,23 +79,11 @@ public class LoomGradleExtension {
 	public LoomDependencyManager getDependencyManager() {
 		return dependencyManager;
 	}
-
-	public MinecraftProvider getMinecraftProvider() {
-		return getDependencyManager().getProvider(MinecraftProvider.class);
-	}
-
-	public MinecraftMappedProvider getMinecraftMappedProvider() {
-		return getMappingsProvider().mappedProvider;
-	}
-
-	public MappingsProvider getMappingsProvider() {
-		return getDependencyManager().getProvider(MappingsProvider.class);
-	}
-
+	
 	public void setDependencyManager(LoomDependencyManager dependencyManager) {
 		this.dependencyManager = dependencyManager;
 	}
-
+	
 	public JarProcessorManager getJarProcessorManager() {
 		return jarProcessorManager;
 	}

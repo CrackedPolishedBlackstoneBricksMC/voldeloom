@@ -50,7 +50,7 @@ public class MinecraftProcessedProvider extends MinecraftMappedProvider {
 	@Override
 	protected void addDependencies(DependencyInfo dependency) {
 		if (jarProcessorManager.isInvalid(projectMappedJar)) {
-			getProject().getLogger().lifecycle(":processing mapped jar");
+			project.getLogger().lifecycle(":processing mapped jar");
 			invalidateJars();
 
 			try {
@@ -61,18 +61,18 @@ public class MinecraftProcessedProvider extends MinecraftMappedProvider {
 
 			jarProcessorManager.process(projectMappedJar);
 		}
-
-		getProject().getRepositories().flatDir(repository -> repository.dir(getJarDirectory(WellKnownLocations.getProjectBuildCache(getProject()), PROJECT_MAPPED_CLASSIFIER)));
-
-		getProject().getDependencies().add(Constants.MINECRAFT_NAMED,
-				getProject().getDependencies().module("net.minecraft:minecraft:" + getJarVersionString(PROJECT_MAPPED_CLASSIFIER)));
+		
+		project.getRepositories().flatDir(repository -> repository.dir(getJarDirectory(WellKnownLocations.getProjectBuildCache(project), PROJECT_MAPPED_CLASSIFIER)));
+		
+		project.getDependencies().add(Constants.MINECRAFT_NAMED,
+				project.getDependencies().module("net.minecraft:minecraft:" + getJarVersionString(PROJECT_MAPPED_CLASSIFIER)));
 	}
 
 	private void invalidateJars() {
-		File dir = getJarDirectory(WellKnownLocations.getUserCache(getProject()), PROJECT_MAPPED_CLASSIFIER);
+		File dir = getJarDirectory(WellKnownLocations.getUserCache(project), PROJECT_MAPPED_CLASSIFIER);
 
 		if (dir.exists()) {
-			getProject().getLogger().warn("Invalidating project jars");
+			project.getLogger().warn("Invalidating project jars");
 
 			try {
 				FileUtils.cleanDirectory(dir);
@@ -85,8 +85,8 @@ public class MinecraftProcessedProvider extends MinecraftMappedProvider {
 	@Override
 	public void initFiles(MinecraftProvider minecraftProvider, MappingsProvider mappingsProvider) {
 		super.initFiles(minecraftProvider, mappingsProvider);
-
-		projectMappedJar = new File(getJarDirectory(WellKnownLocations.getProjectBuildCache(getProject()), PROJECT_MAPPED_CLASSIFIER), "minecraft-" + getJarVersionString(PROJECT_MAPPED_CLASSIFIER) + ".jar");
+		
+		projectMappedJar = new File(getJarDirectory(WellKnownLocations.getProjectBuildCache(project), PROJECT_MAPPED_CLASSIFIER), "minecraft-" + getJarVersionString(PROJECT_MAPPED_CLASSIFIER) + ".jar");
 	}
 
 	@Override

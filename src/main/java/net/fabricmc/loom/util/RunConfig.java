@@ -93,6 +93,8 @@ public class RunConfig {
 	}
 
 	private static void populate(Project project, LoomGradleExtension extension, RunConfig runConfig, String mode) {
+		MinecraftProvider minecraftProvider = extension.getDependencyManager().getMinecraftProvider();
+		
 		runConfig.projectName = project.getName();
 		runConfig.runDir = "file://$PROJECT_DIR$/" + extension.runDir;
 		runConfig.vmArgs = "";
@@ -104,8 +106,8 @@ public class RunConfig {
 				
 				//Loom's LaunchProvider sets these too, but launchprovider works with dev-launch-injector concepts, i don't use dli at the moment
 				runConfig.systemProperties.put("minecraft.applet.TargetDirectory", project.getRootDir().toPath().resolve("run").toAbsolutePath().toString());
-				runConfig.systemProperties.put("java.library.path", extension.getNativesDirectory().getAbsolutePath());
-				runConfig.systemProperties.put("org.lwjgl.librarypath", extension.getNativesDirectory().getAbsolutePath());
+				runConfig.systemProperties.put("java.library.path", minecraftProvider.getNativesDirectory().getAbsolutePath());
+				runConfig.systemProperties.put("org.lwjgl.librarypath", minecraftProvider.getNativesDirectory().getAbsolutePath());
 				if(mode.equals("client")) {
 					//the fml relauncher always takes arg 0 as player name and arg 1 as session key (or -), see Minecraft#fmlReentry
 					runConfig.programArgs = "Player - ";
@@ -119,12 +121,12 @@ public class RunConfig {
 				runConfig.programArgs = "";
 				runConfig.programArgs += "PlayerName -";
 				runConfig.programArgs += " --tweakClass net.minecraft.launchwrapper.VanillaTweaker";
-				runConfig.programArgs += " --assetIndex " + extension.getMinecraftProvider().getVersionInfo().assetIndex.getFabricId(extension.getMinecraftProvider().getMinecraftVersion());
+				runConfig.programArgs += " --assetIndex " + minecraftProvider.getVersionInfo().assetIndex.getFabricId(minecraftProvider.getMinecraftVersion());
 				runConfig.programArgs += " --assetsDir " + encodeEscaped(new File(WellKnownLocations.getUserCache(project), "assets").getAbsolutePath());
 				runConfig.programArgs += " --gameDir " + project.getRootDir().toPath().resolve("run").toAbsolutePath();
 				runConfig.systemProperties.put("minecraft.applet.TargetDirectory", project.getRootDir().toPath().resolve("run").toAbsolutePath().toString());
-				runConfig.systemProperties.put("java.library.path", extension.getNativesDirectory().getAbsolutePath());
-				runConfig.systemProperties.put("org.lwjgl.librarypath", extension.getNativesDirectory().getAbsolutePath());
+				runConfig.systemProperties.put("java.library.path", minecraftProvider.getNativesDirectory().getAbsolutePath());
+				runConfig.systemProperties.put("org.lwjgl.librarypath", minecraftProvider.getNativesDirectory().getAbsolutePath());
 				break;
 				//below is old shit from loom
 			case "launchwrapper":
@@ -140,9 +142,6 @@ public class RunConfig {
 	}
 
 	public static RunConfig clientRunConfig(Project project, LoomGradleExtension extension) {
-		MinecraftProvider minecraftProvider = extension.getMinecraftProvider();
-		MinecraftVersionInfo minecraftVersionInfo = minecraftProvider.getVersionInfo();
-
 		RunConfig ideaClient = new RunConfig();
 		populate(project, extension, ideaClient, "client");
 		ideaClient.configName = "Minecraft Client";

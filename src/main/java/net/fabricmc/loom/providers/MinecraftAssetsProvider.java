@@ -52,7 +52,7 @@ public class MinecraftAssetsProvider {
 	public static void provide(Project project, LoomGradleExtension extension) throws IOException {
 		boolean offline = project.getGradle().getStartParameter().isOffline();
 
-		MinecraftProvider minecraftProvider = extension.getMinecraftProvider();
+		MinecraftProvider minecraftProvider = extension.getDependencyManager().getMinecraftProvider();
 		MinecraftVersionInfo versionInfo = minecraftProvider.getVersionInfo();
 		MinecraftVersionInfo.AssetIndex assetIndex = versionInfo.assetIndex;
 

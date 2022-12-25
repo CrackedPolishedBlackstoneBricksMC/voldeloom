@@ -46,11 +46,11 @@ public class MinecraftMappedProvider extends DependencyProvider {
 
 	@Override
 	public void provide(DependencyInfo dependency) throws Exception {
-		if (!getExtension().getMappingsProvider().tinyMappings.exists()) {
+		if (!extension.getDependencyManager().getMappingsProvider().tinyMappings.exists()) {
 			throw new RuntimeException("mappings file not found");
 		}
-
-		if (!getExtension().getMinecraftProvider().getMergedJar().exists()) {
+		
+		if (!extension.getDependencyManager().getMinecraftProvider().getMergedJar().exists()) {
 			throw new RuntimeException("input merged jar not found");
 		}
 
@@ -61,13 +61,13 @@ public class MinecraftMappedProvider extends DependencyProvider {
 			minecraftMappedJar.getParentFile().mkdirs();
 			
 			new TinyRemapperSession()
-				.setMappings(getExtension().getMappingsProvider().getMappings())
+				.setMappings(extension.getDependencyManager().getMappingsProvider().getMappings())
 				.setInputJar(minecraftProvider.getMergedJar().toPath())
 				.setInputNamingScheme("official")
 				.setInputClasspath(getMinecraftDependencies().stream().map(File::toPath).collect(Collectors.toList()))
 				.addOutputJar("intermediary", this.minecraftIntermediaryJar.toPath())
 				.addOutputJar("named", this.minecraftMappedJar.toPath())
-				.setLogger(getProject().getLogger()::lifecycle)
+				.setLogger(project.getLogger()::lifecycle)
 				.run();
 		}
 
@@ -79,16 +79,16 @@ public class MinecraftMappedProvider extends DependencyProvider {
 	}
 
 	protected void addDependencies(DependencyInfo dependency) {
-		getProject().getRepositories().flatDir(repository -> repository.dir(getJarDirectory(WellKnownLocations.getUserCache(getProject()), "mapped")));
-
-		getProject().getDependencies().add(Constants.MINECRAFT_NAMED,
-				getProject().getDependencies().module("net.minecraft:minecraft:" + getJarVersionString("mapped")));
+		project.getRepositories().flatDir(repository -> repository.dir(getJarDirectory(WellKnownLocations.getUserCache(project), "mapped")));
+		
+		project.getDependencies().add(Constants.MINECRAFT_NAMED,
+				project.getDependencies().module("net.minecraft:minecraft:" + getJarVersionString("mapped")));
 	}
 
 	public void initFiles(MinecraftProvider minecraftProvider, MappingsProvider mappingsProvider) {
 		this.minecraftProvider = minecraftProvider;
-		minecraftIntermediaryJar = new File(WellKnownLocations.getUserCache(getProject()), "minecraft-" + getJarVersionString("intermediary") + ".jar");
-		minecraftMappedJar = new File(getJarDirectory(WellKnownLocations.getUserCache(getProject()), "mapped"), "minecraft-" + getJarVersionString("mapped") + ".jar");
+		minecraftIntermediaryJar = new File(WellKnownLocations.getUserCache(project), "minecraft-" + getJarVersionString("intermediary") + ".jar");
+		minecraftMappedJar = new File(getJarDirectory(WellKnownLocations.getUserCache(project), "mapped"), "minecraft-" + getJarVersionString("mapped") + ".jar");
 	}
 
 	protected File getJarDirectory(File parentDirectory, String type) {
@@ -96,7 +96,7 @@ public class MinecraftMappedProvider extends DependencyProvider {
 	}
 
 	protected String getJarVersionString(String type) {
-		return String.format("%s-%s-%s-%s", minecraftProvider.getJarStuff(), type, getExtension().getMappingsProvider().mappingsName, getExtension().getMappingsProvider().mappingsVersion);
+		return String.format("%s-%s-%s-%s", minecraftProvider.getJarStuff(), type, extension.getDependencyManager().getMappingsProvider().mappingsName, extension.getDependencyManager().getMappingsProvider().mappingsVersion);
 	}
 
 	public Collection<File> getMinecraftDependencies() {

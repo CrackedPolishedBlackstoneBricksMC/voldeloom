@@ -39,11 +39,11 @@ public class CleanLoomMappings extends DefaultTask implements LoomTaskExt {
 	@TaskAction
 	public void run() {
 		LoomGradleExtension extension = getLoomGradleExtension();
-		extension.getMappingsProvider().clean();
+		extension.getDependencyManager().getMappingsProvider().clean();
 		
 		VoldeloomFileHelpers.delete(getProject(),
-			extension.getMinecraftMappedProvider().getIntermediaryJar(),
-			extension.getMinecraftMappedProvider().getMappedJar(),
+			extension.getDependencyManager().getMappingsProvider().mappedProvider.getIntermediaryJar(),
+			extension.getDependencyManager().getMappingsProvider().mappedProvider.getMappedJar(),
 			WellKnownLocations.getRootProjectBuildCache(getProject())
 		);
 	}

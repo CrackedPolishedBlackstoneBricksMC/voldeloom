@@ -71,12 +71,12 @@ public class MinecraftProvider extends DependencyProvider {
 
 	@Override
 	public void provide(DependencyInfo dependency) throws Exception {
-		ForgeProvider forge = getExtension().getDependencyManager().getProvider(ForgeProvider.class);
+		ForgeProvider forge = extension.getDependencyManager().getForgeProvider();
 		minecraftVersion = dependency.getDependency().getVersion();
 		minecraftJarStuff = dependency.getDependency().getVersion() + "-forge-" + forge.getForgeVersion();
-		boolean offline = getProject().getGradle().getStartParameter().isOffline();
+		boolean offline = project.getGradle().getStartParameter().isOffline();
 		
-		File userCache = WellKnownLocations.getUserCache(getProject());
+		File userCache = WellKnownLocations.getUserCache(project);
 		minecraftJson = new File(userCache, "minecraft-" + minecraftVersion + "-info.json");
 		minecraftClientJar = new File(userCache, "minecraft-" + minecraftVersion + "-client.jar");
 		minecraftServerJar = new File(userCache, "minecraft-" + minecraftVersion + "-server.jar");
@@ -95,65 +95,65 @@ public class MinecraftProvider extends DependencyProvider {
 
 		if (offline) {
 			if (minecraftClientJar.exists() && minecraftServerJar.exists()) {
-				getProject().getLogger().debug("Found client and server jars, presuming up-to-date");
+				project.getLogger().debug("Found client and server jars, presuming up-to-date");
 			} else if (minecraftMergedJar.exists()) {
 				//Strictly we don't need the split jars if the merged one exists, let's try go on
-				getProject().getLogger().warn("Missing game jar but merged jar present, things might end badly");
+				project.getLogger().warn("Missing game jar but merged jar present, things might end badly");
 			} else {
 				throw new GradleException("Missing jar(s); Client: " + minecraftClientJar.exists() + ", Server: " + minecraftServerJar.exists());
 			}
 		} else {
-			downloadJars(getProject().getLogger());
+			downloadJars(project.getLogger());
 		}
 
 		libraryProvider = new MinecraftLibraryProvider();
-		libraryProvider.provide(this, getProject());
+		libraryProvider.provide(this, project);
 
 		if (!minecraftPatchedMergedJar.exists()) {
 			if (!minecraftMergedJar.exists()) {
 				try {
-					mergeJars(getProject().getLogger());
+					mergeJars(project.getLogger());
 				} catch (ZipError e) {
 					DownloadUtil.delete(minecraftClientJar);
 					DownloadUtil.delete(minecraftServerJar);
-
-					getProject().getLogger().error("Could not merge JARs! Deleting source JARs - please re-run the command and move on.", e);
+					
+					project.getLogger().error("Could not merge JARs! Deleting source JARs - please re-run the command and move on.", e);
 					throw new RuntimeException();
 				}
 			}
 			System.out.println("Copying Forge files...");
 			Files.copy(minecraftMergedJar, minecraftPatchedMergedJar);
-			ForgePatchApplier.process(minecraftPatchedMergedJar, getExtension());
+			ForgePatchApplier.process(minecraftPatchedMergedJar, extension);
 		}
 	}
 	
 	private void downloadMcJson(boolean offline) throws IOException {
-		File manifests = new File(WellKnownLocations.getUserCache(getProject()), "version_manifest.json");
+		File manifests = new File(WellKnownLocations.getUserCache(project), "version_manifest.json");
 
 		if (offline) {
 			if (manifests.exists()) {
 				//If there is the manifests already we'll presume that's good enough
-				getProject().getLogger().debug("Found version manifests, presuming up-to-date");
+				project.getLogger().debug("Found version manifests, presuming up-to-date");
 			} else {
 				//If we don't have the manifests then there's nothing more we can do
 				throw new GradleException("Version manifests not found at " + manifests.getAbsolutePath());
 			}
 		} else {
-			getProject().getLogger().debug("Downloading version manifests");
-			DownloadUtil.downloadIfChanged(new URL("https://launchermeta.mojang.com/mc/game/version_manifest.json"), manifests, getProject().getLogger());
+			project.getLogger().debug("Downloading version manifests");
+			DownloadUtil.downloadIfChanged(new URL("https://launchermeta.mojang.com/mc/game/version_manifest.json"), manifests, project.getLogger());
 		}
 
 		String versionManifest = Files.asCharSource(manifests, StandardCharsets.UTF_8).read();
 		ManifestVersion mcManifest = new GsonBuilder().create().fromJson(versionManifest, ManifestVersion.class);
 
 		Optional<ManifestVersion.Versions> optionalVersion = Optional.empty();
-
-		if (getExtension().customManifest != null) {
+		
+		if (extension.customManifest != null) {
 			ManifestVersion.Versions customVersion = new ManifestVersion.Versions();
 			customVersion.id = minecraftVersion;
-			customVersion.url = getExtension().customManifest;
+			customVersion.url = extension.customManifest;
 			optionalVersion = Optional.of(customVersion);
-			getProject().getLogger().lifecycle("Using custom minecraft manifest");
+			project.getLogger().lifecycle("Using custom minecraft manifest");
 		}
 
 		if (!optionalVersion.isPresent()) {
@@ -164,15 +164,15 @@ public class MinecraftProvider extends DependencyProvider {
 			if (offline) {
 				if (minecraftJson.exists()) {
 					//If there is the manifest already we'll presume that's good enough
-					getProject().getLogger().debug("Found Minecraft {} manifest, presuming up-to-date", minecraftVersion);
+					project.getLogger().debug("Found Minecraft {} manifest, presuming up-to-date", minecraftVersion);
 				} else {
 					//If we don't have the manifests then there's nothing more we can do
 					throw new GradleException("Minecraft " + minecraftVersion + " manifest not found at " + minecraftJson.getAbsolutePath());
 				}
 			} else {
 				if (StaticPathWatcher.INSTANCE.hasFileChanged(minecraftJson.toPath())) {
-					getProject().getLogger().debug("Downloading Minecraft {} manifest", minecraftVersion);
-					DownloadUtil.downloadIfChanged(new URL(optionalVersion.get().url), minecraftJson, getProject().getLogger());
+					project.getLogger().debug("Downloading Minecraft {} manifest", minecraftVersion);
+					DownloadUtil.downloadIfChanged(new URL(optionalVersion.get().url), minecraftJson, project.getLogger());
 				}
 			}
 		} else {
@@ -219,6 +219,14 @@ public class MinecraftProvider extends DependencyProvider {
 
 	public MinecraftLibraryProvider getLibraryProvider() {
 		return libraryProvider;
+	}
+	
+	//several places, including run configs, launch provider, and MinecraftNativesProvider
+	//MOVED from LoomDependencyManager
+	public File getNativesDirectory() {
+		File natives = new File(WellKnownLocations.getUserCache(project), "natives/" + getMinecraftVersion());
+		if (!natives.exists()) natives.mkdirs();
+		return natives;
 	}
 
 	@Override

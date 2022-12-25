@@ -76,7 +76,7 @@ public class MappingsProvider extends DependencyProvider {
 	}
 
 	public void clean() {
-		VoldeloomFileHelpers.delete(getProject(), mappingsDir);
+		VoldeloomFileHelpers.delete(project, mappingsDir);
 	}
 
 	public TinyTree getMappings() throws IOException {
@@ -85,9 +85,9 @@ public class MappingsProvider extends DependencyProvider {
 
 	@Override
 	public void provide(DependencyInfo dependency) throws Exception {
-		MinecraftProvider minecraftProvider = getDependencyManager().getProvider(MinecraftProvider.class);
-
-		getProject().getLogger().lifecycle(":setting up mappings (" + dependency.getDependency().getName() + " " + dependency.getResolvedVersion() + ")");
+		MinecraftProvider minecraftProvider = extension.getDependencyManager().getMinecraftProvider();
+		
+		project.getLogger().lifecycle(":setting up mappings (" + dependency.getDependency().getName() + " " + dependency.getResolvedVersion() + ")");
 
 		String version = dependency.getResolvedVersion();
 		File mappingsJar = dependency.resolveFile().orElseThrow(() -> new RuntimeException("Could not find mcp mappings: " + dependency));
@@ -96,8 +96,8 @@ public class MappingsProvider extends DependencyProvider {
 
 		this.minecraftVersion = minecraftProvider.getJarStuff();
 		this.mappingsVersion = version;
-
-		this.mappingsDir = WellKnownLocations.getUserCache(getProject()).toPath().resolve("mappings");
+		
+		this.mappingsDir = WellKnownLocations.getUserCache(project).toPath().resolve("mappings");
 
 		String[] depStringSplit = dependency.getDepString().split(":");
 		String jarClassifier = "final";
@@ -107,7 +107,7 @@ public class MappingsProvider extends DependencyProvider {
 		}
 
 		tinyMappings = mappingsDir.resolve(StringUtils.removeSuffix(mappingsJar.getName(), ".jar") + ".tiny").toFile();
-		tinyMappingsJar = new File(WellKnownLocations.getUserCache(getProject()), mappingsJar.getName().replace(".jar", "-" + jarClassifier + ".jar"));
+		tinyMappingsJar = new File(WellKnownLocations.getUserCache(project), mappingsJar.getName().replace(".jar", "-" + jarClassifier + ".jar"));
 		
 		if (!tinyMappings.exists()) {
 			long filesize;
@@ -152,13 +152,13 @@ public class MappingsProvider extends DependencyProvider {
 		}
 
 		addDependency(tinyMappingsJar, Constants.MAPPINGS_FINAL);
-
-		JarProcessorManager processorManager = new JarProcessorManager(getProject());
-		getExtension().setJarProcessorManager(processorManager);
+		
+		JarProcessorManager processorManager = new JarProcessorManager(project);
+		extension.setJarProcessorManager(processorManager);
 
 		if (processorManager.active()) {
-			mappedProvider = new MinecraftProcessedProvider(getProject(), processorManager);
-			getProject().getLogger().lifecycle("Using project based jar storage");
+			mappedProvider = new MinecraftProcessedProvider(project, processorManager);
+			project.getLogger().lifecycle("Using project based jar storage");
 		} else {
 			throw new IllegalStateException("VOLDELOOM: i think this code path is unused");
 			//mappedProvider = new MinecraftMappedProvider(getProject());
