@@ -94,7 +94,7 @@ public class MinecraftForgeProcessedProvider extends DependencyProvider {
 				
 				//Feed them through some ASM soup
 				Files.walk(processedFs.getPath("/"))
-					.filter(path -> path.endsWith(".class"))
+					.filter(path -> path.toString().endsWith(".class"))
 					.forEach(path -> transformClass(path, forge.getATs()));
 			}
 		}
