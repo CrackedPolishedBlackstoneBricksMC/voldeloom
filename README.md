@@ -50,6 +50,7 @@ What I'd like to add:
 * Quiltflower lol (kinda a java 11 moment though)
 * Backport the much nicer run-config stuff from newer versions of Loom (multiple run configs, run configs in subprojects, less hardcoded arguments for run configs, etc). Maybe possible?
 * Possibly do a custom launchwrapper tweaker for some niceties like `assetIndex` support (if i can't get newer versions of launchwrapper to behave), will be optional
+* Use an off-the-shelf access transformer, like cadixdev `at`, or (if i wanna get really silly) Forge's secret access transformer command-line program
 
 ## Sample projects
 
