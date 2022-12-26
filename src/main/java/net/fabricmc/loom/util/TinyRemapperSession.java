@@ -35,6 +35,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 public class TinyRemapperSession {
@@ -97,7 +98,14 @@ public class TinyRemapperSession {
 				.rebuildSourceFilenames(true)
 				.build();
 			
-			try(OutputConsumerPath oc = new OutputConsumerPath.Builder(outputJar).build()) {
+			//TODO where does do the argo come from???
+			// This used to be handled by CursedLibDeleterProcessor
+			// I've tracked it down to be coming from tiny-remapper, no argo before this step
+			// Unfortunately ! Debugger is broken in many places in tiny-remapper,
+			// probably related to it being multithreaded weirdness
+			Predicate<String> filterWtf = s -> !s.startsWith("argo") && !s.startsWith("org");
+			
+			try(OutputConsumerPath oc = new OutputConsumerPath.Builder(outputJar).filter(filterWtf).build()) {
 				oc.addNonClassFiles(inputJar);
 				remapper.readClassPath(inputClasspath.toArray(new Path[0]));
 				remapper.readInputs(inputJar);

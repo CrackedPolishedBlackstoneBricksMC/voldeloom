@@ -1,9 +1,6 @@
-package net.fabricmc.loom.forge;
+package net.fabricmc.loom.providers;
 
 import net.fabricmc.loom.LoomGradleExtension;
-import net.fabricmc.loom.providers.MinecraftMergedProvider;
-import net.fabricmc.loom.providers.MinecraftProvider;
-import net.fabricmc.loom.providers.DependencyProvider;
 import net.fabricmc.loom.util.WellKnownLocations;
 import org.gradle.api.Project;
 
@@ -72,7 +69,8 @@ public class MinecraftForgePatchedProvider extends DependencyProvider {
 				Files.walkFileTree(forgeFs.getPath("/"), new SimpleFileVisitor<Path>() {
 					@Override
 					public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
-						return dir.endsWith("META-INF") ? FileVisitResult.SKIP_SUBTREE : FileVisitResult.CONTINUE;
+						if(dir.endsWith("META-INF")) return FileVisitResult.SKIP_SUBTREE;
+						else return FileVisitResult.CONTINUE;
 					}
 					
 					@Override

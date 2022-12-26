@@ -44,7 +44,6 @@ public class CleanLoomMappings extends DefaultTask implements LoomTaskExt {
 		VoldeloomFileHelpers.delete(getProject(),
 			extension.getDependencyManager().getMinecraftForgeMappedProvider().getIntermediaryJar(),
 			extension.getDependencyManager().getMinecraftForgeMappedProvider().getMappedJar(),
-			extension.getDependencyManager().getMinecraftForgeProcessedProvider().getProcessedJar(),
 			WellKnownLocations.getRootProjectBuildCache(getProject())
 		);
 	}

@@ -259,13 +259,13 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		
 		//forge + vanilla
 		dependencyManager.getMinecraftForgePatchedProvider().decorateProjectOrThrow();
+		dependencyManager.getMinecraftForgePatchedAccessTransformedProvider().decorateProjectOrThrow();
 		
 		//mappings
 		dependencyManager.getMappingsProvider().decorateProjectOrThrow();
 		
 		//forge + vanilla + mappings
 		dependencyManager.getMinecraftForgeMappedProvider().decorateProjectOrThrow();
-		dependencyManager.getMinecraftForgeProcessedProvider().decorateProjectOrThrow();
 		
 		//dev-launch-injector stuff that's not used at all
 		dependencyManager.getLaunchProvider().decorateProjectOrThrow();
@@ -298,7 +298,7 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		Task genSourcesTask = project.getTasks().getByName("genSources");
 		
 		MinecraftLibraryProvider libraryProvider = extension.getDependencyManager().getMinecraftProvider().getLibraryProvider();
-		File mappedJar = dependencyManager.getMinecraftForgeProcessedProvider().getProcessedJar();
+		File mappedJar = dependencyManager.getMinecraftForgeMappedProvider().getMappedJar();
 		File linemappedJar = getMappedByproduct(extension, "-linemapped.jar");
 		File sourcesJar = getMappedByproduct(extension, "-sources.jar");
 		File linemapFile = getMappedByproduct(extension, "-sources.lmap");
@@ -420,7 +420,7 @@ public class LoomGradlePlugin implements Plugin<Project> {
 	}
 	
 	public static File getMappedByproduct(LoomGradleExtension extension, String suffix) {
-		String path = extension.getDependencyManager().getMinecraftForgeProcessedProvider().getProcessedJar().getAbsolutePath();
+		String path = extension.getDependencyManager().getMinecraftForgeMappedProvider().getMappedJar().getAbsolutePath();
 		if (!path.toLowerCase(Locale.ROOT).endsWith(".jar")) throw new RuntimeException("Invalid mapped JAR path: " + path);
 		else return new File(path.substring(0, path.length() - 4) + suffix);
 	}

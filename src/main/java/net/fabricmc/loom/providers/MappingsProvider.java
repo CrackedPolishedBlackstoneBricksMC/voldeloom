@@ -25,7 +25,6 @@
 package net.fabricmc.loom.providers;
 
 import net.fabricmc.loom.LoomGradleExtension;
-import net.fabricmc.loom.forge.MinecraftForgePatchedProvider;
 import net.fabricmc.loom.forge.mapping.AcceptorProvider;
 import net.fabricmc.loom.forge.mapping.CsvApplierAcceptor;
 import net.fabricmc.loom.forge.mapping.SrgMappingProvider;

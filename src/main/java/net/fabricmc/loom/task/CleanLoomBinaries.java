@@ -46,7 +46,6 @@ public class CleanLoomBinaries extends DefaultTask implements LoomTaskExt {
 			extension.getDependencyManager().getMinecraftForgePatchedProvider().getPatchedJar(),
 			extension.getDependencyManager().getMinecraftForgeMappedProvider().getIntermediaryJar(),
 			extension.getDependencyManager().getMinecraftForgeMappedProvider().getMappedJar(),
-			extension.getDependencyManager().getMinecraftForgeProcessedProvider().getProcessedJar(),
 			extension.getDependencyManager().getMinecraftProvider().getNativesDirectory(),
 			WellKnownLocations.getNativesJarStore(getProject())
 		);

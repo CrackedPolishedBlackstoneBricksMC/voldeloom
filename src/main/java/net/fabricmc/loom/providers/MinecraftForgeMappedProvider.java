@@ -25,7 +25,7 @@
 package net.fabricmc.loom.providers;
 
 import net.fabricmc.loom.LoomGradleExtension;
-import net.fabricmc.loom.forge.MinecraftForgePatchedProvider;
+import net.fabricmc.loom.util.Constants;
 import net.fabricmc.loom.util.TinyRemapperSession;
 import net.fabricmc.loom.util.WellKnownLocations;
 import net.fabricmc.mapping.tree.TinyTree;
@@ -51,8 +51,9 @@ public class MinecraftForgeMappedProvider extends DependencyProvider {
 		MinecraftLibraryProvider libraryProvider = extension.getDependencyManager().getMinecraftProvider().getLibraryProvider();
 		List<Path> libs = libraryProvider.getLibraries().stream().map(File::toPath).collect(Collectors.toList());
 		
-		MinecraftForgePatchedProvider forgePatchedProvider = extension.getDependencyManager().getMinecraftForgePatchedProvider();
-		File forgePatchedJar = forgePatchedProvider.getPatchedJar();
+		//MinecraftForgePatchedProvider forgePatchedProvider = extension.getDependencyManager().getMinecraftForgePatchedProvider();
+		MinecraftForgePatchedAccessTransformedProvider blah = extension.getDependencyManager().getMinecraftForgePatchedAccessTransformedProvider();
+		File forgePatchedJar = blah.getPatchedAccessTransformedJar();
 		
 		MappingsProvider mappingsProvider = extension.getDependencyManager().getMappingsProvider();
 		TinyTree mappings = mappingsProvider.getMappings();
@@ -99,8 +100,8 @@ public class MinecraftForgeMappedProvider extends DependencyProvider {
 		}
 		
 		//TODO: move this out?
-		//project.getRepositories().flatDir(repository -> repository.dir(mappedDestDir));
-		//project.getDependencies().add(Constants.MINECRAFT_NAMED, project.getDependencies().module("net.minecraft:minecraft:" + mappedJarNameKinda));
+		project.getRepositories().flatDir(repository -> repository.dir(mappedDestDir));
+		project.getDependencies().add(Constants.MINECRAFT_NAMED, project.getDependencies().module("net.minecraft:minecraft:" + mappedJarNameKinda));
 	}
 
 	public File getIntermediaryJar() {

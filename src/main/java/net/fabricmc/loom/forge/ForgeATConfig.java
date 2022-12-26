@@ -1,24 +1,44 @@
 package net.fabricmc.loom.forge;
 
-import net.fabricmc.tinyremapper.IMappingProvider;
-import net.fabricmc.tinyremapper.IMappingProvider.Member;
+import org.objectweb.asm.ClassVisitor;
+import org.objectweb.asm.FieldVisitor;
+import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Opcodes;
 
 import java.io.InputStream;
-import java.nio.file.Path;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Scanner;
-import java.util.Set;
 
-public class ForgeATConfig implements IMappingProvider.MappingAcceptor {
-
-	private final Map<String, AccessTransformation> unmappedAccessTransformers = new HashMap<>();
-	private final Set<String> unmappedAffectedClasses = new HashSet<>();
-	private final Map<String, String> typeMappings = new HashMap<>();
+public class ForgeATConfig {
+	//key = classname
+	private final Map<String, EnumAccessTransformation> classTransformers = new HashMap<>();
 	
-	public final Map<String, AccessTransformation> accessTransformers = new HashMap<>();
-	public final Set<String> affectedClasses = new HashSet<>();
+	//key = classname
+	private final Map<String, EnumAccessTransformation> wildcardFieldTransformers = new HashMap<>();
+	//key = classname + "." + fieldname
+	private final Map<String, EnumAccessTransformation> fieldTransformers = new HashMap<>();
+	
+	//key = classname
+	private final Map<String, EnumAccessTransformation> wildcardMethodTransformers = new HashMap<>();
+	//key = classname + "." + methodname + methodddescriptor
+	private final Map<String, EnumAccessTransformation> methodTransformers = new HashMap<>();
+	
+	public EnumAccessTransformation getClassTransformation(String className) {
+		return classTransformers.getOrDefault(className, EnumAccessTransformation.NO_CHANGE);
+	}
+	
+	public EnumAccessTransformation getFieldTransformation(String className, String fieldName) {
+		EnumAccessTransformation wildcardResult = wildcardFieldTransformers.get(className);
+		if(wildcardResult != null) return wildcardResult;
+		else return fieldTransformers.getOrDefault(className + "." + fieldName, EnumAccessTransformation.NO_CHANGE);
+	}
+	
+	public EnumAccessTransformation getMethodTransformation(String className, String methodName, String methodDescriptor) {
+		EnumAccessTransformation wildcardResult = wildcardMethodTransformers.get(className);
+		if(wildcardResult != null) return wildcardResult;
+		else return methodTransformers.getOrDefault(className + "." + methodName + methodDescriptor, EnumAccessTransformation.NO_CHANGE);
+	}
 	
 	public void load(InputStream from) {
 		try(Scanner scan = new Scanner(from)) {
@@ -28,82 +48,60 @@ public class ForgeATConfig implements IMappingProvider.MappingAcceptor {
 				if(line.length() == 0 || line.startsWith("#")) { // skip empty lines
 					continue;
 				}
-				String[] split = line.split(" ");
-				unmappedAccessTransformers.put(split[1], AccessTransformation.parse(split[0]));
-				/*if(!split[1].contains(".")) {
-					// type AT
-					unmappedAccessTransformers.put(mappedOwner, AccessTransformation.parse(split[0]));
-				} else if(split[1].contains("(")) {
-					// method AT
-					String[] mSplit = split2[1].split("\\(");
-					String desc = "(" + mSplit;
-					unmappedAccessTransformers.put(mappedOwner + "." + remapper.mapMethodName(split2[0], mSplit[0], desc) + remapper.mapMethodDesc(desc), AccessTransformation.parse(split[0]));
+				
+				String[] split = line.split(" ", 2);
+				EnumAccessTransformation transformationType = EnumAccessTransformation.fromString(split[0]);
+				String target = split[1];
+				
+				if(target.contains(".")) {
+					//field or method transformer (they both have dots)
+					if(target.contains("(")) {
+						//method transformer
+						if(target.endsWith(".*()")) {
+							//wildcard method transformer. chop the wildcard signature off
+							wildcardMethodTransformers.put(target.split("\\.", 2)[0], transformationType);
+						} else {
+							//non-wildcard method transformer
+							methodTransformers.put(target, transformationType);
+						}
+					} else {
+						//field transformer
+						if(target.endsWith(".*")) {
+							//wildcard field transformer. chop the wildcard signature off
+							wildcardFieldTransformers.put(target.split("\\.", 2)[0], transformationType);
+						} else {
+							//non-wildcard field transformer
+							fieldTransformers.put(target, transformationType);
+						}
+					}
 				} else {
-					// field AT
-					unmappedAccessTransformers.put(mappedOwner + "." + remapper.mapFieldName(split2[0], split2[1], "Ljava/lang/Object;"), AccessTransformation.parse(split[0]));
-				}*/
-				unmappedAffectedClasses.add(split[1].split("\\.")[0]);
+					//class transformer
+					classTransformers.put(target, transformationType);
+				}
 			}
 		}
+		
+		System.out.println("finished loading ATs");
 	}
 	
-	public boolean affects(Path p) {
-		if(!p.toString().endsWith(".class")) {
-			return false;
+	public class AccessTransformingClassVisitor extends ClassVisitor {
+		public AccessTransformingClassVisitor(ClassVisitor classVisitor) {
+			super(Opcodes.ASM7, classVisitor);
 		}
-		String fileName = p.getFileName().toString();
-		return unmappedAffectedClasses.contains(fileName.substring(0, fileName.length() - 6));
-	}
-
-	@Override
-	public void acceptClass(String srcName, String dstName) {
-		typeMappings.put(srcName, dstName);
-		AccessTransformation at;
-		if((at = unmappedAccessTransformers.remove(srcName)) != null) {
-			accessTransformers.put(dstName, at); // type transformers are very easy to map.
+		
+		private String visitingClass = "";
+		
+		public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
+			visitingClass = name;
+			super.visit(version, getClassTransformation(name).apply(access), name, signature, superName, interfaces);
 		}
-	}
-
-	@Override
-	public void acceptMethod(Member method, String dstName) {
-		AccessTransformation at;
-		if((at = unmappedAccessTransformers.remove(method.owner + "." + method.name + method.desc)) != null) {
-			unmappedAccessTransformers.put(method.owner + "." + dstName + method.desc, at);
+		
+		public FieldVisitor visitField(int access, String name, String descriptor, String signature, Object value) {
+			return super.visitField(getFieldTransformation(visitingClass, name).apply(access), name, descriptor, signature, value);
+		}
+		
+		public MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
+			return super.visitMethod(getMethodTransformation(visitingClass, name, descriptor).apply(access), name, descriptor, signature, exceptions);
 		}
 	}
-
-	@Override
-	public void acceptMethodArg(Member method, int lvIndex, String dstName) { }
-
-	@Override
-	public void acceptMethodVar(Member method, int lvIndex, int startOpIdx, int asmIndex, String dstName) { }
-
-	@Override
-	public void acceptField(Member field, String dstName) {
-		AccessTransformation at;
-		if((at = unmappedAccessTransformers.remove(field.owner + "." + field.name)) != null) {
-			unmappedAccessTransformers.put(field.owner + "." + dstName, at);
-		}
-	}
-	
-	public void finishRemapping() {
-		for(Map.Entry<String, AccessTransformation> e : unmappedAccessTransformers.entrySet()) {
-			//System.out.println(e.getKey());
-			String[] split = e.getKey().split("\\.");
-			String mappedOwner = typeMappings.get(split[0]);
-			String mappedDesc = split[1];
-			String[] split2 = mappedDesc.split(";");
-			int offset = mappedDesc.endsWith(";") ? 0 : 1;
-			for(int i = 0; i < split2.length - offset; i++) {
-				String[] split3 = split2[i].split("L", 2);
-				//System.out.println(Arrays.toString(split2));
-				mappedDesc = mappedDesc.replace("L" + split3[1] + ";", "L" + typeMappings.getOrDefault(split3[1], split3[1]) + ";");
-			}
-			accessTransformers.put(mappedOwner + "." + mappedDesc, e.getValue());
-		}
-		for(String s : unmappedAffectedClasses) {
-			affectedClasses.add(typeMappings.get(s));
-		}
-	}
-
 }
