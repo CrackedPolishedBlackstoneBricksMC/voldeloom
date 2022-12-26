@@ -86,11 +86,11 @@ public class TinyRemapperSession {
 		Preconditions.checkNotNull(logger, "logger");
 		Preconditions.checkState(!outputJarsByNamingScheme.isEmpty(), "outputJarsByNamingScheme has something to do");
 		
-		logger.accept(":beginning remap of '" + inputNamingScheme + "'-named jar at " + inputJar);
+		logger.accept("\\-> beginning remap of '" + inputNamingScheme + "'-named jar at " + inputJar);
 		for(String outputNamingScheme : outputJarsByNamingScheme.keySet()) {
 			Path outputJar = outputJarsByNamingScheme.get(outputNamingScheme);
 			
-			logger.accept("|-> remapping to '" + outputNamingScheme + "' names, and saving to " + outputJar);
+			logger.accept("  \\-> remapping to '" + outputNamingScheme + "' names, and saving to " + outputJar);
 			
 			TinyRemapper remapper = TinyRemapper.newRemapper()
 				.withMappings(TinyRemapperMappingsHelper.create(mappings, inputNamingScheme, outputNamingScheme, true))
@@ -116,7 +116,7 @@ public class TinyRemapperSession {
 				remapper.finish();
 			}
 			
-			logger.accept("|-> done :)");
+			logger.accept("\\-> done :)");
 		}
 	}
 	

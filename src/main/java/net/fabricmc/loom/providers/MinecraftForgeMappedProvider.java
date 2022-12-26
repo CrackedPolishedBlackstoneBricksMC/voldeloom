@@ -83,7 +83,11 @@ public class MinecraftForgeMappedProvider extends DependencyProvider {
 		minecraftMappedJar = new File(mappedDestDir, mappedJarName);
 		
 		//task
+		project.getLogger().lifecycle("|-> Intermediary jar is at: " + minecraftIntermediaryJar);
+		project.getLogger().lifecycle("|-> Mapped jar is at: " + minecraftMappedJar);
 		if (!minecraftMappedJar.exists() || !getIntermediaryJar().exists()) {
+			project.getLogger().lifecycle("|-> At least one didn't exist, performing remap...");
+			
 			//ensure both are actually gone
 			if(minecraftMappedJar.exists()) minecraftMappedJar.delete();
 			if(minecraftIntermediaryJar.exists()) minecraftIntermediaryJar.delete();
@@ -97,6 +101,8 @@ public class MinecraftForgeMappedProvider extends DependencyProvider {
 				.addOutputJar("named", this.minecraftMappedJar.toPath())
 				.setLogger(project.getLogger()::lifecycle)
 				.run();
+			
+			project.getLogger().lifecycle("|-> Remap success! :)");
 		}
 		
 		//TODO: move this out?

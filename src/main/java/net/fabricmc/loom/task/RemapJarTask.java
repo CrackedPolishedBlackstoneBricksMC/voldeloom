@@ -82,7 +82,17 @@ public class RemapJarTask extends Jar {
 
 		try (OutputConsumerPath outputConsumer = new OutputConsumerPath.Builder(output).build()) {
 			outputConsumer.addNonClassFiles(input);
-			remapper.readClassPath(classpath);
+			
+			//remapper.readClassPath(classpath);
+			//Something's broke, do it one at a tiem
+			for(Path p : classpath) {
+				try {
+					remapper.readClassPath(p);
+				} catch (Exception e) {
+					throw new RuntimeException("Problem readClassPath for path " + p, e);
+				}
+			}
+			
 			remapper.readInputs(input);
 			remapper.apply(outputConsumer);
 		} catch (Exception e) {

@@ -9,35 +9,36 @@ import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Scanner;
+import java.util.function.IntUnaryOperator;
 
 public class ForgeATConfig {
-	//key = classname
-	private final Map<String, EnumAccessTransformation> classTransformers = new HashMap<>();
+	//class
+	private final Map<String, AccessTransformation> classTransformers = new HashMap<>();
 	
-	//key = classname
-	private final Map<String, EnumAccessTransformation> wildcardFieldTransformers = new HashMap<>();
-	//key = classname + "." + fieldname
-	private final Map<String, EnumAccessTransformation> fieldTransformers = new HashMap<>();
+	//class
+	private final Map<String, AccessTransformation> wildcardFieldTransformers = new HashMap<>();
+	//class + "." + field
+	private final Map<String, AccessTransformation> fieldTransformers = new HashMap<>();
 	
-	//key = classname
-	private final Map<String, EnumAccessTransformation> wildcardMethodTransformers = new HashMap<>();
-	//key = classname + "." + methodname + methodddescriptor
-	private final Map<String, EnumAccessTransformation> methodTransformers = new HashMap<>();
+	//class
+	private final Map<String, AccessTransformation> wildcardMethodTransformers = new HashMap<>();
+	//class + "." + method + descriptor
+	private final Map<String, AccessTransformation> methodTransformers = new HashMap<>();
 	
-	public EnumAccessTransformation getClassTransformation(String className) {
-		return classTransformers.getOrDefault(className, EnumAccessTransformation.NO_CHANGE);
+	public AccessTransformation getClassTransformation(String className) {
+		return classTransformers.getOrDefault(className, AccessTransformation.NO_CHANGE);
 	}
 	
-	public EnumAccessTransformation getFieldTransformation(String className, String fieldName) {
-		EnumAccessTransformation wildcardResult = wildcardFieldTransformers.get(className);
+	public AccessTransformation getFieldTransformation(String className, String fieldName) {
+		AccessTransformation wildcardResult = wildcardFieldTransformers.get(className);
 		if(wildcardResult != null) return wildcardResult;
-		else return fieldTransformers.getOrDefault(className + "." + fieldName, EnumAccessTransformation.NO_CHANGE);
+		else return fieldTransformers.getOrDefault(className + "." + fieldName, AccessTransformation.NO_CHANGE);
 	}
 	
-	public EnumAccessTransformation getMethodTransformation(String className, String methodName, String methodDescriptor) {
-		EnumAccessTransformation wildcardResult = wildcardMethodTransformers.get(className);
+	public AccessTransformation getMethodTransformation(String className, String methodName, String methodDescriptor) {
+		AccessTransformation wildcardResult = wildcardMethodTransformers.get(className);
 		if(wildcardResult != null) return wildcardResult;
-		else return methodTransformers.getOrDefault(className + "." + methodName + methodDescriptor, EnumAccessTransformation.NO_CHANGE);
+		else return methodTransformers.getOrDefault(className + "." + methodName + methodDescriptor, AccessTransformation.NO_CHANGE);
 	}
 	
 	public void load(InputStream from) {
@@ -50,38 +51,28 @@ public class ForgeATConfig {
 				}
 				
 				String[] split = line.split(" ", 2);
-				EnumAccessTransformation transformationType = EnumAccessTransformation.fromString(split[0]);
+				AccessTransformation transformationType = AccessTransformation.fromString(split[0]);
 				String target = split[1];
 				
-				if(target.contains(".")) {
-					//field or method transformer (they both have dots)
-					if(target.contains("(")) {
-						//method transformer
-						if(target.endsWith(".*()")) {
-							//wildcard method transformer. chop the wildcard signature off
+				if(target.contains(".")) { //field or method transformer (they both have dots)
+					if(target.contains("(")) { //method transformer
+						if(target.endsWith(".*()")) { //wildcard method transformer
 							wildcardMethodTransformers.put(target.split("\\.", 2)[0], transformationType);
-						} else {
-							//non-wildcard method transformer
+						} else { //non-wildcard method transformer
 							methodTransformers.put(target, transformationType);
 						}
-					} else {
-						//field transformer
-						if(target.endsWith(".*")) {
-							//wildcard field transformer. chop the wildcard signature off
+					} else { //field transformer
+						if(target.endsWith(".*")) { //wildcard field transformer
 							wildcardFieldTransformers.put(target.split("\\.", 2)[0], transformationType);
-						} else {
-							//non-wildcard field transformer
+						} else { //non-wildcard field transformer
 							fieldTransformers.put(target, transformationType);
 						}
 					}
-				} else {
-					//class transformer
+				} else { //class transformer
 					classTransformers.put(target, transformationType);
 				}
 			}
 		}
-		
-		System.out.println("finished loading ATs");
 	}
 	
 	public class AccessTransformingClassVisitor extends ClassVisitor {
@@ -102,6 +93,62 @@ public class ForgeATConfig {
 		
 		public MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
 			return super.visitMethod(getMethodTransformation(visitingClass, name, descriptor).apply(access), name, descriptor, signature, exceptions);
+		}
+	}
+	
+	public enum AccessTransformation implements Opcodes {
+		NO_CHANGE            (acc -> acc),
+		PUBLIC               (acc -> replacePublicityModifier(acc,             ACC_PUBLIC)),
+		PUBLIC_DEFINALIZE    (acc -> replacePublicityModifier(definalize(acc), ACC_PUBLIC)),
+		PUBLIC_FINALIZE      (acc -> replacePublicityModifier(finalize(acc),   ACC_PUBLIC)),
+		PROTECTED            (acc -> replacePublicityModifier(acc,             ACC_PROTECTED)),
+		PROTECTED_DEFINALIZE (acc -> replacePublicityModifier(definalize(acc), ACC_PROTECTED)),
+		PROTECTED_FINALIZE   (acc -> replacePublicityModifier(finalize(acc),   ACC_PROTECTED)),
+		PRIVATE              (acc -> replacePublicityModifier(acc,             ACC_PRIVATE)),
+		PRIVATE_DEFINALIZE   (acc -> replacePublicityModifier(definalize(acc), ACC_PRIVATE)),
+		PRIVATE_FINALIZE     (acc -> replacePublicityModifier(finalize(acc),   ACC_PRIVATE)),
+		;
+		
+		AccessTransformation(IntUnaryOperator operation) {
+			this.operation = operation;
+		}
+		
+		public final IntUnaryOperator operation;
+		
+		public int apply(int prevAccess) {
+			return operation.applyAsInt(prevAccess);
+		}
+		
+		public static AccessTransformation fromString(String name) {
+			switch(name) {
+				case "public": return PUBLIC;
+				case "public-f": return PUBLIC_DEFINALIZE;
+				case "public+f": return PUBLIC_FINALIZE;
+				case "protected": return PROTECTED;
+				case "protected-f": return PROTECTED_DEFINALIZE;
+				case "protected+f": return PROTECTED_FINALIZE;
+				case "private": return PRIVATE;
+				case "private-f": return PRIVATE_DEFINALIZE;
+				case "private+f": return PRIVATE_FINALIZE;
+				default: throw new IllegalArgumentException("Unknown access transformation type '" + name + "'");
+			}
+		}
+		
+		private static int clearPublicityModifiers(int access) {
+			int publicityModifiers = ACC_PUBLIC | ACC_PROTECTED | ACC_PRIVATE;
+			return access & ~publicityModifiers;
+		}
+		
+		private static int replacePublicityModifier(int access, int publicityModifier) {
+			return clearPublicityModifiers(access) | publicityModifier;
+		}
+		
+		private static int finalize(int access) { //not a keyword!
+			return access | ACC_FINAL;
+		}
+		
+		private static int definalize(int access) {
+			return access & ~ACC_FINAL;
 		}
 	}
 }

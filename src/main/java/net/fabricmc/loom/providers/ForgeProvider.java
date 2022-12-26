@@ -27,11 +27,13 @@ public class ForgeProvider extends DependencyProvider {
 		forge = forgeDependency.resolveSingleFile().orElseThrow(() -> new RuntimeException("No forge dep!"));
 		forgeVersion = forgeDependency.getDependency().getVersion();
 		
+		project.getLogger().lifecycle("|-> Parsing Forge and FML's access transformers...");
 		unmappedAts = new ForgeATConfig();
 		try(FileSystem zipFs = FileSystems.newFileSystem(URI.create("jar:" + forge.toURI()), Collections.emptyMap())) {
 			unmappedAts.load(Files.newInputStream(zipFs.getPath("fml_at.cfg")));
 			unmappedAts.load(Files.newInputStream(zipFs.getPath("forge_at.cfg")));
 		}
+		project.getLogger().lifecycle("|-> AT parse success! :)");
 	}
 	
 	public File getForge() {

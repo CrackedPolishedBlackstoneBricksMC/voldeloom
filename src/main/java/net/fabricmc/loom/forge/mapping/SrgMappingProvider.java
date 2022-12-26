@@ -40,7 +40,6 @@ public class SrgMappingProvider implements IMappingProvider {
 		try(Scanner srgScanner = new Scanner(new BufferedInputStream(Files.newInputStream(srg)))) {
 			while(srgScanner.hasNextLine()) {
 				String[] line = srgScanner.nextLine().split(" ");
-				//System.out.println(Arrays.toString(line));
 				switch(line[0]) {
 				case "CL:":
 					classes.put(line[1], line[2]);
@@ -76,7 +75,7 @@ public class SrgMappingProvider implements IMappingProvider {
 			String parentMapped;
 			if((parentMapped = classes.get(split[0])) != null) {
 				out.acceptClass(inner, parentMapped + "$" + split[1]);
-				System.out.println(parentMapped + "$" + split[1]);
+				//System.out.println(parentMapped + "$" + split[1]);
 			}
 		}
 		classes.entrySet().forEach(e -> out.acceptClass(e.getKey(), e.getValue()));
