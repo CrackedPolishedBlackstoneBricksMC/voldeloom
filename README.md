@@ -43,6 +43,7 @@ What I'd like to fix:
 * I've removed a lot of Fabric ecosystem leftovers (mixin, jij, fabric-installer, etc) but there might be a few stragglers
 * The Launchwrapper launch method needs a little assistance getting ASM on the classpath, i guess it's not a big deal because Launchwrapper is pointless on this version
 * Ideally the game should be launched with a copy of java 6 or 8, right now i think gradle itself has to be running on an appropriate jdk
+* I wandered right into this bug https://github.com/FabricMC/fabric-loom/issues/633 (even though the cause is completely different) if mezz is right I cannot believe Java is this shitty. Come on now
 
 What I'd like to add:
 

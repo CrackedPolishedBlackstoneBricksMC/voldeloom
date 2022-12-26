@@ -41,9 +41,9 @@ public class MinecraftForgePatchedProvider extends DependencyProvider {
 		patched = new File(userCache, "minecraft-" + jarStuff + "-merged.jar");
 		
 		//execution
-		project.getLogger().lifecycle("|-> Patched jar is at: " + patched);
+		project.getLogger().lifecycle("] patched jar is at: " + patched);
 		if(!patched.exists()) {
-			project.getLogger().lifecycle("|-> Does not exist, performing patch... " + patched);
+			project.getLogger().lifecycle("|-> Does not exist, performing patch...");
 			
 			try(
 				FileSystem mergedFs = FileSystems.newFileSystem(URI.create("jar:" + merged.toURI()), Collections.emptyMap());
@@ -86,7 +86,7 @@ public class MinecraftForgePatchedProvider extends DependencyProvider {
 				//No need to delete META-INF cause i didn't copy it in the first place ;)
 			}
 			
-			project.getLogger().lifecycle("|-> Patch success! :)");
+			project.getLogger().lifecycle("|-> Patch success!");
 		}
 	}
 	

@@ -27,7 +27,7 @@ public class MinecraftMergedProvider extends DependencyProvider {
 		merged = new File(userCache, "minecraft-" + version + "-merged.jar");
 		
 		//execution
-		project.getLogger().lifecycle("|-> Merged jar is at: " + merged);
+		project.getLogger().lifecycle("] merged jar is at: " + merged);
 		if(!merged.exists()) {
 			project.getLogger().lifecycle("|-> Does not exist, performing merge...");
 			

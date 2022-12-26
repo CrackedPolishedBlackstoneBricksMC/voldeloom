@@ -30,8 +30,12 @@ import net.fabricmc.tinyremapper.OutputConsumerPath;
 import net.fabricmc.tinyremapper.TinyRemapper;
 
 import java.io.IOException;
+import java.net.URI;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystems;
 import java.nio.file.Path;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
@@ -116,6 +120,13 @@ public class TinyRemapperSession {
 				remapper.finish();
 			}
 			
+			//superstition, but i seem to be getting spotty ClosedFileSystemExceptions the next time i touch this file?
+			//maybe make sure it's actually closed? or something? possibly see https://github.com/FabricMC/fabric-loom/issues/633
+			//good ol `./gradlew --stop` can help too
+			try(FileSystem phooey = FileSystems.newFileSystem(URI.create("jar:" + outputJar.toUri()), Collections.emptyMap())) {
+				phooey.getPath("/");
+			}
+				
 			logger.accept("\\-> done :)");
 		}
 	}

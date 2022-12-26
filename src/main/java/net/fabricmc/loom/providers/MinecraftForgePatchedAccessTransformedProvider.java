@@ -43,7 +43,7 @@ public class MinecraftForgePatchedAccessTransformedProvider extends DependencyPr
 		accessTransformedMc = new File(userCache, "minecraft-" + jarStuff + "-atd.jar");
 		
 		//task
-		project.getLogger().lifecycle("|-> Access-transformed jar is at: " + accessTransformedMc);
+		project.getLogger().lifecycle("] access-transformed jar is at: " + accessTransformedMc);
 		if(!accessTransformedMc.exists()) {
 			project.getLogger().lifecycle("|-> Does not exist, performing access transform...");
 			
@@ -71,7 +71,7 @@ public class MinecraftForgePatchedAccessTransformedProvider extends DependencyPr
 				});
 			}
 			
-			project.getLogger().lifecycle("|-> AT success! :)");
+			project.getLogger().lifecycle("|-> Access transformation success! :)");
 		}
 	}
 	
