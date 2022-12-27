@@ -13,6 +13,7 @@ import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
+import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.BasicFileAttributes;
 
 //TODO: extend AbstractCopyTask once i figure that out, instead of DefaultTask
@@ -50,7 +51,7 @@ public class ShimResourcesTask extends DefaultTask implements LoomTaskExt {
 				if(sourceFilePath.toString().endsWith(".etag")) return FileVisitResult.CONTINUE;
 				
 				Path targetFilePath = resourceTargetDirectory.resolve(resourceSourceDirectory.relativize(sourceFilePath));
-				Files.copy(sourceFilePath, targetFilePath);
+				Files.copy(sourceFilePath, targetFilePath, StandardCopyOption.REPLACE_EXISTING);
 				return FileVisitResult.CONTINUE;
 			}
 		});

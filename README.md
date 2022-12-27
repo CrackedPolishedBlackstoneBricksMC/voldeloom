@@ -29,8 +29,6 @@ What doesn't work yet:
   * But the short-term goal is to make 1.4.7 work!
 * The standalone server doesn't work yet, I don't think it will be hard i just have to do it
 * Similarly for run configs
-* I snipped out a thing that replaced the stock `SideOnly` annotations with `Environment` ones, but there's still Environment leftovers for some reason
-  * They're hardcoded in stitch JarMerger it turns out, so i should resurrect it in the other direction
 * I don't know how broken Eclipse is
 * `modCompile` configurations and friends probably don't work, but you knew that already
 * Probably a lot of other things don't work
