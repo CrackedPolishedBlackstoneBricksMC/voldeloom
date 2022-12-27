@@ -48,17 +48,19 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-public class MinecraftAssetsProvider extends DependencyProvider {
-	public MinecraftAssetsProvider(Project project, LoomGradleExtension extension) {
+public class AssetsProvider extends DependencyProvider {
+	public AssetsProvider(Project project, LoomGradleExtension extension, MinecraftProvider mc) {
 		super(project, extension);
+		this.mc = mc;
 	}
+	
+	private final MinecraftProvider mc;
 	
 	@Override
 	public void decorateProject() throws Exception {
 		boolean offline = project.getGradle().getStartParameter().isOffline();
-
-		MinecraftProvider minecraftProvider = extension.getDependencyManager().getMinecraftProvider();
-		MinecraftVersionInfo versionInfo = minecraftProvider.getVersionInfo();
+		
+		MinecraftVersionInfo versionInfo = mc.getVersionManifest();
 		MinecraftVersionInfo.AssetIndex assetIndex = versionInfo.assetIndex;
 
 		// get existing cache files
@@ -68,7 +70,7 @@ public class MinecraftAssetsProvider extends DependencyProvider {
 			assets.mkdirs();
 		}
 
-		File assetsInfo = new File(assets, "indexes" + File.separator + assetIndex.getFabricId(minecraftProvider.getMinecraftVersion()) + ".json");
+		File assetsInfo = new File(assets, "indexes" + File.separator + assetIndex.getFabricId(mc.getVersion()) + ".json");
 
 		if (!assetsInfo.exists() || !Checksum.equals(assetsInfo, assetIndex.sha1)) {
 			project.getLogger().lifecycle(":downloading asset index");
@@ -118,7 +120,7 @@ public class MinecraftAssetsProvider extends DependencyProvider {
 
 						if (loggers.isEmpty()) {
 							//Create a new logger if we need one
-							progressLogger = ProgressLogger.getProgressFactory(project, MinecraftAssetsProvider.class.getName());
+							progressLogger = ProgressLogger.getProgressFactory(project, AssetsProvider.class.getName());
 							progressLogger.start("Downloading assets...", "assets");
 						} else {
 							// use a free logger if we can

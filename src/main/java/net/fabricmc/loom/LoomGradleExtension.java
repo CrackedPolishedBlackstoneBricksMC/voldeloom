@@ -35,7 +35,7 @@ import java.util.List;
 import java.util.function.Supplier;
 
 public class LoomGradleExtension {
-	public LoomGradleExtension(Project project) {
+	public LoomGradleExtension(@SuppressWarnings("unused") Project project) { //Gradle reflectively finds this ctor
 		dependencyManager = new LoomDependencyManager();
 	}
 	

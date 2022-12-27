@@ -7,20 +7,22 @@ import org.gradle.api.Project;
 
 import java.io.File;
 
-public class MinecraftMergedProvider extends DependencyProvider {
-	public MinecraftMergedProvider(Project project, LoomGradleExtension extension) {
+public class MergedProvider extends DependencyProvider {
+	public MergedProvider(Project project, LoomGradleExtension extension, MinecraftProvider mc) {
 		super(project, extension);
+		this.mc = mc;
 	}
+	
+	private final MinecraftProvider mc;
 	
 	private File merged;
 	
 	@Override
 	public void decorateProject() throws Exception {
 		//inputs
-		MinecraftProvider mcProvider = extension.getDependencyManager().getMinecraftProvider();
-		File client = mcProvider.getClientJar();
-		File server = mcProvider.getServerJar();
-		String version = mcProvider.getMinecraftVersion();
+		File client = mc.getClientJar();
+		File server = mc.getServerJar();
+		String version = mc.getVersion();
 		
 		//outputs
 		File userCache = WellKnownLocations.getUserCache(project);

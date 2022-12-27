@@ -27,7 +27,6 @@ package net.fabricmc.loom.task;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.util.LoomTaskExt;
 import net.fabricmc.loom.util.VoldeloomFileHelpers;
-import net.fabricmc.loom.util.WellKnownLocations;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.tasks.TaskAction;
 
@@ -42,12 +41,11 @@ public class CleanLoomBinaries extends DefaultTask implements LoomTaskExt {
 		
 		//TODO: replace this with a generic "clean" system
 		VoldeloomFileHelpers.delete(getProject(),
-			extension.getDependencyManager().getMinecraftMergedProvider().getMergedJar(),
-			extension.getDependencyManager().getMinecraftForgePatchedProvider().getPatchedJar(),
-			extension.getDependencyManager().getMinecraftForgeMappedProvider().getIntermediaryJar(),
-			extension.getDependencyManager().getMinecraftForgeMappedProvider().getMappedJar(),
-			extension.getDependencyManager().getMinecraftLibraryProvider().getNativesDir(),
-			WellKnownLocations.getNativesJarStore(getProject())
+			extension.getDependencyManager().getMergedProvider().getMergedJar(),
+			extension.getDependencyManager().getForgePatchedProvider().getPatchedJar(),
+			extension.getDependencyManager().getMappedProvider().getIntermediaryJar(),
+			extension.getDependencyManager().getMappedProvider().getMappedJar(),
+			extension.getDependencyManager().getLibraryProvider().getNativesDir()
 		);
 	}
 }

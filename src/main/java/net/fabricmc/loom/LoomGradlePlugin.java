@@ -27,14 +27,14 @@ package net.fabricmc.loom;
 import groovy.util.Node;
 import net.fabricmc.loom.forge.ShimForgeClientLibraries;
 import net.fabricmc.loom.providers.ForgeProvider;
-import net.fabricmc.loom.providers.LaunchProvider;
+import net.fabricmc.loom.providers.DevLaunchInjectorProvider;
 import net.fabricmc.loom.providers.MappingsProvider;
-import net.fabricmc.loom.providers.MinecraftAssetsProvider;
-import net.fabricmc.loom.providers.MinecraftForgeMappedProvider;
-import net.fabricmc.loom.providers.MinecraftForgePatchedAccessTransformedProvider;
-import net.fabricmc.loom.providers.MinecraftForgePatchedProvider;
-import net.fabricmc.loom.providers.MinecraftLibraryProvider;
-import net.fabricmc.loom.providers.MinecraftMergedProvider;
+import net.fabricmc.loom.providers.AssetsProvider;
+import net.fabricmc.loom.providers.MappedProvider;
+import net.fabricmc.loom.providers.ForgePatchedAccessTxdProvider;
+import net.fabricmc.loom.providers.ForgePatchedProvider;
+import net.fabricmc.loom.providers.LibraryProvider;
+import net.fabricmc.loom.providers.MergedProvider;
 import net.fabricmc.loom.providers.MinecraftProvider;
 import net.fabricmc.loom.task.AbstractDecompileTask;
 import net.fabricmc.loom.task.CleanLoomBinaries;
@@ -241,6 +241,10 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		tasks.register("runClient", RunClientTask.class, t -> t.dependsOn("assemble", "shimForgeClientLibraries"));
 		tasks.register("runServer", RunServerTask.class, t -> t.dependsOn("assemble"));
 		
+		//TODO is it safe to configure this now? I ask because upstream did it in afterEvaluate
+		tasks.named("idea").configure(t -> t.finalizedBy(tasks.named("genIdeaWorkspace")));
+		tasks.named("eclipse").configure(t -> t.finalizedBy(tasks.named("genEclipseRuns")));
+		
 		//So. build.gradle files *look* declarative, but recall that they are imperative programs, executed top-to-bottom.
 		//All of the above happens immediately upon encountering the `apply plugin` line. The rest of the script hasn't executed yet.
 		//But what if we want to make choices based on the things the user configured in LoomGradleExtensions?
@@ -251,35 +255,41 @@ public class LoomGradlePlugin implements Plugin<Project> {
 	private void afterEvaluate(Project project) {
 		LoomGradleExtension extension = project.getExtensions().getByType(LoomGradleExtension.class);
 		
-		LoomDependencyManager dependencyManager = extension.getDependencyManager()
-			//forge jar
-			.installForgeProvider(new ForgeProvider(project, extension))
-			
-			//vanilla minecraft
-			.installMinecraftProvider(new MinecraftProvider(project, extension))
-			.installMinecraftAssetsProvider(new MinecraftAssetsProvider(project, extension))
-			.installMinecraftLibraryProvider(new MinecraftLibraryProvider(project, extension))
-			.installMinecraftMergedProvider(new MinecraftMergedProvider(project, extension))
-			
-			//forge + vanilla
-			.installMinecraftForgePatchedProvider(new MinecraftForgePatchedProvider(project, extension))
-			.installMinecraftForgePatchedAccessTransformedProvider(new MinecraftForgePatchedAccessTransformedProvider(project, extension))
-			
-			//mappings
-			.installMappingsProvider(new MappingsProvider(project, extension))
-			
-			//forge + vanilla + mappings
-			.installMinecraftForgeMappedProvider(new MinecraftForgeMappedProvider(project, extension))
-			
-			//dev-launch-injector stuff that's not used at all
-			.installLaunchProvider(new LaunchProvider(project, extension));
+		LoomDependencyManager dmgr = extension.getDependencyManager();
+		//This is where the Magic happens.
+		//These dependencies are dynamic; their content depends on the values of the stuff configured in LoomGradleExtension
+		//Even though the process of creating them *looks* like a task graph, task execution is too late to configure dependencies
+		//Without the ability to leverage Gradle's task graph, doing it all in `afterEvaluate` is the best we can do, regrettably
+		
+		//Ordering here matters: later providers depend on earlier providers.
+		//TODO: i could make the dependencies explicit rather than implicit by taking them as constructor parameters?
+		
+		//forge jar
+		ForgeProvider forge = dmgr.installForgeProvider(new ForgeProvider(project, extension));
+		//vanilla minecraft
+		MinecraftProvider mc = dmgr.installMinecraftProvider(new MinecraftProvider(project, extension, forge));
+		AssetsProvider assets = dmgr.installAssetsProvider(new AssetsProvider(project, extension, mc));
+		LibraryProvider libs = dmgr.installLibraryProvider(new LibraryProvider(project, extension, mc));
+		MergedProvider merged = dmgr.installMergedProvider(new MergedProvider(project, extension, mc));
+		
+		//forge + vanilla
+		ForgePatchedProvider forgePatched = dmgr.installForgePatchedProvider(new ForgePatchedProvider(project, extension, mc, merged, forge));
+		ForgePatchedAccessTxdProvider patchedTxd = dmgr.installForgePatchedAccessTxdProvider(new ForgePatchedAccessTxdProvider(project, extension, mc, forge, forgePatched));
+		
+		//mappings
+		MappingsProvider mappings = dmgr.installMappingsProvider(new MappingsProvider(project, extension, mc, forgePatched));
+		
+		//forge + vanilla + mappings
+		MappedProvider mapped = dmgr.installMappedProvider(new MappedProvider(project, extension, mc, libs, patchedTxd, mappings));
+		
+		//dev-launch-injector stuff that's not used at all
+		DevLaunchInjectorProvider dli = dmgr.installDevLaunchInjectorProvider(new DevLaunchInjectorProvider(project, extension, mc, libs));
 		
 		//very strange block related to `modCompile`etc configurations that i moved here from LoomDependencyManager
 		//todo this probably needs rewriting
 		{
-			MappingsProvider mappingsProvider = dependencyManager.getMappingsProvider();
 			List<Runnable> afterTasks = new ArrayList<>();
-			String mappingsKey = mappingsProvider.mappingsName + "." + mappingsProvider.minecraftVersion.replace(' ', '_').replace('.', '_').replace('-', '_') + "." + mappingsProvider.mappingsVersion;
+			String mappingsKey = mappings.mappingsName + "." + mappings.minecraftVersion.replace(' ', '_').replace('.', '_').replace('-', '_') + "." + mappings.mappingsVersion;
 			for(RemappedConfigurationEntry entry1 : Constants.MOD_COMPILE_ENTRIES) {
 				ModCompileRemapper.remapDependencies(
 					project,
@@ -302,8 +312,7 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		RemapLineNumbersTask genSourcesRemapLineNumbersTask = (RemapLineNumbersTask) project.getTasks().getByName("genSourcesRemapLineNumbers");
 		Task genSourcesTask = project.getTasks().getByName("genSources");
 		
-		MinecraftLibraryProvider libraryProvider = extension.getDependencyManager().getMinecraftLibraryProvider();
-		File mappedJar = dependencyManager.getMinecraftForgeMappedProvider().getMappedJar();
+		File mappedJar = mapped.getMappedJar();
 		File linemappedJar = getMappedByproduct(extension, "-linemapped.jar");
 		File sourcesJar = getMappedByproduct(extension, "-sources.jar");
 		File linemapFile = getMappedByproduct(extension, "-sources.lmap");
@@ -311,7 +320,7 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		genSourcesDecompileTask.setInput(mappedJar);
 		genSourcesDecompileTask.setOutput(sourcesJar);
 		genSourcesDecompileTask.setLineMapFile(linemapFile);
-		genSourcesDecompileTask.setLibraries(libraryProvider.getNonNativeLibraries());
+		genSourcesDecompileTask.setLibraries(libs.getNonNativeLibraries());
 		
 		genSourcesRemapLineNumbersTask.setInput(mappedJar);
 		genSourcesRemapLineNumbersTask.setLineMapFile(linemapFile);
@@ -331,10 +340,6 @@ public class LoomGradlePlugin implements Plugin<Project> {
 				}
 			}
 		});
-		
-		//TODO can this be configured earlier, with everything else? Need to fix the idea workspace tasks before I can tell
-		project.getTasks().getByName("idea").finalizedBy(project.getTasks().getByName("genIdeaWorkspace"));
-		project.getTasks().getByName("eclipse").finalizedBy(project.getTasks().getByName("genEclipseRuns"));
 		
 		//IntelliJ run configs jank
 		if(extension.autoGenIDERuns && project.getRootProject() == project) {
@@ -425,7 +430,7 @@ public class LoomGradlePlugin implements Plugin<Project> {
 	}
 	
 	public static File getMappedByproduct(LoomGradleExtension extension, String suffix) {
-		String path = extension.getDependencyManager().getMinecraftForgeMappedProvider().getMappedJar().getAbsolutePath();
+		String path = extension.getDependencyManager().getMappedProvider().getMappedJar().getAbsolutePath();
 		if (!path.toLowerCase(Locale.ROOT).endsWith(".jar")) throw new RuntimeException("Invalid mapped JAR path: " + path);
 		else return new File(path.substring(0, path.length() - 4) + suffix);
 	}

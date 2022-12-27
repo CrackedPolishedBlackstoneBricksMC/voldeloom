@@ -38,28 +38,30 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 
-public class MinecraftLibraryProvider extends DependencyProvider {
-	public MinecraftLibraryProvider(Project project, LoomGradleExtension extension) {
+public class LibraryProvider extends DependencyProvider {
+	public LibraryProvider(Project project, LoomGradleExtension extension, MinecraftProvider mc) {
 		super(project, extension);
+		this.mc = mc;
 	}
+	
+	private final MinecraftProvider mc;
 	
 	private final Collection<File> nonNativeLibs = new HashSet<>();
 	private File nativesDir;
 	
 	@Override
 	public void decorateProject() throws Exception {
-		MinecraftProvider mcProvider = extension.getDependencyManager().getMinecraftProvider();
-		MinecraftVersionInfo versionInfo = mcProvider.getVersionInfo();
+		MinecraftVersionInfo versionInfo = mc.getVersionManifest();
 		
-		nativesDir = new File(WellKnownLocations.getUserCache(project), "natives/" + mcProvider.getMinecraftVersion());
-		
-		File jarStore = WellKnownLocations.getNativesJarStore(project);
+		nativesDir = new File(WellKnownLocations.getUserCache(project), "natives/" + mc.getVersion());
+		File nativesJarStore = new File(nativesDir, "jars");
+		nativesJarStore.mkdirs();
 		
 		for(MinecraftVersionInfo.Library library : versionInfo.libraries) {
 			if(!library.allowed()) continue;
 			
 			if(library.isNative()) {
-				File libJarFile = library.getFile(jarStore);
+				File libJarFile = library.getFile(nativesJarStore);
 				DownloadUtil.downloadIfChanged(new URL(library.getURL()), libJarFile, project.getLogger());
 				//TODO possibly find a way to prevent needing to re-extract after each run, doesnt seem too slow (original Loom comment)
 				ZipUtil.unpack(libJarFile, nativesDir);

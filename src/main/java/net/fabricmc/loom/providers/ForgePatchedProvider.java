@@ -17,24 +17,26 @@ import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Collections;
 
-public class MinecraftForgePatchedProvider extends DependencyProvider {
-	public MinecraftForgePatchedProvider(Project project, LoomGradleExtension extension) {
+public class ForgePatchedProvider extends DependencyProvider {
+	public ForgePatchedProvider(Project project, LoomGradleExtension extension, MinecraftProvider mc, MergedProvider merged, ForgeProvider forge) {
 		super(project, extension);
+		this.mc = mc;
+		this.merged = merged;
+		this.forge = forge;
 	}
+	
+	private final MinecraftProvider mc;
+	private final MergedProvider merged;
+	private final ForgeProvider forge;
 	
 	private File patched;
 	
 	@Override
 	public void decorateProject() throws Exception {
 		//inputs
-		MinecraftProvider minecraftProvider = extension.getDependencyManager().getMinecraftProvider();
-		String jarStuff = minecraftProvider.getJarStuff();
-		
-		MinecraftMergedProvider mergedProvider = extension.getDependencyManager().getMinecraftMergedProvider();
-		File merged = mergedProvider.getMergedJar();
-		
-		ForgeProvider forgeProvider = extension.getDependencyManager().getForgeProvider();
-		File forge = forgeProvider.getForge();
+		String jarStuff = mc.getJarStuff();
+		File mergedJar = merged.getMergedJar();
+		File forgeJar = forge.getJar();
 		
 		//outputs
 		File userCache = WellKnownLocations.getUserCache(project);
@@ -46,8 +48,8 @@ public class MinecraftForgePatchedProvider extends DependencyProvider {
 			project.getLogger().lifecycle("|-> Does not exist, performing patch...");
 			
 			try(
-				FileSystem mergedFs = FileSystems.newFileSystem(URI.create("jar:" + merged.toURI()), Collections.emptyMap());
-				FileSystem forgeFs = FileSystems.newFileSystem(URI.create("jar:" + forge.toURI()), Collections.emptyMap());
+				FileSystem mergedFs = FileSystems.newFileSystem(URI.create("jar:" + mergedJar.toURI()), Collections.emptyMap());
+				FileSystem forgeFs = FileSystems.newFileSystem(URI.create("jar:" + forgeJar.toURI()), Collections.emptyMap());
 				FileSystem patchedFs = FileSystems.newFileSystem(URI.create("jar:" + patched.toURI()), Collections.singletonMap("create", "true")))
 			{
 				//Copy the contents of the mc-merged jar into the patched jar

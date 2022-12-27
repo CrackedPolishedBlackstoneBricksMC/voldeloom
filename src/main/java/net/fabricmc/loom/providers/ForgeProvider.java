@@ -36,15 +36,15 @@ public class ForgeProvider extends DependencyProvider {
 		project.getLogger().lifecycle("|-> AT parse success! :)");
 	}
 	
-	public File getForge() {
+	public File getJar() {
 		return forge;
 	}
 	
-	public String getForgeVersion() {
+	public String getVersion() {
 		return forgeVersion;
 	}
 	
-	public ForgeATConfig getUnmappedAts() {
+	public ForgeATConfig getUnmappedAccessTransformers() {
 		return unmappedAts;
 	}
 }

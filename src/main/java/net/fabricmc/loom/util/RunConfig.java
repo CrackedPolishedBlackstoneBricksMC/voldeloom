@@ -27,7 +27,8 @@ package net.fabricmc.loom.util;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import net.fabricmc.loom.LoomGradleExtension;
-import net.fabricmc.loom.providers.MinecraftLibraryProvider;
+import net.fabricmc.loom.providers.DevLaunchInjectorProvider;
+import net.fabricmc.loom.providers.LibraryProvider;
 import net.fabricmc.loom.providers.MinecraftProvider;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
@@ -95,7 +96,7 @@ public class RunConfig {
 
 	private static void populate(Project project, LoomGradleExtension extension, RunConfig runConfig, String mode) {
 		MinecraftProvider minecraftProvider = extension.getDependencyManager().getMinecraftProvider();
-		MinecraftLibraryProvider libraryProvider = extension.getDependencyManager().getMinecraftLibraryProvider();
+		LibraryProvider libraryProvider = extension.getDependencyManager().getLibraryProvider();
 		
 		runConfig.projectName = project.getName();
 		runConfig.runDir = "file://$PROJECT_DIR$/" + extension.runDir;
@@ -123,7 +124,7 @@ public class RunConfig {
 				runConfig.programArgs = "";
 				runConfig.programArgs += "PlayerName -";
 				runConfig.programArgs += " --tweakClass net.minecraft.launchwrapper.VanillaTweaker";
-				runConfig.programArgs += " --assetIndex " + minecraftProvider.getVersionInfo().assetIndex.getFabricId(minecraftProvider.getMinecraftVersion());
+				runConfig.programArgs += " --assetIndex " + minecraftProvider.getVersionManifest().assetIndex.getFabricId(minecraftProvider.getVersion());
 				runConfig.programArgs += " --assetsDir " + encodeEscaped(new File(WellKnownLocations.getUserCache(project), "assets").getAbsolutePath());
 				runConfig.programArgs += " --gameDir " + project.getRootDir().toPath().resolve("run").toAbsolutePath();
 				runConfig.systemProperties.put("minecraft.applet.TargetDirectory", project.getRootDir().toPath().resolve("run").toAbsolutePath().toString());
@@ -136,9 +137,11 @@ public class RunConfig {
 				runConfig.programArgs = "--tweakClass " + ("client".equals(mode) ? Constants.DEFAULT_FABRIC_CLIENT_TWEAKER : Constants.DEFAULT_FABRIC_SERVER_TWEAKER);
 				break;
 			default: //dli
+				DevLaunchInjectorProvider devLaunchInjectorProvider = extension.getDependencyManager().getDevLaunchInjectorProvider();
+				
 				runConfig.mainClass = "net.fabricmc.devlaunchinjector.Main";
 				runConfig.programArgs = "";
-				runConfig.vmArgs = "-Dfabric.dli.config=" + encodeEscaped(WellKnownLocations.getDevLauncherConfig(project).getAbsolutePath()) + " -Dfabric.dli.env=" + mode.toLowerCase();
+				runConfig.vmArgs = "-Dfabric.dli.config=" + encodeEscaped(devLaunchInjectorProvider.getConfigFile().getAbsolutePath()) + " -Dfabric.dli.env=" + mode.toLowerCase();
 				break;
 		}
 	}

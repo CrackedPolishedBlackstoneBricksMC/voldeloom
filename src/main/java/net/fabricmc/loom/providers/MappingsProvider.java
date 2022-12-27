@@ -45,7 +45,6 @@ import org.zeroturnaround.zip.ZipUtil;
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URI;
 import java.nio.file.FileSystem;
@@ -57,8 +56,15 @@ import java.util.Collections;
 import java.util.Map;
 
 public class MappingsProvider extends DependencyProvider {
-	private static final Map<String, String> FS_ENV = Collections.singletonMap("create", "true");
-
+	public MappingsProvider(Project project, LoomGradleExtension extension, MinecraftProvider mc, ForgePatchedProvider forgePatched) {
+		super(project, extension);
+		this.mc = mc;
+		this.forgePatched = forgePatched;
+	}
+	
+	private final MinecraftProvider mc;
+	private final ForgePatchedProvider forgePatched;
+	
 	public String mappingsName;
 	public String minecraftVersion;
 	public String mappingsVersion;
@@ -70,9 +76,7 @@ public class MappingsProvider extends DependencyProvider {
 	
 	private TinyTree parsedMappings;
 
-	public MappingsProvider(Project project, LoomGradleExtension extension) {
-		super(project, extension);
-	}
+	
 
 	//TODO: let's try and make this into a project-wide `clean` system that threads through each task,
 	// instead of an ad-hoc thing
@@ -80,15 +84,9 @@ public class MappingsProvider extends DependencyProvider {
 		VoldeloomFileHelpers.delete(project, mappingsDir);
 	}
 
-	public TinyTree getMappings() throws IOException {
-		return parsedMappings;
-	}
-
 	@Override
 	public void decorateProject() throws Exception {
 		//deps
-		MinecraftProvider minecraftProvider = extension.getDependencyManager().getMinecraftProvider();
-		MinecraftForgePatchedProvider forgePatchedProvider = extension.getDependencyManager().getMinecraftForgePatchedProvider();
 		DependencyInfo mappingsDependency = getSingleDependency(Constants.MAPPINGS);
 		
 		project.getLogger().lifecycle("|-> setting up mappings (" + mappingsDependency.getDependency().getName() + " " + mappingsDependency.getResolvedVersion() + ")");
@@ -98,7 +96,7 @@ public class MappingsProvider extends DependencyProvider {
 
 		this.mappingsName = StringUtils.removeSuffix(mappingsDependency.getDependency().getGroup() + "." + mappingsDependency.getDependency().getName(), "-unmerged");
 
-		this.minecraftVersion = minecraftProvider.getJarStuff();
+		this.minecraftVersion = mc.getJarStuff();
 		this.mappingsVersion = version;
 		
 		this.mappingsDir = WellKnownLocations.getUserCache(project).toPath().resolve("mappings");
@@ -125,8 +123,8 @@ public class MappingsProvider extends DependencyProvider {
 					"If you obtained this from the Internet Archive, note that it likes to return 0-byte files instead of 404 errors.");
 			}
 			
-			try(FileSystem mcpZipFs = FileSystems.newFileSystem(URI.create("jar:" + mappingsJar.toURI()), FS_ENV)) {
-				Pair<Map<String, String>, Collection<String>> data = SrgMappingProvider.calcInfo(forgePatchedProvider.getPatchedJar());
+			try(FileSystem mcpZipFs = FileSystems.newFileSystem(URI.create("jar:" + mappingsJar.toURI()), Collections.singletonMap("create", "true"))) {
+				Pair<Map<String, String>, Collection<String>> data = SrgMappingProvider.calcInfo(forgePatched.getPatchedJar());
 				SrgMappingProvider client = new SrgMappingProvider(mcpZipFs.getPath("conf", "client.srg"), data.getLeft(), data.getRight());
 				SrgMappingProvider server = new SrgMappingProvider(mcpZipFs.getPath("conf", "server.srg"), data.getLeft(), data.getRight());
 				Path notMyAwfulHack = mcpZipFs.getPath("conf", "newids.csv");
@@ -160,5 +158,9 @@ public class MappingsProvider extends DependencyProvider {
 		
 		//add it as a project dependency TODO move
 		project.getDependencies().add(Constants.MAPPINGS_FINAL, project.files(tinyMappingsJar));
+	}
+	
+	public TinyTree getMappings() {
+		return parsedMappings;
 	}
 }

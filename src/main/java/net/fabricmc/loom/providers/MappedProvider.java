@@ -37,44 +37,47 @@ import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-public class MinecraftForgeMappedProvider extends DependencyProvider {
+public class MappedProvider extends DependencyProvider {
+	public MappedProvider(Project project, LoomGradleExtension extension, MinecraftProvider mc, LibraryProvider libs, ForgePatchedAccessTxdProvider patchedTxd, MappingsProvider mappings) {
+		super(project, extension);
+		this.mc = mc;
+		this.libs = libs;
+		this.patchedTxd = patchedTxd;
+		this.mappings = mappings;
+	}
+	
+	private final MinecraftProvider mc;
+	private final LibraryProvider libs;
+	private final ForgePatchedAccessTxdProvider patchedTxd;
+	private final MappingsProvider mappings;
+	
 	private File minecraftMappedJar;
 	private File minecraftIntermediaryJar;
-
-	public MinecraftForgeMappedProvider(Project project, LoomGradleExtension extension) {
-		super(project, extension);
-	}
 
 	@Override
 	public void decorateProject() throws Exception {
 		//inputs
-		MinecraftLibraryProvider libraryProvider = extension.getDependencyManager().getMinecraftLibraryProvider();
-		List<Path> libs = libraryProvider.getNonNativeLibraries().stream().map(File::toPath).collect(Collectors.toList());
-		
-		//MinecraftForgePatchedProvider forgePatchedProvider = extension.getDependencyManager().getMinecraftForgePatchedProvider();
-		MinecraftForgePatchedAccessTransformedProvider blah = extension.getDependencyManager().getMinecraftForgePatchedAccessTransformedProvider();
-		File forgePatchedJar = blah.getPatchedAccessTransformedJar();
-		
-		MappingsProvider mappingsProvider = extension.getDependencyManager().getMappingsProvider();
-		TinyTree mappings = mappingsProvider.getMappings();
+		List<Path> libPaths = libs.getNonNativeLibraries().stream().map(File::toPath).collect(Collectors.toList());
+		File forgePatchedJar = patchedTxd.getTransformedJar();
+		TinyTree mappingsTree = mappings.getMappings();
 		
 		//outputs
 		File userCache = WellKnownLocations.getUserCache(project);
 		
 		//TODO kludgy? yeah
 		String intermediaryJarNameKinda = String.format("%s-%s-%s-%s",
-			extension.getDependencyManager().getMinecraftProvider().getJarStuff(),
+			mc.getJarStuff(),
 			"intermediary",
-			extension.getDependencyManager().getMappingsProvider().mappingsName,
-			extension.getDependencyManager().getMappingsProvider().mappingsVersion
+			mappings.mappingsName,
+			mappings.mappingsVersion
 		);
 		String intermediaryJarName = "minecraft-" + intermediaryJarNameKinda + ".jar";
 		
 		String mappedJarNameKinda = String.format("%s-%s-%s-%s",
-			extension.getDependencyManager().getMinecraftProvider().getJarStuff(),
+			mc.getJarStuff(),
 			"mapped",
-			extension.getDependencyManager().getMappingsProvider().mappingsName,
-			extension.getDependencyManager().getMappingsProvider().mappingsVersion
+			mappings.mappingsName,
+			mappings.mappingsVersion
 		);
 		String mappedJarName = "minecraft-" + mappedJarNameKinda + ".jar";
 		File mappedDestDir = new File(userCache, mappedJarNameKinda);
@@ -98,10 +101,10 @@ public class MinecraftForgeMappedProvider extends DependencyProvider {
 			Predicate<String> classFilter = s -> !s.startsWith("argo") && !s.startsWith("org");
 			
 			new TinyRemapperSession()
-				.setMappings(mappings)
+				.setMappings(mappingsTree)
 				.setInputJar(forgePatchedJar.toPath())
 				.setInputNamingScheme("official")
-				.setInputClasspath(libs)
+				.setInputClasspath(libPaths)
 				.addOutputJar("intermediary", this.minecraftIntermediaryJar.toPath())
 				.addOutputJar("named", this.minecraftMappedJar.toPath())
 				.setClassFilter(classFilter)
@@ -115,12 +118,12 @@ public class MinecraftForgeMappedProvider extends DependencyProvider {
 		project.getRepositories().flatDir(repository -> repository.dir(mappedDestDir));
 		project.getDependencies().add(Constants.MINECRAFT_NAMED, project.getDependencies().module("net.minecraft:minecraft:" + mappedJarNameKinda));
 	}
-
-	public File getIntermediaryJar() {
-		return minecraftIntermediaryJar;
-	}
-
+	
 	public File getMappedJar() {
 		return minecraftMappedJar;
+	}
+	
+	public File getIntermediaryJar() {
+		return minecraftIntermediaryJar;
 	}
 }

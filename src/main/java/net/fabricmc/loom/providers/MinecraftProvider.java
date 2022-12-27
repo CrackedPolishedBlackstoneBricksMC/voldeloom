@@ -47,18 +47,19 @@ import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 
 public class MinecraftProvider extends DependencyProvider {
+	public MinecraftProvider(Project project, LoomGradleExtension extension, ForgeProvider forge) {
+		super(project, extension);
+		this.forge = forge;
+	}
+	
+	private final ForgeProvider forge;
+	
 	private String minecraftVersion;
 	private String minecraftJarStuff;
-
 	private MinecraftVersionInfo versionInfo;
-
 	private File minecraftJson;
 	private File minecraftClientJar;
 	private File minecraftServerJar;
-
-	public MinecraftProvider(Project project, LoomGradleExtension extension) {
-		super(project, extension);
-	}
 
 	@Override
 	public void decorateProject() throws Exception {
@@ -67,8 +68,7 @@ public class MinecraftProvider extends DependencyProvider {
 		minecraftVersion = minecraftDependency.getDependency().getVersion();
 		
 		//TODO remove this dep, move "jar stuff" to ForgePatchedProvider or remove it 
-		ForgeProvider forge = extension.getDependencyManager().getForgeProvider();
-		minecraftJarStuff = minecraftDependency.getDependency().getVersion() + "-forge-" + forge.getForgeVersion();
+		minecraftJarStuff = minecraftDependency.getDependency().getVersion() + "-forge-" + forge.getVersion();
 		
 		//outputs (+versionInfo)
 		File userCache = WellKnownLocations.getUserCache(project);
@@ -168,15 +168,15 @@ public class MinecraftProvider extends DependencyProvider {
 		return minecraftServerJar;
 	}
 
-	public String getMinecraftVersion() {
+	public String getVersion() {
 		return minecraftVersion;
+	}
+	
+	public MinecraftVersionInfo getVersionManifest() {
+		return versionInfo;
 	}
 	
 	public String getJarStuff() {
 		return minecraftJarStuff;
-	}
-
-	public MinecraftVersionInfo getVersionInfo() {
-		return versionInfo;
 	}
 }

@@ -19,24 +19,26 @@ import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Collections;
 
-public class MinecraftForgePatchedAccessTransformedProvider extends DependencyProvider {
-	public MinecraftForgePatchedAccessTransformedProvider(Project project, LoomGradleExtension extension) {
+public class ForgePatchedAccessTxdProvider extends DependencyProvider {
+	public ForgePatchedAccessTxdProvider(Project project, LoomGradleExtension extension, MinecraftProvider mc, ForgeProvider forge, ForgePatchedProvider forgePatched) {
 		super(project, extension);
+		this.mc = mc;
+		this.forge = forge;
+		this.forgePatched = forgePatched;
 	}
+	
+	private final MinecraftProvider mc;
+	private final ForgeProvider forge;
+	private final ForgePatchedProvider forgePatched;
 	
 	private File accessTransformedMc;
 	
 	@Override
 	public void decorateProject() throws Exception {
 		//inputs
-		MinecraftProvider minecraftProvider = extension.getDependencyManager().getMinecraftProvider();
-		String jarStuff = minecraftProvider.getJarStuff();
-		
-		ForgeProvider forgeProvider = extension.getDependencyManager().getForgeProvider();
-		ForgeATConfig unmappedAts = forgeProvider.getUnmappedAts();
-		
-		MinecraftForgePatchedProvider patchedMcProvider = extension.getDependencyManager().getMinecraftForgePatchedProvider();
-		File unAccessTransformedMc = patchedMcProvider.getPatchedJar();
+		String jarStuff = mc.getJarStuff();
+		ForgeATConfig unmappedAts = forge.getUnmappedAccessTransformers();
+		File unAccessTransformedMc = forgePatched.getPatchedJar();
 		
 		//outputs
 		File userCache = WellKnownLocations.getUserCache(project);
@@ -75,7 +77,7 @@ public class MinecraftForgePatchedAccessTransformedProvider extends DependencyPr
 		}
 	}
 	
-	public File getPatchedAccessTransformedJar() {
+	public File getTransformedJar() {
 		return accessTransformedMc;
 	}
 }

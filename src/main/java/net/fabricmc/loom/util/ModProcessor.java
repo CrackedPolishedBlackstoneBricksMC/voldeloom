@@ -29,8 +29,8 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.providers.MappingsProvider;
-import net.fabricmc.loom.providers.MinecraftForgeMappedProvider;
-import net.fabricmc.loom.providers.MinecraftLibraryProvider;
+import net.fabricmc.loom.providers.MappedProvider;
+import net.fabricmc.loom.providers.LibraryProvider;
 import net.fabricmc.tinyremapper.OutputConsumerPath;
 import net.fabricmc.tinyremapper.TinyRemapper;
 import org.apache.commons.io.IOUtils;
@@ -138,8 +138,8 @@ public class ModProcessor {
 		String fromM = "intermediary";
 		String toM = "named";
 		
-		MinecraftLibraryProvider libraryProvider = extension.getDependencyManager().getMinecraftLibraryProvider();
-		MinecraftForgeMappedProvider mappedProvider = extension.getDependencyManager().getMinecraftForgeMappedProvider();
+		LibraryProvider libraryProvider = extension.getDependencyManager().getLibraryProvider();
+		MappedProvider mappedProvider = extension.getDependencyManager().getMappedProvider();
 		MappingsProvider mappingsProvider = extension.getDependencyManager().getMappingsProvider();
 
 		Path inputPath = input.getAbsoluteFile().toPath();
