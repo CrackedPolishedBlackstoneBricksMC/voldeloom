@@ -34,6 +34,7 @@ import org.gradle.api.Project;
 import java.io.File;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 public class MinecraftForgeMappedProvider extends DependencyProvider {
@@ -92,6 +93,11 @@ public class MinecraftForgeMappedProvider extends DependencyProvider {
 			if(minecraftMappedJar.exists()) minecraftMappedJar.delete();
 			if(minecraftIntermediaryJar.exists()) minecraftIntermediaryJar.delete();
 			
+			//These are minecraft libraries that conflict with the ones forge wants
+			//theyre obfuscated and mcp maps them back to reality
+			//TODO, if leaving them in crashes, how did forge work back in the day?
+			Predicate<String> classFilter = s -> !s.startsWith("argo") && !s.startsWith("org");
+			
 			new TinyRemapperSession()
 				.setMappings(mappings)
 				.setInputJar(forgePatchedJar.toPath())
@@ -99,6 +105,7 @@ public class MinecraftForgeMappedProvider extends DependencyProvider {
 				.setInputClasspath(libs)
 				.addOutputJar("intermediary", this.minecraftIntermediaryJar.toPath())
 				.addOutputJar("named", this.minecraftMappedJar.toPath())
+				.setClassFilter(classFilter)
 				.setLogger(project.getLogger()::lifecycle)
 				.run();
 			
