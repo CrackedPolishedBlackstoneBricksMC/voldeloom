@@ -39,7 +39,6 @@ import net.fabricmc.loom.providers.MinecraftProvider;
 import net.fabricmc.loom.task.AbstractDecompileTask;
 import net.fabricmc.loom.task.CleanLoomBinaries;
 import net.fabricmc.loom.task.CleanLoomMappings;
-import net.fabricmc.loom.task.DownloadAssetsTask;
 import net.fabricmc.loom.task.GenEclipseRunsTask;
 import net.fabricmc.loom.task.GenIdeaProjectTask;
 import net.fabricmc.loom.task.GenVsCodeProjectTask;
@@ -235,12 +234,11 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		});
 		
 		//IDE integration and run configs:
-		tasks.register("downloadAssets", DownloadAssetsTask.class);
-		tasks.register("genIdeaWorkspace", GenIdeaProjectTask.class, t -> t.dependsOn("idea", "downloadAssets"));
-		tasks.register("genEclipseRuns", GenEclipseRunsTask.class, t -> t.dependsOn("downloadAssets"));
-		tasks.register("vscode", GenVsCodeProjectTask.class, t -> t.dependsOn("downloadAssets"));
+		tasks.register("genIdeaWorkspace", GenIdeaProjectTask.class, t -> t.dependsOn("idea"));
+		tasks.register("genEclipseRuns", GenEclipseRunsTask.class);
+		tasks.register("vscode", GenVsCodeProjectTask.class);
 		tasks.register("shimForgeClientLibraries", ShimForgeClientLibraries.class);
-		tasks.register("runClient", RunClientTask.class, t -> t.dependsOn("assemble", "downloadAssets", "shimForgeClientLibraries"));
+		tasks.register("runClient", RunClientTask.class, t -> t.dependsOn("assemble", "shimForgeClientLibraries"));
 		tasks.register("runServer", RunServerTask.class, t -> t.dependsOn("assemble"));
 		
 		//So. build.gradle files *look* declarative, but recall that they are imperative programs, executed top-to-bottom.
