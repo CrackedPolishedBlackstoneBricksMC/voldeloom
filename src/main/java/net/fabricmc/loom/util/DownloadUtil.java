@@ -35,6 +35,7 @@ import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.util.zip.GZIPInputStream;
 
 public class DownloadUtil {
@@ -48,6 +49,16 @@ public class DownloadUtil {
 	 */
 	public static void downloadIfChanged(URL from, File to, Logger logger) throws IOException {
 		downloadIfChanged(from, to, logger, false);
+	}
+	
+	@Deprecated //want to rewrite this class and would be a good time to use Path for real
+	public static void downloadIfChanged(URL from, Path to, Logger logger) throws IOException {
+		downloadIfChanged(from, to.toFile(), logger, false);
+	}
+	
+	@Deprecated //want to rewrite this class and would be a good time to use Path for real
+	public static void downloadIfChanged(URL from, Path to, Logger logger, boolean quiet) throws IOException {
+		downloadIfChanged(from, to.toFile(), logger, quiet);
 	}
 
 	/**

@@ -57,8 +57,8 @@ public class ModProcessor {
 		MappingsProvider mappingsProvider = extension.getDependencyManager().getMappingsProvider();
 		
 		Path inputPath = input.getAbsoluteFile().toPath();
-		Path mc = mappedProvider.getIntermediaryJar().toPath();
-		Path[] mcDeps = libraryProvider.getNonNativeLibraries().stream().map(File::toPath).toArray(Path[]::new);
+		Path mc = mappedProvider.getIntermediaryJar();
+		Path[] mcDeps = libraryProvider.getNonNativeLibraries().toArray(new Path[0]);
 		Set<Path> modCompiles = new HashSet<>();
 		
 		for (RemappedConfigurationEntry entry : Constants.MOD_COMPILE_ENTRIES) {

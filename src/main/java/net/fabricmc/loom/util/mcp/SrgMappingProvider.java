@@ -8,7 +8,6 @@ import org.objectweb.asm.FieldVisitor;
 import org.objectweb.asm.Opcodes;
 
 import java.io.BufferedInputStream;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
@@ -83,8 +82,8 @@ public class SrgMappingProvider implements IMappingProvider {
 		fields.forEach(p -> out.acceptField(p.getLeft(), p.getRight()));
 	}
 	
-	public static Pair<Map<String, String>, Collection<String>> calcInfo(File mc) throws IOException {
-		try (FileSystem mcFs = FileSystems.newFileSystem(URI.create("jar:" + mc.toURI()), FS_ENV)) {
+	public static Pair<Map<String, String>, Collection<String>> calcInfo(Path mc) throws IOException {
+		try (FileSystem mcFs = FileSystems.newFileSystem(URI.create("jar:" + mc.toUri()), FS_ENV)) {
 			Map<String, String> fieldDescs = new HashMap<>();
 			Collection<String> innerClasses = new ArrayList<>();
 			ClassVisitor loader = new InfoLoadingClassVisitor(fieldDescs, innerClasses);

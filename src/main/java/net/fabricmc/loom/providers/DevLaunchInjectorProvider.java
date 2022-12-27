@@ -55,13 +55,13 @@ public class DevLaunchInjectorProvider extends DependencyProvider {
 		final LaunchConfig launchConfig = new LaunchConfig()
 				.property("fabric.development", "true")
 
-				.property("client", "java.library.path", libs.getNativesDir().getAbsolutePath())
-				.property("client", "org.lwjgl.librarypath", libs.getNativesDir().getAbsolutePath())
+				.property("client", "java.library.path", libs.getNativesDir().toAbsolutePath().toString())
+				.property("client", "org.lwjgl.librarypath", libs.getNativesDir().toAbsolutePath().toString())
 
 				.argument("client", "--assetIndex")
 				.argument("client", mc.getVersionManifest().assetIndex.getFabricId(mc.getVersion()))
 				.argument("client", "--assetsDir")
-				.argument("client", new File(WellKnownLocations.getUserCache(project), "assets").getAbsolutePath());
+				.argument("client", WellKnownLocations.getUserCache(project).resolve("assets").toAbsolutePath().toString());
 		
 		devLauncherConfigFile.getParentFile().mkdirs();
 		FileUtils.writeStringToFile(devLauncherConfigFile, launchConfig.asString(), StandardCharsets.UTF_8);

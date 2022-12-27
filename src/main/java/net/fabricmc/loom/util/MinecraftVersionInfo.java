@@ -24,12 +24,13 @@
 
 package net.fabricmc.loom.util;
 
-import java.io.File;
-import java.util.List;
-import java.util.Map;
-
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+
+import java.io.File;
+import java.nio.file.Path;
+import java.util.List;
+import java.util.Map;
 
 public class MinecraftVersionInfo {
 	public List<Library> libraries;
@@ -69,9 +70,15 @@ public class MinecraftVersionInfo {
 			return Constants.LIBRARIES_BASE + path;
 		}
 
+		@Deprecated //moving away from File as much as i can
 		public File getFile(File baseDir) {
 			String[] parts = this.name.split(":", 3);
 			return new File(baseDir, parts[0].replace(".", File.separator) + File.separator + parts[1] + File.separator + parts[2] + File.separator + parts[1] + "-" + parts[2] + getClassifier() + ".jar");
+		}
+		
+		public Path getPath(Path basePath) {
+			String[] parts = this.name.split(":", 3);
+			return basePath.resolve(parts[0].replace(".", File.separator) + File.separator + parts[1] + File.separator + parts[2] + File.separator + parts[1] + "-" + parts[2] + getClassifier() + ".jar");
 		}
 
 		public String getSha1() {

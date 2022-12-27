@@ -7,7 +7,6 @@ import org.gradle.api.Project;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
 
-import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.file.FileSystem;
@@ -31,27 +30,27 @@ public class ForgePatchedAccessTxdProvider extends DependencyProvider {
 	private final ForgeProvider forge;
 	private final ForgePatchedProvider forgePatched;
 	
-	private File accessTransformedMc;
+	private Path accessTransformedMc;
 	
 	@Override
 	public void decorateProject() throws Exception {
 		//inputs
 		String jarStuff = mc.getJarStuff();
 		ForgeAccessTransformerSet unmappedAts = forge.getUnmappedAccessTransformers();
-		File unAccessTransformedMc = forgePatched.getPatchedJar();
+		Path unAccessTransformedMc = forgePatched.getPatchedJar();
 		
 		//outputs
-		File userCache = WellKnownLocations.getUserCache(project);
-		accessTransformedMc = new File(userCache, "minecraft-" + jarStuff + "-atd.jar");
+		Path userCache = WellKnownLocations.getUserCache(project);
+		accessTransformedMc = userCache.resolve("minecraft-" + jarStuff + "-atd.jar");
 		
 		//task
 		project.getLogger().lifecycle("] access-transformed jar is at: " + accessTransformedMc);
-		if(!accessTransformedMc.exists()) {
+		if(Files.notExists(accessTransformedMc)) {
 			project.getLogger().lifecycle("|-> Does not exist, performing access transform...");
 			
 			try(
-				FileSystem unAccessTransformedFs = FileSystems.newFileSystem(URI.create("jar:" + unAccessTransformedMc.toURI()), Collections.emptyMap());
-				FileSystem accessTransformedFs = FileSystems.newFileSystem(URI.create("jar:" + accessTransformedMc.toURI()), Collections.singletonMap("create", "true")))
+				FileSystem unAccessTransformedFs = FileSystems.newFileSystem(URI.create("jar:" + unAccessTransformedMc.toUri()), Collections.emptyMap());
+				FileSystem accessTransformedFs = FileSystems.newFileSystem(URI.create("jar:" + accessTransformedMc.toUri()), Collections.singletonMap("create", "true")))
 			{
 				Files.walkFileTree(unAccessTransformedFs.getPath("/"), new SimpleFileVisitor<Path>() {
 					@Override
@@ -77,7 +76,7 @@ public class ForgePatchedAccessTxdProvider extends DependencyProvider {
 		}
 	}
 	
-	public File getTransformedJar() {
+	public Path getTransformedJar() {
 		return accessTransformedMc;
 	}
 }

@@ -1,15 +1,15 @@
 package net.fabricmc.loom.providers;
 
 import net.fabricmc.loom.LoomGradleExtension;
-import net.fabricmc.loom.util.ForgeAccessTransformerSet;
 import net.fabricmc.loom.util.Constants;
+import net.fabricmc.loom.util.ForgeAccessTransformerSet;
 import org.gradle.api.Project;
 
-import java.io.File;
 import java.net.URI;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Collections;
 
 public class ForgeProvider extends DependencyProvider {
@@ -17,26 +17,26 @@ public class ForgeProvider extends DependencyProvider {
 		super(project, extension);
 	}
 	
-	private File forge;
+	private Path forge;
 	private String forgeVersion;
 	private ForgeAccessTransformerSet unmappedAts;
 	
 	@Override
 	public void decorateProject() throws Exception {
 		DependencyInfo forgeDependency = getSingleDependency(Constants.FORGE);
-		forge = forgeDependency.resolveSingleFile().orElseThrow(() -> new RuntimeException("No forge dep!"));
+		forge = forgeDependency.resolveSinglePath().orElseThrow(() -> new RuntimeException("No forge dep!"));
 		forgeVersion = forgeDependency.getDependency().getVersion();
 		
 		project.getLogger().lifecycle("|-> Parsing Forge and FML's access transformers...");
 		unmappedAts = new ForgeAccessTransformerSet();
-		try(FileSystem zipFs = FileSystems.newFileSystem(URI.create("jar:" + forge.toURI()), Collections.emptyMap())) {
+		try(FileSystem zipFs = FileSystems.newFileSystem(URI.create("jar:" + forge.toUri()), Collections.emptyMap())) {
 			unmappedAts.load(Files.newInputStream(zipFs.getPath("fml_at.cfg")));
 			unmappedAts.load(Files.newInputStream(zipFs.getPath("forge_at.cfg")));
 		}
 		project.getLogger().lifecycle("|-> AT parse success! :)");
 	}
 	
-	public File getJar() {
+	public Path getJar() {
 		return forge;
 	}
 	

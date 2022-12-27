@@ -31,11 +31,11 @@ import net.fabricmc.loom.util.WellKnownLocations;
 import net.fabricmc.mapping.tree.TinyTree;
 import org.gradle.api.Project;
 
-import java.io.File;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 public class MappedProvider extends DependencyProvider {
 	public MappedProvider(Project project, LoomGradleExtension extension, MinecraftProvider mc, LibraryProvider libs, ForgePatchedAccessTxdProvider patchedTxd, MappingsProvider mappings) {
@@ -51,18 +51,18 @@ public class MappedProvider extends DependencyProvider {
 	private final ForgePatchedAccessTxdProvider patchedTxd;
 	private final MappingsProvider mappings;
 	
-	private File minecraftMappedJar;
-	private File minecraftIntermediaryJar;
+	private Path minecraftMappedJar;
+	private Path minecraftIntermediaryJar;
 
 	@Override
 	public void decorateProject() throws Exception {
 		//inputs
-		List<Path> libPaths = libs.getNonNativeLibraries().stream().map(File::toPath).collect(Collectors.toList());
-		File forgePatchedJar = patchedTxd.getTransformedJar();
+		List<Path> libPaths = new ArrayList<>(libs.getNonNativeLibraries());
+		Path forgePatchedJar = patchedTxd.getTransformedJar();
 		TinyTree mappingsTree = mappings.getMappings();
 		
 		//outputs
-		File userCache = WellKnownLocations.getUserCache(project);
+		Path userCache = WellKnownLocations.getUserCache(project);
 		
 		//TODO kludgy? yeah
 		String intermediaryJarNameKinda = String.format("%s-%s-%s-%s",
@@ -80,20 +80,21 @@ public class MappedProvider extends DependencyProvider {
 			mappings.mappingsVersion
 		);
 		String mappedJarName = "minecraft-" + mappedJarNameKinda + ".jar";
-		File mappedDestDir = new File(userCache, mappedJarNameKinda);
+		Path mappedDestDir = userCache.resolve(mappedJarNameKinda);
+		Files.createDirectories(mappedDestDir);
 		
-		minecraftIntermediaryJar = new File(userCache, intermediaryJarName);
-		minecraftMappedJar = new File(mappedDestDir, mappedJarName);
+		minecraftIntermediaryJar = userCache.resolve(intermediaryJarName);
+		minecraftMappedJar = mappedDestDir.resolve(mappedJarName);
 		
 		//task
 		project.getLogger().lifecycle("] intermediary jar is at: " + minecraftIntermediaryJar);
 		project.getLogger().lifecycle("] mapped jar is at: " + minecraftMappedJar);
-		if (!minecraftMappedJar.exists() || !getIntermediaryJar().exists()) {
+		if (Files.notExists(minecraftIntermediaryJar) || Files.notExists(minecraftMappedJar)) {
 			project.getLogger().lifecycle("|-> At least one didn't exist, performing remap...");
 			
 			//ensure both are actually gone
-			if(minecraftMappedJar.exists()) minecraftMappedJar.delete();
-			if(minecraftIntermediaryJar.exists()) minecraftIntermediaryJar.delete();
+			Files.deleteIfExists(minecraftMappedJar);
+			Files.deleteIfExists(minecraftIntermediaryJar);
 			
 			//These are minecraft libraries that conflict with the ones forge wants
 			//theyre obfuscated and mcp maps them back to reality
@@ -102,11 +103,11 @@ public class MappedProvider extends DependencyProvider {
 			
 			new TinyRemapperSession()
 				.setMappings(mappingsTree)
-				.setInputJar(forgePatchedJar.toPath())
+				.setInputJar(forgePatchedJar)
 				.setInputNamingScheme("official")
 				.setInputClasspath(libPaths)
-				.addOutputJar("intermediary", this.minecraftIntermediaryJar.toPath())
-				.addOutputJar("named", this.minecraftMappedJar.toPath())
+				.addOutputJar("intermediary", this.minecraftIntermediaryJar)
+				.addOutputJar("named", this.minecraftMappedJar)
 				.setClassFilter(classFilter)
 				.setLogger(project.getLogger()::lifecycle)
 				.run();
@@ -119,11 +120,11 @@ public class MappedProvider extends DependencyProvider {
 		project.getDependencies().add(Constants.MINECRAFT_NAMED, project.getDependencies().module("net.minecraft:minecraft:" + mappedJarNameKinda));
 	}
 	
-	public File getMappedJar() {
+	public Path getMappedJar() {
 		return minecraftMappedJar;
 	}
 	
-	public File getIntermediaryJar() {
+	public Path getIntermediaryJar() {
 		return minecraftIntermediaryJar;
 	}
 }

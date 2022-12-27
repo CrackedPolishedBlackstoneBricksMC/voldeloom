@@ -4,7 +4,6 @@ import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.util.WellKnownLocations;
 import org.gradle.api.Project;
 
-import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.file.FileSystem;
@@ -29,28 +28,28 @@ public class ForgePatchedProvider extends DependencyProvider {
 	private final MergedProvider merged;
 	private final ForgeProvider forge;
 	
-	private File patched;
+	private Path patched;
 	
 	@Override
 	public void decorateProject() throws Exception {
 		//inputs
 		String jarStuff = mc.getJarStuff();
-		File mergedJar = merged.getMergedJar();
-		File forgeJar = forge.getJar();
+		Path mergedJar = merged.getMergedJar();
+		Path forgeJar = forge.getJar();
 		
 		//outputs
-		File userCache = WellKnownLocations.getUserCache(project);
-		patched = new File(userCache, "minecraft-" + jarStuff + "-merged.jar");
+		Path userCache = WellKnownLocations.getUserCache(project);
+		patched = userCache.resolve("minecraft-" + jarStuff + "-merged.jar");
 		
 		//execution
 		project.getLogger().lifecycle("] patched jar is at: " + patched);
-		if(!patched.exists()) {
+		if(Files.notExists(patched)) {
 			project.getLogger().lifecycle("|-> Does not exist, performing patch...");
 			
 			try(
-				FileSystem mergedFs = FileSystems.newFileSystem(URI.create("jar:" + mergedJar.toURI()), Collections.emptyMap());
-				FileSystem forgeFs = FileSystems.newFileSystem(URI.create("jar:" + forgeJar.toURI()), Collections.emptyMap());
-				FileSystem patchedFs = FileSystems.newFileSystem(URI.create("jar:" + patched.toURI()), Collections.singletonMap("create", "true")))
+				FileSystem mergedFs = FileSystems.newFileSystem(URI.create("jar:" + mergedJar.toUri()), Collections.emptyMap());
+				FileSystem forgeFs = FileSystems.newFileSystem(URI.create("jar:" + forgeJar.toUri()), Collections.emptyMap());
+				FileSystem patchedFs = FileSystems.newFileSystem(URI.create("jar:" + patched.toUri()), Collections.singletonMap("create", "true")))
 			{
 				//Copy the contents of the mc-merged jar into the patched jar
 				Files.walkFileTree(mergedFs.getPath("/"), new SimpleFileVisitor<Path>() {
@@ -92,7 +91,7 @@ public class ForgePatchedProvider extends DependencyProvider {
 		}
 	}
 	
-	public File getPatchedJar() {
+	public Path getPatchedJar() {
 		return patched;
 	}
 }

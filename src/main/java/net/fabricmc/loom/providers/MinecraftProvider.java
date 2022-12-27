@@ -24,7 +24,6 @@
 
 package net.fabricmc.loom.providers;
 
-import com.google.common.io.Files;
 import com.google.gson.Gson;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.util.Checksum;
@@ -36,11 +35,11 @@ import org.gradle.api.GradleException;
 import org.gradle.api.Project;
 import org.gradle.api.logging.Logger;
 
-import java.io.File;
-import java.io.FileReader;
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.net.URL;
-import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -56,9 +55,9 @@ public class MinecraftProvider extends DependencyProvider {
 	private String minecraftVersion;
 	private String minecraftJarStuff;
 	private MinecraftVersionInfo versionInfo;
-	private File minecraftJson;
-	private File minecraftClientJar;
-	private File minecraftServerJar;
+	private Path minecraftJson;
+	private Path minecraftClientJar;
+	private Path minecraftServerJar;
 
 	@Override
 	public void decorateProject() throws Exception {
@@ -70,24 +69,24 @@ public class MinecraftProvider extends DependencyProvider {
 		minecraftJarStuff = minecraftDependency.getDependency().getVersion() + "-forge-" + forge.getVersion();
 		
 		//outputs (+versionInfo)
-		File userCache = WellKnownLocations.getUserCache(project);
-		minecraftJson = new File(userCache, "minecraft-" + minecraftVersion + "-info.json");
-		minecraftClientJar = new File(userCache, "minecraft-" + minecraftVersion + "-client.jar");
-		minecraftServerJar = new File(userCache, "minecraft-" + minecraftVersion + "-server.jar");
+		Path userCache = WellKnownLocations.getUserCache(project);
+		minecraftJson = userCache.resolve("minecraft-" + minecraftVersion + "-info.json");
+		minecraftClientJar = userCache.resolve("minecraft-" + minecraftVersion + "-client.jar");
+		minecraftServerJar = userCache.resolve("minecraft-" + minecraftVersion + "-server.jar");
 		
 		//execution
 		boolean offline = project.getGradle().getStartParameter().isOffline();
 		downloadMcJson(offline);
 
-		try(FileReader reader = new FileReader(minecraftJson)) {
+		try(BufferedReader reader = Files.newBufferedReader(minecraftJson)) {
 			versionInfo = new Gson().fromJson(reader, MinecraftVersionInfo.class);
 		}
 
 		if(offline) {
-			if(minecraftClientJar.exists() && minecraftServerJar.exists()) {
+			if(Files.exists(minecraftClientJar) && Files.exists(minecraftServerJar)) {
 				project.getLogger().debug("Found client and server jars, presuming up-to-date");
 			} else {
-				throw new GradleException("Missing jar(s); Client: " + minecraftClientJar.exists() + ", Server: " + minecraftServerJar.exists());
+				throw new GradleException("Missing jar(s); Client: " + Files.exists(minecraftClientJar) + ", Server: " + Files.exists(minecraftServerJar));
 			}
 		} else {
 			downloadJars(project.getLogger());
@@ -95,23 +94,25 @@ public class MinecraftProvider extends DependencyProvider {
 	}
 	
 	private void downloadMcJson(boolean offline) throws IOException {
-		File manifests = new File(WellKnownLocations.getUserCache(project), "version_manifest.json");
+		Path manifests = WellKnownLocations.getUserCache(project).resolve("version_manifest.json");
 
 		if (offline) {
-			if (manifests.exists()) {
+			if (Files.exists(manifests)) {
 				//If there is the manifests already we'll presume that's good enough
 				project.getLogger().debug("Found version manifests, presuming up-to-date");
 			} else {
 				//If we don't have the manifests then there's nothing more we can do
-				throw new GradleException("Version manifests not found at " + manifests.getAbsolutePath());
+				throw new GradleException("Version manifests not found at " + manifests.toAbsolutePath());
 			}
 		} else {
 			project.getLogger().debug("Downloading version manifests");
 			DownloadUtil.downloadIfChanged(new URL("https://launchermeta.mojang.com/mc/game/version_manifest.json"), manifests, project.getLogger());
 		}
 
-		String versionManifest = Files.asCharSource(manifests, StandardCharsets.UTF_8).read();
-		ManifestVersion mcManifest = new Gson().fromJson(versionManifest, ManifestVersion.class);
+		ManifestVersion mcManifest;
+		try(BufferedReader reader = Files.newBufferedReader(manifests)) {
+			mcManifest = new Gson().fromJson(reader, ManifestVersion.class);
+		}
 
 		Optional<ManifestVersion.Versions> optionalVersion = Optional.empty();
 		
@@ -129,15 +130,15 @@ public class MinecraftProvider extends DependencyProvider {
 
 		if (optionalVersion.isPresent()) {
 			if (offline) {
-				if (minecraftJson.exists()) {
+				if (Files.exists(minecraftJson)) {
 					//If there is the manifest already we'll presume that's good enough
 					project.getLogger().debug("Found Minecraft {} manifest, presuming up-to-date", minecraftVersion);
 				} else {
 					//If we don't have the manifests then there's nothing more we can do
-					throw new GradleException("Minecraft " + minecraftVersion + " manifest not found at " + minecraftJson.getAbsolutePath());
+					throw new GradleException("Minecraft " + minecraftVersion + " manifest not found at " + minecraftJson.toAbsolutePath());
 				}
 			} else {
-				if (!minecraftJson.exists()) {
+				if (Files.notExists(minecraftJson)) {
 					project.getLogger().debug("Downloading Minecraft {} manifest", minecraftVersion);
 					DownloadUtil.downloadIfChanged(new URL(optionalVersion.get().url), minecraftJson, project.getLogger());
 				}
@@ -148,22 +149,22 @@ public class MinecraftProvider extends DependencyProvider {
 	}
 
 	private void downloadJars(Logger logger) throws IOException {
-		if (!minecraftClientJar.exists() || (!Checksum.equals(minecraftClientJar, versionInfo.downloads.get("client").sha1))) {
+		if (Files.notExists(minecraftClientJar) || (!Checksum.equals(minecraftClientJar, versionInfo.downloads.get("client").sha1))) {
 			logger.debug("Downloading Minecraft {} client jar", minecraftVersion);
 			DownloadUtil.downloadIfChanged(new URL(versionInfo.downloads.get("client").url), minecraftClientJar, logger);
 		}
 		
-		if (!minecraftServerJar.exists() || (!Checksum.equals(minecraftServerJar, versionInfo.downloads.get("server").sha1))) {
+		if (Files.notExists(minecraftServerJar) || (!Checksum.equals(minecraftServerJar, versionInfo.downloads.get("server").sha1))) {
 			logger.debug("Downloading Minecraft {} server jar", minecraftVersion);
 			DownloadUtil.downloadIfChanged(new URL(versionInfo.downloads.get("server").url), minecraftServerJar, logger);
 		}
 	}
 	
-	public File getClientJar() {
+	public Path getClientJar() {
 		return minecraftClientJar;
 	}
 	
-	public File getServerJar() {
+	public Path getServerJar() {
 		return minecraftServerJar;
 	}
 

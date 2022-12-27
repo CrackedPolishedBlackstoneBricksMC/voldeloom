@@ -40,6 +40,7 @@ import org.zeroturnaround.zip.ZipUtil;
 
 import java.io.File;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -135,6 +136,7 @@ public abstract class DependencyProvider {
 			return sourceConfiguration.files(dependency);
 		}
 
+		@Deprecated
 		public Optional<File> resolveSingleFile() {
 			Set<File> files = resolve();
 
@@ -151,6 +153,23 @@ public abstract class DependencyProvider {
 				throw new RuntimeException(builder.toString());
 			} else {
 				return files.stream().findFirst();
+			}
+		}
+		
+		public Optional<Path> resolveSinglePath() {
+			Set<File> files = resolve();
+			
+			if (files.size() > 1) {
+				StringBuilder builder = new StringBuilder(this.toString());
+				builder.append(" resolves to more than one file:");
+				
+				for (File f : files) {
+					builder.append("\n\t-").append(f.getAbsolutePath());
+				}
+				
+				throw new RuntimeException(builder.toString());
+			} else {
+				return files.stream().findFirst().map(File::toPath);
 			}
 		}
 

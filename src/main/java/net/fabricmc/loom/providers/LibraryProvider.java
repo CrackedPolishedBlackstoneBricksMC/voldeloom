@@ -32,8 +32,9 @@ import net.fabricmc.loom.util.WellKnownLocations;
 import org.gradle.api.Project;
 import org.zeroturnaround.zip.ZipUtil;
 
-import java.io.File;
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -46,25 +47,25 @@ public class LibraryProvider extends DependencyProvider {
 	
 	private final MinecraftProvider mc;
 	
-	private final Collection<File> nonNativeLibs = new HashSet<>();
-	private File nativesDir;
+	private final Collection<Path> nonNativeLibs = new HashSet<>();
+	private Path nativesDir;
 	
 	@Override
 	public void decorateProject() throws Exception {
 		MinecraftVersionInfo versionInfo = mc.getVersionManifest();
 		
-		nativesDir = new File(WellKnownLocations.getUserCache(project), "natives/" + mc.getVersion());
-		File nativesJarStore = new File(nativesDir, "jars");
-		nativesJarStore.mkdirs();
+		nativesDir = WellKnownLocations.getUserCache(project).resolve("natives").resolve(mc.getVersion());
+		Path nativesJarStore = nativesDir.resolve("jars");
+		Files.createDirectories(nativesJarStore.getParent());
 		
 		for(MinecraftVersionInfo.Library library : versionInfo.libraries) {
 			if(!library.allowed()) continue;
 			
 			if(library.isNative()) {
-				File libJarFile = library.getFile(nativesJarStore);
+				Path libJarFile = library.getPath(nativesJarStore);
 				DownloadUtil.downloadIfChanged(new URL(library.getURL()), libJarFile, project.getLogger());
 				//TODO possibly find a way to prevent needing to re-extract after each run, doesnt seem too slow (original Loom comment)
-				ZipUtil.unpack(libJarFile, nativesDir);
+				ZipUtil.unpack(libJarFile.toFile(), nativesDir.toFile());
 			} else {
 				String depToAdd = library.getArtifactName();
 				
@@ -93,12 +94,12 @@ public class LibraryProvider extends DependencyProvider {
 
 	//TODO: Voldeloom had a bug where it didn't actually write anything to this collection lol
 	// Returning an empty collection here to maintain the buggy behavior. Later I will analyze the impact
-	public Collection<File> getNonNativeLibraries() {
+	public Collection<Path> getNonNativeLibraries() {
 		//return nonNativeLibs;
 		return Collections.emptyList();
 	}
 	
-	public File getNativesDir() {
+	public Path getNativesDir() {
 		return nativesDir;
 	}
 }

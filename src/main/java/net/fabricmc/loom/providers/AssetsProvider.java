@@ -35,9 +35,10 @@ import net.fabricmc.loom.util.WellKnownLocations;
 import org.gradle.api.GradleException;
 import org.gradle.api.Project;
 
-import java.io.File;
-import java.io.FileReader;
+import java.io.BufferedReader;
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 public class AssetsProvider extends DependencyProvider {
 	public AssetsProvider(Project project, LoomGradleExtension extension, MinecraftProvider mc) {
@@ -47,36 +48,36 @@ public class AssetsProvider extends DependencyProvider {
 	
 	private final MinecraftProvider mc;
 	
-	private File assetIndexFile;
-	private File thisVersionAssetsDir;
+	private Path assetIndexFile;
+	private Path thisVersionAssetsDir;
 	
 	@Override
 	public void decorateProject() throws Exception {
 		MinecraftVersionInfo versionInfo = mc.getVersionManifest();
 		MinecraftVersionInfo.AssetIndex assetIndexInfo = versionInfo.assetIndex;
 		
-		File globalAssetsCache = new File(WellKnownLocations.getUserCache(project), "assets");
+		Path globalAssetsCache = WellKnownLocations.getUserCache(project).resolve("assets");
 		
 		//outputs
-		assetIndexFile = new File(globalAssetsCache, "indexes" + File.separator + assetIndexInfo.getFabricId(mc.getVersion()) + ".json");
-		thisVersionAssetsDir = new File(new File(globalAssetsCache, "legacy"), mc.getVersion());
+		assetIndexFile = globalAssetsCache.resolve("indexes").resolve(assetIndexInfo.getFabricId(mc.getVersion()) + ".json");
+		thisVersionAssetsDir = globalAssetsCache.resolve("legacy").resolve(mc.getVersion());
 		
 		//tasks
 		
 		boolean offline = project.getGradle().getStartParameter().isOffline();
-		if (!assetIndexFile.exists() || !Checksum.equals(assetIndexFile, assetIndexInfo.sha1)) {
+		if (Files.notExists(assetIndexFile) || !Checksum.equals(assetIndexFile, assetIndexInfo.sha1)) {
 			project.getLogger().lifecycle(":downloading asset index");
 
 			if (offline) {
-				if (assetIndexFile.exists()) {
+				if (Files.exists(assetIndexFile)) {
 					//We know it's outdated but can't do anything about it, oh well
 					project.getLogger().warn("Asset index outdated");
 				} else {
 					//We don't know what assets we need, just that we don't have any
-					throw new GradleException("Asset index not found at " + assetIndexFile.getAbsolutePath());
+					throw new GradleException("Asset index not found at " + assetIndexFile.toAbsolutePath());
 				}
 			} else {
-				globalAssetsCache.mkdirs();
+				Files.createDirectories(globalAssetsCache);
 				DownloadUtil.downloadIfChanged(new URL(assetIndexInfo.url), assetIndexFile, project.getLogger());
 			}
 		}
@@ -84,11 +85,11 @@ public class AssetsProvider extends DependencyProvider {
 		//TODO: I removed all code relating to the modern assets system (that uses the objects/ folder)
 		//Btw, using this `legacy` folder just to get out of its way
 		
-		if(!thisVersionAssetsDir.exists()) {
+		if(Files.notExists(thisVersionAssetsDir)) {
 			project.getLogger().lifecycle(":downloading assets...");
 			
 			JsonObject assetJson;
-			try(FileReader in = new FileReader(assetIndexFile)) {
+			try(BufferedReader in = Files.newBufferedReader(assetIndexFile)) {
 				assetJson = new Gson().fromJson(in, JsonObject.class);
 			}
 			JsonObject objectsJson = assetJson.getAsJsonObject("objects");
@@ -99,13 +100,13 @@ public class AssetsProvider extends DependencyProvider {
 			int downloadedCount = 0, nextLogAssetCount = 0, logCount = 0;
 			
 			for(String filename : objectsJson.keySet()) {
-				File file = new File(thisVersionAssetsDir, filename);
-				if(!file.exists()) {
-					file.getParentFile().mkdirs();
+				Path destFile = thisVersionAssetsDir.resolve(filename);
+				if(Files.notExists(destFile)) {
+					Files.createDirectories(destFile.getParent());
 					
 					String sha1 = objectsJson.get(filename).getAsJsonObject().get("hash").getAsString();
 					String shsha1 = sha1.substring(0, 2) + '/' + sha1;
-					DownloadUtil.downloadIfChanged(new URL(Constants.RESOURCES_BASE + shsha1), file, project.getLogger(), true);
+					DownloadUtil.downloadIfChanged(new URL(Constants.RESOURCES_BASE + shsha1), destFile, project.getLogger(), true);
 					
 					//just logging for fun
 					downloadedCount++;
@@ -120,11 +121,11 @@ public class AssetsProvider extends DependencyProvider {
 		}
 	}
 	
-	public File getAssetIndexFile() {
+	public Path getAssetIndexFile() {
 		return assetIndexFile;
 	}
 	
-	public File getAssetsDir() {
+	public Path getAssetsDir() {
 		return thisVersionAssetsDir;
 	}
 }

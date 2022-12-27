@@ -56,6 +56,7 @@ public class RunConfig {
 	public String programArgs = "";
 	
 	//TODO fold these in to run configs and stuff too, i had to hack these on because i Suck at Gradle
+	// Also need to be careful wrt. escaping and stuff
 	public Map<String, String> systemProperties = new HashMap<>();
 
 	public Element genRuns(Element doc) throws IOException, ParserConfigurationException, TransformerException {
@@ -109,8 +110,8 @@ public class RunConfig {
 				
 				//Loom's LaunchProvider sets these too, but launchprovider works with dev-launch-injector concepts, i don't use dli at the moment
 				runConfig.systemProperties.put("minecraft.applet.TargetDirectory", project.getRootDir().toPath().resolve("run").toAbsolutePath().toString());
-				runConfig.systemProperties.put("java.library.path", libraryProvider.getNativesDir().getAbsolutePath());
-				runConfig.systemProperties.put("org.lwjgl.librarypath", libraryProvider.getNativesDir().getAbsolutePath());
+				runConfig.systemProperties.put("java.library.path", libraryProvider.getNativesDir().toAbsolutePath().toString());
+				runConfig.systemProperties.put("org.lwjgl.librarypath", libraryProvider.getNativesDir().toAbsolutePath().toString());
 				if(mode.equals("client")) {
 					//the fml relauncher always takes arg 0 as player name and arg 1 as session key (or -), see Minecraft#fmlReentry
 					runConfig.programArgs = "Player - ";
@@ -125,11 +126,11 @@ public class RunConfig {
 				runConfig.programArgs += "PlayerName -";
 				runConfig.programArgs += " --tweakClass net.minecraft.launchwrapper.VanillaTweaker";
 				runConfig.programArgs += " --assetIndex " + minecraftProvider.getVersionManifest().assetIndex.getFabricId(minecraftProvider.getVersion());
-				runConfig.programArgs += " --assetsDir " + encodeEscaped(new File(WellKnownLocations.getUserCache(project), "assets").getAbsolutePath());
+				runConfig.programArgs += " --assetsDir " + encodeEscaped(WellKnownLocations.getUserCache(project).resolve("assets").toAbsolutePath().toString());
 				runConfig.programArgs += " --gameDir " + project.getRootDir().toPath().resolve("run").toAbsolutePath();
 				runConfig.systemProperties.put("minecraft.applet.TargetDirectory", project.getRootDir().toPath().resolve("run").toAbsolutePath().toString());
-				runConfig.systemProperties.put("java.library.path", libraryProvider.getNativesDir().getAbsolutePath());
-				runConfig.systemProperties.put("org.lwjgl.librarypath", libraryProvider.getNativesDir().getAbsolutePath());
+				runConfig.systemProperties.put("java.library.path", libraryProvider.getNativesDir().toAbsolutePath().toString());
+				runConfig.systemProperties.put("org.lwjgl.librarypath", libraryProvider.getNativesDir().toAbsolutePath().toString());
 				break;
 				//Below is old shit from loom
 			case "launchwrapper":

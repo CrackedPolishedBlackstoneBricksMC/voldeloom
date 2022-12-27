@@ -35,7 +35,7 @@ public class ShimResourcesTask extends DefaultTask implements LoomTaskExt {
 		LoomGradleExtension ext = getLoomGradleExtension();
 		AssetsProvider assets = ext.getDependencyManager().getAssetsProvider();
 		
-		Path resourceSourceDirectory = assets.getAssetsDir().toPath();
+		Path resourceSourceDirectory = assets.getAssetsDir();
 		Path resourceTargetDirectory = getResourceTargetDirectory();
 		
 		Files.walkFileTree(resourceSourceDirectory, new SimpleFileVisitor<Path>() {

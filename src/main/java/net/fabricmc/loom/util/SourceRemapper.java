@@ -77,8 +77,8 @@ public class SourceRemapper {
 				}
 			}
 			
-			m.getClassPath().add(extension.getDependencyManager().getMappedProvider().getMappedJar().toPath());
-			m.getClassPath().add(extension.getDependencyManager().getMappedProvider().getIntermediaryJar().toPath());
+			m.getClassPath().add(extension.getDependencyManager().getMappedProvider().getMappedJar());
+			m.getClassPath().add(extension.getDependencyManager().getMappedProvider().getIntermediaryJar());
 
 			m.getProcessors().add(MercuryRemapper.create(mappings));
 

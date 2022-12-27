@@ -25,15 +25,14 @@
 package net.fabricmc.loom;
 
 import groovy.util.Node;
-import net.fabricmc.loom.task.ShimForgeClientLibraries;
-import net.fabricmc.loom.providers.ForgeProvider;
-import net.fabricmc.loom.providers.DevLaunchInjectorProvider;
-import net.fabricmc.loom.providers.MappingsProvider;
 import net.fabricmc.loom.providers.AssetsProvider;
-import net.fabricmc.loom.providers.MappedProvider;
+import net.fabricmc.loom.providers.DevLaunchInjectorProvider;
 import net.fabricmc.loom.providers.ForgePatchedAccessTxdProvider;
 import net.fabricmc.loom.providers.ForgePatchedProvider;
+import net.fabricmc.loom.providers.ForgeProvider;
 import net.fabricmc.loom.providers.LibraryProvider;
+import net.fabricmc.loom.providers.MappedProvider;
+import net.fabricmc.loom.providers.MappingsProvider;
 import net.fabricmc.loom.providers.MergedProvider;
 import net.fabricmc.loom.providers.MinecraftProvider;
 import net.fabricmc.loom.task.AbstractDecompileTask;
@@ -48,6 +47,7 @@ import net.fabricmc.loom.task.RemapLineNumbersTask;
 import net.fabricmc.loom.task.RemapSourcesJarTask;
 import net.fabricmc.loom.task.RunClientTask;
 import net.fabricmc.loom.task.RunServerTask;
+import net.fabricmc.loom.task.ShimForgeClientLibraries;
 import net.fabricmc.loom.task.ShimResourcesTask;
 import net.fabricmc.loom.task.fernflower.FernFlowerTask;
 import net.fabricmc.loom.util.Constants;
@@ -70,10 +70,10 @@ import org.gradle.api.tasks.TaskContainer;
 import org.gradle.api.tasks.bundling.AbstractArchiveTask;
 import org.gradle.plugins.ide.idea.model.IdeaModel;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -308,10 +308,10 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		RemapLineNumbersTask genSourcesRemapLineNumbersTask = (RemapLineNumbersTask) project.getTasks().getByName("genSourcesRemapLineNumbers");
 		Task genSourcesTask = project.getTasks().getByName("genSources");
 		
-		File mappedJar = mapped.getMappedJar();
-		File linemappedJar = getMappedByproduct(extension, "-linemapped.jar");
-		File sourcesJar = getMappedByproduct(extension, "-sources.jar");
-		File linemapFile = getMappedByproduct(extension, "-sources.lmap");
+		Path mappedJar = mapped.getMappedJar();
+		Path linemappedJar = getMappedByproduct(extension, "-linemapped.jar");
+		Path sourcesJar = getMappedByproduct(extension, "-sources.jar");
+		Path linemapFile = getMappedByproduct(extension, "-sources.lmap");
 		
 		genSourcesDecompileTask.setInput(mappedJar);
 		genSourcesDecompileTask.setOutput(sourcesJar);
@@ -322,15 +322,12 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		genSourcesRemapLineNumbersTask.setLineMapFile(linemapFile);
 		genSourcesRemapLineNumbersTask.setOutput(linemappedJar);
 		
-		Path mappedJarPath = mappedJar.toPath();
-		Path linemappedJarPath = linemappedJar.toPath();
-		
 		//TODO(VOLDELOOM-DISASTER): is there a reason the mapped jar is moved into place in a roundabout way? Cachebusting?
 		genSourcesTask.doLast((tt) -> {
-			if(Files.exists(linemappedJarPath)) {
+			if(Files.exists(linemappedJar)) {
 				try {
-					project.delete(mappedJarPath);
-					Files.copy(linemappedJarPath, mappedJarPath);
+					project.delete(mappedJar);
+					Files.copy(linemappedJar, mappedJar);
 				} catch (IOException e) {
 					throw new RuntimeException(e);
 				}
@@ -425,9 +422,9 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		return Boolean.parseBoolean(System.getProperty("idea.sync.active", "false"));
 	}
 	
-	public static File getMappedByproduct(LoomGradleExtension extension, String suffix) {
-		String path = extension.getDependencyManager().getMappedProvider().getMappedJar().getAbsolutePath();
-		if (!path.toLowerCase(Locale.ROOT).endsWith(".jar")) throw new RuntimeException("Invalid mapped JAR path: " + path);
-		else return new File(path.substring(0, path.length() - 4) + suffix);
+	public static Path getMappedByproduct(LoomGradleExtension extension, String suffix) {
+		String pathStringified = extension.getDependencyManager().getMappedProvider().getMappedJar().toAbsolutePath().toString();
+		if (!pathStringified.toLowerCase(Locale.ROOT).endsWith(".jar")) throw new RuntimeException("Invalid mapped JAR path: " + pathStringified);
+		else return Paths.get(pathStringified.substring(0, pathStringified.length() - 4) + suffix);
 	}
 }

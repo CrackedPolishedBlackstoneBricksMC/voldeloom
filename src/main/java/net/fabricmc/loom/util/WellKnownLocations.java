@@ -3,6 +3,9 @@ package net.fabricmc.loom.util;
 import org.gradle.api.Project;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 /**
  * Various file paths that are used throughout the plugin.
@@ -11,9 +14,15 @@ import java.io.File;
  */
 @SuppressWarnings("ResultOfMethodCallIgnored") //mkdirs TODO migrate to Path
 public class WellKnownLocations {
-	public static File getUserCache(Project project) {
-		File userCache = new File(project.getGradle().getGradleUserHomeDir(), "caches" + File.separator + "fabric-loom");
-		if (!userCache.exists()) userCache.mkdirs();
+	public static Path getUserCache(Project project) {
+		Path userCache = project.getGradle().getGradleUserHomeDir().toPath().resolve("caches").resolve("fabric-loom");
+		
+		try {
+			Files.createDirectories(userCache);
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+		
 		return userCache;
 	}
 	

@@ -26,12 +26,12 @@ package net.fabricmc.loom.providers;
 
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.LoomGradlePlugin;
+import net.fabricmc.loom.util.Constants;
+import net.fabricmc.loom.util.WellKnownLocations;
 import net.fabricmc.loom.util.mcp.AcceptorProvider;
 import net.fabricmc.loom.util.mcp.CsvApplierAcceptor;
 import net.fabricmc.loom.util.mcp.SrgMappingProvider;
 import net.fabricmc.loom.util.mcp.TinyWriter3Column;
-import net.fabricmc.loom.util.Constants;
-import net.fabricmc.loom.util.WellKnownLocations;
 import net.fabricmc.mapping.tree.TinyMappingFactory;
 import net.fabricmc.mapping.tree.TinyTree;
 import net.fabricmc.stitch.util.Pair;
@@ -42,9 +42,7 @@ import org.zeroturnaround.zip.FileSource;
 import org.zeroturnaround.zip.ZipEntrySource;
 import org.zeroturnaround.zip.ZipUtil;
 
-import java.io.BufferedOutputStream;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.OutputStream;
 import java.net.URI;
 import java.nio.file.FileSystem;
@@ -70,9 +68,8 @@ public class MappingsProvider extends DependencyProvider {
 	public String mappingsVersion;
 
 	private Path mappingsDir;
-
-	public File tinyMappings;
-	public File tinyMappingsJar;
+	public Path tinyMappings;
+	public Path tinyMappingsJar;
 	
 	private TinyTree parsedMappings;
 
@@ -99,8 +96,9 @@ public class MappingsProvider extends DependencyProvider {
 		this.minecraftVersion = mc.getJarStuff();
 		this.mappingsVersion = version;
 		
-		this.mappingsDir = WellKnownLocations.getUserCache(project).toPath().resolve("mappings");
-
+		this.mappingsDir = WellKnownLocations.getUserCache(project).resolve("mappings");
+		Files.createDirectories(mappingsDir);
+		
 		String[] depStringSplit = mappingsDependency.getDepString().split(":");
 		String jarClassifier = "final";
 
@@ -108,10 +106,11 @@ public class MappingsProvider extends DependencyProvider {
 			jarClassifier = jarClassifier + depStringSplit[3];
 		}
 
-		tinyMappings = mappingsDir.resolve(StringUtils.removeSuffix(mappingsJar.getName(), ".jar") + ".tiny").toFile();
-		tinyMappingsJar = new File(WellKnownLocations.getUserCache(project), mappingsJar.getName().replace(".jar", "-" + jarClassifier + ".jar"));
+		//TODO: this naming scheme is broken when the file doesn't end with .jar, like the mcp zip doesn't
+		tinyMappings = mappingsDir.resolve(StringUtils.removeSuffix(mappingsJar.getName(), ".jar") + ".tiny");
+		tinyMappingsJar = WellKnownLocations.getUserCache(project).resolve(mappingsJar.getName().replace(".jar", "-" + jarClassifier + ".jar"));
 		
-		if (!tinyMappings.exists()) {
+		if (Files.notExists(tinyMappings)) {
 			long filesize;
 			try {
 				filesize = Files.size(mappingsJar.toPath());
@@ -141,20 +140,19 @@ public class MappingsProvider extends DependencyProvider {
 				MappingAcceptor fieldMapper = new CsvApplierAcceptor(writer, mcpZipFs.getPath("conf", "fields.csv"), CsvApplierAcceptor.GENERIC_IN, CsvApplierAcceptor.GENERIC_OUT);
 				MappingAcceptor methodMapper = new CsvApplierAcceptor(fieldMapper, mcpZipFs.getPath("conf", "methods.csv"), CsvApplierAcceptor.GENERIC_IN, CsvApplierAcceptor.GENERIC_OUT);
 				packaged.load(methodMapper);
-				mappingsDir.toFile().mkdirs();
-				tinyMappings.createNewFile();
-				try(OutputStream out = new BufferedOutputStream(new FileOutputStream(tinyMappings))) {
+				
+				try(OutputStream out = Files.newOutputStream(tinyMappings)) {
 					writer.write(out);
 				}
 			}
 		}
 		
-		if (!tinyMappingsJar.exists()) {
-			ZipUtil.pack(new ZipEntrySource[] {new FileSource("mappings/mappings.tiny", tinyMappings)}, tinyMappingsJar);
+		if (Files.notExists(tinyMappingsJar)) {
+			ZipUtil.pack(new ZipEntrySource[] {new FileSource("mappings/mappings.tiny", tinyMappings.toFile())}, tinyMappingsJar.toFile());
 		}
 		
 		//make them available for other tasks TODO move
-		parsedMappings = TinyMappingFactory.loadWithDetection(Files.newBufferedReader(tinyMappings.toPath()));
+		parsedMappings = TinyMappingFactory.loadWithDetection(Files.newBufferedReader(tinyMappings));
 		
 		//add it as a project dependency TODO move
 		project.getDependencies().add(Constants.MAPPINGS_FINAL, project.files(tinyMappingsJar));

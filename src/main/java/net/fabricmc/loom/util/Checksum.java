@@ -24,22 +24,26 @@
 
 package net.fabricmc.loom.util;
 
-import java.io.File;
-import java.io.IOException;
-
 import com.google.common.hash.HashCode;
 import com.google.common.hash.Hashing;
 import com.google.common.io.Files;
 import org.gradle.api.logging.Logger;
 import org.gradle.api.logging.Logging;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Path;
+
 public class Checksum {
 	private static final Logger log = Logging.getLogger(Checksum.class);
 
-	public static boolean equals(File file, String checksum) {
-		if (file == null) {
+	public static boolean equals(Path path, String checksum) {
+		if (path == null) {
 			return false;
 		}
+		
+		//TODO(VOLDELOOM-DISASTER) migrate to Path
+		File file = path.toFile();
 
 		try {
 			//noinspection deprecation

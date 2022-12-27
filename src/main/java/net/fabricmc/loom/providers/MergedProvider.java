@@ -12,7 +12,6 @@ import org.objectweb.asm.FieldVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
-import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.file.FileSystem;
@@ -32,27 +31,27 @@ public class MergedProvider extends DependencyProvider {
 	
 	private final MinecraftProvider mc;
 	
-	private File mergedUnfixed;
-	private File merged;
+	private Path mergedUnfixed;
+	private Path merged;
 	
 	@Override
 	public void decorateProject() throws Exception {
 		//inputs
-		File client = mc.getClientJar();
-		File server = mc.getServerJar();
+		Path client = mc.getClientJar();
+		Path server = mc.getServerJar();
 		String version = mc.getVersion();
 		
 		//outputs
-		File userCache = WellKnownLocations.getUserCache(project);
-		merged = new File(userCache, "minecraft-" + version + "-merged.jar");
-		mergedUnfixed = new File(userCache, "minecraft-" + version + "-merged-unfixed.jar");
+		Path userCache = WellKnownLocations.getUserCache(project);
+		merged = userCache.resolve("minecraft-" + version + "-merged.jar");
+		mergedUnfixed = userCache.resolve("minecraft-" + version + "-merged-unfixed.jar");
 		
 		//execution
 		project.getLogger().lifecycle("] merged-unfixed jar is at: " + mergedUnfixed);
-		if(!mergedUnfixed.exists()) {
+		if(Files.notExists(mergedUnfixed)) {
 			project.getLogger().lifecycle("|-> Does not exist, performing merge...");
 			
-			try(JarMerger jm = new JarMerger(client, server, mergedUnfixed)) {
+			try(JarMerger jm = new JarMerger(client.toFile(), server.toFile(), mergedUnfixed.toFile())) {
 				jm.enableSyntheticParamsOffset();
 				jm.merge();
 			}
@@ -61,11 +60,11 @@ public class MergedProvider extends DependencyProvider {
 		}
 		
 		project.getLogger().lifecycle("] merged-fixed jar is at: " + merged);
-		if(!merged.exists()) {
+		if(Files.notExists(merged)) {
 			project.getLogger().lifecycle("|-> Does not exist, performing annotation remap...");
 			
-			try(FileSystem unfixedFs = FileSystems.newFileSystem(URI.create("jar:" + mergedUnfixed.toURI()), Collections.emptyMap());
-			    FileSystem fixedFs = FileSystems.newFileSystem(URI.create("jar:" + merged.toURI()), Collections.singletonMap("create", "true")))
+			try(FileSystem unfixedFs = FileSystems.newFileSystem(URI.create("jar:" + mergedUnfixed.toUri()), Collections.emptyMap());
+			    FileSystem fixedFs = FileSystems.newFileSystem(URI.create("jar:" + merged.toUri()), Collections.singletonMap("create", "true")))
 			{
 				Files.walkFileTree(unfixedFs.getPath("/"), new SimpleFileVisitor<Path>() {
 					@Override
@@ -96,7 +95,7 @@ public class MergedProvider extends DependencyProvider {
 		}
 	}
 	
-	public File getMergedJar() {
+	public Path getMergedJar() {
 		return merged;
 	}
 	

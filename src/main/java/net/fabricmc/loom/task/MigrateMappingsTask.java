@@ -159,8 +159,8 @@ public class MigrateMappingsTask extends DefaultTask implements LoomTaskExt {
 		project.getLogger().lifecycle(":remapping");
 		Mercury mercury = SourceRemapper.createMercuryWithClassPath(project, false);
 
-		mercury.getClassPath().add(mappedProvider.getMappedJar().toPath());
-		mercury.getClassPath().add(mappedProvider.getIntermediaryJar().toPath());
+		mercury.getClassPath().add(mappedProvider.getMappedJar());
+		mercury.getClassPath().add(mappedProvider.getIntermediaryJar());
 
 		mercury.getProcessors().add(MercuryRemapper.create(mappingSet));
 
