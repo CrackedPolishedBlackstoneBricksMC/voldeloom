@@ -24,56 +24,79 @@
 
 package net.fabricmc.loom.providers;
 
+import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.util.Constants;
+import net.fabricmc.loom.util.DownloadUtil;
 import net.fabricmc.loom.util.MinecraftVersionInfo;
 import net.fabricmc.loom.util.WellKnownLocations;
 import org.gradle.api.Project;
+import org.zeroturnaround.zip.ZipUtil;
 
 import java.io.File;
-import java.io.IOException;
+import java.net.URL;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 
-public class MinecraftLibraryProvider {
-	//TODO: Never written to...!
-	private final Collection<File> libs = new HashSet<>();
-
-	public void provide(MinecraftProvider minecraftProvider, Project project) throws IOException {
-		MinecraftVersionInfo versionInfo = minecraftProvider.getVersionInfo();
+public class MinecraftLibraryProvider extends DependencyProvider {
+	public MinecraftLibraryProvider(Project project, LoomGradleExtension extension) {
+		super(project, extension);
+	}
+	
+	private final Collection<File> nonNativeLibs = new HashSet<>();
+	private File nativesDir;
+	
+	@Override
+	public void decorateProject() throws Exception {
+		MinecraftProvider mcProvider = extension.getDependencyManager().getMinecraftProvider();
+		MinecraftVersionInfo versionInfo = mcProvider.getVersionInfo();
 		
-		File minecraftLibs = new File(WellKnownLocations.getUserCache(project), "libraries");
+		nativesDir = new File(WellKnownLocations.getUserCache(project), "natives/" + mcProvider.getMinecraftVersion());
+		
+		File jarStore = WellKnownLocations.getNativesJarStore(project);
 		
 		for(MinecraftVersionInfo.Library library : versionInfo.libraries) {
-			if(library.allowed() && !library.isNative() && library.getFile(minecraftLibs) != null) {
-				String depToAdd;
-				if(library.getArtifactName().equals("net.minecraft:launchwrapper:1.5")) {
-					//Substitute the version of Launchwrapper for the latest version (as of dec 24 2022).
-					//This version contains support for --assetIndex parameters, while still being compatible
-					//with source level 6.
-					//project.getLogger().lifecycle("<!> Substituting in Launchwrapper 1.12 instead of 1.5");
-					//depToAdd = "net.minecraft:launchwrapper:1.12";
-					
-					//Nope don't actually do that, it's dep hell (including Log4j dep hell), needs asm 5 but forge needs asm 4
-					//Might be drop-in substitutible but i'll have to check. For now I'll skip Launchwrapper entirely.
-					continue;
-				} else {
-					depToAdd = library.getArtifactName();
-				}
-
+			if(!library.allowed()) continue;
+			
+			if(library.isNative()) {
+				File libJarFile = library.getFile(jarStore);
+				DownloadUtil.downloadIfChanged(new URL(library.getURL()), libJarFile, project.getLogger());
+				//TODO possibly find a way to prevent needing to re-extract after each run, doesnt seem too slow (original Loom comment)
+				ZipUtil.unpack(libJarFile, nativesDir);
+			} else {
+				String depToAdd = library.getArtifactName();
+				
+				//TODO: Launchwrapper is not used with the `direct` launch method, which is intended to be the voldeloom default.
+				// If a launchwrapper-based launch method is used, note that lw requires ASM 4 to be on the classpath.
+				// (I might be able to get away with using the same version Forge requests, but I'm currently allowing
+				//  Forge to load its own libraries instead of trying to shove them on the classpath myself.)
+				// I'm currently not using lw because the version requested for 1.4 does not support --assetIndex
+				// with the stock tweaker, which means bothering with lw does not provide much of a value-add.
+				// It might also be possible to update LW to version 1.12 (which has targetCompatibility 6), but that
+				// requires ASM 5 to run.
+//				if(library.getArtifactName().equals("net.minecraft:launchwrapper:1.5")) {
+//					continue;
+//				} else {
+//					depToAdd = library.getArtifactName();
+//				}
+				
+				//It appears downloading the library manually is not necessary, since the minecraft info .json
+				//gives maven coordinates which Gradle can resolve the usual way off of mojang's maven
+				
+				//TODO move "physically depending on things" out
 				project.getDependencies().add(Constants.MINECRAFT_DEPENDENCIES, depToAdd);
 			}
 		}
-		
-		// voldeloom: add loader's dependencies. versions this old simply do not depend on these.
-		//(VOLDELOOM-DISASTER) don't actually; i think whoever wrote that was referring to fabric loader, gson 2.8.6 came out in 2019
-		//maybe they were doing some kind of fabric-on-forge thing? :pausefrogeline:
-		//project.getDependencies().add(GradleSupport.runtimeOrRuntimeOnly, project.getDependencies().module("org.apache.logging.log4j:log4j-core:2.8.1"));
-		//project.getDependencies().add(GradleSupport.runtimeOrRuntimeOnly, project.getDependencies().module("org.apache.logging.log4j:log4j-api:2.8.1"));
-		//project.getDependencies().add(GradleSupport.runtimeOrRuntimeOnly, project.getDependencies().module("com.google.code.gson:gson:2.8.6"));
-		//project.getDependencies().add(GradleSupport.runtimeOrRuntimeOnly, project.getDependencies().module("com.google.guava:guava:28.0-jre"));
 	}
 
-	public Collection<File> getLibraries() {
-		return libs;
+	//TODO: Voldeloom had a bug where it didn't actually write anything to this collection lol
+	// Returning an empty collection here to maintain the buggy behavior. Later I will analyze the impact
+	public Collection<File> getNonNativeLibraries() {
+		//return nonNativeLibs;
+		return Collections.emptyList();
+	}
+	
+	public File getNativesDir() {
+		return nativesDir;
 	}
 }

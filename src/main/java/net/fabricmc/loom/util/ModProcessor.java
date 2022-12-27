@@ -138,13 +138,13 @@ public class ModProcessor {
 		String fromM = "intermediary";
 		String toM = "named";
 		
-		MinecraftLibraryProvider libraryProvider = extension.getDependencyManager().getMinecraftProvider().getLibraryProvider(); //TODO
+		MinecraftLibraryProvider libraryProvider = extension.getDependencyManager().getMinecraftLibraryProvider();
 		MinecraftForgeMappedProvider mappedProvider = extension.getDependencyManager().getMinecraftForgeMappedProvider();
 		MappingsProvider mappingsProvider = extension.getDependencyManager().getMappingsProvider();
 
 		Path inputPath = input.getAbsoluteFile().toPath();
 		Path mc = mappedProvider.getIntermediaryJar().toPath();
-		Path[] mcDeps = libraryProvider.getLibraries().stream().map(File::toPath).toArray(Path[]::new);
+		Path[] mcDeps = libraryProvider.getNonNativeLibraries().stream().map(File::toPath).toArray(Path[]::new);
 		Set<Path> modCompiles = new HashSet<>();
 
 		for (RemappedConfigurationEntry entry : Constants.MOD_COMPILE_ENTRIES) {

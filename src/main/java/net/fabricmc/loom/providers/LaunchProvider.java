@@ -42,21 +42,26 @@ public class LaunchProvider extends DependencyProvider {
 	public LaunchProvider(Project project, LoomGradleExtension extension) {
 		super(project, extension);
 	}
+	
+	private final File devLauncherConfigFile = WellKnownLocations.getDevLauncherConfig(project);
 
 	@Override
 	public void decorateProject() throws IOException {
+		MinecraftProvider mcProvider = extension.getDependencyManager().getMinecraftProvider();
+		MinecraftLibraryProvider libProvider = extension.getDependencyManager().getMinecraftLibraryProvider();
+		
 		final LaunchConfig launchConfig = new LaunchConfig()
 				.property("fabric.development", "true")
 
-				.property("client", "java.library.path", extension.getDependencyManager().getMinecraftProvider().getNativesDirectory().getAbsolutePath())
-				.property("client", "org.lwjgl.librarypath", extension.getDependencyManager().getMinecraftProvider().getNativesDirectory().getAbsolutePath())
+				.property("client", "java.library.path", libProvider.getNativesDir().getAbsolutePath())
+				.property("client", "org.lwjgl.librarypath", libProvider.getNativesDir().getAbsolutePath())
 
 				.argument("client", "--assetIndex")
-				.argument("client", extension.getDependencyManager().getMinecraftProvider().getVersionInfo().assetIndex.getFabricId(extension.getDependencyManager().getMinecraftProvider().getMinecraftVersion()))
+				.argument("client", mcProvider.getVersionInfo().assetIndex.getFabricId(mcProvider.getMinecraftVersion()))
 				.argument("client", "--assetsDir")
 				.argument("client", new File(WellKnownLocations.getUserCache(project), "assets").getAbsolutePath());
 		
-		FileUtils.writeStringToFile(WellKnownLocations.getDevLauncherConfig(project), launchConfig.asString(), StandardCharsets.UTF_8);
+		FileUtils.writeStringToFile(devLauncherConfigFile, launchConfig.asString(), StandardCharsets.UTF_8);
 
 		//addDependency("net.fabricmc:dev-launch-injector:" + Constants.DEV_LAUNCH_INJECTOR_VERSION, "runtimeOnly");
 	}

@@ -26,8 +26,6 @@ package net.fabricmc.loom.util;
 
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.LoomGradlePlugin;
-import net.fabricmc.loom.providers.MinecraftAssetsProvider;
-import net.fabricmc.loom.providers.MinecraftNativesProvider;
 import org.apache.commons.io.FileUtils;
 import org.gradle.api.Project;
 
@@ -57,10 +55,10 @@ public class SetupIntelijRunConfigs {
 	}
 
 	private static void generate(Project project, LoomGradleExtension extension) throws IOException {
+		//Ensures the assets are downloaded when idea is syncing a project
 		if (LoomGradlePlugin.ideaSync()) {
-			//Ensures the assets are downloaded when idea is syncing a project
-			MinecraftAssetsProvider.provide(project, extension);
-			MinecraftNativesProvider.provide(project, extension);
+			//TODO: old code ensures assets, libs, and natives were downloaded, but when they are converted to tasks,
+			// I can instead make whatever task generates the run config depend on that task
 		}
 
 		File projectDir = project.file(".idea");

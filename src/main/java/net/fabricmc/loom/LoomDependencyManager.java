@@ -27,9 +27,11 @@ package net.fabricmc.loom;
 import net.fabricmc.loom.providers.ForgeProvider;
 import net.fabricmc.loom.providers.LaunchProvider;
 import net.fabricmc.loom.providers.MappingsProvider;
+import net.fabricmc.loom.providers.MinecraftAssetsProvider;
 import net.fabricmc.loom.providers.MinecraftForgeMappedProvider;
 import net.fabricmc.loom.providers.MinecraftForgePatchedAccessTransformedProvider;
 import net.fabricmc.loom.providers.MinecraftForgePatchedProvider;
+import net.fabricmc.loom.providers.MinecraftLibraryProvider;
 import net.fabricmc.loom.providers.MinecraftMergedProvider;
 import net.fabricmc.loom.providers.MinecraftProvider;
 
@@ -45,6 +47,8 @@ public class LoomDependencyManager {
 	
 	private ForgeProvider forgeProvider;
 	private MinecraftProvider minecraftProvider;
+	private MinecraftAssetsProvider minecraftAssetsProvider;
+	private MinecraftLibraryProvider minecraftLibraryProvider;
 	private MinecraftMergedProvider minecraftMergedProvider;
 	private MinecraftForgePatchedProvider minecraftForgePatchedProvider;
 	private MinecraftForgePatchedAccessTransformedProvider longName;
@@ -61,6 +65,18 @@ public class LoomDependencyManager {
 	public LoomDependencyManager installMinecraftProvider(MinecraftProvider minecraftProvider) {
 		this.minecraftProvider = minecraftProvider;
 		minecraftProvider.decorateProjectOrThrow();
+		return this;
+	}
+	
+	public LoomDependencyManager installMinecraftAssetsProvider(MinecraftAssetsProvider minecraftAssetsProvider) {
+		this.minecraftAssetsProvider = minecraftAssetsProvider;
+		minecraftAssetsProvider.decorateProjectOrThrow();
+		return this;
+	}
+	
+	public LoomDependencyManager installMinecraftLibraryProvider(MinecraftLibraryProvider minecraftLibraryProvider) {
+		this.minecraftLibraryProvider = minecraftLibraryProvider;
+		minecraftLibraryProvider.decorateProjectOrThrow();
 		return this;
 	}
 	
@@ -108,6 +124,16 @@ public class LoomDependencyManager {
 	public MinecraftProvider getMinecraftProvider() {
 		if(minecraftProvider == null) throw new IllegalStateException("minecraftProvider hasn't been installed yet!");
 		else return minecraftProvider;
+	}
+	
+	public MinecraftAssetsProvider getMinecraftAssetsProvider() {
+		if(minecraftAssetsProvider == null) throw new IllegalStateException("minecraftAssetsProvider hasn't been installed yet!");
+		return minecraftAssetsProvider;
+	}
+	
+	public MinecraftLibraryProvider getMinecraftLibraryProvider() {
+		if(minecraftLibraryProvider == null) throw new IllegalStateException("minecraftLibraryProvider hasn't been installed yet!");
+		else return minecraftLibraryProvider;
 	}
 	
 	public MinecraftMergedProvider getMinecraftMergedProvider() {

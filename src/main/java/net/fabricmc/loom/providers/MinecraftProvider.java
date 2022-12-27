@@ -51,13 +51,10 @@ public class MinecraftProvider extends DependencyProvider {
 	private String minecraftJarStuff;
 
 	private MinecraftVersionInfo versionInfo;
-	private MinecraftLibraryProvider libraryProvider;
 
 	private File minecraftJson;
 	private File minecraftClientJar;
 	private File minecraftServerJar;
-
-	Gson gson = new Gson();
 
 	public MinecraftProvider(Project project, LoomGradleExtension extension) {
 		super(project, extension);
@@ -84,26 +81,18 @@ public class MinecraftProvider extends DependencyProvider {
 		downloadMcJson(offline);
 
 		try(FileReader reader = new FileReader(minecraftJson)) {
-			versionInfo = gson.fromJson(reader, MinecraftVersionInfo.class);
+			versionInfo = new Gson().fromJson(reader, MinecraftVersionInfo.class);
 		}
 
 		if(offline) {
 			if(minecraftClientJar.exists() && minecraftServerJar.exists()) {
 				project.getLogger().debug("Found client and server jars, presuming up-to-date");
-			} else if(new File(userCache, "minecraft-" + minecraftVersion + "-merged.jar").exists()) {
-				//(Cheating a bit by predicting the output filename of MinecraftMergedProvider.)
-				//Strictly we don't need the split jars if the merged one exists, let's try go on
-				project.getLogger().warn("Missing a game jar but merged jar present, things might end badly");
 			} else {
 				throw new GradleException("Missing jar(s); Client: " + minecraftClientJar.exists() + ", Server: " + minecraftServerJar.exists());
 			}
 		} else {
 			downloadJars(project.getLogger());
 		}
-
-		//TODO move up
-		libraryProvider = new MinecraftLibraryProvider();
-		libraryProvider.provide(this, project);
 	}
 	
 	private void downloadMcJson(boolean offline) throws IOException {
@@ -189,17 +178,5 @@ public class MinecraftProvider extends DependencyProvider {
 
 	public MinecraftVersionInfo getVersionInfo() {
 		return versionInfo;
-	}
-
-	public MinecraftLibraryProvider getLibraryProvider() {
-		return libraryProvider;
-	}
-	
-	//several places, including run configs, launch provider, and MinecraftNativesProvider
-	//MOVED from LoomDependencyManager
-	public File getNativesDirectory() {
-		File natives = new File(WellKnownLocations.getUserCache(project), "natives/" + minecraftVersion);
-		if (!natives.exists()) natives.mkdirs();
-		return natives;
 	}
 }

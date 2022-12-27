@@ -48,8 +48,13 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-public class MinecraftAssetsProvider {
-	public static void provide(Project project, LoomGradleExtension extension) throws IOException {
+public class MinecraftAssetsProvider extends DependencyProvider {
+	public MinecraftAssetsProvider(Project project, LoomGradleExtension extension) {
+		super(project, extension);
+	}
+	
+	@Override
+	public void decorateProject() throws Exception {
 		boolean offline = project.getGradle().getStartParameter().isOffline();
 
 		MinecraftProvider minecraftProvider = extension.getDependencyManager().getMinecraftProvider();

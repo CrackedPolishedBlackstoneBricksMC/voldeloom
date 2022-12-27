@@ -29,6 +29,7 @@ import net.fabricmc.loom.forge.ShimForgeClientLibraries;
 import net.fabricmc.loom.providers.ForgeProvider;
 import net.fabricmc.loom.providers.LaunchProvider;
 import net.fabricmc.loom.providers.MappingsProvider;
+import net.fabricmc.loom.providers.MinecraftAssetsProvider;
 import net.fabricmc.loom.providers.MinecraftForgeMappedProvider;
 import net.fabricmc.loom.providers.MinecraftForgePatchedAccessTransformedProvider;
 import net.fabricmc.loom.providers.MinecraftForgePatchedProvider;
@@ -258,6 +259,8 @@ public class LoomGradlePlugin implements Plugin<Project> {
 			
 			//vanilla minecraft
 			.installMinecraftProvider(new MinecraftProvider(project, extension))
+			.installMinecraftAssetsProvider(new MinecraftAssetsProvider(project, extension))
+			.installMinecraftLibraryProvider(new MinecraftLibraryProvider(project, extension))
 			.installMinecraftMergedProvider(new MinecraftMergedProvider(project, extension))
 			
 			//forge + vanilla
@@ -301,7 +304,7 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		RemapLineNumbersTask genSourcesRemapLineNumbersTask = (RemapLineNumbersTask) project.getTasks().getByName("genSourcesRemapLineNumbers");
 		Task genSourcesTask = project.getTasks().getByName("genSources");
 		
-		MinecraftLibraryProvider libraryProvider = extension.getDependencyManager().getMinecraftProvider().getLibraryProvider();
+		MinecraftLibraryProvider libraryProvider = extension.getDependencyManager().getMinecraftLibraryProvider();
 		File mappedJar = dependencyManager.getMinecraftForgeMappedProvider().getMappedJar();
 		File linemappedJar = getMappedByproduct(extension, "-linemapped.jar");
 		File sourcesJar = getMappedByproduct(extension, "-sources.jar");
@@ -310,7 +313,7 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		genSourcesDecompileTask.setInput(mappedJar);
 		genSourcesDecompileTask.setOutput(sourcesJar);
 		genSourcesDecompileTask.setLineMapFile(linemapFile);
-		genSourcesDecompileTask.setLibraries(libraryProvider.getLibraries());
+		genSourcesDecompileTask.setLibraries(libraryProvider.getNonNativeLibraries());
 		
 		genSourcesRemapLineNumbersTask.setInput(mappedJar);
 		genSourcesRemapLineNumbersTask.setLineMapFile(linemapFile);

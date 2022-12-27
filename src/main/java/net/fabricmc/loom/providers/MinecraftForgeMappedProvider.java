@@ -48,9 +48,8 @@ public class MinecraftForgeMappedProvider extends DependencyProvider {
 	@Override
 	public void decorateProject() throws Exception {
 		//inputs
-		//TODO library provider will move
-		MinecraftLibraryProvider libraryProvider = extension.getDependencyManager().getMinecraftProvider().getLibraryProvider();
-		List<Path> libs = libraryProvider.getLibraries().stream().map(File::toPath).collect(Collectors.toList());
+		MinecraftLibraryProvider libraryProvider = extension.getDependencyManager().getMinecraftLibraryProvider();
+		List<Path> libs = libraryProvider.getNonNativeLibraries().stream().map(File::toPath).collect(Collectors.toList());
 		
 		//MinecraftForgePatchedProvider forgePatchedProvider = extension.getDependencyManager().getMinecraftForgePatchedProvider();
 		MinecraftForgePatchedAccessTransformedProvider blah = extension.getDependencyManager().getMinecraftForgePatchedAccessTransformedProvider();

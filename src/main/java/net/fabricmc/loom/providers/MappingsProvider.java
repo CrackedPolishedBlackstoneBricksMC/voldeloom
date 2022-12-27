@@ -32,6 +32,7 @@ import net.fabricmc.loom.forge.mapping.TinyWriter3Column;
 import net.fabricmc.loom.util.Constants;
 import net.fabricmc.loom.util.VoldeloomFileHelpers;
 import net.fabricmc.loom.util.WellKnownLocations;
+import net.fabricmc.mapping.tree.TinyMappingFactory;
 import net.fabricmc.mapping.tree.TinyTree;
 import net.fabricmc.stitch.util.Pair;
 import net.fabricmc.tinyremapper.IMappingProvider.MappingAcceptor;
@@ -66,17 +67,21 @@ public class MappingsProvider extends DependencyProvider {
 
 	public File tinyMappings;
 	public File tinyMappingsJar;
+	
+	private TinyTree parsedMappings;
 
 	public MappingsProvider(Project project, LoomGradleExtension extension) {
 		super(project, extension);
 	}
 
+	//TODO: let's try and make this into a project-wide `clean` system that threads through each task,
+	// instead of an ad-hoc thing
 	public void clean() {
 		VoldeloomFileHelpers.delete(project, mappingsDir);
 	}
 
 	public TinyTree getMappings() throws IOException {
-		return MappingsCache.INSTANCE.get(tinyMappings.toPath());
+		return parsedMappings;
 	}
 
 	@Override
@@ -145,10 +150,13 @@ public class MappingsProvider extends DependencyProvider {
 				}
 			}
 		}
-
+		
 		if (!tinyMappingsJar.exists()) {
 			ZipUtil.pack(new ZipEntrySource[] {new FileSource("mappings/mappings.tiny", tinyMappings)}, tinyMappingsJar);
 		}
+		
+		//make them available for other tasks TODO move
+		parsedMappings = TinyMappingFactory.loadWithDetection(Files.newBufferedReader(tinyMappings.toPath()));
 		
 		//add it as a project dependency TODO move
 		project.getDependencies().add(Constants.MAPPINGS_FINAL, project.files(tinyMappingsJar));
