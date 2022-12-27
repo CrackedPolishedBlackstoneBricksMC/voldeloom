@@ -35,6 +35,7 @@ import net.fabricmc.loom.providers.MappedProvider;
 import net.fabricmc.loom.providers.MappingsProvider;
 import net.fabricmc.loom.providers.MergedProvider;
 import net.fabricmc.loom.providers.MinecraftProvider;
+import net.fabricmc.loom.providers.RunConfigProvider;
 import net.fabricmc.loom.task.AbstractDecompileTask;
 import net.fabricmc.loom.task.CleanLoomBinaries;
 import net.fabricmc.loom.task.CleanLoomMappings;
@@ -45,8 +46,7 @@ import net.fabricmc.loom.task.MigrateMappingsTask;
 import net.fabricmc.loom.task.RemapJarTask;
 import net.fabricmc.loom.task.RemapLineNumbersTask;
 import net.fabricmc.loom.task.RemapSourcesJarTask;
-import net.fabricmc.loom.task.RunClientTask;
-import net.fabricmc.loom.task.RunServerTask;
+import net.fabricmc.loom.task.RunTask;
 import net.fabricmc.loom.task.ShimForgeClientLibraries;
 import net.fabricmc.loom.task.ShimResourcesTask;
 import net.fabricmc.loom.task.fernflower.FernFlowerTask;
@@ -55,7 +55,7 @@ import net.fabricmc.loom.util.GradleSupport;
 import net.fabricmc.loom.util.GroovyXmlUtil;
 import net.fabricmc.loom.util.ModCompileRemapper;
 import net.fabricmc.loom.util.RemappedConfigurationEntry;
-import net.fabricmc.loom.util.SetupIntelijRunConfigs;
+import net.fabricmc.loom.util.IntellijRunConfigsProvider;
 import net.fabricmc.loom.util.WellKnownLocations;
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
@@ -236,8 +236,8 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		tasks.register("vscode", GenVsCodeProjectTask.class);
 		tasks.register("shimForgeClientLibraries", ShimForgeClientLibraries.class);
 		tasks.register("shimResources", ShimResourcesTask.class);
-		tasks.register("runClient", RunClientTask.class, t -> t.dependsOn("assemble", "shimForgeClientLibraries", "shimResources"));
-		tasks.register("runServer", RunServerTask.class, t -> t.dependsOn("assemble"));
+		tasks.register("runClient", RunTask.Client.class, t -> t.dependsOn("assemble", "shimForgeClientLibraries", "shimResources"));
+		tasks.register("runServer", RunTask.Server.class, t -> t.dependsOn("assemble"));
 		
 		//TODO is it safe to configure this now? I ask because upstream did it in afterEvaluate
 		tasks.named("idea").configure(t -> t.finalizedBy(tasks.named("genIdeaWorkspace")));
@@ -278,8 +278,14 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		//forge + vanilla + mappings
 		MappedProvider mapped = dmgr.installMappedProvider(new MappedProvider(project, extension, mc, libs, patchedTxd, mappings));
 		
-		//dev-launch-injector stuff that's not used at all
-		DevLaunchInjectorProvider dli = dmgr.installDevLaunchInjectorProvider(new DevLaunchInjectorProvider(project, extension, mc, libs));
+		//launcher stuff
+		DevLaunchInjectorProvider dli = dmgr.installDevLaunchInjectorProvider(new DevLaunchInjectorProvider(project, extension, mc, libs)); //TODO unused/ merge into RunConfigProvider
+		RunConfigProvider runs = dmgr.installRunConfigProvider(new RunConfigProvider(project, extension, mc, libs));
+		
+		//IntelliJ run configs jank
+		if(extension.autoGenIDERuns && project.getRootProject() == project) {
+			new IntellijRunConfigsProvider(project, extension, runs).decorateProjectOrThrow();
+		}
 		
 		//very strange block related to `modCompile`etc configurations that i moved here from LoomDependencyManager
 		//todo this probably needs rewriting
@@ -333,11 +339,6 @@ public class LoomGradlePlugin implements Plugin<Project> {
 				}
 			}
 		});
-		
-		//IntelliJ run configs jank
-		if(extension.autoGenIDERuns && project.getRootProject() == project) {
-			SetupIntelijRunConfigs.setup(project, extension);
-		}
 		
 		//TODO(VOLDELOOM-DISASTER): This is configurable for basically no reason lol
 		//Enables the default mod remapper

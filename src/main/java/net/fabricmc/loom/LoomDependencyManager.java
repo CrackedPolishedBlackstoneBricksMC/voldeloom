@@ -24,16 +24,17 @@
 
 package net.fabricmc.loom;
 
-import net.fabricmc.loom.providers.ForgeProvider;
-import net.fabricmc.loom.providers.DevLaunchInjectorProvider;
-import net.fabricmc.loom.providers.MappingsProvider;
 import net.fabricmc.loom.providers.AssetsProvider;
-import net.fabricmc.loom.providers.MappedProvider;
+import net.fabricmc.loom.providers.DevLaunchInjectorProvider;
 import net.fabricmc.loom.providers.ForgePatchedAccessTxdProvider;
 import net.fabricmc.loom.providers.ForgePatchedProvider;
+import net.fabricmc.loom.providers.ForgeProvider;
 import net.fabricmc.loom.providers.LibraryProvider;
+import net.fabricmc.loom.providers.MappedProvider;
+import net.fabricmc.loom.providers.MappingsProvider;
 import net.fabricmc.loom.providers.MergedProvider;
 import net.fabricmc.loom.providers.MinecraftProvider;
+import net.fabricmc.loom.providers.RunConfigProvider;
 
 /**
  *  Anything that accesses this class is signaling that
@@ -57,6 +58,7 @@ public class LoomDependencyManager {
 	private MappedProvider mappedProvider;
 	private MappingsProvider mappingsProvider;
 	private DevLaunchInjectorProvider devLaunchInjectorProvider;
+	private RunConfigProvider runConfigProvider;
 	
 	public ForgeProvider installForgeProvider(ForgeProvider forgeProvider) {
 		this.forgeProvider = forgeProvider;
@@ -118,6 +120,12 @@ public class LoomDependencyManager {
 		return devLaunchInjectorProvider;
 	}
 	
+	public RunConfigProvider installRunConfigProvider(RunConfigProvider runConfigProvider) {
+		this.runConfigProvider = runConfigProvider;
+		runConfigProvider.decorateProjectOrThrow();
+		return runConfigProvider;
+	}
+	
 	public ForgeProvider getForgeProvider() {
 		if(forgeProvider == null) throw new IllegalStateException("ForgeProvider hasn't been installed yet!");
 		else return forgeProvider;
@@ -166,5 +174,10 @@ public class LoomDependencyManager {
 	public DevLaunchInjectorProvider getDevLaunchInjectorProvider() {
 		if(devLaunchInjectorProvider == null) throw new IllegalStateException("DevLaunchInjectorProvider hasn't been installed yet!");
 		else return devLaunchInjectorProvider;
+	}
+	
+	public RunConfigProvider getRunConfigProvider() {
+		if(runConfigProvider == null) throw new IllegalStateException("RunConfigProvider hasn't been installed yet!");
+		else return runConfigProvider;
 	}
 }

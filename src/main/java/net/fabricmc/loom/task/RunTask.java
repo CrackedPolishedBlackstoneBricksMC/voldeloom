@@ -25,9 +25,7 @@
 package net.fabricmc.loom.task;
 
 import net.fabricmc.loom.LoomGradleExtension;
-import net.fabricmc.loom.providers.MappingsProvider;
 import net.fabricmc.loom.util.LoomTaskExt;
-import net.fabricmc.loom.util.MinecraftVersionInfo;
 import net.fabricmc.loom.util.RunConfig;
 import org.gradle.api.Project;
 import org.gradle.api.tasks.JavaExec;
@@ -39,32 +37,27 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiFunction;
 
-public abstract class AbstractRunTask extends JavaExec implements LoomTaskExt {
-	public AbstractRunTask(BiFunction<Project, LoomGradleExtension, RunConfig> configProvider) {
+public abstract class RunTask extends JavaExec implements LoomTaskExt {
+	public RunTask(BiFunction<Project, LoomGradleExtension, RunConfig> runConfigMaker) throws Exception {
 		setGroup("minecraftMapped");
 		
-		//TODO, does this happen too early? Original Loom did not have it this early
-		// I moved it up while debugging something nasty but i think the problem was not related to the execution time of this stuff.
-		
 		LoomGradleExtension extension = getLoomGradleExtension();
-		RunConfig config = configProvider.apply(getProject(), extension);
-		
-		MinecraftVersionInfo minecraftVersionInfo = extension.getDependencyManager().getMinecraftProvider().getVersionManifest();
-		MappingsProvider mappingsProvider = extension.getDependencyManager().getMappingsProvider();
+		RunConfig config = runConfigMaker.apply(getProject(), extension);
 
+		//Classpath
 		List<String> libs = new ArrayList<>();
 
 		for(File file : getProject().getConfigurations().getByName("runtimeClasspath").getFiles()) {
 			libs.add(file.getAbsolutePath());
 		}
-
 		for (Path file : extension.getUnmappedMods()) {
 			if (Files.isRegularFile(file)) {
 				libs.add(file.toFile().getAbsolutePath());
 			}
 		}
-
 		classpath(libs);
+		
+		//Arguments
 		List<String> argsSplit = new ArrayList<>();
 		String[] args = config.programArgs.split(" ");
 		int partPos = -1;
@@ -94,16 +87,30 @@ public abstract class AbstractRunTask extends JavaExec implements LoomTaskExt {
 		}
 
 		args(argsSplit);
-		//jvmArgs(config.vmArgs); //uncommenting this breaks the loading process i dunno why
+		//jvmArgs(config.vmArgs); //uncommenting this breaks the loading process. i dunno why
+		
+		//System properties
 		systemProperties(config.systemProperties);
 
+		//Main class
 		getMainClass().set(config.mainClass); //todo gradle 4? this is relatively new
 		//setMain(config.mainClass);
 
-		File workingDir = new File(getProject().getRootDir(), extension.runDir);
-		if(!workingDir.exists()) {
-			workingDir.mkdirs();
+		//Pwd
+		Path runDir = getProject().getRootDir().toPath().resolve(extension.runDir);
+		Files.createDirectories(runDir);
+		setWorkingDir(runDir);
+	}
+	
+	public static class Client extends RunTask {
+		public Client() throws Exception {
+			super((project, extension) -> extension.getDependencyManager().getRunConfigProvider().getClient());
 		}
-		setWorkingDir(workingDir);
+	}
+	
+	public static class Server extends RunTask {
+		public Server() throws Exception {
+			super((project, extension) -> extension.getDependencyManager().getRunConfigProvider().getServer());
+		}
 	}
 }

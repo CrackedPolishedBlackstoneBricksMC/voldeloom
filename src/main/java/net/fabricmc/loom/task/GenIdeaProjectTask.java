@@ -26,7 +26,6 @@ package net.fabricmc.loom.task;
 
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.util.LoomTaskExt;
-import net.fabricmc.loom.util.RunConfig;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.Project;
 import org.gradle.api.tasks.TaskAction;
@@ -46,6 +45,8 @@ import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 public class GenIdeaProjectTask extends DefaultTask implements LoomTaskExt {
 	public GenIdeaProjectTask() {
@@ -55,6 +56,15 @@ public class GenIdeaProjectTask extends DefaultTask implements LoomTaskExt {
 	@TaskAction
 	public void genIdeaRuns() throws IOException, ParserConfigurationException, SAXException, TransformerException {
 		Project project = this.getProject();
+		
+		//hmmmmmmmmmmmmmmmmmmmm
+		if(true) {
+			project.getLogger().warn("Intellij .ipr run config generation is currently Broken!!!!");
+			project.getLogger().warn("Just import the project through gradle instead, it seems to work ok?");
+			project.getLogger().warn("You might have to use the directory-based project format: ");
+			project.getLogger().warn("https://www.jetbrains.com/help/idea/creating-and-managing-projects.html#convert-project-format");
+			return;
+		}
 
 		//Only generate the idea runs on the root project
 		if (project != project.getRootProject()) {
@@ -85,8 +95,8 @@ public class GenIdeaProjectTask extends DefaultTask implements LoomTaskExt {
 			throw new RuntimeException("Failed to generate intellij run configurations (runManager was not found)");
 		}
 
-		runManager.appendChild(RunConfig.clientRunConfig(project, extension).genRuns(runManager));
-		runManager.appendChild(RunConfig.serverRunConfig(project, extension).genRuns(runManager));
+		runManager.appendChild(extension.getDependencyManager().getRunConfigProvider().getClient().addRunConfigsToIntellijProjectFile(runManager));
+		runManager.appendChild(extension.getDependencyManager().getRunConfigProvider().getServer().addRunConfigsToIntellijProjectFile(runManager));
 
 		TransformerFactory transformerFactory = TransformerFactory.newInstance();
 		Transformer transformer = transformerFactory.newTransformer();
@@ -95,11 +105,8 @@ public class GenIdeaProjectTask extends DefaultTask implements LoomTaskExt {
 		transformer.setOutputProperty(OutputKeys.INDENT, "yes");
 		transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "2");
 		transformer.transform(source, result);
-
-		File runDir = new File(getProject().getRootDir(), extension.runDir);
-
-		if (!runDir.exists()) {
-			runDir.mkdirs();
-		}
+		
+		Path runDir = getProject().getRootDir().toPath().resolve(extension.runDir);
+		Files.createDirectories(runDir);
 	}
 }

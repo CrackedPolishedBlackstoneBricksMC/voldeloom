@@ -30,7 +30,6 @@ import net.fabricmc.loom.util.DownloadUtil;
 import net.fabricmc.loom.util.MinecraftVersionInfo;
 import net.fabricmc.loom.util.WellKnownLocations;
 import org.gradle.api.Project;
-import org.zeroturnaround.zip.ZipUtil;
 
 import java.net.URL;
 import java.nio.file.Files;
@@ -65,7 +64,8 @@ public class LibraryProvider extends DependencyProvider {
 				Path libJarFile = library.getPath(nativesJarStore);
 				DownloadUtil.downloadIfChanged(new URL(library.getURL()), libJarFile, project.getLogger());
 				//TODO possibly find a way to prevent needing to re-extract after each run, doesnt seem too slow (original Loom comment)
-				ZipUtil.unpack(libJarFile.toFile(), nativesDir.toFile());
+				// DOUBLE TODO uncomment this cause its currently a cheap hack to allow concurrent runs
+				//ZipUtil.unpack(libJarFile.toFile(), nativesDir.toFile());
 			} else {
 				String depToAdd = library.getArtifactName();
 				

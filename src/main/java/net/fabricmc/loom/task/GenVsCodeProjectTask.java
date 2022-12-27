@@ -27,16 +27,16 @@ package net.fabricmc.loom.task;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import net.fabricmc.loom.LoomGradleExtension;
+import net.fabricmc.loom.providers.RunConfigProvider;
 import net.fabricmc.loom.util.LoomTaskExt;
 import net.fabricmc.loom.util.RunConfig;
-import org.apache.commons.io.FileUtils;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.Project;
 import org.gradle.api.tasks.TaskAction;
 
-import java.io.File;
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -50,41 +50,31 @@ public class GenVsCodeProjectTask extends DefaultTask implements LoomTaskExt {
 	}
 	
 	@TaskAction
-	public void genRuns() {
+	public void genRuns() throws Exception {
 		Project project = getProject();
 		LoomGradleExtension extension = getLoomGradleExtension();
-		File projectDir = project.file(".vscode");
+		RunConfigProvider runs = extension.getDependencyManager().getRunConfigProvider();
+		
+		Path vscodeProjectDir = project.file(".vscode").toPath();
+		Files.createDirectories(vscodeProjectDir);
 
-		if (!projectDir.exists()) {
-			projectDir.mkdir();
-		}
-
-		File launchJson = new File(projectDir, "launch.json");
-
-		if (launchJson.exists()) {
-			launchJson.delete();
-		}
+		Path launchJson = vscodeProjectDir.resolve("launch.json");
+		Files.deleteIfExists(launchJson);
 
 		VsCodeLaunch launch = new VsCodeLaunch();
-		launch.add(RunConfig.clientRunConfig(project, extension));
-		launch.add(RunConfig.serverRunConfig(project, extension));
+		launch.add(runs.getClient());
+		launch.add(runs.getServer());
 
 		Gson gson = new GsonBuilder().setPrettyPrinting().create();
 		String json = gson.toJson(launch);
-
-		try {
-			FileUtils.writeStringToFile(launchJson, json, StandardCharsets.UTF_8);
-		} catch (IOException e) {
-			throw new RuntimeException("Failed to write launch.json", e);
-		}
-
-		File runDir = new File(project.getRootDir(), extension.runDir);
-
-		if (!runDir.exists()) {
-			runDir.mkdirs();
-		}
+		Files.write(launchJson, json.getBytes(StandardCharsets.UTF_8));
+		
+		//And create the run directory
+		Path runDir = project.getRootDir().toPath().resolve(extension.runDir);
+		Files.createDirectories(runDir);
 	}
-
+	
+	@SuppressWarnings("unused")
 	private static class VsCodeLaunch {
 		public String version = "0.2.0";
 		public List<VsCodeConfiguration> configurations = new ArrayList<>();
@@ -94,6 +84,7 @@ public class GenVsCodeProjectTask extends DefaultTask implements LoomTaskExt {
 		}
 	}
 
+	@SuppressWarnings("unused")
 	private static class VsCodeConfiguration {
 		public String type = "java";
 		public String name;
@@ -110,6 +101,7 @@ public class GenVsCodeProjectTask extends DefaultTask implements LoomTaskExt {
 			this.mainClass = runConfig.mainClass;
 			this.vmArgs = runConfig.vmArgs;
 			this.args = runConfig.programArgs;
+			//TODO: RunConfig.systemProperties kludge
 		}
 	}
 }

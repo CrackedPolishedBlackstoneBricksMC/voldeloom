@@ -27,8 +27,7 @@ What doesn't work yet:
 * Minecraft versions other than 1.4.7 don't work
   * The long-term goal is to merge the differences between the 1.2.5/1.5.2 branches into something runtime-configurable
   * But the short-term goal is to make 1.4.7 work!
-* The standalone server doesn't work yet, I don't think it will be hard i just have to do it
-* Similarly for run configs
+* Run configs have disappeared
 * I don't know how broken Eclipse is
 * `modCompile` configurations and friends probably don't work, but you knew that already
 * Probably a lot of other things don't work
