@@ -3,6 +3,7 @@ package agency.highlysuspect;
 import cpw.mods.fml.common.FMLLog;
 import cpw.mods.fml.common.Mod;
 import cpw.mods.fml.common.SidedProxy;
+import cpw.mods.fml.common.event.FMLPreInitializationEvent;
 
 import java.util.logging.Logger;
 
@@ -19,7 +20,7 @@ public class Sample147 {
 	}
 	
 	@Mod.PreInit
-	public void preinit() {
+	public void preinit(FMLPreInitializationEvent e) {
 		LOGGER.info("Hello, preinit!");
 		proxy.hi();
 	}

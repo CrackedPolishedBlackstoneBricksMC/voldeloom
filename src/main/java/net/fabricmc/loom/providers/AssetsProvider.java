@@ -28,10 +28,10 @@ import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.util.Checksum;
-import net.fabricmc.loom.util.Constants;
+import net.fabricmc.loom.Constants;
 import net.fabricmc.loom.util.DownloadUtil;
 import net.fabricmc.loom.util.MinecraftVersionInfo;
-import net.fabricmc.loom.util.WellKnownLocations;
+import net.fabricmc.loom.WellKnownLocations;
 import org.gradle.api.GradleException;
 import org.gradle.api.Project;
 

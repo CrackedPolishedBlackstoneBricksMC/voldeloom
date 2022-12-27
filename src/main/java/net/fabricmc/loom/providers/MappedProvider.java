@@ -25,9 +25,9 @@
 package net.fabricmc.loom.providers;
 
 import net.fabricmc.loom.LoomGradleExtension;
-import net.fabricmc.loom.util.Constants;
+import net.fabricmc.loom.Constants;
 import net.fabricmc.loom.util.TinyRemapperSession;
-import net.fabricmc.loom.util.WellKnownLocations;
+import net.fabricmc.loom.WellKnownLocations;
 import net.fabricmc.mapping.tree.TinyTree;
 import org.gradle.api.Project;
 

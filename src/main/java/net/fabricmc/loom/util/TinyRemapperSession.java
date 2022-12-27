@@ -29,10 +29,12 @@ import net.fabricmc.mapping.tree.TinyTree;
 import net.fabricmc.tinyremapper.OutputConsumerPath;
 import net.fabricmc.tinyremapper.TinyRemapper;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Collections;
@@ -96,6 +98,8 @@ public class TinyRemapperSession {
 		Preconditions.checkNotNull(outputFilter, "filter");
 		Preconditions.checkNotNull(logger, "logger");
 		Preconditions.checkState(!outputJarsByNamingScheme.isEmpty(), "outputJarsByNamingScheme has something to do");
+		
+		if (Files.notExists(inputJar)) throw new FileNotFoundException("Missing input jar " + inputJar + ", can't remap");
 		
 		logger.accept("\\-> beginning remap of '" + inputNamingScheme + "'-named jar at " + inputJar);
 		for(String outputNamingScheme : outputJarsByNamingScheme.keySet()) {

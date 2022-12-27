@@ -27,21 +27,19 @@ package net.fabricmc.loom.task;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.providers.MappingsProvider;
 import net.fabricmc.loom.util.GradleSupport;
-import net.fabricmc.loom.util.TinyRemapperMappingsHelper;
-import net.fabricmc.tinyremapper.OutputConsumerPath;
-import net.fabricmc.tinyremapper.TinyRemapper;
+import net.fabricmc.loom.util.TinyRemapperSession;
 import org.gradle.api.Project;
 import org.gradle.api.file.RegularFileProperty;
+import org.gradle.api.plugins.JavaPlugin;
 import org.gradle.api.tasks.InputFile;
 import org.gradle.api.tasks.TaskAction;
 import org.gradle.jvm.tasks.Jar;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.LinkedHashSet;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public class RemapJarTask extends Jar {
 	public RemapJarTask() {
@@ -56,52 +54,27 @@ public class RemapJarTask extends Jar {
 		LoomGradleExtension extension = project.getExtensions().getByType(LoomGradleExtension.class);
 		Path input = this.getInput().getAsFile().get().toPath();
 		Path output = this.getArchivePath().toPath();
-
-		if (!Files.exists(input)) {
-			throw new FileNotFoundException(input.toString());
-		}
 		
 		MappingsProvider mappingsProvider = extension.getDependencyManager().getMappingsProvider();
+		
+		Set<Path> remapClasspath = project.getConfigurations()
+			.getByName(JavaPlugin.COMPILE_CLASSPATH_CONFIGURATION_NAME)
+			.getFiles()
+			.stream()
+			.map(File::toPath)
+			.filter((p) -> !input.equals(p) && Files.exists(p))
+			.collect(Collectors.toSet());
+		
+		new TinyRemapperSession()
+			.setMappings(mappingsProvider.getMappings())
+			.setInputJar(input)
+			.setInputNamingScheme("named")
+			.setInputClasspath(remapClasspath)
+			.addOutputJar("official", output)
+			.setLogger(getLogger()::lifecycle)
+			.run();
 
-		String fromM = "named";
-		String toM = "official";
-
-		Set<File> classpathFiles = new LinkedHashSet<>(
-			project.getConfigurations().getByName("compileClasspath").getFiles()
-		);
-		Path[] classpath = classpathFiles.stream().map(File::toPath).filter((p) -> !input.equals(p) && Files.exists(p)).toArray(Path[]::new);
-
-		project.getLogger().lifecycle(":remapping " + input.getFileName());
-		StringBuilder rc = new StringBuilder("Remap classpath: ");
-		for (Path p : classpath) {
-			rc.append("\n - ").append(p.toString());
-		}
-		project.getLogger().info(rc.toString());
-
-		TinyRemapper remapper = TinyRemapper.newRemapper().withMappings(TinyRemapperMappingsHelper.create(mappingsProvider.getMappings(), fromM, toM, false)).build();
-
-		try (OutputConsumerPath outputConsumer = new OutputConsumerPath.Builder(output).build()) {
-			outputConsumer.addNonClassFiles(input);
-			
-			//remapper.readClassPath(classpath);
-			//Something's broke, do it one at a tiem
-			for(Path p : classpath) {
-				try {
-					remapper.readClassPath(p);
-				} catch (Exception e) {
-					throw new RuntimeException("Problem readClassPath for path " + p, e);
-				}
-			}
-			
-			remapper.readInputs(input);
-			remapper.apply(outputConsumer);
-		} catch (Exception e) {
-			throw new RuntimeException("Failed to remap " + input + " to " + output, e);
-		} finally {
-			remapper.finish();
-		}
-
-		if (!Files.exists(output)) {
+		if (Files.notExists(output)) {
 			throw new RuntimeException("Failed to remap " + input + " to " + output + " - file missing!");
 		}
 	}

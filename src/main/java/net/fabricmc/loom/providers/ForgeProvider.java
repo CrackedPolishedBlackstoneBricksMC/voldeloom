@@ -1,7 +1,7 @@
 package net.fabricmc.loom.providers;
 
 import net.fabricmc.loom.LoomGradleExtension;
-import net.fabricmc.loom.util.Constants;
+import net.fabricmc.loom.Constants;
 import net.fabricmc.loom.util.ForgeAccessTransformerSet;
 import org.gradle.api.Project;
 

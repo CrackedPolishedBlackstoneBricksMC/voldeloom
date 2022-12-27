@@ -25,6 +25,7 @@
 package net.fabricmc.loom.util;
 
 import net.fabricmc.loom.LoomGradleExtension;
+import net.fabricmc.loom.WellKnownLocations;
 import org.gradle.api.Project;
 import org.gradle.api.artifacts.Configuration;
 import org.gradle.api.artifacts.Dependency;

@@ -2,7 +2,7 @@ package net.fabricmc.loom.providers;
 
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.util.ForgeAccessTransformerSet;
-import net.fabricmc.loom.util.WellKnownLocations;
+import net.fabricmc.loom.WellKnownLocations;
 import org.gradle.api.Project;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;

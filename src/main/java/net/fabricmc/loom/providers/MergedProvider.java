@@ -1,7 +1,7 @@
 package net.fabricmc.loom.providers;
 
 import net.fabricmc.loom.LoomGradleExtension;
-import net.fabricmc.loom.util.WellKnownLocations;
+import net.fabricmc.loom.WellKnownLocations;
 import net.fabricmc.stitch.merge.JarMerger;
 import org.gradle.api.Project;
 import org.objectweb.asm.AnnotationVisitor;

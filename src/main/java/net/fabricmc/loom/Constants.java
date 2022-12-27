@@ -22,16 +22,14 @@
  * SOFTWARE.
  */
 
-package net.fabricmc.loom.util;
+package net.fabricmc.loom;
 
 import com.google.common.collect.ImmutableList;
+import net.fabricmc.loom.util.RemappedConfigurationEntry;
 
 import java.util.List;
 
 public class Constants {
-	public static final String DEFAULT_FABRIC_CLIENT_TWEAKER = "net.fabricmc.loader.launch.FabricClientTweaker";
-	public static final String DEFAULT_FABRIC_SERVER_TWEAKER = "net.fabricmc.loader.launch.FabricServerTweaker";
-
 	public static final String LIBRARIES_BASE = "https://libraries.minecraft.net/";
 	public static final String RESOURCES_BASE = "http://resources.download.minecraft.net/";
 
@@ -46,8 +44,7 @@ public class Constants {
 			new RemappedConfigurationEntry("modRuntime", "runtimeOnly", false, ""),
 			new RemappedConfigurationEntry("modCompileOnly", "compileOnly", true, "")
 	);
-
-	//public static final String INCLUDE = "include"; //voldeloom: Jar-in-jar is not supported
+	
 	public static final String MINECRAFT = "minecraft";
 	public static final String MINECRAFT_DEPENDENCIES = "minecraftLibraries";
 	public static final String MINECRAFT_NAMED = "minecraftNamed";
@@ -55,5 +52,5 @@ public class Constants {
 	public static final String MAPPINGS_FINAL = "mappingsFinal";
 	public static final String FORGE = "forge";
 
-	public static final String DEV_LAUNCH_INJECTOR_VERSION = "0.2.0+build.6";
+	//public static final String DEV_LAUNCH_INJECTOR_VERSION = "0.2.0+build.6";
 }

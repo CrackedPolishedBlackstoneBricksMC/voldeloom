@@ -26,6 +26,7 @@ package net.fabricmc.loom.util;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import net.fabricmc.loom.Constants;
 
 import java.io.File;
 import java.nio.file.Path;

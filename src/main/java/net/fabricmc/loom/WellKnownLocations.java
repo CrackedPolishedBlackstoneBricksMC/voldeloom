@@ -1,4 +1,4 @@
-package net.fabricmc.loom.util;
+package net.fabricmc.loom;
 
 import org.gradle.api.Project;
 

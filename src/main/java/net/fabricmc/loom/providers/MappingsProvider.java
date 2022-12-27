@@ -26,8 +26,8 @@ package net.fabricmc.loom.providers;
 
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.LoomGradlePlugin;
-import net.fabricmc.loom.util.Constants;
-import net.fabricmc.loom.util.WellKnownLocations;
+import net.fabricmc.loom.Constants;
+import net.fabricmc.loom.WellKnownLocations;
 import net.fabricmc.loom.util.mcp.AcceptorProvider;
 import net.fabricmc.loom.util.mcp.CsvApplierAcceptor;
 import net.fabricmc.loom.util.mcp.SrgMappingProvider;

@@ -24,6 +24,7 @@
 
 package net.fabricmc.loom.util;
 
+import net.fabricmc.loom.Constants;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.LoomGradlePlugin;
 import net.fabricmc.loom.providers.MappingsProvider;
