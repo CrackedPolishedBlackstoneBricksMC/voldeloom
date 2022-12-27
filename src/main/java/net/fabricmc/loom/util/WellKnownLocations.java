@@ -9,7 +9,7 @@ import java.io.File;
  * These used to be on LoomGradleExtension, but I've been moving extraneous things out of that class,
  * to better understand where its various pieces are used.
  */
-@SuppressWarnings("ResultOfMethodCallIgnored") //mkdirs
+@SuppressWarnings("ResultOfMethodCallIgnored") //mkdirs TODO migrate to Path
 public class WellKnownLocations {
 	public static File getUserCache(Project project) {
 		File userCache = new File(project.getGradle().getGradleUserHomeDir(), "caches" + File.separator + "fabric-loom");

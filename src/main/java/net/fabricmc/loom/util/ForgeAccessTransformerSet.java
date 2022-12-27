@@ -1,4 +1,4 @@
-package net.fabricmc.loom.forge;
+package net.fabricmc.loom.util;
 
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.FieldVisitor;
@@ -11,7 +11,7 @@ import java.util.Map;
 import java.util.Scanner;
 import java.util.function.IntUnaryOperator;
 
-public class ForgeATConfig {
+public class ForgeAccessTransformerSet {
 	//class
 	private final Map<String, AccessTransformation> classTransformers = new HashMap<>();
 	

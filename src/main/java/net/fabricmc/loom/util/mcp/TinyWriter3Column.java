@@ -1,4 +1,4 @@
-package net.fabricmc.loom.forge.mapping;
+package net.fabricmc.loom.util.mcp;
 
 import java.io.OutputStream;
 import java.io.PrintStream;

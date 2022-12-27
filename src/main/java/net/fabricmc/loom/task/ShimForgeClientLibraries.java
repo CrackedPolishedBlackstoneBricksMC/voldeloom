@@ -1,4 +1,4 @@
-package net.fabricmc.loom.forge;
+package net.fabricmc.loom.task;
 
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.util.DownloadUtil;

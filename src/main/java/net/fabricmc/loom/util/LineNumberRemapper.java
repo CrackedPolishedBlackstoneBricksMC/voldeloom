@@ -24,7 +24,13 @@
 
 package net.fabricmc.loom.util;
 
-import static java.text.MessageFormat.format;
+import org.gradle.api.logging.Logger;
+import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.ClassVisitor;
+import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.Label;
+import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Opcodes;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -40,14 +46,7 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.objectweb.asm.ClassReader;
-import org.objectweb.asm.ClassVisitor;
-import org.objectweb.asm.ClassWriter;
-import org.objectweb.asm.Label;
-import org.objectweb.asm.MethodVisitor;
-import org.objectweb.asm.Opcodes;
-
-import net.fabricmc.loom.util.progress.ProgressLogger;
+import static java.text.MessageFormat.format;
 
 /**
  * TODO, Move to stitch.
@@ -88,7 +87,7 @@ public class LineNumberRemapper {
 		}
 	}
 
-	public void process(ProgressLogger logger, Path input, Path output) throws IOException {
+	public void process(Logger logger, Path input, Path output) throws IOException {
 		Files.walkFileTree(input, new SimpleFileVisitor<Path>() {
 			@Override
 			public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
@@ -110,7 +109,7 @@ public class LineNumberRemapper {
 					String idx = rel.substring(0, rel.length() - 6);
 
 					if (logger != null) {
-						logger.progress("Remapping " + idx);
+						logger.info("Line-remapping " + idx);
 					}
 
 					int dollarPos = idx.indexOf('$'); //This makes the assumption that only Java classes are to be remapped.

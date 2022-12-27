@@ -116,7 +116,7 @@ public class AssetsProvider extends DependencyProvider {
 					}
 				}
 			}
-			project.getLogger().lifecycle("|-> 100%!");
+			project.getLogger().lifecycle("|-> Done!");
 		}
 	}
 	

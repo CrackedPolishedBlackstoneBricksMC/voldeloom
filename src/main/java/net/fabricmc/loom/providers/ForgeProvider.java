@@ -1,7 +1,7 @@
 package net.fabricmc.loom.providers;
 
 import net.fabricmc.loom.LoomGradleExtension;
-import net.fabricmc.loom.forge.ForgeATConfig;
+import net.fabricmc.loom.util.ForgeAccessTransformerSet;
 import net.fabricmc.loom.util.Constants;
 import org.gradle.api.Project;
 
@@ -19,7 +19,7 @@ public class ForgeProvider extends DependencyProvider {
 	
 	private File forge;
 	private String forgeVersion;
-	private ForgeATConfig unmappedAts;
+	private ForgeAccessTransformerSet unmappedAts;
 	
 	@Override
 	public void decorateProject() throws Exception {
@@ -28,7 +28,7 @@ public class ForgeProvider extends DependencyProvider {
 		forgeVersion = forgeDependency.getDependency().getVersion();
 		
 		project.getLogger().lifecycle("|-> Parsing Forge and FML's access transformers...");
-		unmappedAts = new ForgeATConfig();
+		unmappedAts = new ForgeAccessTransformerSet();
 		try(FileSystem zipFs = FileSystems.newFileSystem(URI.create("jar:" + forge.toURI()), Collections.emptyMap())) {
 			unmappedAts.load(Files.newInputStream(zipFs.getPath("fml_at.cfg")));
 			unmappedAts.load(Files.newInputStream(zipFs.getPath("forge_at.cfg")));
@@ -44,7 +44,7 @@ public class ForgeProvider extends DependencyProvider {
 		return forgeVersion;
 	}
 	
-	public ForgeATConfig getUnmappedAccessTransformers() {
+	public ForgeAccessTransformerSet getUnmappedAccessTransformers() {
 		return unmappedAts;
 	}
 }

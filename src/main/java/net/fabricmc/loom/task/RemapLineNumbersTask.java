@@ -24,9 +24,7 @@
 
 package net.fabricmc.loom.task;
 
-import net.fabricmc.loom.task.fernflower.FernFlowerTask;
 import net.fabricmc.loom.util.LineNumberRemapper;
-import net.fabricmc.loom.util.progress.ProgressLogger;
 import net.fabricmc.stitch.util.StitchUtil;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.Project;
@@ -55,16 +53,11 @@ public class RemapLineNumbersTask extends DefaultTask {
 		LineNumberRemapper remapper = new LineNumberRemapper();
 		remapper.readMappings(getLineMapFile());
 
-		ProgressLogger progressLogger = ProgressLogger.getProgressFactory(project, FernFlowerTask.class.getName());
-		progressLogger.start("Adjusting line numbers", "linemap");
-
 		try (StitchUtil.FileSystemDelegate inFs = StitchUtil.getJarFileSystem(getInput(), true); StitchUtil.FileSystemDelegate outFs = StitchUtil.getJarFileSystem(getOutput(), true)) {
-			remapper.process(progressLogger, inFs.get().getPath("/"), outFs.get().getPath("/"));
+			remapper.process(project.getLogger(), inFs.get().getPath("/"), outFs.get().getPath("/"));
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
-
-		progressLogger.completed();
 	}
 
 	@InputFile

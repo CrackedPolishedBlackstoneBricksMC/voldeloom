@@ -24,116 +24,30 @@
 
 package net.fabricmc.loom.util;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonObject;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.providers.MappingsProvider;
 import net.fabricmc.loom.providers.MappedProvider;
 import net.fabricmc.loom.providers.LibraryProvider;
 import net.fabricmc.tinyremapper.OutputConsumerPath;
 import net.fabricmc.tinyremapper.TinyRemapper;
-import org.apache.commons.io.IOUtils;
 import org.gradle.api.Project;
 import org.gradle.api.artifacts.Configuration;
 import org.gradle.api.artifacts.ResolvedArtifact;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.jar.JarFile;
-import java.util.zip.ZipEntry;
 
+//TODO: what's up with this
 public class ModProcessor {
-	private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
-
 	public static void processMod(File input, File output, Project project, Configuration config, ResolvedArtifact artifact) throws IOException {
 		if (output.exists()) {
 			output.delete();
 		}
-
-		remapJar(input, output, project, artifact);
-
-//		//Enable this if you want your nested jars to be extracted, this will extract **all** jars
-//		if (project.getExtensions().getByType(LoomGradleExtension.class).extractJars) {
-//			handleNestedJars(input, project, config, artifact);
-//		}
-//
-//		//Always strip the nested jars
-//		stripNestedJars(output);
-	}
-
-//	private static void handleNestedJars(File input, Project project, Configuration config, ResolvedArtifact artifact) throws IOException {
-//		JarFile jarFile = new JarFile(input);
-//		JarEntry modJsonEntry = jarFile.getJarEntry("fabric.mod.json");
-//
-//		if (modJsonEntry == null) {
-//			return;
-//		}
-//
-//		try (InputStream inputStream = jarFile.getInputStream(modJsonEntry)) {
-//			JsonObject json = GSON.fromJson(new InputStreamReader(inputStream), JsonObject.class);
-//
-//			if (json == null || !json.has("jars")) {
-//				return;
-//			}
-//
-//			JsonArray jsonArray = json.getAsJsonArray("jars");
-//
-//			for (int i = 0; i < jsonArray.size(); i++) {
-//				JsonObject jsonObject = jsonArray.get(i).getAsJsonObject();
-//				String fileName = jsonObject.get("file").getAsString();
-//				project.getLogger().lifecycle(String.format("Found %s nested in %s", fileName, input.getName()));
-//				processNestedJar(jarFile, fileName, project, config, artifact);
-//			}
-//		}
-//	}
-//
-//	private static void processNestedJar(JarFile parentJar, String fileName, Project project, Configuration config, ResolvedArtifact artifact) throws IOException {
-//		LoomGradleExtension extension = project.getExtensions().getByType(LoomGradleExtension.class);
-//
-//		JarEntry entry = parentJar.getJarEntry(fileName);
-//
-//		if (entry == null) {
-//			throw new RuntimeException(String.format("%s was not found in %s", fileName, parentJar.getName()));
-//		}
-//
-//		File nestedFile = new File(extension.getNestedModCache(), fileName.substring(fileName.lastIndexOf("/")));
-//
-//		try (InputStream jarStream = parentJar.getInputStream(entry)) {
-//			FileUtils.copy(jarStream, nestedFile);
-//		}
-//
-//		File remappedFile = new File(extension.getRemappedModCache(), fileName.substring(fileName.lastIndexOf("/")));
-//
-//		processMod(nestedFile, remappedFile, project, config, artifact);
-//
-//		if (!remappedFile.exists()) {
-//			throw new RuntimeException("Failed to find processed nested jar");
-//		}
-//
-//		//Add the project right onto the remapped mods, hopefully this works
-//		project.getDependencies().add(config.getName(), project.files(remappedFile));
-//	}
-//
-//	private static void stripNestedJars(File file) {
-//		//Strip out all contained jar info as we dont want loader to try and load the jars contained in dev.
-//		ZipUtil.transformEntries(file, new ZipEntryTransformerEntry[] {(new ZipEntryTransformerEntry("fabric.mod.json", new StringZipEntryTransformer() {
-//			@Override
-//			protected String transform(ZipEntry zipEntry, String input) throws IOException {
-//				JsonObject json = GSON.fromJson(input, JsonObject.class);
-//				json.remove("jars");
-//				return GSON.toJson(json);
-//			}
-//		}))});
-//	}
-
-	private static void remapJar(File input, File output, Project project, ResolvedArtifact artifact) throws IOException {
+		
 		LoomGradleExtension extension = project.getExtensions().getByType(LoomGradleExtension.class);
 		String fromM = "intermediary";
 		String toM = "named";
@@ -141,12 +55,12 @@ public class ModProcessor {
 		LibraryProvider libraryProvider = extension.getDependencyManager().getLibraryProvider();
 		MappedProvider mappedProvider = extension.getDependencyManager().getMappedProvider();
 		MappingsProvider mappingsProvider = extension.getDependencyManager().getMappingsProvider();
-
+		
 		Path inputPath = input.getAbsoluteFile().toPath();
 		Path mc = mappedProvider.getIntermediaryJar().toPath();
 		Path[] mcDeps = libraryProvider.getNonNativeLibraries().stream().map(File::toPath).toArray(Path[]::new);
 		Set<Path> modCompiles = new HashSet<>();
-
+		
 		for (RemappedConfigurationEntry entry : Constants.MOD_COMPILE_ENTRIES) {
 			project.getConfigurations().getByName(entry.getSourceConfiguration()).getFiles().stream().filter((f) -> !f.equals(input)).map(p -> {
 				if (p.equals(input)) {
@@ -156,19 +70,19 @@ public class ModProcessor {
 				}
 			}).forEach(modCompiles::add);
 		}
-
+		
 		project.getLogger().lifecycle(":remapping " + input.getName() + " (TinyRemapper, " + fromM + " -> " + toM + ")");
-
+		
 		// If the sources don't exist, we want remapper to give nicer names to the missing variable names.
 		// However, if the sources do exist, if remapper gives names to the parameters that prevents IDEs (at least IDEA)
 		// from replacing the parameters with the actual names from the sources.
 		boolean sourcesExist = ModCompileRemapper.findSources(project.getDependencies(), artifact) != null;
-
+		
 		TinyRemapper remapper = TinyRemapper.newRemapper()
 						.withMappings(TinyRemapperMappingsHelper.create(mappingsProvider.getMappings(), fromM, toM, false))
 						.renameInvalidLocals(!sourcesExist)
 						.build();
-
+		
 		try (OutputConsumerPath outputConsumer = new OutputConsumerPath.Builder(Paths.get(output.getAbsolutePath())).build()) {
 			outputConsumer.addNonClassFiles(inputPath);
 			remapper.readClassPath(modCompiles.toArray(new Path[0]));
@@ -179,51 +93,9 @@ public class ModProcessor {
 		} finally {
 			remapper.finish();
 		}
-
+		
 		if (!output.exists()) {
 			throw new RuntimeException("Failed to remap JAR to " + toM + " file not found: " + output.getAbsolutePath());
 		}
-	}
-
-	static JsonObject readInstallerJson(File file, Project project) {
-		try {
-			LoomGradleExtension extension = project.getExtensions().getByType(LoomGradleExtension.class);
-			String launchMethod = extension.loaderLaunchMethod;
-
-			String jsonStr;
-			int priority = 0;
-
-			try (JarFile jarFile = new JarFile(file)) {
-				ZipEntry entry = null;
-
-				if (!launchMethod.isEmpty()) {
-					entry = jarFile.getEntry("fabric-installer." + launchMethod + ".json");
-
-					if (entry == null) {
-						project.getLogger().warn("Could not find loader launch method '" + launchMethod + "', falling back");
-					}
-				}
-
-				if (entry == null) {
-					entry = jarFile.getEntry("fabric-installer.json");
-					priority++;
-
-					if (entry == null) {
-						return null;
-					}
-				}
-
-				try (InputStream inputstream = jarFile.getInputStream(entry)) {
-					jsonStr = IOUtils.toString(inputstream, StandardCharsets.UTF_8);
-				}
-			}
-
-			JsonObject jsonObject = GSON.fromJson(jsonStr, JsonObject.class);
-			return jsonObject;
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-
-		return null;
 	}
 }

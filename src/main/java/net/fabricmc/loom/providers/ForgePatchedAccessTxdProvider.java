@@ -1,7 +1,7 @@
 package net.fabricmc.loom.providers;
 
 import net.fabricmc.loom.LoomGradleExtension;
-import net.fabricmc.loom.forge.ForgeATConfig;
+import net.fabricmc.loom.util.ForgeAccessTransformerSet;
 import net.fabricmc.loom.util.WellKnownLocations;
 import org.gradle.api.Project;
 import org.objectweb.asm.ClassReader;
@@ -37,7 +37,7 @@ public class ForgePatchedAccessTxdProvider extends DependencyProvider {
 	public void decorateProject() throws Exception {
 		//inputs
 		String jarStuff = mc.getJarStuff();
-		ForgeATConfig unmappedAts = forge.getUnmappedAccessTransformers();
+		ForgeAccessTransformerSet unmappedAts = forge.getUnmappedAccessTransformers();
 		File unAccessTransformedMc = forgePatched.getPatchedJar();
 		
 		//outputs

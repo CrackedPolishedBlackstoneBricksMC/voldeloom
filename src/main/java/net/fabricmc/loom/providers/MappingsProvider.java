@@ -25,12 +25,12 @@
 package net.fabricmc.loom.providers;
 
 import net.fabricmc.loom.LoomGradleExtension;
-import net.fabricmc.loom.forge.mapping.AcceptorProvider;
-import net.fabricmc.loom.forge.mapping.CsvApplierAcceptor;
-import net.fabricmc.loom.forge.mapping.SrgMappingProvider;
-import net.fabricmc.loom.forge.mapping.TinyWriter3Column;
+import net.fabricmc.loom.LoomGradlePlugin;
+import net.fabricmc.loom.util.mcp.AcceptorProvider;
+import net.fabricmc.loom.util.mcp.CsvApplierAcceptor;
+import net.fabricmc.loom.util.mcp.SrgMappingProvider;
+import net.fabricmc.loom.util.mcp.TinyWriter3Column;
 import net.fabricmc.loom.util.Constants;
-import net.fabricmc.loom.util.VoldeloomFileHelpers;
 import net.fabricmc.loom.util.WellKnownLocations;
 import net.fabricmc.mapping.tree.TinyMappingFactory;
 import net.fabricmc.mapping.tree.TinyTree;
@@ -81,7 +81,7 @@ public class MappingsProvider extends DependencyProvider {
 	//TODO: let's try and make this into a project-wide `clean` system that threads through each task,
 	// instead of an ad-hoc thing
 	public void clean() {
-		VoldeloomFileHelpers.delete(project, mappingsDir);
+		LoomGradlePlugin.delete(project, mappingsDir);
 	}
 
 	@Override

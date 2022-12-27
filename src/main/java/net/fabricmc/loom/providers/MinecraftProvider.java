@@ -26,14 +26,11 @@ package net.fabricmc.loom.providers;
 
 import com.google.common.io.Files;
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.util.Checksum;
 import net.fabricmc.loom.util.Constants;
 import net.fabricmc.loom.util.DownloadUtil;
-import net.fabricmc.loom.util.ManifestVersion;
 import net.fabricmc.loom.util.MinecraftVersionInfo;
-import net.fabricmc.loom.util.StaticPathWatcher;
 import net.fabricmc.loom.util.WellKnownLocations;
 import org.gradle.api.GradleException;
 import org.gradle.api.Project;
@@ -44,6 +41,8 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 public class MinecraftProvider extends DependencyProvider {
@@ -112,7 +111,7 @@ public class MinecraftProvider extends DependencyProvider {
 		}
 
 		String versionManifest = Files.asCharSource(manifests, StandardCharsets.UTF_8).read();
-		ManifestVersion mcManifest = new GsonBuilder().create().fromJson(versionManifest, ManifestVersion.class);
+		ManifestVersion mcManifest = new Gson().fromJson(versionManifest, ManifestVersion.class);
 
 		Optional<ManifestVersion.Versions> optionalVersion = Optional.empty();
 		
@@ -138,7 +137,7 @@ public class MinecraftProvider extends DependencyProvider {
 					throw new GradleException("Minecraft " + minecraftVersion + " manifest not found at " + minecraftJson.getAbsolutePath());
 				}
 			} else {
-				if (StaticPathWatcher.INSTANCE.hasFileChanged(minecraftJson.toPath())) {
+				if (!minecraftJson.exists()) {
 					project.getLogger().debug("Downloading Minecraft {} manifest", minecraftVersion);
 					DownloadUtil.downloadIfChanged(new URL(optionalVersion.get().url), minecraftJson, project.getLogger());
 				}
@@ -149,12 +148,12 @@ public class MinecraftProvider extends DependencyProvider {
 	}
 
 	private void downloadJars(Logger logger) throws IOException {
-		if (!minecraftClientJar.exists() || (!Checksum.equals(minecraftClientJar, versionInfo.downloads.get("client").sha1) && StaticPathWatcher.INSTANCE.hasFileChanged(minecraftClientJar.toPath()))) {
+		if (!minecraftClientJar.exists() || (!Checksum.equals(minecraftClientJar, versionInfo.downloads.get("client").sha1))) {
 			logger.debug("Downloading Minecraft {} client jar", minecraftVersion);
 			DownloadUtil.downloadIfChanged(new URL(versionInfo.downloads.get("client").url), minecraftClientJar, logger);
 		}
-
-		if (!minecraftServerJar.exists() || (!Checksum.equals(minecraftServerJar, versionInfo.downloads.get("server").sha1) && StaticPathWatcher.INSTANCE.hasFileChanged(minecraftServerJar.toPath()))) {
+		
+		if (!minecraftServerJar.exists() || (!Checksum.equals(minecraftServerJar, versionInfo.downloads.get("server").sha1))) {
 			logger.debug("Downloading Minecraft {} server jar", minecraftVersion);
 			DownloadUtil.downloadIfChanged(new URL(versionInfo.downloads.get("server").url), minecraftServerJar, logger);
 		}
@@ -178,5 +177,13 @@ public class MinecraftProvider extends DependencyProvider {
 	
 	public String getJarStuff() {
 		return minecraftJarStuff;
+	}
+	
+	public static class ManifestVersion {
+		public List<Versions> versions = new ArrayList<>();
+	
+		public static class Versions {
+			public String id, url;
+		}
 	}
 }

@@ -1,4 +1,4 @@
-package net.fabricmc.loom.forge.mapping;
+package net.fabricmc.loom.util.mcp;
 
 import java.util.HashMap;
 import java.util.Map;

@@ -25,6 +25,7 @@
 package net.fabricmc.loom.util;
 
 import net.fabricmc.loom.LoomGradleExtension;
+import net.fabricmc.loom.LoomGradlePlugin;
 import net.fabricmc.loom.providers.MappingsProvider;
 import net.fabricmc.mapping.tree.ClassDef;
 import net.fabricmc.mapping.tree.FieldDef;
@@ -130,7 +131,7 @@ public class SourceRemapper {
 		}
 
 		if (isSrcTmp) {
-			VoldeloomFileHelpers.delete(project, srcPath);
+			LoomGradlePlugin.delete(project, srcPath);
 		}
 	}
 

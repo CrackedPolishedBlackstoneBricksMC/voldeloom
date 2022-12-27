@@ -25,7 +25,7 @@
 package net.fabricmc.loom;
 
 import groovy.util.Node;
-import net.fabricmc.loom.forge.ShimForgeClientLibraries;
+import net.fabricmc.loom.task.ShimForgeClientLibraries;
 import net.fabricmc.loom.providers.ForgeProvider;
 import net.fabricmc.loom.providers.DevLaunchInjectorProvider;
 import net.fabricmc.loom.providers.MappingsProvider;
@@ -84,6 +84,22 @@ import java.util.stream.Collectors;
 
 @SuppressWarnings("UnstableApiUsage")
 public class LoomGradlePlugin implements Plugin<Project> {
+	/**
+	 * Deletes a file or directory using Gradle's machinery. Announces each file to be deleted.
+	 * Gradle's machinery accepts a million different types of object here, but the most important ones are `File` and `Path`.
+	 * Deleting a directory will recursively delete all files inside it, too.
+	 */
+	public static void delete(Project project, Object... things) {
+		project.delete(deleteSpec -> {
+			deleteSpec.setFollowSymlinks(false);
+			
+			for(Object thing : things) {
+				project.getLogger().info("Deleting " + thing);
+				deleteSpec.delete(thing);
+			}
+		});
+	}
+	
 	@Override
 	public void apply(Project project) {
 		project.getLogger().lifecycle("applying Voldeloom " + getClass().getPackage().getImplementationVersion() + " to " + project.getDisplayName());

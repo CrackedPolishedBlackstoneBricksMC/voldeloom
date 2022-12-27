@@ -1,4 +1,4 @@
-package net.fabricmc.loom.forge.mapping;
+package net.fabricmc.loom.util.mcp;
 
 import net.fabricmc.tinyremapper.IMappingProvider.MappingAcceptor;
 import net.fabricmc.tinyremapper.IMappingProvider.Member;

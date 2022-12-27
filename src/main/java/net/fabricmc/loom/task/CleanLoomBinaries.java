@@ -25,8 +25,8 @@
 package net.fabricmc.loom.task;
 
 import net.fabricmc.loom.LoomGradleExtension;
+import net.fabricmc.loom.LoomGradlePlugin;
 import net.fabricmc.loom.util.LoomTaskExt;
-import net.fabricmc.loom.util.VoldeloomFileHelpers;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.tasks.TaskAction;
 
@@ -40,7 +40,7 @@ public class CleanLoomBinaries extends DefaultTask implements LoomTaskExt {
 		LoomGradleExtension extension = getLoomGradleExtension();
 		
 		//TODO: replace this with a generic "clean" system
-		VoldeloomFileHelpers.delete(getProject(),
+		LoomGradlePlugin.delete(getProject(),
 			extension.getDependencyManager().getMergedProvider().getMergedJar(),
 			extension.getDependencyManager().getForgePatchedProvider().getPatchedJar(),
 			extension.getDependencyManager().getMappedProvider().getIntermediaryJar(),
