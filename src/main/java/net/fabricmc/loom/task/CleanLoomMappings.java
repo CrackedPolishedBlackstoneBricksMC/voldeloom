@@ -27,7 +27,6 @@ package net.fabricmc.loom.task;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.util.LoomTaskExt;
 import net.fabricmc.loom.util.VoldeloomFileHelpers;
-import net.fabricmc.loom.util.WellKnownLocations;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.tasks.TaskAction;
 
@@ -43,8 +42,7 @@ public class CleanLoomMappings extends DefaultTask implements LoomTaskExt {
 		
 		VoldeloomFileHelpers.delete(getProject(),
 			extension.getDependencyManager().getMappedProvider().getIntermediaryJar(),
-			extension.getDependencyManager().getMappedProvider().getMappedJar(),
-			WellKnownLocations.getRootProjectBuildCache(getProject())
+			extension.getDependencyManager().getMappedProvider().getMappedJar()
 		);
 	}
 }

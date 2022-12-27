@@ -17,12 +17,6 @@ public class WellKnownLocations {
 		return userCache;
 	}
 	
-	public static File getRootProjectBuildCache(Project project) {
-		File rootProjectBuildCache = new File(project.getRootProject().getBuildDir(), "loom-cache");
-		if (!rootProjectBuildCache.exists()) rootProjectBuildCache.mkdirs();
-		return rootProjectBuildCache;
-	}
-	
 	public static File getRootProjectPersistentCache(Project project) {
 		File rootProjectCache = new File(project.getRootProject().file(".gradle"), "loom-cache");
 		if (!rootProjectCache.exists()) rootProjectCache.mkdirs();

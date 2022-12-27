@@ -48,6 +48,7 @@ import net.fabricmc.loom.task.RemapLineNumbersTask;
 import net.fabricmc.loom.task.RemapSourcesJarTask;
 import net.fabricmc.loom.task.RunClientTask;
 import net.fabricmc.loom.task.RunServerTask;
+import net.fabricmc.loom.task.ShimResourcesTask;
 import net.fabricmc.loom.task.fernflower.FernFlowerTask;
 import net.fabricmc.loom.util.Constants;
 import net.fabricmc.loom.util.GradleSupport;
@@ -114,18 +115,14 @@ public class LoomGradlePlugin implements Plugin<Project> {
 			//I don't believe this breaks Gradle 4.
 			repo.metadataSources(MavenArtifactRepository.MetadataSources::artifact);
 		});
-		//Needed for a dep of ASM 4.1 which is a dep of Launchwrapper which is a dep of Minecraft
-		//Also, apparently needed for random parent POMs like org.lwjgl.lwjgl:parent:2.9.0, don't ask me, i have no clue
-		project.getRepositories().mavenCentral();
-		project.getRepositories().flatDir(repo -> {
-			//TODO(VOLDELOOM-DISASTER): Apparently unused, only used in CleanLoomMappings but never written to
-			repo.dir(WellKnownLocations.getRootProjectBuildCache(project));
-			repo.setName("UserLocalCacheFiles");
-		});
+		//Remapped mods TODO fix
 		project.getRepositories().flatDir(repo -> {
 			repo.dir(WellKnownLocations.getRemappedModCache(project));
 			repo.setName("UserLocalRemappedMods");
 		});
+		//Needed for a dep of ASM 4.1 which is a dep of Launchwrapper which is a dep of Minecraft
+		//Also, apparently needed for random parent POMs like org.lwjgl.lwjgl:parent:2.9.0, don't ask me, i have no clue
+		project.getRepositories().mavenCentral();
 		
 		//Next, we define a bunch of Configurations. (More on them here: https://docs.gradle.org/current/dsl/org.gradle.api.artifacts.Configuration.html )
 		//A configuration is a set of artifacts and their dependencies. These are typically referenced by-name, so we don't need to shelve the objects anywhere.
@@ -135,7 +132,6 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		//Oh, and there's inheritance relationships between them too.
 		//You can read a bit more about what "extendsFrom" does here: https://docs.gradle.org/current/userguide/declaring_dependencies.html#sub:config-inheritance-composition
 		//In short, I think that if configuration A extends B, all the artifacts in B have to be ready before A can be ready.
-		
 		Configuration compileOrImplementation = GradleSupport.getCompileOrImplementationConfiguration(project.getConfigurations());
 		
 		//All mods on the compilation classpath, including the mod under development.
@@ -179,15 +175,6 @@ public class LoomGradlePlugin implements Plugin<Project> {
 			}
 		}
 		
-//		//TODO: I think this has to do with the Mixin annotation processor again
-//		//Guarded by an ideaSync block because IDEA gets confused when the annotation processor runs during syncing, I think?
-//		//I'm not really sure why it was like this - either APs don't work at all, or maybe only specifically Mixin's is broken, or what
-//		if(!ideaSync()) {
-//			annotationProcessor.extendsFrom(minecraftNamed);
-//			annotationProcessor.extendsFrom(modCompileClasspathMapped);
-//			annotationProcessor.extendsFrom(mappingsFinal);
-//		}
-		
 		//Preconfigure a couple things in IntelliJ. Nothing you can't do yourself by clicking on things, but, well, now you don't have to.
 		//This can also be configured by writing your own `idea { }` block in the script.
 		IdeaModel ideaModel = (IdeaModel) project.getExtensions().getByName("idea");
@@ -198,12 +185,6 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		ideaModel.getModule().setDownloadSources(true);
 		//Now you don't have to configure the build directory manually!!!!! Why is this a thing!!!! I love intellij
 		ideaModel.getModule().setInheritOutputDirs(true);
-		
-		//TODO what is this doing here lmao. I think this is some opinionated it-just-works stuff totally unrelated to Minecraft modding
-//		JavaPluginConvention javaModule = (JavaPluginConvention) project.getConvention().getPlugins().get("java");
-//		SourceSet main = javaModule.getSourceSets().getByName(SourceSet.MAIN_SOURCE_SET_NAME);
-//		Javadoc javadoc = (Javadoc) project.getTasks().getByName(JavaPlugin.JAVADOC_TASK_NAME);
-//		javadoc.setClasspath(main.getOutput().plus(main.getCompileClasspath()));
 		
 		//And now, we add a bunch of Gradle tasks.
 		//Note that `register` doesn't add the task right away, but reflectively creates it and calls the closure to configure it when required.
@@ -238,7 +219,8 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		tasks.register("genEclipseRuns", GenEclipseRunsTask.class);
 		tasks.register("vscode", GenVsCodeProjectTask.class);
 		tasks.register("shimForgeClientLibraries", ShimForgeClientLibraries.class);
-		tasks.register("runClient", RunClientTask.class, t -> t.dependsOn("assemble", "shimForgeClientLibraries"));
+		tasks.register("shimResources", ShimResourcesTask.class);
+		tasks.register("runClient", RunClientTask.class, t -> t.dependsOn("assemble", "shimForgeClientLibraries", "shimResources"));
 		tasks.register("runServer", RunServerTask.class, t -> t.dependsOn("assemble"));
 		
 		//TODO is it safe to configure this now? I ask because upstream did it in afterEvaluate
@@ -259,10 +241,8 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		//This is where the Magic happens.
 		//These dependencies are dynamic; their content depends on the values of the stuff configured in LoomGradleExtension
 		//Even though the process of creating them *looks* like a task graph, task execution is too late to configure dependencies
-		//Without the ability to leverage Gradle's task graph, doing it all in `afterEvaluate` is the best we can do, regrettably
-		
-		//Ordering here matters: later providers depend on earlier providers.
-		//TODO: i could make the dependencies explicit rather than implicit by taking them as constructor parameters?
+		//Without the ability to leverage Gradle's task graph, doing it all in `afterEvaluate` is the best we can do, regrettably.
+		//At least I can fake a task graph via constructor parameters...
 		
 		//forge jar
 		ForgeProvider forge = dmgr.installForgeProvider(new ForgeProvider(project, extension));

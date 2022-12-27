@@ -25,28 +25,19 @@
 package net.fabricmc.loom.providers;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.util.Checksum;
 import net.fabricmc.loom.util.Constants;
 import net.fabricmc.loom.util.DownloadUtil;
 import net.fabricmc.loom.util.MinecraftVersionInfo;
 import net.fabricmc.loom.util.WellKnownLocations;
-import net.fabricmc.loom.util.assets.AssetIndex;
-import net.fabricmc.loom.util.assets.AssetObject;
-import net.fabricmc.loom.util.progress.ProgressLogger;
 import org.gradle.api.GradleException;
 import org.gradle.api.Project;
 
 import java.io.File;
 import java.io.FileReader;
-import java.io.IOException;
 import java.net.URL;
-import java.util.Deque;
-import java.util.Map;
-import java.util.concurrent.ConcurrentLinkedDeque;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
 public class AssetsProvider extends DependencyProvider {
 	public AssetsProvider(Project project, LoomGradleExtension extension, MinecraftProvider mc) {
@@ -56,111 +47,84 @@ public class AssetsProvider extends DependencyProvider {
 	
 	private final MinecraftProvider mc;
 	
+	private File assetIndexFile;
+	private File thisVersionAssetsDir;
+	
 	@Override
 	public void decorateProject() throws Exception {
-		boolean offline = project.getGradle().getStartParameter().isOffline();
-		
 		MinecraftVersionInfo versionInfo = mc.getVersionManifest();
-		MinecraftVersionInfo.AssetIndex assetIndex = versionInfo.assetIndex;
-
-		// get existing cache files
-		File assets = new File(WellKnownLocations.getUserCache(project), "assets");
-
-		if (!assets.exists()) {
-			assets.mkdirs();
-		}
-
-		File assetsInfo = new File(assets, "indexes" + File.separator + assetIndex.getFabricId(mc.getVersion()) + ".json");
-
-		if (!assetsInfo.exists() || !Checksum.equals(assetsInfo, assetIndex.sha1)) {
+		MinecraftVersionInfo.AssetIndex assetIndexInfo = versionInfo.assetIndex;
+		
+		File globalAssetsCache = new File(WellKnownLocations.getUserCache(project), "assets");
+		
+		//outputs
+		assetIndexFile = new File(globalAssetsCache, "indexes" + File.separator + assetIndexInfo.getFabricId(mc.getVersion()) + ".json");
+		thisVersionAssetsDir = new File(new File(globalAssetsCache, "legacy"), mc.getVersion());
+		
+		//tasks
+		
+		boolean offline = project.getGradle().getStartParameter().isOffline();
+		if (!assetIndexFile.exists() || !Checksum.equals(assetIndexFile, assetIndexInfo.sha1)) {
 			project.getLogger().lifecycle(":downloading asset index");
 
 			if (offline) {
-				if (assetsInfo.exists()) {
+				if (assetIndexFile.exists()) {
 					//We know it's outdated but can't do anything about it, oh well
 					project.getLogger().warn("Asset index outdated");
 				} else {
 					//We don't know what assets we need, just that we don't have any
-					throw new GradleException("Asset index not found at " + assetsInfo.getAbsolutePath());
+					throw new GradleException("Asset index not found at " + assetIndexFile.getAbsolutePath());
 				}
 			} else {
-				DownloadUtil.downloadIfChanged(new URL(assetIndex.url), assetsInfo, project.getLogger());
+				globalAssetsCache.mkdirs();
+				DownloadUtil.downloadIfChanged(new URL(assetIndexInfo.url), assetIndexFile, project.getLogger());
 			}
 		}
-
-		project.getLogger().lifecycle(":downloading assets...");
-
-		Deque<ProgressLogger> loggers = new ConcurrentLinkedDeque<>();
-		ExecutorService executor = Executors.newFixedThreadPool(Math.min(10, Math.max(Runtime.getRuntime().availableProcessors() / 2, 1)));
-
-		AssetIndex index;
-
-		try (FileReader fileReader = new FileReader(assetsInfo)) {
-			index = new Gson().fromJson(fileReader, AssetIndex.class);
-		}
-
-		Map<String, AssetObject> parent = index.getFileMap();
-
-		for (Map.Entry<String, AssetObject> entry : parent.entrySet()) {
-			AssetObject object = entry.getValue();
-			String sha1 = object.getHash();
-			String filename = "objects" + File.separator + sha1.substring(0, 2) + File.separator + sha1;
-			File file = new File(assets, filename);
-
-			if (!file.exists() || !Checksum.equals(file, sha1)) {
-				if (offline) {
-					if (file.exists()) {
-						project.getLogger().warn("Outdated asset " + entry.getKey());
-					} else {
-						throw new GradleException("Asset " + entry.getKey() + " not found at " + file.getAbsolutePath());
+		
+		//TODO: I removed all code relating to the modern assets system (that uses the objects/ folder)
+		//Btw, using this `legacy` folder just to get out of its way
+		
+		if(!thisVersionAssetsDir.exists()) {
+			project.getLogger().lifecycle(":downloading assets...");
+			
+			JsonObject assetJson;
+			try(FileReader in = new FileReader(assetIndexFile)) {
+				assetJson = new Gson().fromJson(in, JsonObject.class);
+			}
+			JsonObject objectsJson = assetJson.getAsJsonObject("objects");
+			
+			//just logging for fun
+			int assetCount = objectsJson.size();
+			project.getLogger().lifecycle("|-> Found " + assetCount + " assets to download.");
+			int downloadedCount = 0, nextLogAssetCount = 0, logCount = 0;
+			
+			for(String filename : objectsJson.keySet()) {
+				File file = new File(thisVersionAssetsDir, filename);
+				if(!file.exists()) {
+					file.getParentFile().mkdirs();
+					
+					String sha1 = objectsJson.get(filename).getAsJsonObject().get("hash").getAsString();
+					String shsha1 = sha1.substring(0, 2) + '/' + sha1;
+					DownloadUtil.downloadIfChanged(new URL(Constants.RESOURCES_BASE + shsha1), file, project.getLogger(), true);
+					
+					//just logging for fun
+					downloadedCount++;
+					if(downloadedCount >= nextLogAssetCount) {
+						project.getLogger().lifecycle("|-> " + logCount * 10 + "%...");
+						logCount++;
+						nextLogAssetCount = logCount * assetCount / 10;
 					}
-				} else {
-					executor.execute(() -> {
-						ProgressLogger progressLogger;
-
-						if (loggers.isEmpty()) {
-							//Create a new logger if we need one
-							progressLogger = ProgressLogger.getProgressFactory(project, AssetsProvider.class.getName());
-							progressLogger.start("Downloading assets...", "assets");
-						} else {
-							// use a free logger if we can
-							progressLogger = loggers.pop();
-						}
-
-						String assetName = entry.getKey();
-						int end = assetName.lastIndexOf("/") + 1;
-
-						if (end > 0) {
-							assetName = assetName.substring(end);
-						}
-
-						project.getLogger().debug(":downloading asset " + assetName);
-						progressLogger.progress(String.format("%-30.30s", assetName) + " - " + sha1);
-
-						try {
-							DownloadUtil.downloadIfChanged(new URL(Constants.RESOURCES_BASE + sha1.substring(0, 2) + "/" + sha1), file, project.getLogger(), true);
-						} catch (IOException e) {
-							throw new RuntimeException("Failed to download: " + assetName, e);
-						}
-
-						//Give this logger back
-						loggers.add(progressLogger);
-					});
 				}
 			}
+			project.getLogger().lifecycle("|-> 100%!");
 		}
-
-		//Wait for the assets to all download
-		executor.shutdown();
-
-		try {
-			if (executor.awaitTermination(2, TimeUnit.HOURS)) {
-				executor.shutdownNow();
-			}
-		} catch (InterruptedException e) {
-			throw new RuntimeException(e);
-		}
-
-		loggers.forEach(ProgressLogger::completed);
+	}
+	
+	public File getAssetIndexFile() {
+		return assetIndexFile;
+	}
+	
+	public File getAssetsDir() {
+		return thisVersionAssetsDir;
 	}
 }
