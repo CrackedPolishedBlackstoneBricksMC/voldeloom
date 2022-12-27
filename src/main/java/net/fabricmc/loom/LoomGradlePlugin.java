@@ -203,8 +203,8 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		ideaModel.getModule().setInheritOutputDirs(true);
 		
 		//And now, we add a bunch of Gradle tasks.
-		//Note that `register` doesn't add the task right away, but reflectively creates it and calls the closure to configure it when required.
-		//Optimization thing, I guess.
+		//Note that `register` doesn't add the task right away, but Gradle will reflectively creates it when someone asks for it,
+		//and (if a closure is specified) call the closure to configure the task. Optimization thing, I guess.
 		TaskContainer tasks = project.getTasks();
 		//Cleaning:
 		tasks.register("cleanLoomBinaries", CleanLoomBinaries.class);
