@@ -26,8 +26,15 @@ package net.fabricmc.loom;
 
 import groovy.util.Node;
 import net.fabricmc.loom.forge.ShimForgeClientLibraries;
+import net.fabricmc.loom.providers.ForgeProvider;
+import net.fabricmc.loom.providers.LaunchProvider;
 import net.fabricmc.loom.providers.MappingsProvider;
+import net.fabricmc.loom.providers.MinecraftForgeMappedProvider;
+import net.fabricmc.loom.providers.MinecraftForgePatchedAccessTransformedProvider;
+import net.fabricmc.loom.providers.MinecraftForgePatchedProvider;
 import net.fabricmc.loom.providers.MinecraftLibraryProvider;
+import net.fabricmc.loom.providers.MinecraftMergedProvider;
+import net.fabricmc.loom.providers.MinecraftProvider;
 import net.fabricmc.loom.task.AbstractDecompileTask;
 import net.fabricmc.loom.task.CleanLoomBinaries;
 import net.fabricmc.loom.task.CleanLoomMappings;
@@ -245,32 +252,29 @@ public class LoomGradlePlugin implements Plugin<Project> {
 	private void afterEvaluate(Project project) {
 		LoomGradleExtension extension = project.getExtensions().getByType(LoomGradleExtension.class);
 		
-		//TODO(VOLDELOOM-DISASTER) research what da hecj this does
-		// Hi its me from the future. It does literally fucking everything
-		//  Hi, it's me from farther in the future. Tyring to cut down on how magical this class is.
-		//   Hi! It's me from very shortly after, it's basically a functionless container for a couple of things now
-		LoomDependencyManager dependencyManager = extension.getDependencyManager();
-		//forge jar
-		dependencyManager.getForgeProvider().decorateProjectOrThrow();
-		
-		//vanilla minecraft
-		dependencyManager.getMinecraftProvider().decorateProjectOrThrow();
-		dependencyManager.getMinecraftMergedProvider().decorateProjectOrThrow();
-		
-		//forge + vanilla
-		dependencyManager.getMinecraftForgePatchedProvider().decorateProjectOrThrow();
-		dependencyManager.getMinecraftForgePatchedAccessTransformedProvider().decorateProjectOrThrow();
-		
-		//mappings
-		dependencyManager.getMappingsProvider().decorateProjectOrThrow();
-		
-		//forge + vanilla + mappings
-		dependencyManager.getMinecraftForgeMappedProvider().decorateProjectOrThrow();
-		
-		//dev-launch-injector stuff that's not used at all
-		dependencyManager.getLaunchProvider().decorateProjectOrThrow();
+		LoomDependencyManager dependencyManager = extension.getDependencyManager()
+			//forge jar
+			.installForgeProvider(new ForgeProvider(project, extension))
+			
+			//vanilla minecraft
+			.installMinecraftProvider(new MinecraftProvider(project, extension))
+			.installMinecraftMergedProvider(new MinecraftMergedProvider(project, extension))
+			
+			//forge + vanilla
+			.installMinecraftForgePatchedProvider(new MinecraftForgePatchedProvider(project, extension))
+			.installMinecraftForgePatchedAccessTransformedProvider(new MinecraftForgePatchedAccessTransformedProvider(project, extension))
+			
+			//mappings
+			.installMappingsProvider(new MappingsProvider(project, extension))
+			
+			//forge + vanilla + mappings
+			.installMinecraftForgeMappedProvider(new MinecraftForgeMappedProvider(project, extension))
+			
+			//dev-launch-injector stuff that's not used at all
+			.installLaunchProvider(new LaunchProvider(project, extension));
 		
 		//very strange block related to `modCompile`etc configurations that i moved here from LoomDependencyManager
+		//todo this probably needs rewriting
 		{
 			MappingsProvider mappingsProvider = dependencyManager.getMappingsProvider();
 			List<Runnable> afterTasks = new ArrayList<>();

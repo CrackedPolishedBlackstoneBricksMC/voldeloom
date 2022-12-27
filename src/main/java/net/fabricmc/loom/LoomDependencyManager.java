@@ -32,7 +32,6 @@ import net.fabricmc.loom.providers.MinecraftForgePatchedAccessTransformedProvide
 import net.fabricmc.loom.providers.MinecraftForgePatchedProvider;
 import net.fabricmc.loom.providers.MinecraftMergedProvider;
 import net.fabricmc.loom.providers.MinecraftProvider;
-import org.gradle.api.Project;
 
 /**
  * TODO(VOLDELOOM-DISASTER): Phase this out in favor of, say, real Gradle tasks.
@@ -41,56 +40,103 @@ import org.gradle.api.Project;
  *  - it has to run *after* said dependency is set up (an ordering relationship)
  */
 public class LoomDependencyManager {
-	public LoomDependencyManager(Project project, LoomGradleExtension extension) {
-		forgeProvider = new ForgeProvider(project, extension);
-		minecraftProvider = new MinecraftProvider(project, extension);
-		minecraftMergedProvider = new MinecraftMergedProvider(project, extension);
-		minecraftForgePatchedProvider = new MinecraftForgePatchedProvider(project, extension);
-		//After writing this 46-character class name, twice, on the same line, I'm starting to think a real task graph is a good idea
-		minecraftForgePatchedAccessTransformedProvider = new MinecraftForgePatchedAccessTransformedProvider(project, extension);
-		minecraftForgeMappedProvider = new MinecraftForgeMappedProvider(project, extension);
-		mappingsProvider = new MappingsProvider(project, extension);
-		launchProvider = new LaunchProvider(project, extension);
+	public LoomDependencyManager() {
 	}
 	
-	private final ForgeProvider forgeProvider;
-	private final MinecraftProvider minecraftProvider;
-	private final MinecraftMergedProvider minecraftMergedProvider;
-	private final MinecraftForgePatchedProvider minecraftForgePatchedProvider;
-	private final MinecraftForgePatchedAccessTransformedProvider minecraftForgePatchedAccessTransformedProvider;
-	private final MinecraftForgeMappedProvider minecraftForgeMappedProvider;
-	private final MappingsProvider mappingsProvider;
-	private final LaunchProvider launchProvider;
+	private ForgeProvider forgeProvider;
+	private MinecraftProvider minecraftProvider;
+	private MinecraftMergedProvider minecraftMergedProvider;
+	private MinecraftForgePatchedProvider minecraftForgePatchedProvider;
+	private MinecraftForgePatchedAccessTransformedProvider longName;
+	private MinecraftForgeMappedProvider minecraftForgeMappedProvider;
+	private MappingsProvider mappingsProvider;
+	private LaunchProvider launchProvider;
+	
+	public LoomDependencyManager installForgeProvider(ForgeProvider forgeProvider) {
+		this.forgeProvider = forgeProvider;
+		forgeProvider.decorateProjectOrThrow();
+		return this;
+	}
+	
+	public LoomDependencyManager installMinecraftProvider(MinecraftProvider minecraftProvider) {
+		this.minecraftProvider = minecraftProvider;
+		minecraftProvider.decorateProjectOrThrow();
+		return this;
+	}
+	
+	public LoomDependencyManager installMinecraftMergedProvider(MinecraftMergedProvider minecraftMergedProvider) {
+		this.minecraftMergedProvider = minecraftMergedProvider;
+		minecraftMergedProvider.decorateProjectOrThrow();
+		return this;
+	}
+	
+	public LoomDependencyManager installMinecraftForgePatchedProvider(MinecraftForgePatchedProvider minecraftForgePatchedProvider) {
+		this.minecraftForgePatchedProvider = minecraftForgePatchedProvider;
+		minecraftForgePatchedProvider.decorateProjectOrThrow();
+		return this;
+	}
+	
+	public LoomDependencyManager installMinecraftForgePatchedAccessTransformedProvider(MinecraftForgePatchedAccessTransformedProvider longName) {
+		this.longName = longName;
+		longName.decorateProjectOrThrow();
+		return this;
+	}
+	
+	public LoomDependencyManager installMinecraftForgeMappedProvider(MinecraftForgeMappedProvider minecraftForgeMappedProvider) {
+		this.minecraftForgeMappedProvider = minecraftForgeMappedProvider;
+		minecraftForgeMappedProvider.decorateProjectOrThrow();
+		return this;
+	}
+	
+	public LoomDependencyManager installMappingsProvider(MappingsProvider mappingsProvider) {
+		this.mappingsProvider = mappingsProvider;
+		mappingsProvider.decorateProjectOrThrow();
+		return this;
+	}
+	
+	public LoomDependencyManager installLaunchProvider(LaunchProvider launchProvider) {
+		this.launchProvider = launchProvider;
+		launchProvider.decorateProjectOrThrow();
+		return this;
+	}
 	
 	public ForgeProvider getForgeProvider() {
-		return forgeProvider;
+		if(forgeProvider == null) throw new IllegalStateException("forgeProvider hasn't been installed yet!");
+		else return forgeProvider;
 	}
 	
 	public MinecraftProvider getMinecraftProvider() {
-		return minecraftProvider;
+		if(minecraftProvider == null) throw new IllegalStateException("minecraftProvider hasn't been installed yet!");
+		else return minecraftProvider;
 	}
 	
 	public MinecraftMergedProvider getMinecraftMergedProvider() {
-		return minecraftMergedProvider;
+		if(minecraftMergedProvider == null) throw new IllegalStateException("minecraftMergedProvider hasn't been installed yet!");
+		else return minecraftMergedProvider;
 	}
 	
 	public MinecraftForgePatchedProvider getMinecraftForgePatchedProvider() {
-		return minecraftForgePatchedProvider;
+		if(minecraftForgePatchedProvider == null) throw new IllegalStateException("minecraftForgePatchedProvider hasn't been installed yet!");
+		else return minecraftForgePatchedProvider;
 	}
 	
 	public MinecraftForgePatchedAccessTransformedProvider getMinecraftForgePatchedAccessTransformedProvider() {
-		return minecraftForgePatchedAccessTransformedProvider;
+		if(longName == null) throw new IllegalStateException("minecraftForgePatchedAccessTransformedProvider hasn't been installed yet!");
+		else return longName;
 	}
 	
 	public MinecraftForgeMappedProvider getMinecraftForgeMappedProvider() {
-		return minecraftForgeMappedProvider;
+		if(minecraftForgeMappedProvider == null) throw new IllegalStateException("minecraftForgeMappedProvider hasn't been installed yet!");
+		else return minecraftForgeMappedProvider;
 	}
 	
 	public MappingsProvider getMappingsProvider() {
-		return mappingsProvider;
+		if(mappingsProvider == null) throw new IllegalStateException("mappingsProvider hasn't been installed yet!");
+		else return mappingsProvider;
 	}
 	
 	public LaunchProvider getLaunchProvider() {
-		return launchProvider;
+		if(launchProvider == null) throw new IllegalStateException("launchProvider hasn't been installed yet!");
+		else return launchProvider;
 	}
 }

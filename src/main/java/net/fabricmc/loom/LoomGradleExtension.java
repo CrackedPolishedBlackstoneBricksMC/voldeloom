@@ -36,7 +36,7 @@ import java.util.function.Supplier;
 
 public class LoomGradleExtension {
 	public LoomGradleExtension(Project project) {
-		dependencyManager = new LoomDependencyManager(project, this);
+		dependencyManager = new LoomDependencyManager();
 	}
 	
 	public String runDir = "run";
