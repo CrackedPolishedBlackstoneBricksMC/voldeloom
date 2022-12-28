@@ -12,7 +12,9 @@ import org.objectweb.asm.FieldVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
+import java.io.BufferedInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
@@ -78,10 +80,12 @@ public class MergedProvider extends DependencyProvider {
 					public FileVisitResult visitFile(Path unfixedFile, BasicFileAttributes attrs) throws IOException {
 						Path fixedFile = fixedFs.getPath(unfixedFile.toString());
 						if(unfixedFile.toString().endsWith(".class")) {
-							ClassReader unfixedReader = new ClassReader(Files.newInputStream(unfixedFile));
-							ClassWriter fixedWriter = new ClassWriter(0);
-							unfixedReader.accept(new EnvironmentToSideOnlyVisitor(fixedWriter), 0);
-							Files.write(fixedFile, fixedWriter.toByteArray());
+							try(InputStream unfixedReader = new BufferedInputStream(Files.newInputStream(unfixedFile))) {
+								ClassReader unfixedClassReader = new ClassReader(unfixedReader);
+								ClassWriter fixedClassWriter = new ClassWriter(0);
+								unfixedClassReader.accept(new EnvironmentToSideOnlyVisitor(fixedClassWriter), 0);
+								Files.write(fixedFile, fixedClassWriter.toByteArray());
+							}
 						} else {
 							Files.copy(unfixedFile, fixedFile);
 						}

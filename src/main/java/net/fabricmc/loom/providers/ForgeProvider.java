@@ -1,10 +1,12 @@
 package net.fabricmc.loom.providers;
 
-import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.Constants;
+import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.util.ForgeAccessTransformerSet;
 import org.gradle.api.Project;
 
+import java.io.BufferedInputStream;
+import java.io.InputStream;
 import java.net.URI;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
@@ -29,9 +31,12 @@ public class ForgeProvider extends DependencyProvider {
 		
 		project.getLogger().lifecycle("|-> Parsing Forge and FML's access transformers...");
 		unmappedAts = new ForgeAccessTransformerSet();
-		try(FileSystem zipFs = FileSystems.newFileSystem(URI.create("jar:" + forge.toUri()), Collections.emptyMap())) {
-			unmappedAts.load(Files.newInputStream(zipFs.getPath("fml_at.cfg")));
-			unmappedAts.load(Files.newInputStream(zipFs.getPath("forge_at.cfg")));
+		try(FileSystem zipFs = FileSystems.newFileSystem(URI.create("jar:" + forge.toUri()), Collections.emptyMap());
+		    InputStream fmlAt = new BufferedInputStream(Files.newInputStream(zipFs.getPath("fml_at.cfg")));
+		    InputStream forgeAt = new BufferedInputStream(Files.newInputStream(zipFs.getPath("forge_at.cfg"))))
+		{
+			unmappedAts.load(fmlAt);
+			unmappedAts.load(forgeAt);
 		}
 		project.getLogger().lifecycle("|-> AT parse success! :)");
 	}

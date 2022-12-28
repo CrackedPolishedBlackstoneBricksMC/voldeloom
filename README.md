@@ -10,45 +10,50 @@ Also this is **not** intended to be merged upstream as-is, i.e. i'm also taking 
 
 What works:
 
-* Zero-byte mcp zips now loudly explode early, instead of printing cryptic errors about a corrupt zip
 * Forge's Maven is configured for you, replete with the `metadataSources` forward-compat hack for gradle 5+
-* `genSources` decompiles the whole game apart from ~5 methods due to MCP errata (moved switchmap classes)
+* `genSources` decompiles the whole game, apart from ~5 methods due to MCP errata (moved switchmap classes)
   * Attaching and browsing sources works in IDEA
-  * "find usages" works too
-* Setting `loaderLaunchMethod` to `direct` causes the `runClient` task to successfully start a copy of Minecraft Forge 1.4.7
-  * Getting in-game works(due to a kludge, but it does work)
-  * Breakpoints and debugging seem to work (line nos are off in `Minecraft` due to decompiler crap but yeah)
-  * The `shimForgeClientLibraries` task predownloads Forge's runtime-downloaded deps and places them in the location Forge expects, because the URLs hardcoded in forge are long dead
+  * "Find usages" works too
+* Asset downloading uses the old, flatter format 
+* `runClient` will successfully start a copy of Minecraft Forge 1.4.7
+  * Getting in-world works. It works due to a kludge, but it does work
+  * Breakpoints and debugging seem to work (line #s are off in `Minecraft` due to decompiler crap but yeah)
+  * The `shimForgeLibraries` task predownloads Forge's runtime-downloaded deps and places them in the location Forge expects, because the URLs hardcoded in forge are long dead
+  * The `shimResources` task will copy assets from your local assets cache into the run directory (because you can't configure `--assetsDir` in this version of the game)
+* Parse MCP mappings directly out of a Forge `-src` zip! No need to download MCP separately, and definitely no need to manually paste the Forge zip on top
+  * See sample mod for how to do this.
+  * If you still choose to download an mcp zip, when the internet archive inevitably gives you a zero-byte there's a nicer error now lol
+* Partial backport of the "extendable run configs" thing from newer Fabric Loom versions
+  * Define your own run configs with custom system properties
+  * 1.4 doesn't parse any program arguments apart from the username (arg 0) and session token (arg 1) 
 
-Main focus is on Gradle 7. Gradle 4 probably doesn't work yet
+Main focus is on Gradle 7. Gradle 4 probably doesn't work yet; i'd like it to
 
 What doesn't work yet:
 
 * Minecraft versions other than 1.4.7 don't work
   * The long-term goal is to merge the differences between the 1.2.5/1.5.2 branches into something runtime-configurable
   * But the short-term goal is to make 1.4.7 work!
-* Run configs are kinda wacky:
-  * For `runClient` etc tasks, I partially backported some of the newer Loom dynamic-run-config stuff
-  * The tasks work, but generated IDE run configs don't
-* I don't know how broken Eclipse is.
-* `modCompile` configurations and friends probably don't work
-* Source remapping tasks don't work
-* `migrateMappings` won't work (but what is there to even migrate to?)
+* Generated IDE run configs are a bit janky (there's a kludge in the `runClient` task that appends a few extra args)
+* I don't know how broken Eclipse/VSCode are
+* `modCompile` configurations and friends don't work
+  * if i put mods and coremods on the classpath will Forge find them automatically?
+  * Forge requires you to put coremods in their own folder in this version but does anything apply to classpath coremods?
+  * Might need `coremodCompile` versions of the configurations too lol
+* Source remapping tasks don't work (but who cares cause you're stuck with MCP)
+* `migrateMappings` doesn't work (but who cares cause you're stuck with MCP)
 * Probably a lot of other things don't work
 
 What I'd like to fix:
 
-* Fix remapping exploding when packages.csv is missing
-* An in-gradle method of downloading MCP and applying the forge access transformers, instead of that funny shit in the buildscript
-* I've removed a lot of Fabric ecosystem leftovers (mixin, jij, fabric-installer, etc) but there might be a few stragglers
 * Ideally the game should be launched with a copy of java 6 or 8, right now i think gradle itself has to be running on an appropriate jdk
-* I wandered right into this bug https://github.com/FabricMC/fabric-loom/issues/633 (even though the cause is completely different) if mezz is right I cannot believe Java is this shitty. Come on now
+* I might have wandered right into this bug https://github.com/FabricMC/fabric-loom/issues/633 (even though the cause is completely different) if mezz is right I cannot believe Java is this shitty. Come on now
 
 What I'd like to add:
 
 * Quiltflower lol (kinda a java 11 moment though)
 * Launchwrapper and/or DevLaunchInjector support would be nice
-* Use an off-the-shelf access transformer, like cadixdev `at`, or (if i wanna get really silly) Forge's secret access transformer command-line program
+* (if i wanna get really silly) Use Forge's secret access transformer command-line program instead of maintaining an access transformer parser
 
 ## Sample projects
 
@@ -61,38 +66,30 @@ Apparently the actual recommended way to do this is a) shove everything in `buil
 So: 
 
 * Sample projects contain a line in `settings.gradle` that includes the main voldeloom project as an "included build". Note that this feels a bit backwards because the subfolder is "including" the parent folder. It is what it is.
-* In IDEA, you can right-click on each sample project's `build.gradle` and press "Link Gradle Project" towards the bottom of the dropdown. It's like how IntelliJ is able to discover subprojects and put them in the gradle tool window, but it needs a bit of manual assistance cause this isn't a subproject. Then you get gradle IDE integration. Works better than I expect it to, in this obvious nightmare scenario.
-* Note that the plugin will be *compiled against* the version of Gradle used in the sample project. I had to blindly rewrite some legacy-handling code to use reflection because the method was removed. Will see what I can do.
+* In IDEA, you can right-click on each sample project's `build.gradle` and press "Link Gradle Project" towards the bottom of the dropdown. It's like how IntelliJ is able to discover subprojects and put them in the gradle tool window, but it needs a bit of manual assistance cause this isn't a subproject.
+* Note that the plugin will also be *compiled against* the version of Gradle used in the sample project.
 
-Due to this cursed Gradle setup, the "root project" is not actually the "root project" and run configs generate in the wrong spot. Basically you need to make a `sample/1.4.7/.idea` directory, voldeloom will think it belongs to the root project and dump run configs into that, copypaste them back into `./.idea`, restart. There's your run configs.
-
-Need to investigate this further, see if this root-not-actually-root situation happens in real projects too... probably need to backport some of the more modern fabric-loom run config stuff if I can...
+Due to this cursed Gradle setup, the "root project" is not actually the "root project", and run configs generate in the wrong spot. Basically you need to make a `sample/1.4.7/.idea` directory, voldeloom will think it belongs to the root project and dump run configs into that, copypaste them back into `./.idea`, restart IDE. There's your run configs. Need to investigate this further, see if this root-not-actually-root situation happens in real projects too...
 
 ## Debugging the plugin
 
-~~idk lol. Println.~~ Breakpoints seem to work now? I don't think breakpoints work if you hit the "refresh gradle" button, but debugging tasks like `clean` works and can hit breakpoints inside the gradle plugin
+Breakpoints don't work if you hit the "refresh gradle" button, but if you select the task in the `Select Run/Debug Configuration` bar, you can press the debug button.
 
 ## Common problems for consumers
 
-*Weird NPEs when only sketching in the build.gradle:* Currently it crashes if a set of mappings is not defined. Ideally it should skip mappings-related tasks instead, or use some kind of passthrough mappings instead of `null`. Hm.
+You must fill one dependency for *each* of the `minecraft`, `forge` and `mappings` configurations, things will explode otherwise.
 
-*`Failed to provide null:unspecified:null : conf/packages.csv`:* Mapping parsing, jar remapping, or something else in that area blew up. If this failed due to missing `packages.csv`, use a mcp zip merged with a forge zip. want to fix that.
-
-# Just taking notes
-
-How far is it safe to diverge from Loom's practices? I mean obviously there's no point in trying to keep up with upstream changes in Loom patch-for-patch, we're way too far gone by this point. Some stuff is the way it is due to this project's history as a cursed frankenstein plugin that was taped together, other stuff is the way it is for a good reason.
-
-Same for "removing remnants of fabric", it's very possible that someone could make some "fabric loader on top of forge" bullshit and i don't want to close the door to that right away lolll
+Forge whines about getting `e04c5335922c5e457f0a7cd62c93c4a7f699f829` for a couple of dependency hashes: The `shimForgeLibraries` task is intended to download the libraries Forge wants and place them in the locations it expects to find them before launching the game, since they were removed from the hardcoded URLs in Forge a long time ago (I think that's the sha1 of the Forge server's 404 page). Either that task didn't run and the libraries aren't there (examine the Gradle log to see if it ran), or the `minecraft.applet.TargetDirectory` system property did not get set on the client and it's trying to read libraries out of your `.minecraft` folder.
 
 ## gradle support woes
 
 Gradle 7 has `toolchains`, a very appealing feature that allows the build environment to use an arbitrary version of java. in Hoppers I used a Java 11 build environment because it was the newest one that can target Java 6 bytecode, and it worked WAY better than i thought it would. gradle 7 also has other breaking changes that make it kinda a pain to deal with sometimes. It does support java 8 execution environments.
 
-Gradle 4 doesn't have support for `includeGroup`, which blocks my plan to provide MCP zips from the Internet Archive as an Ivy repository, because IA will spam your gradle cache with zero byte files on 404. Old versions of Gradle also don't work with modern versions of java due to jigsaw bullshit. Did gradle 4 run on java 6? I don't think so? If it did, I could make some point about "there's something to be said for developing against a Java 6 game using only Java 6 technologies" which would be a point against moving primary support to gradle 7, but i don't think it did
+Gradle 4 doesn't have support for `includeGroup`. Old versions of Gradle also don't work with modern versions of java due to jigsaw bullshit. Did gradle 4 run on java 6? I don't think so? If it did, I could make some point about "there's something to be said for developing against a Java 6 game using only Java 6 technologies" which would be a point against moving primary support to gradle 7, but i don't think it did
 
 Loom used Gradle 4 up until april 2021 https://github.com/FabricMC/fabric-loom/pull/380 but mainly for legacy reasons i think
 
-The primary benefit to maintaining support for old Gradles is for retrofitting existing ancient projects onto this build system, but most of those projects predate the invention of Gradle itself
+The primary benefit to maintaining support for old Gradles is possibly for retrofitting existing ancient projects onto this build system, but most of those projects predate the invention of Gradle itself, so it's not really any harder to go on the modern version of gradle
 
 ## tools voldeloom uses
 
@@ -103,11 +100,11 @@ Taking note of this because like, if i choose to use `tiny-remapper` to perform 
 * `SourceRemapper` uses of course cadixdev Mercury and Lorenz to perform source remapping
 * `TinyRemapperMappingsHelper` is a, thing
 * Decompilation is done with their fork of Fernflower, includes api for getting javadoc and the like into the jar. I don't know if mcp mappings provide comments data
-* `MigrateMappingsTask` can honestly probably be deleted we are stuck with mcp, but it uses the sourceremapper class and some weird deps like `net.fabricmc.mapping` (tiny-mappings-parser) and `net.fabricmc.lorenztiny` (lorenz-tiny)
+* `MigrateMappingsTask` can honestly probably be deleted as we are stuck with mcp, but it uses the sourceremapper class and some weird deps like `net.fabricmc.mapping` (tiny-mappings-parser) and `net.fabricmc.lorenztiny` (lorenz-tiny)
 * (important) `RemapJarTask` uses tiny-remapper
 * `RemapLineNumbersTask` uses stitch and the linenumberremapper util class
 
-and the current set of forge extensions
+~~and the current set of forge extensions~~ This is very not current anymore
 
 * all things in `asm` are unsurprisingly objectweb asm class parsers, as well as `ASMFixesProcessor` and `CursedLibDeleterProcessor`
 * `AcceptorProvider`, `CsvApplierAcceptor`, `SrcMappingProvider` are tiny-remapper glue code?
@@ -120,11 +117,11 @@ and the current set of forge extensions
 ~~`LoomGradlePlugin` is the entry point when you call `apply plugin`. It's split across `AbstractPlugin` and that class, for some reason. AbstractPlugin happens first so i will document that~~ I removed AbstractPlugin and merged the classes
 
 1. Hello log message is printed
-2. `java`, `eclipse`, and `idea` plugins are applied (for some reason), as if you typed `apply plugin: "eclipse"`
+2. `java`, `eclipse`, and `idea` plugins are applied, as if you typed `apply plugin: "eclipse"`
 3. (my fork) `GradleSupport.detectConfigurationNames` determines if you're on a `compile` or `implementation`-flavored version of Gradle
 4. An *extension* is created, LoomGradleExtension; this is what defines the `minecraft {` block you can type some settings into. I think more recent versions call this `loom`
    * The settings are not available right away (remember, we're still on the "apply plugin" line when evaluating the script)
-   * They will be available in a `project.afterEvaluate` block, or during task execution
+   * They will be available in `project.afterEvaluate` blocks, and since tasks are executed after those, in task configuration and execution
 5. A couple maven repos are added, as if you typed them in to a `repositories {` block:
    * Mojang's,
    * (my fork) Minecraft Forge
@@ -132,38 +129,32 @@ and the current set of forge extensions
      * (happens in afterEvaluate in the original)
 6. Several [*configurations*](https://docs.gradle.org/current/dsl/org.gradle.api.artifacts.Configuration.html) are created
    * `modCompileClasspath`
-   * `modCompileClasspathMapped`, extends `annotationProcessor` if `!idea.sync.active`
+   * `modCompileClasspathMapped`, ~~extends `annotationProcessor` if `!idea.sync.active`~~
    * `minecraft` - extends `compile`/`implementation`
-     * minecraft artifact straight from mojang's servers I think
-   * `minecraftNamed` - extends `compile`/`implementation`, extends `annotationProcessor` if `!idea.sync.active`
-     * minecraft named with your chosen mappings
+     * Minecraft artifact straight off of Maven
+   * `minecraftNamed` - extends `compile`/`implementation`, ~~extends `annotationProcessor` if `!idea.sync.active`~~
+     * Minecraft named with your chosen mappings
    * `minecraftDependencies`
    * ~~`include`~~
      * ~~jar in jar stuff~~
    * `mappings`
-     * the "raw" mappings artifact
+     * Mappings artifact straight off of Maven
    * `mappings_final`
-     * mappings artifact cooked to a format that tiny-remapper can parse? 
-     * extends `compile`/`implementation`, extends `annotationProcessor` if `!idea.sync.active`
+     * Mappings artifact cooked to a format that tiny-remapper can parse? 
+     * extends `compile`/`implementation`, ~~extends `annotationProcessor` if `!idea.sync.active`~~
    * `forge`
-     * either this is the "raw" forge artifact or something else idk how it gets merged with regular minecraft
-     * hmmmmmm
+     * Forge artifact straight off of Maven
    * and a couple for mod dependencies:
-   * `modCompile` - extends `modCompileClasspath`
-     * and `compile` is set to extend `modCompileClasspathMapped`
-   * `modApi` - extends `modCompileClasspath`
-     * and `api` is set to extend `modCompileClasspathMapped`
-   * `modImplementation` - extends `modCompileClasspath`
-     * and `implementation` is set to extend `modCompileClasspathMapped`
-   * `modRuntime`
-     * and `runtime` is set to extend `modCompileClasspathMapped`
-   * `modCompileOnly` - extends `modCompileClasspath`
-     * and `compileOnly` is set to extend `modCompileClasspathMapped`
+   * `modCompile` - extends `modCompileClasspath` (and `compile` is set to extend `modCompileClasspathMapped`)
+   * `modApi` - extends `modCompileClasspath` (and `api` is set to extend `modCompileClasspathMapped`)
+   * `modImplementation` - extends `modCompileClasspath` (and `implementation` is set to extend `modCompileClasspathMapped`)
+   * `modRuntime` (and `runtime` is set to extend `modCompileClasspathMapped`)
+   * `modCompileOnly` - extends `modCompileClasspath` (and `compileOnly` is set to extend `modCompileClasspathMapped`)
 7. ~~some mixin annotation processor stuff happens, project is scanned for java compile tasks and mixin ap arguments are added~~ removed
 8. some IntelliJ IDEA settings are configured, same stuff you could do if you wrote an `idea { }` block in the script
 9. ~~for Some Reason the Javadoc classpath is set to the main compile classpath?~~
    * I think this is like "semi opinionated gradle magic" that has nothing to do with mods lol
-   * Commented it out
+   * Removed it
 10. ~~If `!idea.sync.active`, `fabric_mixin_compile_extensions` is added as an `annotationProcessor` dependency~~ removed
 11. All the Gradle tasks are registered
     * cleanLoomBinaries, cleanLoomMappings, cleanLoom
@@ -172,8 +163,10 @@ and the current set of forge extensions
     * genSourcesDecompile, genSourcesRemapLineNumbers, genSources
     * downloadAssets
     * genIdeaWorkspace, genEclipseRuns, vscode
-    * (my fork) shimForgeClientLibraries
+    * (my fork) shimForgeLibraries, shimResources
     * runClient, runServer
+12. The `idea` task is set to be `finalizedBy` the `genIdeaWorkspace` task. Similarly for `eclipse` and `genEclipseRuns`.
+    * In `afterEvaluate` in the original 
 
 Then we ask for an `afterEvaluate` callback, so the following is able to access the settings configured in the `minecraft { }` block:
 
@@ -182,13 +175,12 @@ Then we ask for an `afterEvaluate` callback, so the following is able to access 
     * ~~`handleDependencies` is called on the dependency manager.~~
     * TODO: looks like a rabbit hole, study further
     * Hi, it sure was a rabbit hole! I came out the other side and cleaned the whole mess up
-    * My eventual goal is to replace these with Gradle tasks if it's possible; failing that, something that pretty much looks like gradle tasks
+    * My eventual goal was to replace these with Gradle tasks, but it's not possible to add project dependencies during task execution
 2. Some `genSources` tasks are wired up and configured with the extension's mappings provider
 3. ~~The same Mixin annotation processor arguments are added to the Scala compilation task, if it exists~~ removed
 4. ~~A couple more Maven repos are glued on? (Why now?)~~
    * ~~FabricMC's, Mojang's (again), Maven Central, before i removed it in my fork even JCenter.~~ Removed
    * ~~A `flatDir` maven repo is also added for the directories `UserLocalCacheFiles` (under the root project's `build/loom-cache` dir) and `UserLocalRemappedMods` (`.gradle/loom-cache/remapped_mods`)~~ Moved up
-5. The `idea` task is set to be `finalizedBy` the `genIdeaWorkspace` task. Similarly for `eclipse` and `genEclipseRuns`. (Why here? Idk)
 6. If `extension.autoGenIDERuns` is set (defaults to true) and this is the root project, a static helper in the `SetupIntellijRunConfigs` class is called to poop out files in `.idea/runConfigurations`
 7. If `extension.remapMod` is set (defaults to true), it "`// Enables the default mod remapper`".
    * The `jar` and `remapJar` tasks are located.
@@ -242,7 +234,9 @@ A good resource for other downloaded libraries used by other versions of Forge -
 
 ### but wait there's more
 
-Launchwrapper! Launchwrapper is a thing! If you use `VanillaTweakInjector` you get a new `--gameDir` argument, which can be set to any path you want and acts the same as setting the `minecraft.applet.TargetDirectory` flag.
+If you use the `VanillaTweakInjector` launchwrapper injector, you get a new `--gameDir` argument, which can be set to any path you want and acts the same as setting the `minecraft.applet.TargetDirectory` flag...? Maybe that's actually a flag that the game is supposed to parse?
+
+We might need a custom lw tweaker to make that flag work
 
 ## What is a DependencyProvider?
 
@@ -277,7 +271,9 @@ Also, watch out for things that *look* like providers but are actually ad-hoc ut
 
 Deeply magical method
 
-this happens when "setting up loom dependencies" is logged. cant stand how terse loom's stock logging is sometimes lol
+***(Outdated, removed this whole method)***
+
+this happens when "setting up loom dependencies" is logged, ~~cant stand how terse loom's stock logging is sometimes lol~~
 
 * all registered dep providers (so, ForgeProvider, MinecraftProvider, MappingsProvider, and LaunchProvider) are sorted into categories, based off of their target configuration (they happen to be `forge`, `minecraft`, `mappings`, and `minecraftNamed` respectively)
   * the ProviderList system can handle more than one provider per configuration, but this feature happens to go unused
@@ -381,6 +377,8 @@ slaps em together with tiny-remapper and adds it to the project classpath... or 
 
 ***Outdated because I folded this into MinecraftForgeProcessedProvider***
 
+***Above outdated line is outdated because I folded MinecraftForgeProcessedProvider's jobs into more appropriate tasks***
+
 well in voldeloom there are only two. and there's *always* two, so it always ends up printing "using project based jar storage"
 
 * `CursedLibDeleterProcessor` - strips `argo.` and `org.` classes out of the jar
@@ -405,7 +403,7 @@ what is a "fabric installer json?" (LoomDependencyManager) probably something to
 
 `ModCompileRemapper` specifically looks for fabric mods, i think this has to do with mod dependencies
 
-It's probably safe to delete instances of jij stuff because Forge does not natively support nested jars and it's really not necessary to hack that on with a mod
+~~It's probably safe to delete instances of jij stuff because Forge does not natively support nested jars and it's really not necessary to hack that on with a mod~~ Done
 
 abstractdecompiletask uses a "line map file" what is that
 

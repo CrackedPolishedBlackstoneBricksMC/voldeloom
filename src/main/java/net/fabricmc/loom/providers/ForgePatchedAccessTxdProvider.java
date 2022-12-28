@@ -1,13 +1,15 @@
 package net.fabricmc.loom.providers;
 
 import net.fabricmc.loom.LoomGradleExtension;
-import net.fabricmc.loom.util.ForgeAccessTransformerSet;
 import net.fabricmc.loom.WellKnownLocations;
+import net.fabricmc.loom.util.ForgeAccessTransformerSet;
 import org.gradle.api.Project;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
 
+import java.io.BufferedInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
@@ -59,10 +61,12 @@ public class ForgePatchedAccessTxdProvider extends DependencyProvider {
 						Files.createDirectories(dstPath.getParent());
 						
 						if(srcPath.toString().endsWith(".class")) {
-							ClassReader srcReader = new ClassReader(Files.newInputStream(srcPath));
-							ClassWriter dstWriter = new ClassWriter(0);
-							srcReader.accept(unmappedAts.new AccessTransformingClassVisitor(dstWriter), 0);
-							Files.write(dstPath, dstWriter.toByteArray());
+							try(InputStream srcReader = new BufferedInputStream((Files.newInputStream(srcPath)))) {
+								ClassReader srcClassReader = new ClassReader(srcReader);
+								ClassWriter dstClassWriter = new ClassWriter(0);
+								srcClassReader.accept(unmappedAts.new AccessTransformingClassVisitor(dstClassWriter), 0);
+								Files.write(dstPath, dstClassWriter.toByteArray());
+							}
 						} else {
 							Files.copy(srcPath, dstPath);
 						}
