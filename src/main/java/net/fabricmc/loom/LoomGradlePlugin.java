@@ -47,7 +47,7 @@ import net.fabricmc.loom.task.RemapJarTask;
 import net.fabricmc.loom.task.RemapLineNumbersTask;
 import net.fabricmc.loom.task.RemapSourcesJarTask;
 import net.fabricmc.loom.task.RunTask;
-import net.fabricmc.loom.task.ShimForgeClientLibraries;
+import net.fabricmc.loom.task.ShimForgeLibraries;
 import net.fabricmc.loom.task.ShimResourcesTask;
 import net.fabricmc.loom.task.fernflower.FernFlowerTask;
 import net.fabricmc.loom.util.GradleSupport;
@@ -233,13 +233,16 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		tasks.register("genIdeaWorkspace", GenIdeaProjectTask.class, t -> t.dependsOn("idea"));
 		tasks.register("genEclipseRuns", GenEclipseRunsTask.class);
 		tasks.register("vscode", GenVsCodeProjectTask.class);
-		tasks.register("shimForgeClientLibraries", ShimForgeClientLibraries.class);
+		tasks.register("shimForgeLibraries", ShimForgeLibraries.class);
 		tasks.register("shimResources", ShimResourcesTask.class);
 		
 		extensionUnconfigured.runConfigs.whenObjectAdded(cfg -> {
-			TaskProvider<RunTask> task = tasks.register("run" + cfg.getBaseName().substring(0, 1).toUpperCase(Locale.ROOT) + cfg.getBaseName().substring(1), RunTask.class, cfg);
-			task.configure(t -> t.dependsOn("assemble"));
-			if(cfg.getEnvironment().equals("client")) task.configure(t -> t.dependsOn("shimForgeClientLibraries", "shimResources"));
+			TaskProvider<RunTask> runTask = tasks.register("run" + cfg.getBaseName().substring(0, 1).toUpperCase(Locale.ROOT) + cfg.getBaseName().substring(1), RunTask.class, cfg);
+			//n.b. the object was just constructed and hasn't been configured yet
+			runTask.configure(t -> {
+				t.dependsOn("assemble", "shimForgeLibraries");
+				if(cfg.getEnvironment().equals("client")) t.dependsOn("shimResources");
+			});
 		});
 		extensionUnconfigured.runConfigs.add(RunConfig.defaultClientRunConfig(project));
 		extensionUnconfigured.runConfigs.add(RunConfig.defaultServerRunConfig(project));

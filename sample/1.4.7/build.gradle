@@ -76,3 +76,13 @@ dependencies {
 	
 	//implementation files("./run/lib/asm-all-4.0.jar") //launchwrapper needs this
 }
+
+minecraft {
+	runs {
+		gaming {
+			client()
+			runDir = "run/runurnururunrnururnurnurnur"
+			programArg("hoohoo")
+		}
+	}
+}

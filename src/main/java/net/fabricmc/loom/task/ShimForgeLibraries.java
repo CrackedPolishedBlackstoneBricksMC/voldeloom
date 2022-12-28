@@ -1,5 +1,6 @@
 package net.fabricmc.loom.task;
 
+import net.fabricmc.loom.Constants;
 import net.fabricmc.loom.util.DownloadUtil;
 import net.fabricmc.loom.util.LoomTaskExt;
 import org.gradle.api.DefaultTask;
@@ -17,10 +18,18 @@ import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 
-//(VOLDELOOM-DISASTER) CLIENT LIBRARY SHIM
-public class ShimForgeClientLibraries extends DefaultTask implements LoomTaskExt {
-	public ShimForgeClientLibraries() {
+public class ShimForgeLibraries extends DefaultTask implements LoomTaskExt {
+	public ShimForgeLibraries() {
 		setGroup("fabric");
+		
+		getOutputs().upToDateWhen(__ -> {
+			for(Path libDir : getLibraryDirectories()) {
+				for(ForgeLibrary lib : getLibs()) {
+					if(Files.notExists(libDir.resolve(lib.targetFilename))) return false;
+				}
+			}
+			return true;
+		});
 	}
 	
 	@OutputDirectories
@@ -28,23 +37,23 @@ public class ShimForgeClientLibraries extends DefaultTask implements LoomTaskExt
 		return getLoomGradleExtension().runConfigs.stream().map(cfg -> cfg.resolveRunDir().resolve("lib")).collect(Collectors.toList());
 	}
 	
+	private List<ForgeLibrary> getLibs() {
+		//see CoreFMLLibraries
+		//TODO un-hardcode base path (the prismlauncher part)
+		List<ForgeLibrary> libraries = new ArrayList<>();
+		libraries.add(new ForgeLibrary("argo-2.25.jar", Constants.FML_LIBRARIES_BASE + "argo-2.25.jar"));
+		libraries.add(new ForgeLibrary("guava-12.0.1.jar", Constants.FML_LIBRARIES_BASE + "guava-12.0.1.jar"));
+		libraries.add(new ForgeLibrary("asm-all-4.0.jar", Constants.FML_LIBRARIES_BASE + "asm-all-4.0.jar"));
+		libraries.add(new ForgeLibrary("bcprov-jdk15on-147.jar", Constants.FML_LIBRARIES_BASE + "bcprov-jdk15on-147.jar"));
+		return libraries;
+	}
+	
 	@TaskAction
 	public void shimLibraries() throws IOException {
 		//TODO: save these to gradle user local cache
-		
 		for(Path forgeLibsDir : getLibraryDirectories()) {
 			Files.createDirectories(forgeLibsDir);
-			
-			//see CoreFMLLibraries
-			//TODO un-hardcode path
-			List<ForgeLibrary> libraries = new ArrayList<>();
-			libraries.add(new ForgeLibrary("argo-2.25.jar", "https://files.prismlauncher.org/fmllibs/argo-2.25.jar"));
-			libraries.add(new ForgeLibrary("guava-12.0.1.jar", "https://files.prismlauncher.org/fmllibs/guava-12.0.1.jar"));
-			libraries.add(new ForgeLibrary("asm-all-4.0.jar", "https://files.prismlauncher.org/fmllibs/asm-all-4.0.jar"));
-			libraries.add(new ForgeLibrary("bcprov-jdk15on-147.jar", "https://repo1.maven.org/maven2/org/bouncycastle/bcprov-jdk15on/1.47/bcprov-jdk15on-1.47.jar"));
-			for(ForgeLibrary lib : libraries) {
-				lib.download(getProject(), forgeLibsDir);
-			}
+			for(ForgeLibrary lib : getLibs()) lib.download(getProject(), forgeLibsDir);
 		}
 	}
 	
@@ -53,9 +62,7 @@ public class ShimForgeClientLibraries extends DefaultTask implements LoomTaskExt
 			this.targetFilename = targetFilename;
 			try {
 				this.sourceURL = new URL(sourceURL);
-			} catch (MalformedURLException e) {
-				throw new IllegalArgumentException(e);
-			}
+			} catch (MalformedURLException e) {throw new IllegalArgumentException(e);}
 		}
 		
 		final String targetFilename;

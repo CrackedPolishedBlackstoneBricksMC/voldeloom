@@ -27,7 +27,8 @@ package net.fabricmc.loom;
 import net.fabricmc.loom.util.RunConfig;
 import org.cadixdev.lorenz.MappingSet;
 import org.cadixdev.mercury.Mercury;
-import org.gradle.api.NamedDomainObjectCollection;
+import org.gradle.api.Action;
+import org.gradle.api.NamedDomainObjectContainer;
 import org.gradle.api.Project;
 
 import java.nio.file.Path;
@@ -45,7 +46,7 @@ public class LoomGradleExtension {
 	public boolean remapMod = true;
 	public String customManifest = null;
 	
-	public final NamedDomainObjectCollection<RunConfig> runConfigs;
+	public final NamedDomainObjectContainer<RunConfig> runConfigs;
 	
 	//Not to be set in the build.gradle
 	private final List<Path> unmappedModsBuilt = new ArrayList<>();
@@ -71,6 +72,11 @@ public class LoomGradleExtension {
 	//AbstractRunTask and SourceRemapper
 	public List<Path> getUnmappedMods() {
 		return Collections.unmodifiableList(unmappedModsBuilt);
+	}
+	
+	//gradle api
+	public void runs(Action<NamedDomainObjectContainer<RunConfig>> action) {
+		action.execute(runConfigs);
 	}
 	
 	public LoomDependencyManager getDependencyManager() {
