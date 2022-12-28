@@ -24,8 +24,10 @@
 
 package net.fabricmc.loom;
 
+import net.fabricmc.loom.util.RunConfig;
 import org.cadixdev.lorenz.MappingSet;
 import org.cadixdev.mercury.Mercury;
+import org.gradle.api.NamedDomainObjectCollection;
 import org.gradle.api.Project;
 
 import java.nio.file.Path;
@@ -37,13 +39,13 @@ import java.util.function.Supplier;
 public class LoomGradleExtension {
 	public LoomGradleExtension(@SuppressWarnings("unused") Project project) { //Gradle reflectively finds this ctor
 		dependencyManager = new LoomDependencyManager();
+		runConfigs = project.container(RunConfig.class, name -> new RunConfig(project, name));
 	}
 	
-	public String runDir = "run";
-	public String loaderLaunchMethod = "";
 	public boolean remapMod = true;
-	public boolean autoGenIDERuns = true;
 	public String customManifest = null;
+	
+	public final NamedDomainObjectCollection<RunConfig> runConfigs;
 	
 	//Not to be set in the build.gradle
 	private final List<Path> unmappedModsBuilt = new ArrayList<>();

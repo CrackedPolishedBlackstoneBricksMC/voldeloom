@@ -27,7 +27,6 @@ package net.fabricmc.loom.task;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import net.fabricmc.loom.LoomGradleExtension;
-import net.fabricmc.loom.providers.RunConfigProvider;
 import net.fabricmc.loom.util.LoomTaskExt;
 import net.fabricmc.loom.util.RunConfig;
 import org.gradle.api.DefaultTask;
@@ -44,6 +43,8 @@ import java.util.List;
 // https://marketplace.visualstudio.com/items?itemName=redhat.java
 // https://marketplace.visualstudio.com/items?itemName=vscjava.vscode-java-debug
 // https://marketplace.visualstudio.com/items?itemName=vscjava.vscode-java-pack
+
+//TODO(VOLDELOOM-DISASTER): Untested cause i don't use vscode for Java
 public class GenVsCodeProjectTask extends DefaultTask implements LoomTaskExt {
 	public GenVsCodeProjectTask() {
 		setGroup("ide");
@@ -53,7 +54,6 @@ public class GenVsCodeProjectTask extends DefaultTask implements LoomTaskExt {
 	public void genRuns() throws Exception {
 		Project project = getProject();
 		LoomGradleExtension extension = getLoomGradleExtension();
-		RunConfigProvider runs = extension.getDependencyManager().getRunConfigProvider();
 		
 		Path vscodeProjectDir = project.file(".vscode").toPath();
 		Files.createDirectories(vscodeProjectDir);
@@ -62,16 +62,16 @@ public class GenVsCodeProjectTask extends DefaultTask implements LoomTaskExt {
 		Files.deleteIfExists(launchJson);
 
 		VsCodeLaunch launch = new VsCodeLaunch();
-		launch.add(runs.getClient());
-		launch.add(runs.getServer());
+		extension.runConfigs.forEach(launch::add);
 
 		Gson gson = new GsonBuilder().setPrettyPrinting().create();
 		String json = gson.toJson(launch);
 		Files.write(launchJson, json.getBytes(StandardCharsets.UTF_8));
 		
-		//And create the run directory
-		Path runDir = project.getRootDir().toPath().resolve(extension.runDir);
-		Files.createDirectories(runDir);
+		//And create the run directories
+		for(RunConfig cfg : extension.runConfigs) {
+			Files.createDirectories(cfg.resolveRunDir());
+		}
 	}
 	
 	@SuppressWarnings("unused")
@@ -97,11 +97,10 @@ public class GenVsCodeProjectTask extends DefaultTask implements LoomTaskExt {
 		public String args;
 
 		VsCodeConfiguration(RunConfig runConfig) {
-			this.name = runConfig.configName;
-			this.mainClass = runConfig.mainClass;
-			this.vmArgs = runConfig.vmArgs;
-			this.args = runConfig.programArgs;
-			//TODO: RunConfig.systemProperties kludge
+			this.name = runConfig.getBaseName();
+			this.mainClass = runConfig.getMainClass();
+			this.vmArgs = runConfig.stringifyVmArgs();
+			this.args = runConfig.stringifyProgramArgs();
 		}
 	}
 }

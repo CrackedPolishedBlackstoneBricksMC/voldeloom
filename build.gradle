@@ -12,7 +12,7 @@ targetCompatibility = 1.8
 
 group = 'com.unascribed'
 archivesBaseName = 'voldeloom'
-version = '1.0+1.4.7'
+version = '1.0+1.4.7disaster'
 
 def build = "local"
 def ENV = System.getenv()
@@ -57,10 +57,6 @@ dependencies {
 
 	// source code remapping
 	implementation ('org.cadixdev:mercury:0.1.0.fabric-SNAPSHOT')
-
-	// Testing
-	testImplementation(gradleTestKit())
-	testImplementation("org.spockframework:spock-core:1.3-groovy-2.4")
 }
 
 configurations.all {
@@ -127,6 +123,3 @@ configurations.all {
         force 'org.codehaus.groovy:groovy-all:2.4.12'
     }
 }
-
-//Can you believe it, tests designed for loom are broken when ran with voldeloom.
-test.onlyIf { project.hasProperty("yes-i-really-wanna-run-tests") }

@@ -30,12 +30,12 @@ import net.fabricmc.loom.providers.DevLaunchInjectorProvider;
 import net.fabricmc.loom.providers.ForgePatchedAccessTxdProvider;
 import net.fabricmc.loom.providers.ForgePatchedProvider;
 import net.fabricmc.loom.providers.ForgeProvider;
+import net.fabricmc.loom.providers.IntellijRunConfigsProvider;
 import net.fabricmc.loom.providers.LibraryProvider;
 import net.fabricmc.loom.providers.MappedProvider;
 import net.fabricmc.loom.providers.MappingsProvider;
 import net.fabricmc.loom.providers.MergedProvider;
 import net.fabricmc.loom.providers.MinecraftProvider;
-import net.fabricmc.loom.providers.RunConfigProvider;
 import net.fabricmc.loom.task.AbstractDecompileTask;
 import net.fabricmc.loom.task.CleanLoomBinaries;
 import net.fabricmc.loom.task.CleanLoomMappings;
@@ -54,7 +54,7 @@ import net.fabricmc.loom.util.GradleSupport;
 import net.fabricmc.loom.util.GroovyXmlUtil;
 import net.fabricmc.loom.util.ModCompileRemapper;
 import net.fabricmc.loom.util.RemappedConfigurationEntry;
-import net.fabricmc.loom.util.IntellijRunConfigsProvider;
+import net.fabricmc.loom.util.RunConfig;
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
 import org.gradle.api.Task;
@@ -65,6 +65,7 @@ import org.gradle.api.artifacts.repositories.MavenArtifactRepository;
 import org.gradle.api.publish.PublishingExtension;
 import org.gradle.api.publish.maven.MavenPublication;
 import org.gradle.api.tasks.TaskContainer;
+import org.gradle.api.tasks.TaskProvider;
 import org.gradle.api.tasks.bundling.AbstractArchiveTask;
 import org.gradle.plugins.ide.idea.model.IdeaModel;
 
@@ -112,7 +113,7 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		//Create a DSL extension. This defines a `minecraft { }` block in the buildscript, that you may configure settings with.
 		//The user's configuration is not available yet, because we're still executing the "apply plugin" line at this point.
 		//It will be ready inside `project.afterEvaluate` blocks and during task execution.
-		project.getExtensions().create("minecraft", LoomGradleExtension.class, project);
+		LoomGradleExtension extensionUnconfigured = project.getExtensions().create("minecraft", LoomGradleExtension.class, project);
 		
 		//Configure a few bonus Maven repositories. This acts the same as entering them in a `repositories { }` block in the buildscript.
 		project.getRepositories().maven(repo -> {
@@ -234,8 +235,14 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		tasks.register("vscode", GenVsCodeProjectTask.class);
 		tasks.register("shimForgeClientLibraries", ShimForgeClientLibraries.class);
 		tasks.register("shimResources", ShimResourcesTask.class);
-		tasks.register("runClient", RunTask.Client.class, t -> t.dependsOn("assemble", "shimForgeClientLibraries", "shimResources"));
-		tasks.register("runServer", RunTask.Server.class, t -> t.dependsOn("assemble"));
+		
+		extensionUnconfigured.runConfigs.whenObjectAdded(cfg -> {
+			TaskProvider<RunTask> task = tasks.register("run" + cfg.getBaseName().substring(0, 1).toUpperCase(Locale.ROOT) + cfg.getBaseName().substring(1), RunTask.class, cfg);
+			task.configure(t -> t.dependsOn("assemble"));
+			if(cfg.getEnvironment().equals("client")) task.configure(t -> t.dependsOn("shimForgeClientLibraries", "shimResources"));
+		});
+		extensionUnconfigured.runConfigs.add(RunConfig.defaultClientRunConfig(project));
+		extensionUnconfigured.runConfigs.add(RunConfig.defaultServerRunConfig(project));
 		
 		//TODO is it safe to configure this now? I ask because upstream did it in afterEvaluate
 		tasks.named("idea").configure(t -> t.finalizedBy(tasks.named("genIdeaWorkspace")));
@@ -278,12 +285,9 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		
 		//launcher stuff
 		DevLaunchInjectorProvider dli = dmgr.installDevLaunchInjectorProvider(new DevLaunchInjectorProvider(project, extension, mc, libs)); //TODO unused/ merge into RunConfigProvider
-		RunConfigProvider runs = dmgr.installRunConfigProvider(new RunConfigProvider(project, extension, mc, libs));
 		
 		//IntelliJ run configs jank
-		if(extension.autoGenIDERuns && project.getRootProject() == project) {
-			new IntellijRunConfigsProvider(project, extension, runs).decorateProjectOrThrow();
-		}
+		new IntellijRunConfigsProvider(project, extension).decorateProjectOrThrow();
 		
 		//very strange block related to `modCompile`etc configurations that i moved here from LoomDependencyManager
 		//todo this probably needs rewriting

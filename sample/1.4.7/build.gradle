@@ -11,7 +11,7 @@ buildscript {
 		//maven { url "https://repo.sleeping.town" } //Commented out to use the version of voldeloom in the settings.gradle includeBuild (hopefully??)
 	}
 	dependencies {
-		classpath "com.unascribed:voldeloom:1.0.2+1.4.7"
+		classpath "com.unascribed:voldeloom:1.0+1.4.7disaster"
 	}
 }
 
@@ -75,8 +75,4 @@ dependencies {
 	mappings files(mcpForged)
 	
 	//implementation files("./run/lib/asm-all-4.0.jar") //launchwrapper needs this
-}
-
-minecraft {
-	loaderLaunchMethod = "direct"
 }

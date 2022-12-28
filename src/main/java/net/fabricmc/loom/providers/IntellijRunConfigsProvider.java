@@ -22,11 +22,10 @@
  * SOFTWARE.
  */
 
-package net.fabricmc.loom.util;
+package net.fabricmc.loom.providers;
 
 import net.fabricmc.loom.LoomGradleExtension;
-import net.fabricmc.loom.providers.DependencyProvider;
-import net.fabricmc.loom.providers.RunConfigProvider;
+import net.fabricmc.loom.util.RunConfig;
 import org.gradle.api.Project;
 
 import java.nio.charset.StandardCharsets;
@@ -34,12 +33,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 public class IntellijRunConfigsProvider extends DependencyProvider {
-	public IntellijRunConfigsProvider(Project project, LoomGradleExtension extension, RunConfigProvider runs) {
+	public IntellijRunConfigsProvider(Project project, LoomGradleExtension extension) {
 		super(project, extension);
-		this.runs = runs;
 	}
-	
-	private final RunConfigProvider runs;
 	
 	@Override
 	public void decorateProject() throws Exception {
@@ -48,24 +44,21 @@ public class IntellijRunConfigsProvider extends DependencyProvider {
 			return;
 		}
 		
-		//Ensures the assets are downloaded when idea is syncing a project
-		//TODO: I think this is handled by the dep provider system
-		// But it will need to be something i look at when i get around to making assets only get downloaded when you runClient
+		Path ideaDir = project.file(".idea").toPath();
+		if(Files.notExists(ideaDir)) {
+			//Guess they're not using IDEA
+			return;
+		}
 		
-		Path runConfigsDir = project.file(".idea").toPath().resolve("runConfigurations");
+		Path runConfigsDir = ideaDir.resolve("runConfigurations");
 		Files.createDirectories(runConfigsDir);
 		
-		Path clientRunConfigFile = runConfigsDir.resolve("Minecraft_Client.xml");
-		if(Files.notExists(clientRunConfigFile)) {
-			Files.write(clientRunConfigFile, runs.getClient().configureTemplate("idea_run_config_template.xml").getBytes(StandardCharsets.UTF_8));
+		for(RunConfig cfg : extension.runConfigs) {
+			Path cfgFile = runConfigsDir.resolve(cfg.getBaseName() + ".xml");
+			if(Files.notExists(cfgFile)) {
+				Files.write(cfgFile, cfg.configureTemplate("idea_run_config_template.xml").getBytes(StandardCharsets.UTF_8));
+			}
+			Files.createDirectories(cfg.resolveRunDir());
 		}
-		
-		Path serverRunConfigFile = runConfigsDir.resolve("Minecraft_Client.xml");
-		if(Files.notExists(serverRunConfigFile)) {
-			Files.write(serverRunConfigFile, runs.getServer().configureTemplate("idea_run_config_template.xml").getBytes(StandardCharsets.UTF_8));
-		}
-		
-		Path runDir = project.getRootDir().toPath().resolve(extension.runDir);
-		Files.createDirectories(runDir);
 	}
 }

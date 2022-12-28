@@ -27,22 +27,29 @@ package net.fabricmc.loom.task;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.util.LoomTaskExt;
 import net.fabricmc.loom.util.RunConfig;
-import org.gradle.api.Project;
 import org.gradle.api.tasks.JavaExec;
 
+import javax.inject.Inject;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.BiFunction;
 
 public abstract class RunTask extends JavaExec implements LoomTaskExt {
-	public RunTask(BiFunction<Project, LoomGradleExtension, RunConfig> runConfigMaker) throws Exception {
+	@Inject
+	public RunTask(RunConfig config) throws Exception {
 		setGroup("minecraftMapped");
 		
 		LoomGradleExtension extension = getLoomGradleExtension();
-		RunConfig config = runConfigMaker.apply(getProject(), extension);
+		
+		//TODO!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+		if(config.getEnvironment().equals("client")) {
+			config.property("minecraft.applet.TargetDirectory", config.resolveRunDir().toAbsolutePath().toString());
+			String nativeLibsDir = extension.getDependencyManager().getLibraryProvider().getNativesDir().toAbsolutePath().toString();
+			config.property("java.library.path", nativeLibsDir);
+			config.property("org.lwjgl.librarypath", nativeLibsDir);
+		}
 
 		//Classpath
 		List<String> libs = new ArrayList<>();
@@ -58,59 +65,47 @@ public abstract class RunTask extends JavaExec implements LoomTaskExt {
 		classpath(libs);
 		
 		//Arguments
-		List<String> argsSplit = new ArrayList<>();
-		String[] args = config.programArgs.split(" ");
-		int partPos = -1;
+//		List<String> argsSplit = new ArrayList<>();
+//		String[] args = config.stringifyProgramArgs().split(" ");
+//		int partPos = -1;
+//
+//		for (int i = 0; i < args.length; i++) {
+//			if (partPos < 0) {
+//				if (args[i].startsWith("\"")) {
+//					if (args[i].endsWith("\"")) {
+//						argsSplit.add(args[i].substring(1, args[i].length() - 1));
+//					} else {
+//						partPos = i;
+//					}
+//				} else {
+//					argsSplit.add(args[i]);
+//				}
+//			} else if (args[i].endsWith("\"")) {
+//				StringBuilder builder = new StringBuilder(args[partPos].substring(1));
+//
+//				for (int j = partPos + 1; j < i; j++) {
+//					builder.append(" ").append(args[j]);
+//				}
+//
+//				builder.append(" ").append(args[i], 0, args[i].length() - 1);
+//				argsSplit.add(builder.toString());
+//				partPos = -1;
+//			}
+//		}
 
-		for (int i = 0; i < args.length; i++) {
-			if (partPos < 0) {
-				if (args[i].startsWith("\"")) {
-					if (args[i].endsWith("\"")) {
-						argsSplit.add(args[i].substring(1, args[i].length() - 1));
-					} else {
-						partPos = i;
-					}
-				} else {
-					argsSplit.add(args[i]);
-				}
-			} else if (args[i].endsWith("\"")) {
-				StringBuilder builder = new StringBuilder(args[partPos].substring(1));
-
-				for (int j = partPos + 1; j < i; j++) {
-					builder.append(" ").append(args[j]);
-				}
-
-				builder.append(" ").append(args[i], 0, args[i].length() - 1);
-				argsSplit.add(builder.toString());
-				partPos = -1;
-			}
-		}
-
-		args(argsSplit);
-		//jvmArgs(config.vmArgs); //uncommenting this breaks the loading process. i dunno why
-		
-		//System properties
-		systemProperties(config.systemProperties);
+		jvmArgs(config.getVmArgs());
+		args(config.getProgramArgs());
 
 		//Main class
-		getMainClass().set(config.mainClass); //todo gradle 4? this is relatively new
+		getMainClass().set(config.getMainClass()); //todo gradle 4? this is relatively new
 		//setMain(config.mainClass);
 
 		//Pwd
-		Path runDir = getProject().getRootDir().toPath().resolve(extension.runDir);
+		Path runDir = getProject().getRootDir().toPath().resolve(config.getRunDir());
 		Files.createDirectories(runDir);
 		setWorkingDir(runDir);
-	}
-	
-	public static class Client extends RunTask {
-		public Client() throws Exception {
-			super((project, extension) -> extension.getDependencyManager().getRunConfigProvider().getClient());
-		}
-	}
-	
-	public static class Server extends RunTask {
-		public Server() throws Exception {
-			super((project, extension) -> extension.getDependencyManager().getRunConfigProvider().getServer());
-		}
+		
+		//Stdin
+		setStandardInput(System.in);
 	}
 }

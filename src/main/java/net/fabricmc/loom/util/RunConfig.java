@@ -26,6 +26,8 @@ package net.fabricmc.loom.util;
 
 import com.google.common.collect.ImmutableMap;
 import org.apache.commons.io.IOUtils;
+import org.gradle.api.Named;
+import org.gradle.api.Project;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -33,37 +35,203 @@ import org.w3c.dom.Node;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 
-public class RunConfig {
-	public String configName = "";
-	public String projectName = "";
-	public String mainClass = "";
-	public String runDir = "";
-	public String vmArgs = "";
-	public String programArgs = "";
+public class RunConfig implements Named {
+	private final Project project;
+	private final String baseName;
 	
-	//TODO fold these in to run configs and stuff too, i had to hack these on because i Suck at Gradle
-	// Also need to be careful wrt. escaping and stuff
-	public Map<String, String> systemProperties = new HashMap<>();
-
-	public String configureTemplate(String dummy) throws IOException {
-		String dummyConfig;
-
-		try (InputStream input = RunConfig.class.getClassLoader().getResourceAsStream(dummy)) {
-			dummyConfig = IOUtils.toString(input, StandardCharsets.UTF_8);
-		}
-
-		dummyConfig = dummyConfig.replace("%NAME%", configName);
-		dummyConfig = dummyConfig.replace("%MAIN_CLASS%", mainClass);
-		dummyConfig = dummyConfig.replace("%MODULE%", projectName);
-		dummyConfig = dummyConfig.replace("%PROGRAM_ARGS%", programArgs.replaceAll("\"", "&quot;"));
-		dummyConfig = dummyConfig.replace("%VM_ARGS%", vmArgs.replaceAll("\"", "&quot;"));
-
-		return dummyConfig;
+	private List<String> vmArgs = new ArrayList<>();
+	private List<String> programArgs = new ArrayList<>();
+	private String environment; //"client", "server"
+	private String name; //"friendly name"
+	private String mainClass;
+	private String runDir;
+	private boolean ideConfigGenerated;
+	//TODO: loom 1 has a "source" param
+	
+	public RunConfig(Project project, String name) {
+		this.baseName = this.name = name;
+		this.project = project;
+		this.ideConfigGenerated = project == project.getRootProject();
+		this.runDir = "run";
 	}
-
+	
+	public static RunConfig defaultClientRunConfig(Project project) {
+		RunConfig haha = new RunConfig(project, "client");
+		haha.client();
+		return haha;
+	}
+	
+	public static RunConfig defaultServerRunConfig(Project project) {
+		RunConfig haha = new RunConfig(project, "server");
+		haha.server();
+		return haha;
+	}
+	
+	public String stringifyProgramArgs() {
+		return String.join(" ", programArgs);
+	}
+	
+	public String stringifyVmArgs() {
+		return String.join(" ", vmArgs);
+	}
+	
+	public Path resolveRunDir() {
+		return project.getRootDir().toPath().resolve(runDir);
+	}
+	
+	/// Presets ///
+	
+	public void client() {
+		startOnFirstThread();
+		setEnvironment("client");
+		setMainClass("net.minecraft.client.Minecraft");
+		setRunDir("run");
+	}
+	
+	public void server() {
+		programArg("nogui");
+		setEnvironment("server");
+		setMainClass("net.minecraft.server.MinecraftServer");
+		setRunDir("run/server");
+	}
+	
+	/// Convenience ///
+	
+	public void serverWithGui() {
+		programArgs.removeIf("nogui"::equals);
+	}
+	
+	public void startOnFirstThread() {
+		if(OperatingSystem.getOS().equalsIgnoreCase("osx")) {
+			vmArg("-XstartOnFirstThread");
+		}
+	}
+	
+	public void programArg(String arg) {
+		programArgs.add(arg);
+	}
+	
+	public void programArgs(String... args) {
+		programArgs.addAll(Arrays.asList(args));
+	}
+	
+	public void programArgs(Iterable<String> args) {
+		for(String arg : args) programArg(arg);
+	}
+	
+	public void vmArg(String arg) {
+		vmArgs.add(arg);
+	}
+	
+	public void vmArgs(String... args) {
+		vmArgs.addAll(Arrays.asList(args));
+	}
+	
+	public void vmArgs(Iterable<String> args) {
+		for(String arg : args) vmArg(arg);
+	}
+	
+	public void property(String k, String v) {
+		vmArg("-D" + k + '=' + v);
+	}
+	
+	public void property(String k) {
+		vmArg("-D" + k);
+	}
+	
+	public void properties(Map<String, String> props) {
+		props.forEach(this::property);
+	}
+	
+	/// Bean properties ///
+	
+	public List<String> getVmArgs() {
+		return vmArgs;
+	}
+	
+	public void setVmArgs(List<String> vmArgs) {
+		this.vmArgs = vmArgs;
+	}
+	
+	public List<String> getProgramArgs() {
+		return programArgs;
+	}
+	
+	public void setProgramArgs(List<String> programArgs) {
+		this.programArgs = programArgs;
+	}
+	
+	public String getEnvironment() {
+		return environment;
+	}
+	
+	public void setEnvironment(String environment) {
+		this.environment = environment;
+	}
+	
+	public String getBaseName() {
+		return baseName;
+	}
+	
+	@Override
+	public String getName() {
+		return name;
+	}
+	
+	public void setName(String name) {
+		this.name = name;
+	}
+	
+	public String getMainClass() {
+		return mainClass;
+	}
+	
+	public void setMainClass(String mainClass) {
+		this.mainClass = mainClass;
+	}
+	
+	public String getRunDir() {
+		return runDir;
+	}
+	
+	public void setRunDir(String runDir) {
+		this.runDir = runDir;
+	}
+	
+	public boolean isIdeConfigGenerated() {
+		return ideConfigGenerated;
+	}
+	
+	public void setIdeConfigGenerated(boolean ideConfigGenerated) {
+		this.ideConfigGenerated = ideConfigGenerated;
+	}
+	
+	/// Things I should probably find a better home for ///
+	
+	public String configureTemplate(String template) throws IOException {
+		String templatedConfig;
+		
+		try (InputStream input = RunConfig.class.getClassLoader().getResourceAsStream(template)) {
+			if(input == null) throw new IllegalArgumentException("Couldn't find template " + template + " in " + RunConfig.class.getClassLoader());
+			templatedConfig = IOUtils.toString(input, StandardCharsets.UTF_8);
+		}
+		
+		templatedConfig = templatedConfig.replaceAll("%NAME%", getName());
+		templatedConfig = templatedConfig.replaceAll("%MAIN_CLASS%", getMainClass());
+		templatedConfig = templatedConfig.replaceAll("%MODULE%", project.getName());
+		templatedConfig = templatedConfig.replaceAll("%PROGRAM_ARGS%", stringifyProgramArgs().replaceAll("\"", "&quot;"));
+		templatedConfig = templatedConfig.replaceAll("%VM_ARGS%", stringifyVmArgs().replaceAll("\"", "&quot;"));
+		
+		return templatedConfig;
+	}
+	
+	//TODO: I know this function is important, but where is this form of escaping needed?
 	private static String encodeEscaped(String s) {
 		StringBuilder ret = new StringBuilder();
 
@@ -84,14 +252,14 @@ public class RunConfig {
 	//TODO: Untested, and also gradle project import works fine, so I'm not sure why this exists
 	public Element addRunConfigsToIntellijProjectFile(Element doc) {
 		Element root = addChildNode(doc, "component", ImmutableMap.of("name", "ProjectRunConfigurationManager"));
-		root = addChildNode(root, "configuration", ImmutableMap.of("default", "false", "name", configName, "type", "Application", "factoryName", "Application"));
-		
-		addChildNode(root, "module", ImmutableMap.of("name", projectName));
-		addChildNode(root, "option", ImmutableMap.of("name", "MAIN_CLASS_NAME", "value", mainClass));
-		addChildNode(root, "option", ImmutableMap.of("name", "WORKING_DIRECTORY", "value", runDir));
-		
-		if (vmArgs != null && !vmArgs.isEmpty()) addChildNode(root, "option", ImmutableMap.of("name", "VM_PARAMETERS", "value", vmArgs));
-		if (programArgs != null && !programArgs.isEmpty()) addChildNode(root, "option", ImmutableMap.of("name", "PROGRAM_PARAMETERS", "value", programArgs));
+//		root = addChildNode(root, "configuration", ImmutableMap.of("default", "false", "name", getConfigName(), "type", "Application", "factoryName", "Application"));
+//		
+//		addChildNode(root, "module", ImmutableMap.of("name", getProjectName()));
+//		addChildNode(root, "option", ImmutableMap.of("name", "MAIN_CLASS_NAME", "value", getMainClass()));
+//		addChildNode(root, "option", ImmutableMap.of("name", "WORKING_DIRECTORY", "value", getRunDir()));
+//		
+//		if (getVmArgs() != null && !getVmArgs().isEmpty()) addChildNode(root, "option", ImmutableMap.of("name", "VM_PARAMETERS", "value", stringifyVmArgs()));
+//		if (getProgramArgs() != null && !getProgramArgs().isEmpty()) addChildNode(root, "option", ImmutableMap.of("name", "PROGRAM_PARAMETERS", "value", stringifyProgramArgs()));
 		
 		return root;
 	}

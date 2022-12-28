@@ -25,13 +25,11 @@
 package net.fabricmc.loom.task;
 
 import net.fabricmc.loom.LoomGradleExtension;
-import net.fabricmc.loom.providers.RunConfigProvider;
 import net.fabricmc.loom.util.LoomTaskExt;
-import org.apache.commons.io.FileUtils;
+import net.fabricmc.loom.util.RunConfig;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.tasks.TaskAction;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -46,23 +44,13 @@ public class GenEclipseRunsTask extends DefaultTask implements LoomTaskExt {
 	@TaskAction
 	public void genRuns() throws IOException {
 		LoomGradleExtension extension = getLoomGradleExtension();
-		RunConfigProvider runs = extension.getDependencyManager().getRunConfigProvider();
 		
-		File clientRunConfigs = new File(getProject().getRootDir(), getProject().getName() + "_client.launch");
-		File serverRunConfigs = new File(getProject().getRootDir(), getProject().getName() + "_server.launch");
-
-		String clientRunConfig = runs.getClient().configureTemplate("eclipse_run_config_template.xml");
-		String serverRunConfig = runs.getServer().configureTemplate("eclipse_run_config_template.xml");
-		
-		if (!clientRunConfigs.exists()) {
-			FileUtils.writeStringToFile(clientRunConfigs, clientRunConfig, StandardCharsets.UTF_8);
+		for(RunConfig cfg : extension.runConfigs) {
+			Path launchFilename = getProject().getRootDir().toPath().resolve(cfg.getBaseName() + ".launch");
+			if(Files.notExists(launchFilename)) {
+				Files.write(launchFilename, cfg.configureTemplate("eclipse_run_config_template.xml").getBytes(StandardCharsets.UTF_8));
+			}
+			Files.createDirectories(cfg.resolveRunDir());
 		}
-		
-		if (!serverRunConfigs.exists()) {
-			FileUtils.writeStringToFile(serverRunConfigs, serverRunConfig, StandardCharsets.UTF_8);
-		}
-
-		Path runDir = getProject().getRootDir().toPath().resolve(extension.runDir);
-		Files.createDirectories(runDir);
 	}
 }

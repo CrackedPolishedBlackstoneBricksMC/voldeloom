@@ -24,29 +24,15 @@
 
 package net.fabricmc.loom.task;
 
-import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.util.LoomTaskExt;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.Project;
 import org.gradle.api.tasks.TaskAction;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.transform.OutputKeys;
-import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerException;
-import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.dom.DOMSource;
-import javax.xml.transform.stream.StreamResult;
-import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 
 public class GenIdeaProjectTask extends DefaultTask implements LoomTaskExt {
 	public GenIdeaProjectTask() {
@@ -66,47 +52,47 @@ public class GenIdeaProjectTask extends DefaultTask implements LoomTaskExt {
 			return;
 		}
 
-		//Only generate the idea runs on the root project
-		if (project != project.getRootProject()) {
-			return;
-		}
-
-		LoomGradleExtension extension = getLoomGradleExtension();
-		project.getLogger().lifecycle(":Building idea workspace");
-
-		File file = project.file(project.getName() + ".iws");
-		DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
-		DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
-		Document doc = docBuilder.parse(file);
-
-		NodeList list = doc.getElementsByTagName("component");
-		Element runManager = null;
-
-		for (int i = 0; i < list.getLength(); i++) {
-			Element element = (Element) list.item(i);
-
-			if (element.getAttribute("name").equals("RunManager")) {
-				runManager = element;
-				break;
-			}
-		}
-
-		if (runManager == null) {
-			throw new RuntimeException("Failed to generate intellij run configurations (runManager was not found)");
-		}
-
-		runManager.appendChild(extension.getDependencyManager().getRunConfigProvider().getClient().addRunConfigsToIntellijProjectFile(runManager));
-		runManager.appendChild(extension.getDependencyManager().getRunConfigProvider().getServer().addRunConfigsToIntellijProjectFile(runManager));
-
-		TransformerFactory transformerFactory = TransformerFactory.newInstance();
-		Transformer transformer = transformerFactory.newTransformer();
-		DOMSource source = new DOMSource(doc);
-		StreamResult result = new StreamResult(file);
-		transformer.setOutputProperty(OutputKeys.INDENT, "yes");
-		transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "2");
-		transformer.transform(source, result);
-		
-		Path runDir = getProject().getRootDir().toPath().resolve(extension.runDir);
-		Files.createDirectories(runDir);
+//		//Only generate the idea runs on the root project
+//		if (project != project.getRootProject()) {
+//			return;
+//		}
+//
+//		LoomGradleExtension extension = getLoomGradleExtension();
+//		project.getLogger().lifecycle(":Building idea workspace");
+//
+//		File file = project.file(project.getName() + ".iws");
+//		DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
+//		DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
+//		Document doc = docBuilder.parse(file);
+//
+//		NodeList list = doc.getElementsByTagName("component");
+//		Element runManager = null;
+//
+//		for (int i = 0; i < list.getLength(); i++) {
+//			Element element = (Element) list.item(i);
+//
+//			if (element.getAttribute("name").equals("RunManager")) {
+//				runManager = element;
+//				break;
+//			}
+//		}
+//
+//		if (runManager == null) {
+//			throw new RuntimeException("Failed to generate intellij run configurations (runManager was not found)");
+//		}
+//
+//		runManager.appendChild(extension.getDependencyManager().getRunConfigProvider().getClient().addRunConfigsToIntellijProjectFile(runManager));
+//		runManager.appendChild(extension.getDependencyManager().getRunConfigProvider().getServer().addRunConfigsToIntellijProjectFile(runManager));
+//
+//		TransformerFactory transformerFactory = TransformerFactory.newInstance();
+//		Transformer transformer = transformerFactory.newTransformer();
+//		DOMSource source = new DOMSource(doc);
+//		StreamResult result = new StreamResult(file);
+//		transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+//		transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "2");
+//		transformer.transform(source, result);
+//		
+//		Path runDir = getProject().getRootDir().toPath().resolve(extension.runDir);
+//		Files.createDirectories(runDir);
 	}
 }

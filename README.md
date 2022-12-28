@@ -27,9 +27,13 @@ What doesn't work yet:
 * Minecraft versions other than 1.4.7 don't work
   * The long-term goal is to merge the differences between the 1.2.5/1.5.2 branches into something runtime-configurable
   * But the short-term goal is to make 1.4.7 work!
-* Run configs have disappeared
-* I don't know how broken Eclipse is
-* `modCompile` configurations and friends probably don't work, but you knew that already
+* Run configs are kinda wacky:
+  * For `runClient` etc tasks, I partially backported some of the newer Loom dynamic-run-config stuff
+  * The tasks work, but generated IDE run configs don't
+* I don't know how broken Eclipse is.
+* `modCompile` configurations and friends probably don't work
+* Source remapping tasks don't work
+* `migrateMappings` won't work (but what is there to even migrate to?)
 * Probably a lot of other things don't work
 
 What I'd like to fix:
@@ -37,15 +41,13 @@ What I'd like to fix:
 * Fix remapping exploding when packages.csv is missing
 * An in-gradle method of downloading MCP and applying the forge access transformers, instead of that funny shit in the buildscript
 * I've removed a lot of Fabric ecosystem leftovers (mixin, jij, fabric-installer, etc) but there might be a few stragglers
-* The Launchwrapper launch method needs a little assistance getting ASM on the classpath, i guess it's not a big deal because Launchwrapper is pointless on this version
 * Ideally the game should be launched with a copy of java 6 or 8, right now i think gradle itself has to be running on an appropriate jdk
 * I wandered right into this bug https://github.com/FabricMC/fabric-loom/issues/633 (even though the cause is completely different) if mezz is right I cannot believe Java is this shitty. Come on now
 
 What I'd like to add:
 
 * Quiltflower lol (kinda a java 11 moment though)
-* Backport the much nicer run-config stuff from newer versions of Loom (multiple run configs, run configs in subprojects, less hardcoded arguments for run configs, etc). Maybe possible?
-* Possibly do a custom launchwrapper tweaker for some niceties like `assetIndex` support (if i can't get newer versions of launchwrapper to behave), will be optional
+* Launchwrapper and/or DevLaunchInjector support would be nice
 * Use an off-the-shelf access transformer, like cadixdev `at`, or (if i wanna get really silly) Forge's secret access transformer command-line program
 
 ## Sample projects
