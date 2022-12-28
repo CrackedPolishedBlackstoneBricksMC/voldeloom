@@ -33,6 +33,11 @@ public class CsvApplierAcceptor implements MappingAcceptor {
 			unnamedIdx = 0;
 			classes = true;
 		}
+		
+		for(String line : Files.readAllLines(mcpCsv)) {
+			
+		}
+		
 		try(Scanner csvScanner = new Scanner(new BufferedInputStream(Files.newInputStream(mcpCsv)))) {
 			boolean firstLine = true;
 			while(csvScanner.hasNextLine()) {

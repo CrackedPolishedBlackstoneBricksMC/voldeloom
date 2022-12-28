@@ -24,9 +24,9 @@
 
 package net.fabricmc.loom.providers;
 
+import net.fabricmc.loom.Constants;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.LoomGradlePlugin;
-import net.fabricmc.loom.Constants;
 import net.fabricmc.loom.WellKnownLocations;
 import net.fabricmc.loom.util.mcp.AcceptorProvider;
 import net.fabricmc.loom.util.mcp.CsvApplierAcceptor;
@@ -34,7 +34,6 @@ import net.fabricmc.loom.util.mcp.SrgMappingProvider;
 import net.fabricmc.loom.util.mcp.TinyWriter3Column;
 import net.fabricmc.mapping.tree.TinyMappingFactory;
 import net.fabricmc.mapping.tree.TinyTree;
-import net.fabricmc.stitch.util.Pair;
 import net.fabricmc.tinyremapper.IMappingProvider.MappingAcceptor;
 import org.apache.tools.ant.util.StringUtils;
 import org.gradle.api.Project;
@@ -49,9 +48,7 @@ import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Collection;
 import java.util.Collections;
-import java.util.Map;
 
 public class MappingsProvider extends DependencyProvider {
 	public MappingsProvider(Project project, LoomGradleExtension extension, MinecraftProvider mc, ForgePatchedProvider forgePatched) {
@@ -72,9 +69,7 @@ public class MappingsProvider extends DependencyProvider {
 	public Path tinyMappingsJar;
 	
 	private TinyTree parsedMappings;
-
 	
-
 	//TODO: let's try and make this into a project-wide `clean` system that threads through each task,
 	// instead of an ad-hoc thing
 	public void clean() {
@@ -123,23 +118,60 @@ public class MappingsProvider extends DependencyProvider {
 			}
 			
 			try(FileSystem mcpZipFs = FileSystems.newFileSystem(URI.create("jar:" + mappingsJar.toURI()), Collections.singletonMap("create", "true"))) {
-				Pair<Map<String, String>, Collection<String>> data = SrgMappingProvider.calcInfo(forgePatched.getPatchedJar());
-				SrgMappingProvider client = new SrgMappingProvider(mcpZipFs.getPath("conf", "client.srg"), data.getLeft(), data.getRight());
-				SrgMappingProvider server = new SrgMappingProvider(mcpZipFs.getPath("conf", "server.srg"), data.getLeft(), data.getRight());
-				Path notMyAwfulHack = mcpZipFs.getPath("conf", "newids.csv");
-				AcceptorProvider merged = new AcceptorProvider();
-				client.load(new CsvApplierAcceptor(merged, notMyAwfulHack, CsvApplierAcceptor.NEWNAME_CLIENT_IN, CsvApplierAcceptor.NEWNAME_OUT));
-				server.load(new CsvApplierAcceptor(merged, notMyAwfulHack, CsvApplierAcceptor.NEWNAME_SERVER_IN, CsvApplierAcceptor.NEWNAME_OUT));
-				Path notMyAwfulHack2 = mcpZipFs.getPath("conf", "packages.csv");
-				AcceptorProvider packaged = new AcceptorProvider();
-				merged.load(new CsvApplierAcceptor(packaged, notMyAwfulHack2, CsvApplierAcceptor.PACKAGES_IN, CsvApplierAcceptor.PACKAGES_OUT));
-				
 				TinyWriter3Column writer = new TinyWriter3Column("official", "intermediary", "named");
-				packaged.load(writer);
-				writer.acceptSecond();
-				MappingAcceptor fieldMapper = new CsvApplierAcceptor(writer, mcpZipFs.getPath("conf", "fields.csv"), CsvApplierAcceptor.GENERIC_IN, CsvApplierAcceptor.GENERIC_OUT);
-				MappingAcceptor methodMapper = new CsvApplierAcceptor(fieldMapper, mcpZipFs.getPath("conf", "methods.csv"), CsvApplierAcceptor.GENERIC_IN, CsvApplierAcceptor.GENERIC_OUT);
-				packaged.load(methodMapper);
+				
+				if(Files.exists(mcpZipFs.getPath("forge/fml/conf/joined.srg"))) {
+					project.getLogger().lifecycle("] joined.srg detected - looks like a forge sources zip");
+					Path conf = mcpZipFs.getPath("forge/fml/conf");
+					
+					//Scan JAR (TODO: why?)
+					SrgMappingProvider.JarScanData data = SrgMappingProvider.scan(forgePatched.getPatchedJar());
+					
+					//Read joined SRG (classes, newid fields, newid methods)
+					//Conveniently, Forge has pre-remapped this to newid SRGs instead of us having to use newids.csv.
+					SrgMappingProvider joined = new SrgMappingProvider(conf.resolve("joined.srg"), data);
+					
+					//Apply Forge's packaging data (MCP doesn't have packaging data yet)
+					AcceptorProvider packaged = new AcceptorProvider();
+					joined.load(new CsvApplierAcceptor(packaged, conf.resolve("packages.csv"), CsvApplierAcceptor.PACKAGES_IN, CsvApplierAcceptor.PACKAGES_OUT));
+					
+					packaged.load(writer);
+					
+					writer.acceptSecond(); //toggle writer into accepting names for `named` classes
+					MappingAcceptor fieldMapper = new CsvApplierAcceptor(writer, conf.resolve("fields.csv"), CsvApplierAcceptor.GENERIC_IN, CsvApplierAcceptor.GENERIC_OUT);
+					MappingAcceptor methodMapper = new CsvApplierAcceptor(fieldMapper, conf.resolve("methods.csv"), CsvApplierAcceptor.GENERIC_IN, CsvApplierAcceptor.GENERIC_OUT);
+					packaged.load(methodMapper);
+				} else {
+					project.getLogger().lifecycle("] no joined.srg detected - looks like an MCP mappings zip");
+					project.getLogger().warn("] TODO i didn't retest this after implementing reading forge zips"); //TODO
+					Path conf = mcpZipFs.getPath("conf");
+					
+					//Scan JAR (TODO: why?)
+					SrgMappingProvider.JarScanData data = SrgMappingProvider.scan(forgePatched.getPatchedJar());
+					
+					//Read client and server SRGs (classes, splitid fields, splitid methods)
+					SrgMappingProvider client = new SrgMappingProvider(conf.resolve("client.srg"), data);
+					SrgMappingProvider server = new SrgMappingProvider(conf.resolve("server.srg"), data);
+					
+					//Rename members from their client-only/server-only SRG splitids to their newids, which are shared across both sides
+					AcceptorProvider joined = new AcceptorProvider();
+					client.load(new CsvApplierAcceptor(joined, mcpZipFs.getPath("conf", "newids.csv"), CsvApplierAcceptor.NEWNAME_CLIENT_IN, CsvApplierAcceptor.NEWNAME_OUT));
+					server.load(new CsvApplierAcceptor(joined, mcpZipFs.getPath("conf", "newids.csv"), CsvApplierAcceptor.NEWNAME_SERVER_IN, CsvApplierAcceptor.NEWNAME_OUT));
+					
+					//This file only exists in Forge, but you might have it if you pasted forge sources over an MCP zip?
+					AcceptorProvider packaged = new AcceptorProvider();
+					if(Files.exists(conf.resolve("packages.csv"))) {
+						joined.load(new CsvApplierAcceptor(packaged, mcpZipFs.getPath("conf", "packages.csv"), CsvApplierAcceptor.PACKAGES_IN, CsvApplierAcceptor.PACKAGES_OUT));
+					} else {
+						joined.load(packaged);
+					}
+					packaged.load(writer);
+					
+					writer.acceptSecond(); //toggle writer into accepting names for `named` classes
+					MappingAcceptor fieldMapper = new CsvApplierAcceptor(writer, mcpZipFs.getPath("conf", "fields.csv"), CsvApplierAcceptor.GENERIC_IN, CsvApplierAcceptor.GENERIC_OUT);
+					MappingAcceptor methodMapper = new CsvApplierAcceptor(fieldMapper, mcpZipFs.getPath("conf", "methods.csv"), CsvApplierAcceptor.GENERIC_IN, CsvApplierAcceptor.GENERIC_OUT);
+					packaged.load(methodMapper);
+				}
 				
 				try(OutputStream out = Files.newOutputStream(tinyMappings)) {
 					writer.write(out);
