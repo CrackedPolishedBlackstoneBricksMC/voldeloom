@@ -30,35 +30,32 @@ import com.google.common.io.MoreFiles;
 import org.gradle.api.logging.Logger;
 import org.gradle.api.logging.Logging;
 
-import java.io.File;
 import java.io.IOException;
+import java.math.BigInteger;
+import java.nio.file.Files;
 import java.nio.file.Path;
 
 public class Checksum {
 	private static final Logger log = Logging.getLogger(Checksum.class);
 
-	@SuppressWarnings("BooleanMethodIsAlwaysInverted") //yeah i mean. you typically wanna do things when the hashes are different
+	@SuppressWarnings({
+		"BooleanMethodIsAlwaysInverted", //yeah i mean. you typically wanna do things when the hashes are *different*
+		"UnstableApiUsage", //Guava hashing
+		"deprecation" //Not my fault Mojang uses SHA-1
+	})
 	public static boolean compareSha1(Path path, String knownDigest) {
 		if(path == null || knownDigest == null || knownDigest.length() != 40) {
 			return false;
 		}
 		
-		//TODO(VOLDELOOM-DISASTER) migrate to Path
-		File file = path.toFile();
-		
 		try {
-			//noinspection deprecation
-			HashCode hash = MoreFiles.asByteSource(path).hash(Hashing.sha1());
+			if(Files.notExists(path)) return false;
 			
-			//Yes you have to use this fuckedup way of converting the hash byte array into a string
-			//Everything else seemingly gets it wrong
-			StringBuilder builder = new StringBuilder();
-			for(Byte hashBytes : hash.asBytes()) {
-				builder.append(Integer.toString((hashBytes & 0xFF) + 0x100, 16).substring(1));
-			}
+			HashCode digest = MoreFiles.asByteSource(path).hash(Hashing.sha1());
+			String digestString = String.format("%040x", new BigInteger(1, digest.asBytes()));
 			
-			log.info("Checksum check: '" + builder + "' == '" + knownDigest + "'?");
-			return builder.toString().equals(knownDigest);
+			log.info("Checksum check: '" + digestString + "' == '" + knownDigest + "'?");
+			return digestString.equals(knownDigest);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}

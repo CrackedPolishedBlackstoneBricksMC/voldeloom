@@ -162,7 +162,7 @@ public class MinecraftProvider extends DependencyProvider {
 			.download();
 		
 		new DownloadSession(versionInfo.downloads.get("server").url, project)
-			.dest(minecraftClientJar)
+			.dest(minecraftServerJar)
 			.etag(true)
 			.gzip(false) //TODO why do i get nonmatching hashes using this downloader + gzip?
 			.skipIfExists()

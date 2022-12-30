@@ -76,19 +76,21 @@ public abstract class DependencyProvider {
 		DependencySet set = config.getDependencies();
 		
 		if(set.size() == 0) {
-			throw new IllegalStateException("Expected 1 dependency inside configuration " + config.getName() + ", found 0.");
+			throw new IllegalStateException("Expected configuration '" + config.getName() + "' to resolve to one dependency, but found zero.");
 		} else if(set.size() == 1) {
 			return new DependencyInfo(project, set.iterator().next(), config);
 		} else {
-			StringBuilder error = new StringBuilder("Expected 1 dependency inside configuration ")
-				.append(config.getName())
-				.append(", found ")
-				.append(set.size()).append(":\n");
-			for(Dependency dep : set) {
-				error.append(dep.toString());
-				error.append('\n');
+			StringBuilder builder = new StringBuilder("Expected configuration '");
+			builder.append(config.getName());
+			builder.append("' to resovle to one dependency, but found ");
+			builder.append(set.size());
+			builder.append(":");
+			
+			for (Dependency f : set) {
+				builder.append("\n\t- ").append(f.toString());
 			}
-			throw new IllegalStateException(error.toString());
+			
+			throw new IllegalStateException(builder.toString());
 		}
 	}
 	
@@ -135,41 +137,26 @@ public abstract class DependencyProvider {
 		public Set<File> resolve() {
 			return sourceConfiguration.files(dependency);
 		}
-
-		@Deprecated
-		public Optional<File> resolveSingleFile() {
-			Set<File> files = resolve();
-
-			if (files.isEmpty()) {
-				return Optional.empty();
-			} else if (files.size() > 1) {
-				StringBuilder builder = new StringBuilder(this.toString());
-				builder.append(" resolves to more than one file:");
-
-				for (File f : files) {
-					builder.append("\n\t-").append(f.getAbsolutePath());
-				}
-
-				throw new RuntimeException(builder.toString());
-			} else {
-				return files.stream().findFirst();
-			}
-		}
 		
 		public Optional<Path> resolveSinglePath() {
 			Set<File> files = resolve();
 			
-			if (files.size() > 1) {
-				StringBuilder builder = new StringBuilder(this.toString());
-				builder.append(" resolves to more than one file:");
+			if(files.size() == 0) {
+				throw new IllegalStateException("Expected configuration '" + sourceConfiguration.getName() + "' to resolve to one file, but found zero.");
+			} else if(files.size() == 1) {
+				return files.stream().findFirst().map(File::toPath);
+			} else {
+				StringBuilder builder = new StringBuilder("Expected configuration '");
+				builder.append(sourceConfiguration.getName());
+				builder.append("' to resovle to one file, but found ");
+				builder.append(files.size());
+				builder.append(":");
 				
 				for (File f : files) {
-					builder.append("\n\t-").append(f.getAbsolutePath());
+					builder.append("\n\t- ").append(f.getAbsolutePath());
 				}
 				
-				throw new RuntimeException(builder.toString());
-			} else {
-				return files.stream().findFirst().map(File::toPath);
+				throw new IllegalStateException(builder.toString());
 			}
 		}
 

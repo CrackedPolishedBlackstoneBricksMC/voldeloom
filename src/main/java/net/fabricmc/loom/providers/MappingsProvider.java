@@ -35,13 +35,12 @@ import net.fabricmc.loom.util.mcp.TinyWriter3Column;
 import net.fabricmc.mapping.tree.TinyMappingFactory;
 import net.fabricmc.mapping.tree.TinyTree;
 import net.fabricmc.tinyremapper.IMappingProvider.MappingAcceptor;
-import org.apache.tools.ant.util.StringUtils;
 import org.gradle.api.Project;
 import org.zeroturnaround.zip.FileSource;
 import org.zeroturnaround.zip.ZipEntrySource;
 import org.zeroturnaround.zip.ZipUtil;
 
-import java.io.File;
+import java.io.BufferedReader;
 import java.io.OutputStream;
 import java.net.URI;
 import java.nio.file.FileSystem;
@@ -84,40 +83,30 @@ public class MappingsProvider extends DependencyProvider {
 		project.getLogger().lifecycle("|-> setting up mappings (" + mappingsDependency.getDependency().getName() + " " + mappingsDependency.getResolvedVersion() + ")");
 
 		String version = mappingsDependency.getResolvedVersion();
-		File mappingsJar = mappingsDependency.resolveSingleFile().orElseThrow(() -> new RuntimeException("Could not find mcp mappings: " + mappingsDependency));
+		Path mappingsJar = mappingsDependency.resolveSinglePath().orElseThrow(() -> new RuntimeException("Could not find mcp mappings: " + mappingsDependency));
 
-		this.mappingsName = StringUtils.removeSuffix(mappingsDependency.getDependency().getGroup() + "." + mappingsDependency.getDependency().getName(), "-unmerged");
-
+		this.mappingsName = mappingsDependency.getDependency().getGroup() + "." + mappingsDependency.getDependency().getName();
 		this.minecraftVersion = mc.getJarStuff();
 		this.mappingsVersion = version;
-		
 		this.mappingsDir = WellKnownLocations.getUserCache(project).resolve("mappings");
 		Files.createDirectories(mappingsDir);
-		
-		String[] depStringSplit = mappingsDependency.getDepString().split(":");
-		String jarClassifier = "final";
 
-		if (depStringSplit.length >= 4) {
-			jarClassifier = jarClassifier + depStringSplit[3];
-		}
-
-		//TODO: this naming scheme is broken when the file doesn't end with .jar, like the mcp zip doesn't
-		tinyMappings = mappingsDir.resolve(StringUtils.removeSuffix(mappingsJar.getName(), ".jar") + ".tiny");
-		tinyMappingsJar = WellKnownLocations.getUserCache(project).resolve(mappingsJar.getName().replace(".jar", "-" + jarClassifier + ".jar"));
+		tinyMappings = mappingsDir.resolve(mappingsJar.getFileName() + ".tiny");
+		tinyMappingsJar = mappingsDir.resolve(mappingsJar.getFileName() + ".tiny.jar");
 		
 		if (Files.notExists(tinyMappings)) {
 			long filesize;
 			try {
-				filesize = Files.size(mappingsJar.toPath());
+				filesize = Files.size(mappingsJar);
 			} catch (Exception e) {
 				throw new RuntimeException("Problem statting mappings zip", e);
 			}
 			if(filesize == 0) {
-				throw new RuntimeException("The mappings zip at " + mappingsJar.toPath() + " is a 0-byte file. Please double-check the URL and redownload. " +
+				throw new RuntimeException("The mappings zip at " + mappingsJar + " is a 0-byte file. Please double-check the URL and redownload. " +
 					"If you obtained this from the Internet Archive, note that it likes to return 0-byte files instead of 404 errors.");
 			}
 			
-			try(FileSystem mcpZipFs = FileSystems.newFileSystem(URI.create("jar:" + mappingsJar.toURI()), Collections.singletonMap("create", "true"));
+			try(FileSystem mcpZipFs = FileSystems.newFileSystem(URI.create("jar:" + mappingsJar.toUri()), Collections.singletonMap("create", "true"));
 			    OutputStream out = Files.newOutputStream(tinyMappings)) {
 				TinyWriter3Column writer = new TinyWriter3Column("official", "intermediary", "named");
 				
@@ -183,7 +172,9 @@ public class MappingsProvider extends DependencyProvider {
 		}
 		
 		//make them available for other tasks TODO move
-		parsedMappings = TinyMappingFactory.loadWithDetection(Files.newBufferedReader(tinyMappings));
+		try(BufferedReader lol = Files.newBufferedReader(tinyMappings)) {
+			parsedMappings = TinyMappingFactory.loadWithDetection(lol);
+		}
 		
 		//add it as a project dependency TODO move
 		project.getDependencies().add(Constants.MAPPINGS_FINAL, project.files(tinyMappingsJar));
