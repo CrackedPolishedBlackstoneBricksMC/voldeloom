@@ -26,7 +26,7 @@ package net.fabricmc.loom.util;
 
 import com.google.common.hash.HashCode;
 import com.google.common.hash.Hashing;
-import com.google.common.io.Files;
+import com.google.common.io.MoreFiles;
 import org.gradle.api.logging.Logger;
 import org.gradle.api.logging.Logging;
 
@@ -37,38 +37,52 @@ import java.nio.file.Path;
 public class Checksum {
 	private static final Logger log = Logging.getLogger(Checksum.class);
 
-	public static boolean equals(Path path, String checksum) {
-		if (path == null) {
+	@SuppressWarnings("BooleanMethodIsAlwaysInverted") //yeah i mean. you typically wanna do things when the hashes are different
+	public static boolean compareSha1(Path path, String knownDigest) {
+		if(path == null || knownDigest == null || knownDigest.length() != 40) {
 			return false;
 		}
 		
 		//TODO(VOLDELOOM-DISASTER) migrate to Path
 		File file = path.toFile();
-
+		
 		try {
 			//noinspection deprecation
-			HashCode hash = Files.asByteSource(file).hash(Hashing.sha1());
+			HashCode hash = MoreFiles.asByteSource(path).hash(Hashing.sha1());
+			
+			//Yes you have to use this fuckedup way of converting the hash byte array into a string
+			//Everything else seemingly gets it wrong
 			StringBuilder builder = new StringBuilder();
-
-			for (Byte hashBytes : hash.asBytes()) {
+			for(Byte hashBytes : hash.asBytes()) {
 				builder.append(Integer.toString((hashBytes & 0xFF) + 0x100, 16).substring(1));
 			}
-
-			log.debug("Checksum check: '" + builder.toString() + "' == '" + checksum + "'?");
-			return builder.toString().equals(checksum);
+			
+			log.info("Checksum check: '" + builder + "' == '" + knownDigest + "'?");
+			return builder.toString().equals(knownDigest);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-
 		return false;
 	}
-
-	public static byte[] sha256(File file) {
-		try {
-			HashCode hash = Files.asByteSource(file).hash(Hashing.sha256());
-			return hash.asBytes();
-		} catch (IOException e) {
-			throw new RuntimeException("Failed to get file hash");
-		}
-	}
+	
+	//		try {
+	//			if(!Files.exists(path)) {
+	//				return false;
+	//			}
+	//			
+	//			//compute SHA-1 of the file
+	//			MessageDigest readersDigest = MessageDigest.getInstance("SHA-1");
+	//			readersDigest.update(Files.readAllBytes(path));
+	//			byte[] digest = readersDigest.digest();
+	//			
+	//			//stringify it for easier comparison lol
+	//			String digestString = String.format("%040x", new BigInteger(1, digest));
+	//			
+	//			log.info("Checksum check: computed '" + digestString + "', known '" + knownDigest + "'");
+	//			return digestString.equals(knownDigest);
+	//		} catch (Exception e) {
+	//			e.printStackTrace();
+	//			return false;
+	//		}
+	//	}
 }

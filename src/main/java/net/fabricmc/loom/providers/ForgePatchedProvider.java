@@ -54,14 +54,19 @@ public class ForgePatchedProvider extends DependencyProvider {
 				//Copy the contents of the mc-merged jar into the patched jar
 				Files.walkFileTree(mergedFs.getPath("/"), new SimpleFileVisitor<Path>() {
 					@Override
-					public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
-						return dir.endsWith("META-INF") ? FileVisitResult.SKIP_SUBTREE : FileVisitResult.CONTINUE;
+					public FileVisitResult preVisitDirectory(Path sourceDir, BasicFileAttributes attrs) throws IOException {
+						if(sourceDir.endsWith("META-INF")) {
+							return FileVisitResult.SKIP_SUBTREE;
+						} else {
+							Path destDir = patchedFs.getPath(sourceDir.toString());
+							Files.createDirectories(destDir);
+							return FileVisitResult.CONTINUE;
+						}
 					}
 					
 					@Override
 					public FileVisitResult visitFile(Path sourcePath, BasicFileAttributes attrs) throws IOException {
 						Path destPath = patchedFs.getPath(sourcePath.toString());
-						Files.createDirectories(destPath.getParent());
 						Files.copy(sourcePath, destPath);
 						return FileVisitResult.CONTINUE;
 					}
@@ -70,15 +75,19 @@ public class ForgePatchedProvider extends DependencyProvider {
 				//Copy the contents of the Forge jar on top
 				Files.walkFileTree(forgeFs.getPath("/"), new SimpleFileVisitor<Path>() {
 					@Override
-					public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
-						if(dir.endsWith("META-INF")) return FileVisitResult.SKIP_SUBTREE;
-						else return FileVisitResult.CONTINUE;
+					public FileVisitResult preVisitDirectory(Path sourceDir, BasicFileAttributes attrs) throws IOException {
+						if(sourceDir.endsWith("META-INF")) {
+							return FileVisitResult.SKIP_SUBTREE;
+						} else {
+							Path destDir = patchedFs.getPath(sourceDir.toString());
+							Files.createDirectories(destDir);
+							return FileVisitResult.CONTINUE;
+						}
 					}
 					
 					@Override
 					public FileVisitResult visitFile(Path sourcePath, BasicFileAttributes attrs) throws IOException {
 						Path destPath = patchedFs.getPath(sourcePath.toString());
-						Files.createDirectories(destPath.getParent());
 						Files.copy(sourcePath, destPath, StandardCopyOption.REPLACE_EXISTING);
 						return FileVisitResult.CONTINUE;
 					}

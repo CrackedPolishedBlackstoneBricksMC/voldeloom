@@ -65,7 +65,7 @@ public class AssetsProvider extends DependencyProvider {
 		//tasks
 		
 		boolean offline = project.getGradle().getStartParameter().isOffline();
-		if (Files.notExists(assetIndexFile) || !Checksum.equals(assetIndexFile, assetIndexInfo.sha1)) {
+		if (Files.notExists(assetIndexFile) || !Checksum.compareSha1(assetIndexFile, assetIndexInfo.sha1)) {
 			project.getLogger().lifecycle(":downloading asset index");
 
 			if (offline) {

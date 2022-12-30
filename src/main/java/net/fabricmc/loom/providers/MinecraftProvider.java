@@ -149,12 +149,12 @@ public class MinecraftProvider extends DependencyProvider {
 	}
 
 	private void downloadJars(Logger logger) throws IOException {
-		if (Files.notExists(minecraftClientJar) || (!Checksum.equals(minecraftClientJar, versionInfo.downloads.get("client").sha1))) {
+		if (Files.notExists(minecraftClientJar) || (!Checksum.compareSha1(minecraftClientJar, versionInfo.downloads.get("client").sha1))) {
 			logger.debug("Downloading Minecraft {} client jar", minecraftVersion);
 			DownloadUtil.downloadIfChanged(new URL(versionInfo.downloads.get("client").url), minecraftClientJar, logger);
 		}
 		
-		if (Files.notExists(minecraftServerJar) || (!Checksum.equals(minecraftServerJar, versionInfo.downloads.get("server").sha1))) {
+		if (Files.notExists(minecraftServerJar) || (!Checksum.compareSha1(minecraftServerJar, versionInfo.downloads.get("server").sha1))) {
 			logger.debug("Downloading Minecraft {} server jar", minecraftVersion);
 			DownloadUtil.downloadIfChanged(new URL(versionInfo.downloads.get("server").url), minecraftServerJar, logger);
 		}

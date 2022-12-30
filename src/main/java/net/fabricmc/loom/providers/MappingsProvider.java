@@ -117,7 +117,8 @@ public class MappingsProvider extends DependencyProvider {
 					"If you obtained this from the Internet Archive, note that it likes to return 0-byte files instead of 404 errors.");
 			}
 			
-			try(FileSystem mcpZipFs = FileSystems.newFileSystem(URI.create("jar:" + mappingsJar.toURI()), Collections.singletonMap("create", "true"))) {
+			try(FileSystem mcpZipFs = FileSystems.newFileSystem(URI.create("jar:" + mappingsJar.toURI()), Collections.singletonMap("create", "true"));
+			    OutputStream out = Files.newOutputStream(tinyMappings)) {
 				TinyWriter3Column writer = new TinyWriter3Column("official", "intermediary", "named");
 				
 				if(Files.exists(mcpZipFs.getPath("forge/fml/conf/joined.srg"))) {
@@ -173,9 +174,7 @@ public class MappingsProvider extends DependencyProvider {
 					packaged.load(methodMapper);
 				}
 				
-				try(OutputStream out = Files.newOutputStream(tinyMappings)) {
-					writer.write(out);
-				}
+				writer.write(out);
 			}
 		}
 		

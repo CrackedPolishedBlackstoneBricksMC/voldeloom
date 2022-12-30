@@ -109,7 +109,7 @@ public class LineNumberRemapper {
 					String idx = rel.substring(0, rel.length() - 6);
 
 					if (logger != null) {
-						logger.info("Line-remapping " + idx);
+						logger.debug("Line-remapping " + idx);
 					}
 
 					int dollarPos = idx.indexOf('$'); //This makes the assumption that only Java classes are to be remapped.

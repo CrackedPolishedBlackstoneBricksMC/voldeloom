@@ -38,12 +38,12 @@ public class MinecraftVersionInfo {
 	public Map<String, Downloads> downloads;
 	public AssetIndex assetIndex;
 
-	public class Downloads {
+	public static class Downloads {
 		public String url;
 		public String sha1;
 	}
 
-	public class AssetIndex {
+	public static class AssetIndex {
 		private String id;
 		public String sha1;
 		public String url;
@@ -69,12 +69,6 @@ public class MinecraftVersionInfo {
 			String[] parts = this.name.split(":", 3);
 			path = parts[0].replace(".", "/") + "/" + parts[1] + "/" + parts[2] + "/" + parts[1] + "-" + parts[2] + getClassifier() + ".jar";
 			return Constants.LIBRARIES_BASE + path;
-		}
-
-		@Deprecated //moving away from File as much as i can
-		public File getFile(File baseDir) {
-			String[] parts = this.name.split(":", 3);
-			return new File(baseDir, parts[0].replace(".", File.separator) + File.separator + parts[1] + File.separator + parts[2] + File.separator + parts[1] + "-" + parts[2] + getClassifier() + ".jar");
 		}
 		
 		public Path getPath(Path basePath) {
