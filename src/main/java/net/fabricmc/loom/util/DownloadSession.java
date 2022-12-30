@@ -1,7 +1,7 @@
 package net.fabricmc.loom.util;
 
 import com.google.common.base.Preconditions;
-import org.gradle.api.logging.Logger;
+import org.gradle.api.Project;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -21,15 +21,13 @@ import java.util.zip.GZIPInputStream;
  * Also allows to turn off gzip support because java's gzipinputstream is a bit funky x)
  */
 public class DownloadSession {
-	public DownloadSession() {}
-	
-	public DownloadSession(String url) {
-		url(url);
+	public DownloadSession(Project project) {
+		this.project = project;
 	}
 	
-	public DownloadSession(String url, Logger logger) {
+	public DownloadSession(String url, Project project) {
+		this(project);
 		url(url);
-		this.logger = logger;
 	}
 	
 	private URL url;
@@ -39,7 +37,8 @@ public class DownloadSession {
 	private boolean skipIfExists = false;
 	private @Nullable String skipIfSha1 = null;
 	
-	private Logger logger;
+	private final Project project;
+	private boolean quiet;
 	
 	public DownloadSession url(String url) {
 		try {
@@ -65,11 +64,6 @@ public class DownloadSession {
 		return this;
 	}
 	
-	public DownloadSession logger(Logger logger) {
-		this.logger = logger;
-		return this;
-	}
-	
 	public DownloadSession skipIfExists() {
 		this.skipIfExists = true;
 		return this;
@@ -77,6 +71,11 @@ public class DownloadSession {
 	
 	public DownloadSession skipIfSha1Equals(@Nullable String skipIfSha1) {
 		this.skipIfSha1 = skipIfSha1;
+		return this;
+	}
+	
+	public DownloadSession quiet() {
+		this.quiet = true;
 		return this;
 	}
 	
@@ -95,10 +94,10 @@ public class DownloadSession {
 		
 		Files.createDirectories(dest.getParent());
 		
-		HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+		HttpURLConnection conn = (HttpURLConnection) url.openConnection(); //doesnt actually open html connection yet
 		
 		Path etagFile = dest.resolveSibling(dest.getFileName().toString() + ".etag");
-		String knownEtag;
+		String knownEtag = null;
 		if(useEtag && Files.exists(etagFile)) {
 			knownEtag = new String(Files.readAllBytes(etagFile), StandardCharsets.UTF_8);
 			conn.setRequestProperty("If-None-Match", knownEtag);
@@ -107,7 +106,7 @@ public class DownloadSession {
 		
 		if(requestGzip) conn.setRequestProperty("Accept-Encoding", "gzip");
 		
-		lifecycle("Establishing connection to {} (sending etag header: {}, gzip encoding: {})...", url.toString(), useEtag, requestGzip);
+		lifecycle("Establishing connection to {} (sending etag header: {}, gzip encoding: {})...", url.toString(), knownEtag != null, requestGzip);
 		conn.connect();
 		
 		int code = conn.getResponseCode();
@@ -144,10 +143,10 @@ public class DownloadSession {
 	}
 	
 	private void info(String x, Object... fmt) {
-		if(logger != null) logger.info(x, fmt);
+		if(!quiet) project.getLogger().info(x, fmt);
 	}
 	
 	private void lifecycle(String x, Object... fmt) {
-		if(logger != null) logger.lifecycle(x, fmt);
+		if(!quiet) project.getLogger().lifecycle(x, fmt);
 	}
 }

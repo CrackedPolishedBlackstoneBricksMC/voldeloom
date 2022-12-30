@@ -65,7 +65,7 @@ public class ShimForgeLibraries extends DefaultTask implements LoomTaskExt {
 		final String sourceURL;
 		
 		void download(Project project, Path libsDir) throws IOException {
-			new DownloadSession(sourceURL, project.getLogger())
+			new DownloadSession(sourceURL, project)
 				.dest(libsDir.resolve(targetFilename))
 				.etag(true)
 				.gzip(false)

@@ -77,7 +77,7 @@ public class AssetsProvider extends DependencyProvider {
 				}
 			} else {
 				Files.createDirectories(globalAssetsCache);
-				new DownloadSession(assetIndexInfo.url, project.getLogger())
+				new DownloadSession(assetIndexInfo.url, project)
 					.dest(assetIndexFile)
 					.etag(true)
 					.gzip(true)
@@ -109,7 +109,8 @@ public class AssetsProvider extends DependencyProvider {
 					
 					String sha1 = objectsJson.get(filename).getAsJsonObject().get("hash").getAsString();
 					String shsha1 = sha1.substring(0, 2) + '/' + sha1;
-					new DownloadSession(Constants.RESOURCES_BASE + shsha1)
+					new DownloadSession(Constants.RESOURCES_BASE + shsha1, project)
+						.quiet()
 						.dest(destFile)
 						.gzip(true)
 						.etag(false) //we're hopefully not gonna be redownloading these

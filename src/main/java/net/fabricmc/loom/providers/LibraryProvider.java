@@ -62,7 +62,7 @@ public class LibraryProvider extends DependencyProvider {
 			
 			if(library.isNative()) {
 				Path libJarFile = library.getPath(nativesJarStore);
-				new DownloadSession(library.getURL(), project.getLogger())
+				new DownloadSession(library.getURL(), project)
 					.dest(libJarFile)
 					.etag(true)
 					.gzip(false)

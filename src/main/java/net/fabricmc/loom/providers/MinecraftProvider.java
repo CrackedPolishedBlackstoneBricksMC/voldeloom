@@ -32,7 +32,6 @@ import net.fabricmc.loom.util.DownloadSession;
 import net.fabricmc.loom.util.MinecraftVersionInfo;
 import org.gradle.api.GradleException;
 import org.gradle.api.Project;
-import org.gradle.api.logging.Logger;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -87,7 +86,7 @@ public class MinecraftProvider extends DependencyProvider {
 				throw new GradleException("Missing jar(s); Client: " + Files.exists(minecraftClientJar) + ", Server: " + Files.exists(minecraftServerJar));
 			}
 		} else {
-			downloadJars(project.getLogger());
+			downloadJars();
 		}
 	}
 	
@@ -105,7 +104,7 @@ public class MinecraftProvider extends DependencyProvider {
 		} else {
 			project.getLogger().debug("Downloading version manifests");
 			//TODO: some kind of little timed-cache system, because we really don't need to go contact launchermeta every launch...
-			new DownloadSession("https://launchermeta.mojang.com/mc/game/version_manifest.json", project.getLogger())
+			new DownloadSession("https://launchermeta.mojang.com/mc/game/version_manifest.json", project)
 				.dest(manifests)
 				.etag(true)
 				.gzip(true)
@@ -141,7 +140,7 @@ public class MinecraftProvider extends DependencyProvider {
 					throw new GradleException("Minecraft " + minecraftVersion + " manifest not found at " + minecraftJson.toAbsolutePath());
 				}
 			} else {
-				new DownloadSession(optionalVersion.get().url, project.getLogger())
+				new DownloadSession(optionalVersion.get().url, project)
 					.dest(minecraftJson)
 					.gzip(true)
 					.etag(true)
@@ -153,8 +152,8 @@ public class MinecraftProvider extends DependencyProvider {
 		}
 	}
 
-	private void downloadJars(Logger logger) throws IOException {
-		new DownloadSession(versionInfo.downloads.get("client").url, logger)
+	private void downloadJars() throws IOException {
+		new DownloadSession(versionInfo.downloads.get("client").url, project)
 			.dest(minecraftClientJar)
 			.etag(true)
 			.gzip(false) //TODO why do i get nonmatching hashes using this downloader + gzip?
@@ -162,7 +161,7 @@ public class MinecraftProvider extends DependencyProvider {
 			.skipIfSha1Equals(versionInfo.downloads.get("client").sha1)
 			.download();
 		
-		new DownloadSession(versionInfo.downloads.get("server").url, logger)
+		new DownloadSession(versionInfo.downloads.get("server").url, project)
 			.dest(minecraftClientJar)
 			.etag(true)
 			.gzip(false) //TODO why do i get nonmatching hashes using this downloader + gzip?
