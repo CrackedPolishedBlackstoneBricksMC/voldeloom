@@ -28,7 +28,6 @@ import com.google.gson.Gson;
 import net.fabricmc.loom.Constants;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.WellKnownLocations;
-import net.fabricmc.loom.util.Checksum;
 import net.fabricmc.loom.util.DownloadSession;
 import net.fabricmc.loom.util.MinecraftVersionInfo;
 import org.gradle.api.GradleException;
@@ -105,6 +104,7 @@ public class MinecraftProvider extends DependencyProvider {
 			}
 		} else {
 			project.getLogger().debug("Downloading version manifests");
+			//TODO: some kind of little timed-cache system, because we really don't need to go contact launchermeta every launch...
 			new DownloadSession("https://launchermeta.mojang.com/mc/game/version_manifest.json", project.getLogger())
 				.dest(manifests)
 				.etag(true)
@@ -141,14 +141,12 @@ public class MinecraftProvider extends DependencyProvider {
 					throw new GradleException("Minecraft " + minecraftVersion + " manifest not found at " + minecraftJson.toAbsolutePath());
 				}
 			} else {
-				if (Files.notExists(minecraftJson)) {
-					project.getLogger().debug("Downloading Minecraft {} manifest", minecraftVersion);
-					new DownloadSession(optionalVersion.get().url, project.getLogger())
-						.dest(minecraftJson)
-						.gzip(true)
-						.etag(true)
-						.download();
-				}
+				new DownloadSession(optionalVersion.get().url, project.getLogger())
+					.dest(minecraftJson)
+					.gzip(true)
+					.etag(true)
+					.skipIfExists()
+					.download();
 			}
 		} else {
 			throw new RuntimeException("Failed to find minecraft version: " + minecraftVersion);
@@ -156,23 +154,21 @@ public class MinecraftProvider extends DependencyProvider {
 	}
 
 	private void downloadJars(Logger logger) throws IOException {
-		if (Files.notExists(minecraftClientJar) || (!Checksum.compareSha1(minecraftClientJar, versionInfo.downloads.get("client").sha1))) {
-			logger.debug("Downloading Minecraft {} client jar", minecraftVersion);
-			new DownloadSession(versionInfo.downloads.get("client").url, logger)
-				.dest(minecraftClientJar)
-				.etag(true)
-				.gzip(false) //TODO why do i get nonmatching hashes using this downloader + gzip?
-				.download();
-		}
+		new DownloadSession(versionInfo.downloads.get("client").url, logger)
+			.dest(minecraftClientJar)
+			.etag(true)
+			.gzip(false) //TODO why do i get nonmatching hashes using this downloader + gzip?
+			.skipIfExists()
+			.skipIfSha1Equals(versionInfo.downloads.get("client").sha1)
+			.download();
 		
-		if (Files.notExists(minecraftServerJar) || (!Checksum.compareSha1(minecraftServerJar, versionInfo.downloads.get("server").sha1))) {
-			logger.debug("Downloading Minecraft {} server jar", minecraftVersion);
-			new DownloadSession(versionInfo.downloads.get("server").url, logger)
-				.dest(minecraftServerJar)
-				.etag(true)
-				.gzip(false) //TODO why do i get nonmatching hashes using this downloader + gzip?
-				.download();
-		}
+		new DownloadSession(versionInfo.downloads.get("server").url, logger)
+			.dest(minecraftClientJar)
+			.etag(true)
+			.gzip(false) //TODO why do i get nonmatching hashes using this downloader + gzip?
+			.skipIfExists()
+			.skipIfSha1Equals(versionInfo.downloads.get("server").sha1)
+			.download();
 	}
 	
 	public Path getClientJar() {

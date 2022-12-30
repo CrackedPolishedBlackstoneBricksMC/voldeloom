@@ -113,6 +113,7 @@ public class AssetsProvider extends DependencyProvider {
 						.dest(destFile)
 						.gzip(true)
 						.etag(false) //we're hopefully not gonna be redownloading these
+						.skipIfExists()
 						.download();
 					
 					//just logging for fun

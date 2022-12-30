@@ -37,7 +37,7 @@ public class ShimForgeLibraries extends DefaultTask implements LoomTaskExt {
 	
 	private List<ForgeLibrary> getLibs() {
 		//see CoreFMLLibraries
-		//TODO un-hardcode base path (the prismlauncher part)
+		//TODO parse the class with asm LOLLL
 		List<ForgeLibrary> libraries = new ArrayList<>();
 		libraries.add(new ForgeLibrary("argo-2.25.jar", Constants.FML_LIBRARIES_BASE + "argo-2.25.jar"));
 		libraries.add(new ForgeLibrary("guava-12.0.1.jar", Constants.FML_LIBRARIES_BASE + "guava-12.0.1.jar"));
@@ -48,7 +48,7 @@ public class ShimForgeLibraries extends DefaultTask implements LoomTaskExt {
 	
 	@TaskAction
 	public void shimLibraries() throws IOException {
-		//TODO: save these to gradle user local cache
+		//TODO: save these to gradle user-local cache to avoid downloading multiple times when there's multiple source sets
 		for(Path forgeLibsDir : getLibraryDirectories()) {
 			Files.createDirectories(forgeLibsDir);
 			for(ForgeLibrary lib : getLibs()) lib.download(getProject(), forgeLibsDir);
@@ -65,14 +65,12 @@ public class ShimForgeLibraries extends DefaultTask implements LoomTaskExt {
 		final String sourceURL;
 		
 		void download(Project project, Path libsDir) throws IOException {
-			Path targetPath = libsDir.resolve(targetFilename);
-			if(Files.notExists(targetPath)) {
-				new DownloadSession(sourceURL, project.getLogger())
-					.dest(targetPath)
-					.etag(true)
-					.gzip(false)
-					.download();
-			}
+			new DownloadSession(sourceURL, project.getLogger())
+				.dest(libsDir.resolve(targetFilename))
+				.etag(true)
+				.gzip(false)
+				.skipIfExists()
+				.download();
 		}
 		
 		//and the following is because java url makes a Fucking Http Request in hashCode()

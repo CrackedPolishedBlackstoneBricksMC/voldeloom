@@ -3,6 +3,7 @@ package net.fabricmc.loom.util;
 import com.google.common.base.Preconditions;
 import org.gradle.api.logging.Logger;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
@@ -34,6 +35,10 @@ public class DownloadSession {
 	private URL url;
 	private Path dest;
 	private boolean useEtag = false, requestGzip = true;
+	
+	private boolean skipIfExists = false;
+	private @Nullable String skipIfSha1 = null;
+	
 	private Logger logger;
 	
 	public DownloadSession url(String url) {
@@ -65,9 +70,28 @@ public class DownloadSession {
 		return this;
 	}
 	
+	public DownloadSession skipIfExists() {
+		this.skipIfExists = true;
+		return this;
+	}
+	
+	public DownloadSession skipIfSha1Equals(@Nullable String skipIfSha1) {
+		this.skipIfSha1 = skipIfSha1;
+		return this;
+	}
+	
 	public void download() throws IOException {
 		Preconditions.checkNotNull(url, "url");
 		Preconditions.checkNotNull(dest, "dest");
+		
+		if(skipIfExists && Files.exists(dest)) {
+			info("Not connecting to {} because {} exists", url, dest);
+			return;
+		}
+		if(skipIfSha1 != null && Checksum.compareSha1(dest, skipIfSha1)) {
+			info("Not connecting to {} because {} exists and has correct SHA-1 hash ({})", url, dest, skipIfSha1);
+			return;
+		}
 		
 		Files.createDirectories(dest.getParent());
 		
@@ -83,7 +107,7 @@ public class DownloadSession {
 		
 		if(requestGzip) conn.setRequestProperty("Accept-Encoding", "gzip");
 		
-		lifecycle("Establishing connection to {} (using etag header: {}, requested gzip: {})", url.toString(), useEtag, requestGzip);
+		lifecycle("Establishing connection to {} (sending etag header: {}, gzip encoding: {})...", url.toString(), useEtag, requestGzip);
 		conn.connect();
 		
 		int code = conn.getResponseCode();
@@ -94,14 +118,14 @@ public class DownloadSession {
 		
 		long srvModtime = conn.getHeaderFieldDate("Last-Modified", -1);
 		if(code == HttpURLConnection.HTTP_NOT_MODIFIED) {
-			info("Not Modified (etag match)");
+			info("\\-> Not Modified (etag match)");
 			return;
 		} else if (Files.exists(dest) && srvModtime > 0 && Files.getLastModifiedTime(dest).toMillis() >= srvModtime) {
-			info("Not downloading more, our copy is new enough");
+			info("\\-> Our copy is new enough");
 			return;
 		}
 		
-		lifecycle("Saving to {} ", dest);
+		lifecycle("\\-> Saving to {} ", dest);
 		try(InputStream in = "gzip".equals(conn.getContentEncoding()) ? new GZIPInputStream(conn.getInputStream()) : conn.getInputStream()) {
 			Files.copy(in, dest, StandardCopyOption.REPLACE_EXISTING);
 		} catch (IOException e) {
@@ -114,7 +138,7 @@ public class DownloadSession {
 		
 		String srvEtag = conn.getHeaderField("ETag");
 		if(useEtag && srvEtag != null) {
-			info("Saving etag to {} ", etagFile);
+			info("\\-> Saving etag to {} ", etagFile);
 			Files.write(etagFile, srvEtag.getBytes(StandardCharsets.UTF_8));
 		}
 	}
