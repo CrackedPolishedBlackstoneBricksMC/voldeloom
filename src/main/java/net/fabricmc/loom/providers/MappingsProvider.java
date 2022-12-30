@@ -36,9 +36,6 @@ import net.fabricmc.mapping.tree.TinyMappingFactory;
 import net.fabricmc.mapping.tree.TinyTree;
 import net.fabricmc.tinyremapper.IMappingProvider.MappingAcceptor;
 import org.gradle.api.Project;
-import org.zeroturnaround.zip.FileSource;
-import org.zeroturnaround.zip.ZipEntrySource;
-import org.zeroturnaround.zip.ZipUtil;
 
 import java.io.BufferedReader;
 import java.io.OutputStream;
@@ -167,8 +164,13 @@ public class MappingsProvider extends DependencyProvider {
 			}
 		}
 		
-		if (Files.notExists(tinyMappingsJar)) {
-			ZipUtil.pack(new ZipEntrySource[] {new FileSource("mappings/mappings.tiny", tinyMappings.toFile())}, tinyMappingsJar.toFile());
+		//Package them up for tiny-remapper, which expects to find the mappings in a specific spot in a jar
+		if(Files.notExists(tinyMappingsJar)) {
+			try(FileSystem mappingsJarFs = FileSystems.newFileSystem(URI.create("jar:" + tinyMappingsJar.toUri()), Collections.singletonMap("create", "true"))) {
+				Path target = mappingsJarFs.getPath("mappings/mappings.tiny");
+				Files.createDirectories(target.getParent());
+				Files.copy(tinyMappings, target);
+			}
 		}
 		
 		//make them available for other tasks TODO move

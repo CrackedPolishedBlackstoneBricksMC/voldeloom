@@ -42,14 +42,7 @@ public abstract class RunTask extends JavaExec implements LoomTaskExt {
 		setGroup("minecraftMapped");
 		
 		LoomGradleExtension extension = getLoomGradleExtension();
-		
-		//TODO!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-		if(config.getEnvironment().equals("client")) {
-			config.property("minecraft.applet.TargetDirectory", config.resolveRunDir().toAbsolutePath().toString());
-			String nativeLibsDir = extension.getDependencyManager().getLibraryProvider().getNativesDir().toAbsolutePath().toString();
-			config.property("java.library.path", nativeLibsDir);
-			config.property("org.lwjgl.librarypath", nativeLibsDir);
-		}
+		config = config.cook(extension);
 
 		//Classpath
 		List<String> libs = new ArrayList<>();

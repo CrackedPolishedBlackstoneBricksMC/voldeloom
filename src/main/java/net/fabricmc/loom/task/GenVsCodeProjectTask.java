@@ -62,7 +62,11 @@ public class GenVsCodeProjectTask extends DefaultTask implements LoomTaskExt {
 		Files.deleteIfExists(launchJson);
 
 		VsCodeLaunch launch = new VsCodeLaunch();
-		extension.runConfigs.forEach(launch::add);
+		extension.runConfigs
+			.stream()
+			.filter(RunConfig::isIdeConfigGenerated)
+			.map(c -> c.cook(extension))
+			.forEach(launch::add);
 
 		Gson gson = new GsonBuilder().setPrettyPrinting().create();
 		String json = gson.toJson(launch);
@@ -70,7 +74,7 @@ public class GenVsCodeProjectTask extends DefaultTask implements LoomTaskExt {
 		
 		//And create the run directories
 		for(RunConfig cfg : extension.runConfigs) {
-			Files.createDirectories(cfg.resolveRunDir());
+			if(cfg.isIdeConfigGenerated()) Files.createDirectories(cfg.resolveRunDir());
 		}
 	}
 	

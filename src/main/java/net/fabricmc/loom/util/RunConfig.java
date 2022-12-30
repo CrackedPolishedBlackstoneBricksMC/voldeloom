@@ -25,6 +25,7 @@
 package net.fabricmc.loom.util;
 
 import com.google.common.collect.ImmutableMap;
+import net.fabricmc.loom.LoomGradleExtension;
 import org.apache.commons.io.IOUtils;
 import org.gradle.api.Named;
 import org.gradle.api.Project;
@@ -83,6 +84,30 @@ public class RunConfig implements Named {
 	
 	public Path resolveRunDir() {
 		return project.getRootDir().toPath().resolve(runDir);
+	}
+	
+	public RunConfig copy() {
+		RunConfig copy = new RunConfig(project, baseName);
+		copy.vmArgs = new ArrayList<>(this.vmArgs);
+		copy.programArgs = new ArrayList<>(this.programArgs);
+		copy.environment = this.environment;
+		copy.name = this.name;
+		copy.mainClass = this.mainClass;
+		copy.runDir = this.runDir;
+		copy.ideConfigGenerated = this.ideConfigGenerated;
+		return copy;
+	}
+	
+	public RunConfig cook(LoomGradleExtension ext) {
+		//TODO!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+		RunConfig copy = copy();
+		if(getEnvironment().equals("client")) {
+			copy.property("minecraft.applet.TargetDirectory", resolveRunDir().toAbsolutePath().toString());
+			String nativeLibsDir = ext.getDependencyManager().getLibraryProvider().getNativesDir().toAbsolutePath().toString();
+			copy.property("java.library.path", nativeLibsDir);
+			copy.property("org.lwjgl.librarypath", nativeLibsDir);
+		}
+		return copy;
 	}
 	
 	/// Presets ///

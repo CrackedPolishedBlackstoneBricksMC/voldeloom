@@ -46,6 +46,9 @@ public class GenEclipseRunsTask extends DefaultTask implements LoomTaskExt {
 		LoomGradleExtension extension = getLoomGradleExtension();
 		
 		for(RunConfig cfg : extension.runConfigs) {
+			if(!cfg.isIdeConfigGenerated()) continue;
+			cfg = cfg.cook(extension);
+			
 			Path launchFilename = getProject().getRootDir().toPath().resolve(cfg.getBaseName() + ".launch");
 			if(Files.notExists(launchFilename)) {
 				Files.write(launchFilename, cfg.configureTemplate("eclipse_run_config_template.xml").getBytes(StandardCharsets.UTF_8));

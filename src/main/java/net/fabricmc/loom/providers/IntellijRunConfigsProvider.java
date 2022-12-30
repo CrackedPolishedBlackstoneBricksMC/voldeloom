@@ -54,6 +54,10 @@ public class IntellijRunConfigsProvider extends DependencyProvider {
 		Files.createDirectories(runConfigsDir);
 		
 		for(RunConfig cfg : extension.runConfigs) {
+			if(!cfg.isIdeConfigGenerated()) continue;
+			
+			cfg = cfg.cook(extension);
+			
 			Path cfgFile = runConfigsDir.resolve(cfg.getBaseName() + ".xml");
 			if(Files.notExists(cfgFile)) {
 				Files.write(cfgFile, cfg.configureTemplate("idea_run_config_template.xml").getBytes(StandardCharsets.UTF_8));
