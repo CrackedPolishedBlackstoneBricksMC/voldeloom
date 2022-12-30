@@ -26,17 +26,16 @@ package net.fabricmc.loom.providers;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
-import net.fabricmc.loom.LoomGradleExtension;
-import net.fabricmc.loom.util.Checksum;
 import net.fabricmc.loom.Constants;
-import net.fabricmc.loom.util.DownloadUtil;
-import net.fabricmc.loom.util.MinecraftVersionInfo;
+import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.WellKnownLocations;
+import net.fabricmc.loom.util.Checksum;
+import net.fabricmc.loom.util.DownloadSession;
+import net.fabricmc.loom.util.MinecraftVersionInfo;
 import org.gradle.api.GradleException;
 import org.gradle.api.Project;
 
 import java.io.BufferedReader;
-import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -78,7 +77,11 @@ public class AssetsProvider extends DependencyProvider {
 				}
 			} else {
 				Files.createDirectories(globalAssetsCache);
-				DownloadUtil.downloadIfChanged(new URL(assetIndexInfo.url), assetIndexFile, project.getLogger());
+				new DownloadSession(assetIndexInfo.url, project.getLogger())
+					.dest(assetIndexFile)
+					.etag(true)
+					.gzip(true)
+					.download();
 			}
 		}
 		
@@ -106,7 +109,11 @@ public class AssetsProvider extends DependencyProvider {
 					
 					String sha1 = objectsJson.get(filename).getAsJsonObject().get("hash").getAsString();
 					String shsha1 = sha1.substring(0, 2) + '/' + sha1;
-					DownloadUtil.downloadIfChanged(new URL(Constants.RESOURCES_BASE + shsha1), destFile, project.getLogger(), true);
+					new DownloadSession(Constants.RESOURCES_BASE + shsha1)
+						.dest(destFile)
+						.gzip(true)
+						.etag(false) //we're hopefully not gonna be redownloading these
+						.download();
 					
 					//just logging for fun
 					downloadedCount++;

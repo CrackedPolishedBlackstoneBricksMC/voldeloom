@@ -25,19 +25,18 @@
 package net.fabricmc.loom.providers;
 
 import com.google.gson.Gson;
-import net.fabricmc.loom.LoomGradleExtension;
-import net.fabricmc.loom.util.Checksum;
 import net.fabricmc.loom.Constants;
-import net.fabricmc.loom.util.DownloadUtil;
-import net.fabricmc.loom.util.MinecraftVersionInfo;
+import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.WellKnownLocations;
+import net.fabricmc.loom.util.Checksum;
+import net.fabricmc.loom.util.DownloadSession;
+import net.fabricmc.loom.util.MinecraftVersionInfo;
 import org.gradle.api.GradleException;
 import org.gradle.api.Project;
 import org.gradle.api.logging.Logger;
 
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -106,7 +105,11 @@ public class MinecraftProvider extends DependencyProvider {
 			}
 		} else {
 			project.getLogger().debug("Downloading version manifests");
-			DownloadUtil.downloadIfChanged(new URL("https://launchermeta.mojang.com/mc/game/version_manifest.json"), manifests, project.getLogger());
+			new DownloadSession("https://launchermeta.mojang.com/mc/game/version_manifest.json", project.getLogger())
+				.dest(manifests)
+				.etag(true)
+				.gzip(true)
+				.download();
 		}
 
 		ManifestVersion mcManifest;
@@ -140,7 +143,11 @@ public class MinecraftProvider extends DependencyProvider {
 			} else {
 				if (Files.notExists(minecraftJson)) {
 					project.getLogger().debug("Downloading Minecraft {} manifest", minecraftVersion);
-					DownloadUtil.downloadIfChanged(new URL(optionalVersion.get().url), minecraftJson, project.getLogger());
+					new DownloadSession(optionalVersion.get().url, project.getLogger())
+						.dest(minecraftJson)
+						.gzip(true)
+						.etag(true)
+						.download();
 				}
 			}
 		} else {
@@ -151,12 +158,20 @@ public class MinecraftProvider extends DependencyProvider {
 	private void downloadJars(Logger logger) throws IOException {
 		if (Files.notExists(minecraftClientJar) || (!Checksum.compareSha1(minecraftClientJar, versionInfo.downloads.get("client").sha1))) {
 			logger.debug("Downloading Minecraft {} client jar", minecraftVersion);
-			DownloadUtil.downloadIfChanged(new URL(versionInfo.downloads.get("client").url), minecraftClientJar, logger);
+			new DownloadSession(versionInfo.downloads.get("client").url, logger)
+				.dest(minecraftClientJar)
+				.etag(true)
+				.gzip(false) //TODO why do i get nonmatching hashes using this downloader + gzip?
+				.download();
 		}
 		
 		if (Files.notExists(minecraftServerJar) || (!Checksum.compareSha1(minecraftServerJar, versionInfo.downloads.get("server").sha1))) {
 			logger.debug("Downloading Minecraft {} server jar", minecraftVersion);
-			DownloadUtil.downloadIfChanged(new URL(versionInfo.downloads.get("server").url), minecraftServerJar, logger);
+			new DownloadSession(versionInfo.downloads.get("server").url, logger)
+				.dest(minecraftServerJar)
+				.etag(true)
+				.gzip(false) //TODO why do i get nonmatching hashes using this downloader + gzip?
+				.download();
 		}
 	}
 	

@@ -1,7 +1,7 @@
 package net.fabricmc.loom.task;
 
 import net.fabricmc.loom.Constants;
-import net.fabricmc.loom.util.DownloadUtil;
+import net.fabricmc.loom.util.DownloadSession;
 import net.fabricmc.loom.util.LoomTaskExt;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.Project;
@@ -9,8 +9,6 @@ import org.gradle.api.tasks.OutputDirectories;
 import org.gradle.api.tasks.TaskAction;
 
 import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -60,18 +58,20 @@ public class ShimForgeLibraries extends DefaultTask implements LoomTaskExt {
 	private static class ForgeLibrary {
 		public ForgeLibrary(String targetFilename, String sourceURL) {
 			this.targetFilename = targetFilename;
-			try {
-				this.sourceURL = new URL(sourceURL);
-			} catch (MalformedURLException e) {throw new IllegalArgumentException(e);}
+			this.sourceURL = sourceURL;
 		}
 		
 		final String targetFilename;
-		final URL sourceURL;
+		final String sourceURL;
 		
 		void download(Project project, Path libsDir) throws IOException {
 			Path targetPath = libsDir.resolve(targetFilename);
 			if(Files.notExists(targetPath)) {
-				DownloadUtil.downloadIfChanged(sourceURL, targetPath.toFile(), project.getLogger(), false);
+				new DownloadSession(sourceURL, project.getLogger())
+					.dest(targetPath)
+					.etag(true)
+					.gzip(false)
+					.download();
 			}
 		}
 		
