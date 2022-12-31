@@ -77,9 +77,31 @@ Breakpoints don't work if you hit the "refresh gradle" button, but if you select
 
 ## Common problems for consumers
 
-You must fill one dependency for *each* of the `minecraft`, `forge` and `mappings` configurations, things will explode otherwise.
+General debugging stuff: 
 
-Forge whines about getting `e04c5335922c5e457f0a7cd62c93c4a7f699f829` for a couple of dependency hashes: The `shimForgeLibraries` task is intended to download the libraries Forge wants and place them in the locations it expects to find them before launching the game, since they were removed from the hardcoded URLs in Forge a long time ago (I think that's the sha1 of the Forge server's 404 page). Either that task didn't run and the libraries aren't there (examine the Gradle log to see if it ran), or the `minecraft.applet.TargetDirectory` system property did not get set on the client and it's trying to read libraries out of your `.minecraft` folder.
+* You must fill one dependency for *each* of the `minecraft`, `forge` and `mappings` configurations, things will explode otherwise.
+* When in doubt, poke around in your Gradle cache (`~/.gradle/caches/fabric-loom`). If there are any obviously messed-up files like zero-byte files, corrupt/incomplete jars or zips, delete them and try again.
+  * many of the "minecraft setup" tasks are not actual Gradle tasks, so they don't benefit from gradle's correct computations ot task-uptodateness
+
+### Forge whines about getting `e04c5335922c5e457f0a7cd62c93c4a7f699f829` for a couple of dependency hashes
+
+The `shimForgeLibraries` task is intended to download the libraries Forge wants and place them in the locations it expects to find them before launching the game, since they were removed from the hardcoded URLs in Forge a long time ago (I think that's the sha1 of the Forge server's 404 page). Either that task didn't run and the libraries aren't there (examine the Gradle log to see if it ran), or the `minecraft.applet.TargetDirectory` system property did not get set on the client and it's trying to read libraries out of your `.minecraft` folder.
+
+### Ctrl-sprint doesn't work
+
+That's just vanilla babey!! Wasn't invented yet.
+
+### Forge NPEing about something in `FMLRelaunchLog`
+
+Forge assumes the `.minecraft` directory exists without checking or creating it, and if an exception is thrown when making the log file it will swallow the exception, leading to nullpointers shortly after. On the client, the directory defaults to your actual `.minecraft` directory (eg, `%APPDATA%\.minecraft` on windows), but its value can be set using the `minecraft.applet.TargetDirectory` system property. On the server the directory is the pwd. So generally this comes up if you have a run config that isn't correctly shunting the `TargetDirectory` property to the game.
+
+"`.minecraft` directory" is sort of a misnomer because the .minecraft part is just the default value tbh, it can be named whatever you want. Eg in this project it's named `run`
+
+### Buuuunch of logspam about "Unable to read a class file correctly" or "probably a corrupt zip"
+
+This tends to happen if anything compiled with the Java 8 class file format is on the classpath. Forge scans the entire classpath to look for mods, and uses ObjectWeb ASM 4 to do so, which fails to parse classes newer than the ones used in Java 6. It's ultimately harmless because it wasn't going to find any Forge mods inside `rt.jar` anyway.
+
+(Not sure why this happens when using generated run configs, instead of the gradle runClient task, probably a classpath difference)
 
 ## gradle support woes
 

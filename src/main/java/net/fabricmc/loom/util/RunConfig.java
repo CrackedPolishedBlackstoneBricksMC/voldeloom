@@ -79,7 +79,8 @@ public class RunConfig implements Named {
 	}
 	
 	public String stringifyVmArgs() {
-		return String.join(" ", vmArgs);
+		String funni = String.join(" ", vmArgs);
+		return funni;
 	}
 	
 	public Path resolveRunDir() {
@@ -247,16 +248,16 @@ public class RunConfig implements Named {
 			templatedConfig = IOUtils.toString(input, StandardCharsets.UTF_8);
 		}
 		
-		templatedConfig = templatedConfig.replaceAll("%NAME%", getName());
-		templatedConfig = templatedConfig.replaceAll("%MAIN_CLASS%", getMainClass());
-		templatedConfig = templatedConfig.replaceAll("%MODULE%", project.getName());
-		templatedConfig = templatedConfig.replaceAll("%PROGRAM_ARGS%", stringifyProgramArgs().replaceAll("\"", "&quot;"));
-		templatedConfig = templatedConfig.replaceAll("%VM_ARGS%", stringifyVmArgs().replaceAll("\"", "&quot;"));
+		templatedConfig = templatedConfig.replace("%NAME%", getName());
+		templatedConfig = templatedConfig.replace("%MAIN_CLASS%", getMainClass());
+		templatedConfig = templatedConfig.replace("%MODULE%", project.getName());
+		templatedConfig = templatedConfig.replace("%PROGRAM_ARGS%", stringifyProgramArgs().replace("\"", "&quot;"));
+		templatedConfig = templatedConfig.replace("%VM_ARGS%", stringifyVmArgs().replace("\"", "&quot;"));
 		
 		return templatedConfig;
 	}
 	
-	//TODO: I know this function is important, but where is this form of escaping needed?
+	//TODO: I know this function is important, but where is this form of escaping needed Tbh
 	private static String encodeEscaped(String s) {
 		StringBuilder ret = new StringBuilder();
 

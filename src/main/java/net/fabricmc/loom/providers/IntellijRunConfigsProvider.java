@@ -56,13 +56,13 @@ public class IntellijRunConfigsProvider extends DependencyProvider {
 		for(RunConfig cfg : extension.runConfigs) {
 			if(!cfg.isIdeConfigGenerated()) continue;
 			
-			cfg = cfg.cook(extension);
+			RunConfig cooked = cfg.cook(extension);
 			
-			Path cfgFile = runConfigsDir.resolve(cfg.getBaseName() + ".xml");
+			Path cfgFile = runConfigsDir.resolve(cooked.getBaseName() + ".xml");
 			if(Files.notExists(cfgFile)) {
-				Files.write(cfgFile, cfg.configureTemplate("idea_run_config_template.xml").getBytes(StandardCharsets.UTF_8));
+				Files.write(cfgFile, cooked.configureTemplate("idea_run_config_template.xml").getBytes(StandardCharsets.UTF_8));
 			}
-			Files.createDirectories(cfg.resolveRunDir());
+			Files.createDirectories(cooked.resolveRunDir());
 		}
 	}
 }
