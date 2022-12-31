@@ -34,3 +34,12 @@ dependencies {
 	
 	coremodCompile files("dep_testin/ears-forge-1.4-1.4.5_01.jar")
 }
+
+minecraft {
+	runs {
+		client {
+			programArg "quaternary"
+			property "ears.debug"
+		}
+	}
+}
