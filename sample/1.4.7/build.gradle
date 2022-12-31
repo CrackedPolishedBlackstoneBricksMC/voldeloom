@@ -20,7 +20,7 @@ java {
 }
 
 compileJava {
-	//Required to target old versions of Forge correctly.
+	//Forge doesn't understand classes compiled to versions of the class-file format newer than Java 6's.
 	options.release.set(6)
 }
 
@@ -31,14 +31,6 @@ dependencies {
 	minecraft "com.mojang:minecraft:${minecraftVersion}"
 	forge "net.minecraftforge:forge:${forgeVersion}:universal@zip"
 	mappings "net.minecraftforge:forge:${forgeVersion}:src@zip"
-}
-
-minecraft {
-	runs {
-		gaming {
-			client()
-			runDir = "run/runurnururunrnururnurnurnur"
-			programArg("hoohoo")
-		}
-	}
+	
+	modCompile files("dep_testin/ears-forge-1.4-1.4.5_01.jar")
 }

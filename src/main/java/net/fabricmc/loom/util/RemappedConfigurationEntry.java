@@ -39,36 +39,41 @@ public class RemappedConfigurationEntry {
 		this.isOnModCompileClasspath = isOnModCompileClasspath;
 		this.mavenScope = mavenScope;
 	}
-
-	public String getMavenScope() {
-		return mavenScope;
-	}
-
-	public boolean hasMavenScope() {
-		return mavenScope != null && !mavenScope.isEmpty();
-	}
-
-	public boolean isOnModCompileClasspath() {
-		return isOnModCompileClasspath;
-	}
-
+	
 	public String getSourceConfiguration() {
 		return sourceConfiguration;
 	}
-
+	
+	public String getTargetConfiguration() {
+		return targetConfiguration;
+	}
+	
 	public String getRemappedConfiguration() {
 		return sourceConfiguration + "Mapped";
 	}
 	
-	public Configuration maybeCreateSourceConfiguration(ConfigurationContainer configurations) {
+	public boolean isOnModCompileClasspath() {
+		return isOnModCompileClasspath;
+	}
+	
+	public boolean hasMavenScope() {
+		return mavenScope != null && !mavenScope.isEmpty();
+	}
+	
+	public String getMavenScope() {
+		return mavenScope;
+	}
+	
+	public Configuration getOrCreateSourceConfiguration(ConfigurationContainer configurations) {
 		return configurations.maybeCreate(getSourceConfiguration());
 	}
 	
-	public Configuration maybeCreateRemappedConfiguration(ConfigurationContainer configurations) {
+	public Configuration getOrCreateRemappedConfiguration(ConfigurationContainer configurations) {
 		return configurations.maybeCreate(getRemappedConfiguration());
 	}
 
-	public Configuration maybeCreateTargetConfiguration(ConfigurationContainer configurations) {
+	public Configuration getOrCreateTargetConfiguration(ConfigurationContainer configurations) {
+		//todo huh
 		if (configurations.findByName(targetConfiguration) == null) {
 			return GradleSupport.getCompileOrImplementationConfiguration(configurations);
 		} else {

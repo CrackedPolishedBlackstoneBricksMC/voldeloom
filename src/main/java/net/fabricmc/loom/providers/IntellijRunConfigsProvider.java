@@ -32,6 +32,9 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+/**
+ * TODO: put this back as a Task lol
+ */
 public class IntellijRunConfigsProvider extends DependencyProvider {
 	public IntellijRunConfigsProvider(Project project, LoomGradleExtension extension) {
 		super(project, extension);

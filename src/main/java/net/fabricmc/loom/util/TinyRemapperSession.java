@@ -53,6 +53,7 @@ public class TinyRemapperSession {
 	private Collection<Path> inputClasspath = null;
 	private final Map<String, Path> outputJarsByNamingScheme = new HashMap<>();
 	private Predicate<String> outputFilter = s -> true;
+	private boolean remapLocalVariables = true;
 	private Consumer<String> logger = s -> {};
 	
 	public TinyRemapperSession setMappings(TinyTree mappings) {
@@ -62,11 +63,6 @@ public class TinyRemapperSession {
 	
 	public TinyRemapperSession setInputJar(Path inputJar) {
 		this.inputJar = inputJar;
-		return this;
-	}
-	
-	public TinyRemapperSession addOutputJar(String namingScheme, Path outputJar) {
-		outputJarsByNamingScheme.put(namingScheme, outputJar);
 		return this;
 	}
 	
@@ -80,8 +76,18 @@ public class TinyRemapperSession {
 		return this;
 	}
 	
+	public TinyRemapperSession addOutputJar(String namingScheme, Path outputJar) {
+		outputJarsByNamingScheme.put(namingScheme, outputJar);
+		return this;
+	}
+	
 	public TinyRemapperSession setClassFilter(Predicate<String> filter) {
 		this.outputFilter = filter;
+		return this;
+	}
+	
+	public TinyRemapperSession dontRemapLocalVariables() {
+		this.remapLocalVariables = false;
 		return this;
 	}
 	
@@ -108,7 +114,7 @@ public class TinyRemapperSession {
 			logger.accept("  \\-> remapping to '" + outputNamingScheme + "' names, and saving to " + outputJar);
 			
 			TinyRemapper remapper = TinyRemapper.newRemapper()
-				.withMappings(TinyRemapperMappingsHelper.create(mappings, inputNamingScheme, outputNamingScheme, true))
+				.withMappings(TinyRemapperMappingsHelper.create(mappings, inputNamingScheme, outputNamingScheme, remapLocalVariables))
 				.renameInvalidLocals(true)
 				.rebuildSourceFilenames(true)
 				.build();
@@ -124,9 +130,10 @@ public class TinyRemapperSession {
 				remapper.finish();
 			}
 			
-			//superstition, but i seem to be getting spotty ClosedFileSystemExceptions the next time i touch this file?
+			//superstition & complete shot in the dark, but i seem to be getting spotty ClosedFileSystemExceptions the next time i touch this file?
 			//maybe make sure it's actually closed? or something? possibly see https://github.com/FabricMC/fabric-loom/issues/633
 			//good ol `./gradlew --stop` can help too
+			//this also makes sure the file actually exists, i guess
 			try(FileSystem phooey = FileSystems.newFileSystem(URI.create("jar:" + outputJar.toUri()), Collections.emptyMap())) {
 				phooey.getPath("/");
 			}

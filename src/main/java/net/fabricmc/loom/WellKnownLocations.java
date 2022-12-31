@@ -32,9 +32,16 @@ public class WellKnownLocations {
 		return rootProjectCache;
 	}
 	
-	public static File getRemappedModCache(Project project) {
-		File remappedModCache = new File(getRootProjectPersistentCache(project), "remapped_mods");
-		if (!remappedModCache.exists()) remappedModCache.mkdirs();
+	public static Path getRemappedModCache(Project project) {
+		Path projectCache = getRootProjectPersistentCache(project).toPath();
+		Path remappedModCache = projectCache.resolve("remapped-mods");
+		
+		try {
+			Files.createDirectories(remappedModCache);
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+		
 		return remappedModCache;
 	}
 }

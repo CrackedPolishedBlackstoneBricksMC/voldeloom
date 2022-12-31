@@ -177,11 +177,11 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		//Modded *versions* of existing Java configuration types, such as `modCompile`, `modApi`, etc
 		for(RemappedConfigurationEntry entry : Constants.MOD_COMPILE_ENTRIES) {
 			//e.g. "modImplementation"
-			Configuration modSource = entry.maybeCreateSourceConfiguration(project.getConfigurations()).setTransitive(true);
+			Configuration modSource = entry.getOrCreateSourceConfiguration(project.getConfigurations()).setTransitive(true);
 			//e.g. "modImplementationMapped"
-			Configuration modRemapped = entry.maybeCreateRemappedConfiguration(project.getConfigurations()).setTransitive(false); // Don't get transitive deps of already remapped mods
+			Configuration modRemapped = entry.getOrCreateRemappedConfiguration(project.getConfigurations()).setTransitive(false); // Don't get transitive deps of already remapped mods
 			//e.g. "implementation"
-			Configuration modTarget = entry.maybeCreateTargetConfiguration(project.getConfigurations());
+			Configuration modTarget = entry.getOrCreateTargetConfiguration(project.getConfigurations());
 			modTarget.extendsFrom(modRemapped);
 			
 			if(entry.isOnModCompileClasspath()) {
@@ -287,7 +287,7 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		MappedProvider mapped = dmgr.installMappedProvider(new MappedProvider(project, extension, mc, libs, patchedTxd, mappings));
 		
 		//launcher stuff
-		DevLaunchInjectorProvider dli = dmgr.installDevLaunchInjectorProvider(new DevLaunchInjectorProvider(project, extension, mc, libs)); //TODO unused/ merge into RunConfigProvider
+		DevLaunchInjectorProvider dli = dmgr.installDevLaunchInjectorProvider(new DevLaunchInjectorProvider(project, extension, mc, libs));
 		
 		//IntelliJ run configs jank
 		new IntellijRunConfigsProvider(project, extension).decorateProjectOrThrow();
@@ -296,15 +296,15 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		//todo this probably needs rewriting
 		{
 			List<Runnable> afterTasks = new ArrayList<>();
-			String mappingsKey = mappings.mappingsName + "." + mappings.minecraftVersion.replace(' ', '_').replace('.', '_').replace('-', '_') + "." + mappings.mappingsVersion;
-			for(RemappedConfigurationEntry entry1 : Constants.MOD_COMPILE_ENTRIES) {
+			String mappingsSuffix = mappings.mappingsName + "-" + mappings.mappingsVersion;
+			for(RemappedConfigurationEntry entry : Constants.MOD_COMPILE_ENTRIES) {
 				ModCompileRemapper.remapDependencies(
 					project,
-					mappingsKey,
+					mappingsSuffix,
 					extension,
-					entry1.maybeCreateSourceConfiguration(project.getConfigurations()),
-					entry1.maybeCreateRemappedConfiguration(project.getConfigurations()),
-					entry1.maybeCreateTargetConfiguration(project.getConfigurations()),
+					entry.getOrCreateSourceConfiguration(project.getConfigurations()),
+					entry.getOrCreateRemappedConfiguration(project.getConfigurations()),
+					entry.getOrCreateTargetConfiguration(project.getConfigurations()),
 					afterTasks::add
 				);
 			}
@@ -390,7 +390,7 @@ public class LoomGradlePlugin implements Plugin<Project> {
 			
 			for(RemappedConfigurationEntry entry : Constants.MOD_COMPILE_ENTRIES) {
 				if(!entry.hasMavenScope()) continue;
-				Configuration compileModsConfig = entry.maybeCreateSourceConfiguration(project.getConfigurations());
+				Configuration compileModsConfig = entry.getOrCreateSourceConfiguration(project.getConfigurations());
 				for(MavenPublication pub : mavenPubs) {
 					pub.pom(pom -> pom.withXml(xml -> {
 						Node dependencies = GroovyXmlUtil.getOrCreateNode(xml.asNode(), "dependencies");

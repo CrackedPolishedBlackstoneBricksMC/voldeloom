@@ -39,11 +39,12 @@ public class Constants {
 	public static final String MOD_COMPILE_CLASSPATH = "modCompileClasspath";
 	public static final String MOD_COMPILE_CLASSPATH_MAPPED = "modCompileClasspathMapped";
 	public static final List<RemappedConfigurationEntry> MOD_COMPILE_ENTRIES = ImmutableList.of(
-			new RemappedConfigurationEntry("modCompile", "compile", true, "compile"),
-			new RemappedConfigurationEntry("modApi", "api", true, "compile"),
-			new RemappedConfigurationEntry("modImplementation", "implementation", true, "runtime"),
-			new RemappedConfigurationEntry("modRuntime", "runtimeOnly", false, ""),
-			new RemappedConfigurationEntry("modCompileOnly", "compileOnly", true, "")
+		//modded config name, regular java config name, whether it gets on the mod compile classpath, and maven relation
+		new RemappedConfigurationEntry("modCompile"       , "compile"       , true , "compile"),
+		new RemappedConfigurationEntry("modApi"           , "api"           , true , "compile"),
+		new RemappedConfigurationEntry("modImplementation", "implementation", true , "runtime"),
+		new RemappedConfigurationEntry("modRuntime"       , "runtimeOnly"   , false, ""),
+		new RemappedConfigurationEntry("modCompileOnly"   , "compileOnly"   , true , "")
 	);
 	
 	public static final String MINECRAFT = "minecraft";
