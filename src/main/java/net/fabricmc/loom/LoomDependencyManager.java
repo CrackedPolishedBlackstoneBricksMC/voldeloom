@@ -34,6 +34,7 @@ import net.fabricmc.loom.providers.MappedProvider;
 import net.fabricmc.loom.providers.MappingsProvider;
 import net.fabricmc.loom.providers.MergedProvider;
 import net.fabricmc.loom.providers.MinecraftProvider;
+import net.fabricmc.loom.providers.RemappedDependenciesProvider;
 
 /**
  *  Anything that accesses this class is signaling that
@@ -54,8 +55,9 @@ public class LoomDependencyManager {
 	private MergedProvider mergedProvider;
 	private ForgePatchedProvider forgePatchedProvider;
 	private ForgePatchedAccessTxdProvider forgePatchedAccessTxdProvider;
-	private MappedProvider mappedProvider;
 	private MappingsProvider mappingsProvider;
+	private MappedProvider mappedProvider;
+	private RemappedDependenciesProvider remappedDependenciesProvider;
 	private DevLaunchInjectorProvider devLaunchInjectorProvider;
 	
 	public ForgeProvider installForgeProvider(ForgeProvider forgeProvider) {
@@ -112,6 +114,12 @@ public class LoomDependencyManager {
 		return mappedProvider;
 	}
 	
+	public RemappedDependenciesProvider installRemappedDependenciesProvider(RemappedDependenciesProvider remappedDependenciesProvider) {
+		this.remappedDependenciesProvider = remappedDependenciesProvider;
+		remappedDependenciesProvider.decorateProjectOrThrow();
+		return remappedDependenciesProvider;
+	}
+	
 	public DevLaunchInjectorProvider installDevLaunchInjectorProvider(DevLaunchInjectorProvider devLaunchInjectorProvider) {
 		this.devLaunchInjectorProvider = devLaunchInjectorProvider;
 		devLaunchInjectorProvider.decorateProjectOrThrow();
@@ -161,6 +169,11 @@ public class LoomDependencyManager {
 	public MappedProvider getMappedProvider() {
 		if(mappedProvider == null) throw new IllegalStateException("MappedProvider hasn't been installed yet!");
 		else return mappedProvider;
+	}
+	
+	public RemappedDependenciesProvider getRemappedDependenciesProvider() {
+		if(remappedDependenciesProvider == null) throw new IllegalStateException("RemappedDependenciesProvider hasn't been installed yet!");
+		return remappedDependenciesProvider;
 	}
 	
 	public DevLaunchInjectorProvider getDevLaunchInjectorProvider() {

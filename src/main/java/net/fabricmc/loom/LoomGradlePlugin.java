@@ -36,9 +36,11 @@ import net.fabricmc.loom.providers.MappedProvider;
 import net.fabricmc.loom.providers.MappingsProvider;
 import net.fabricmc.loom.providers.MergedProvider;
 import net.fabricmc.loom.providers.MinecraftProvider;
+import net.fabricmc.loom.providers.RemappedDependenciesProvider;
 import net.fabricmc.loom.task.AbstractDecompileTask;
 import net.fabricmc.loom.task.CleanLoomBinaries;
 import net.fabricmc.loom.task.CleanLoomMappings;
+import net.fabricmc.loom.task.CopyCoremodsTask;
 import net.fabricmc.loom.task.GenEclipseRunsTask;
 import net.fabricmc.loom.task.GenIdeaProjectTask;
 import net.fabricmc.loom.task.GenVsCodeProjectTask;
@@ -47,12 +49,11 @@ import net.fabricmc.loom.task.RemapJarTask;
 import net.fabricmc.loom.task.RemapLineNumbersTask;
 import net.fabricmc.loom.task.RemapSourcesJarTask;
 import net.fabricmc.loom.task.RunTask;
-import net.fabricmc.loom.task.ShimForgeLibraries;
+import net.fabricmc.loom.task.ShimForgeLibrariesTask;
 import net.fabricmc.loom.task.ShimResourcesTask;
 import net.fabricmc.loom.task.fernflower.FernFlowerTask;
 import net.fabricmc.loom.util.GradleSupport;
 import net.fabricmc.loom.util.GroovyXmlUtil;
-import net.fabricmc.loom.util.ModCompileRemapper;
 import net.fabricmc.loom.util.RemappedConfigurationEntry;
 import net.fabricmc.loom.util.RunConfig;
 import org.gradle.api.Plugin;
@@ -73,7 +74,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -233,14 +233,16 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		tasks.register("genIdeaWorkspace", GenIdeaProjectTask.class, t -> t.dependsOn("idea"));
 		tasks.register("genEclipseRuns", GenEclipseRunsTask.class);
 		tasks.register("vscode", GenVsCodeProjectTask.class);
-		tasks.register("shimForgeLibraries", ShimForgeLibraries.class);
+		
+		tasks.register("shimForgeLibraries", ShimForgeLibrariesTask.class);
+		tasks.register("copyCoremods", CopyCoremodsTask.class);
 		tasks.register("shimResources", ShimResourcesTask.class);
 		
 		extensionUnconfigured.runConfigs.whenObjectAdded(cfg -> {
 			TaskProvider<RunTask> runTask = tasks.register("run" + cfg.getBaseName().substring(0, 1).toUpperCase(Locale.ROOT) + cfg.getBaseName().substring(1), RunTask.class, cfg);
 			//n.b. the object was just constructed and hasn't been configured yet
 			runTask.configure(t -> {
-				t.dependsOn("assemble", "shimForgeLibraries");
+				t.dependsOn("assemble", "shimForgeLibraries", "copyCoremods");
 				if(cfg.getEnvironment().equals("client")) t.dependsOn("shimResources");
 			});
 		});
@@ -286,33 +288,14 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		//forge + vanilla + mappings
 		MappedProvider mapped = dmgr.installMappedProvider(new MappedProvider(project, extension, mc, libs, patchedTxd, mappings));
 		
+		//Dependency remapping jank
+		dmgr.installRemappedDependenciesProvider(new RemappedDependenciesProvider(project, extension, libs, mappings, mapped));
+		
 		//launcher stuff
-		DevLaunchInjectorProvider dli = dmgr.installDevLaunchInjectorProvider(new DevLaunchInjectorProvider(project, extension, mc, libs));
+		dmgr.installDevLaunchInjectorProvider(new DevLaunchInjectorProvider(project, extension, mc, libs));
 		
 		//IntelliJ run configs jank
 		new IntellijRunConfigsProvider(project, extension).decorateProjectOrThrow();
-		
-		//very strange block related to `modCompile`etc configurations that i moved here from LoomDependencyManager
-		//todo this probably needs rewriting
-		{
-			List<Runnable> afterTasks = new ArrayList<>();
-			String mappingsSuffix = mappings.mappingsName + "-" + mappings.mappingsVersion;
-			for(RemappedConfigurationEntry entry : Constants.MOD_COMPILE_ENTRIES) {
-				ModCompileRemapper.remapDependencies(
-					project,
-					mappingsSuffix,
-					extension,
-					entry.getOrCreateSourceConfiguration(project.getConfigurations()),
-					entry.getOrCreateRemappedConfiguration(project.getConfigurations()),
-					entry.getOrCreateTargetConfiguration(project.getConfigurations()),
-					afterTasks::add
-				);
-			}
-			
-			for(Runnable runnable : afterTasks) {
-				runnable.run();
-			}
-		}
 		
 		//Misc wiring-up of genSources-related tasks.
 		AbstractDecompileTask genSourcesDecompileTask = (AbstractDecompileTask) project.getTasks().getByName("genSourcesDecompile");

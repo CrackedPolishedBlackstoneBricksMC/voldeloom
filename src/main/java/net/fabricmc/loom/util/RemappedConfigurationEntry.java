@@ -30,14 +30,18 @@ import org.gradle.api.artifacts.ConfigurationContainer;
 public class RemappedConfigurationEntry {
 	private final String sourceConfiguration;
 	private final String targetConfiguration;
+	private final String remappedConfiguration;
 	private final String mavenScope;
 	private final boolean isOnModCompileClasspath;
+	private final boolean isCoremod;
 
-	public RemappedConfigurationEntry(String sourceConfiguration, String targetConfiguration, boolean isOnModCompileClasspath, String mavenScope) {
+	public RemappedConfigurationEntry(String sourceConfiguration, String targetConfiguration, String remappedConfiguration, boolean isOnModCompileClasspath, String mavenScope, boolean isCoremod) {
 		this.sourceConfiguration = sourceConfiguration;
 		this.targetConfiguration = targetConfiguration;
+		this.remappedConfiguration = remappedConfiguration;
 		this.isOnModCompileClasspath = isOnModCompileClasspath;
 		this.mavenScope = mavenScope;
+		this.isCoremod = isCoremod;
 	}
 	
 	public String getSourceConfiguration() {
@@ -49,7 +53,7 @@ public class RemappedConfigurationEntry {
 	}
 	
 	public String getRemappedConfiguration() {
-		return sourceConfiguration + "Mapped";
+		return remappedConfiguration;
 	}
 	
 	public boolean isOnModCompileClasspath() {
@@ -62,6 +66,10 @@ public class RemappedConfigurationEntry {
 	
 	public String getMavenScope() {
 		return mavenScope;
+	}
+	
+	public boolean isCoremod() {
+		return isCoremod;
 	}
 	
 	public Configuration getOrCreateSourceConfiguration(ConfigurationContainer configurations) {

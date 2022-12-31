@@ -10,4 +10,6 @@ either the jank ass downloader is corrupting something, something is overwriting
 
 # figured it out
 
-if you set `Accept-Encoding: gzip`, the server will happily respond with a gzipped data stream that *inflates to a completely different jar file*. like the jars contain the same contents as
+if you set `Accept-Encoding: gzip`, the server will happily respond with a gzipped data stream that *inflates to a completely different jar file*. like the jars contain the same contents as each other
+
+More testing w/ `curl` confirms that its probably something to do with GzipInputStream

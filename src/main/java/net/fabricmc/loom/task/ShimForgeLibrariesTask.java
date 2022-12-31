@@ -16,8 +16,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class ShimForgeLibraries extends DefaultTask implements LoomTaskExt {
-	public ShimForgeLibraries() {
+public class ShimForgeLibrariesTask extends DefaultTask implements LoomTaskExt {
+	public ShimForgeLibrariesTask() {
 		setGroup("fabric");
 		
 		getOutputs().upToDateWhen(__ -> {

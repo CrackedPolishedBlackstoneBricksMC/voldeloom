@@ -39,12 +39,17 @@ public class Constants {
 	public static final String MOD_COMPILE_CLASSPATH = "modCompileClasspath";
 	public static final String MOD_COMPILE_CLASSPATH_MAPPED = "modCompileClasspathMapped";
 	public static final List<RemappedConfigurationEntry> MOD_COMPILE_ENTRIES = ImmutableList.of(
-		//modded config name, regular java config name, whether it gets on the mod compile classpath, and maven relation
-		new RemappedConfigurationEntry("modCompile"       , "compile"       , true , "compile"),
-		new RemappedConfigurationEntry("modApi"           , "api"           , true , "compile"),
-		new RemappedConfigurationEntry("modImplementation", "implementation", true , "runtime"),
-		new RemappedConfigurationEntry("modRuntime"       , "runtimeOnly"   , false, ""),
-		new RemappedConfigurationEntry("modCompileOnly"   , "compileOnly"   , true , "")
+		//modded config, regular java config, modded remapped config, whether it gets on the mod compile classpath, maven relation, and coremoddiness
+		new RemappedConfigurationEntry("modCompile"           , "compile"       , "modCompileMapped"           , true , "compile", false),
+		new RemappedConfigurationEntry("modApi"               , "api"           , "modApiMapped"               , true , "compile", false),
+		new RemappedConfigurationEntry("modImplementation"    , "implementation", "modImplementationMapped"    , true , "runtime", false),
+		new RemappedConfigurationEntry("modRuntime"           , "runtimeOnly"   , "modRuntimeMapped"           , false, ""       , false),
+		new RemappedConfigurationEntry("modCompileOnly"       , "compileOnly"   , "modCompileOnlyMapped"       , true , ""       , false),
+		new RemappedConfigurationEntry("coremodCompile"       , "compile"       , "coremodCompileMapped"       , true , "compile", true),
+		new RemappedConfigurationEntry("coremodApi"           , "api"           , "coremodApiMapped"           , true , "compile", true),
+		new RemappedConfigurationEntry("coremodImplementation", "implementation", "coremodImplementationMapped", true , "runtime", true),
+		new RemappedConfigurationEntry("coremodRuntime"       , "runtimeOnly"   , "coremodRuntimeMapped"       , false, ""       , true),
+		new RemappedConfigurationEntry("coremodCompileOnly"   , "compileOnly"   , "coremodCompileOnlyMapped"   , true , ""       , true)
 	);
 	
 	public static final String MINECRAFT = "minecraft";
