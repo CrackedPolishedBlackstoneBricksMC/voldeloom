@@ -40,6 +40,7 @@ import net.fabricmc.loom.providers.RemappedDependenciesProvider;
 import net.fabricmc.loom.task.AbstractDecompileTask;
 import net.fabricmc.loom.task.CleanLoomBinaries;
 import net.fabricmc.loom.task.CleanLoomMappings;
+import net.fabricmc.loom.task.ConfigurationDebugTask;
 import net.fabricmc.loom.task.CopyCoremodsTask;
 import net.fabricmc.loom.task.GenEclipseRunsTask;
 import net.fabricmc.loom.task.GenIdeaProjectTask;
@@ -237,6 +238,8 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		tasks.register("shimForgeLibraries", ShimForgeLibrariesTask.class);
 		tasks.register("copyCoremods", CopyCoremodsTask.class);
 		tasks.register("shimResources", ShimResourcesTask.class);
+		
+		tasks.register("printConfigurationsPlease", ConfigurationDebugTask.class);
 		
 		extensionUnconfigured.runConfigs.whenObjectAdded(cfg -> {
 			TaskProvider<RunTask> runTask = tasks.register("run" + cfg.getBaseName().substring(0, 1).toUpperCase(Locale.ROOT) + cfg.getBaseName().substring(1), RunTask.class, cfg);
