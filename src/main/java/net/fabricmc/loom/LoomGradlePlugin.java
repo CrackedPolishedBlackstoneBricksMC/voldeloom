@@ -159,8 +159,12 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		Configuration mappingsFinal = project.getConfigurations().maybeCreate(Constants.MAPPINGS_FINAL).setTransitive(true);
 		compileOrImplementation.extendsFrom(mappingsFinal);
 		
-		//Forge! TODO, what exactly is in this one and how does it get there, lol
-		project.getConfigurations().maybeCreate(Constants.FORGE).setTransitive(false); //disable transitive to be safe -- forge will load its deps at runtime.
+		//Forge!
+		project.getConfigurations().maybeCreate(Constants.FORGE).setTransitive(false); //disable transitive to be safe -- forge will load its deps at runtime. (original comment)
+		
+		//The dependencies for Forge itself.
+		Configuration forgeDependencies = project.getConfigurations().maybeCreate(Constants.FORGE_DEPENDENCIES).setTransitive(false);
+		minecraftNamed.extendsFrom(forgeDependencies);
 		
 		//Modded *versions* of existing Java configuration types, such as `modCompile`, `modApi`, etc
 		for(RemappedConfigurationEntry entry : Constants.MOD_COMPILE_ENTRIES) {
@@ -263,6 +267,7 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		//Regrettably, we cannot use the real Gradle task graph to configure this stuff, because task execution time is too late to modify project dependencies.
 		LoomDependencyManager dmgr = extension.getDependencyManager();
 		dmgr.installForgeProvider();
+		dmgr.installForgeDependenciesProvider();
 		dmgr.installMinecraftProvider();
 		dmgr.installAssetsProvider();
 		dmgr.installMinecraftDependenciesProvider();

@@ -26,6 +26,7 @@ package net.fabricmc.loom;
 
 import net.fabricmc.loom.providers.AssetsProvider;
 import net.fabricmc.loom.providers.DevLaunchInjectorProvider;
+import net.fabricmc.loom.providers.ForgeDependenciesProvider;
 import net.fabricmc.loom.providers.ForgePatchedAccessTxdProvider;
 import net.fabricmc.loom.providers.ForgePatchedProvider;
 import net.fabricmc.loom.providers.ForgeProvider;
@@ -49,40 +50,25 @@ import java.util.List;
  */
 public class LoomDependencyManager {
 	public LoomDependencyManager(Project project, LoomGradleExtension extension) {
-		this(project,
-			new ForgeProvider(project, extension),
-			new MinecraftProvider(project, extension),
-			new AssetsProvider(project, extension),
-			new MinecraftDependenciesProvider(project, extension),
-			new MergedProvider(project, extension),
-			new ForgePatchedProvider(project, extension),
-			new ForgePatchedAccessTxdProvider(project, extension),
-			new MappingsProvider(project, extension),
-			new MappedProvider(project, extension),
-			new RemappedDependenciesProvider(project, extension),
-			new DevLaunchInjectorProvider(project, extension)
-		);
-	}
-	
-	public LoomDependencyManager(Project project, ForgeProvider forgeProvider, MinecraftProvider minecraftProvider, AssetsProvider assetsProvider, MinecraftDependenciesProvider minecraftDependenciesProvider, MergedProvider mergedProvider, ForgePatchedProvider forgePatchedProvider, ForgePatchedAccessTxdProvider forgePatchedAccessTxdProvider, MappingsProvider mappingsProvider, MappedProvider mappedProvider, RemappedDependenciesProvider remappedDependenciesProvider, DevLaunchInjectorProvider devLaunchInjectorProvider) {
 		this.project = project;
-		
-		this.forgeProvider = forgeProvider;
-		this.minecraftProvider = minecraftProvider;
-		this.assetsProvider = assetsProvider;
-		this.minecraftDependenciesProvider = minecraftDependenciesProvider;
-		this.mergedProvider = mergedProvider;
-		this.forgePatchedProvider = forgePatchedProvider;
-		this.forgePatchedAccessTxdProvider = forgePatchedAccessTxdProvider;
-		this.mappingsProvider = mappingsProvider;
-		this.mappedProvider = mappedProvider;
-		this.remappedDependenciesProvider = remappedDependenciesProvider;
-		this.devLaunchInjectorProvider = devLaunchInjectorProvider;
+		this.forgeProvider = new ForgeProvider(project, extension);
+		this.forgeDependenciesProvider = new ForgeDependenciesProvider(project, extension);
+		this.minecraftProvider = new MinecraftProvider(project, extension);
+		this.assetsProvider = new AssetsProvider(project, extension);
+		this.minecraftDependenciesProvider = new MinecraftDependenciesProvider(project, extension);
+		this.mergedProvider = new MergedProvider(project, extension);
+		this.forgePatchedProvider = new ForgePatchedProvider(project, extension);
+		this.forgePatchedAccessTxdProvider = new ForgePatchedAccessTxdProvider(project, extension);
+		this.mappingsProvider = new MappingsProvider(project, extension);
+		this.mappedProvider = new MappedProvider(project, extension);
+		this.remappedDependenciesProvider = new RemappedDependenciesProvider(project, extension);
+		this.devLaunchInjectorProvider = new DevLaunchInjectorProvider(project, extension);
 	}
 	
 	private final Project project;
 	
 	private final ForgeProvider forgeProvider;
+	private final ForgeDependenciesProvider forgeDependenciesProvider;
 	private final MinecraftProvider minecraftProvider;
 	private final AssetsProvider assetsProvider;
 	private final MinecraftDependenciesProvider minecraftDependenciesProvider;
@@ -101,6 +87,16 @@ public class LoomDependencyManager {
 			forgeProvider.decorateProject();
 		} catch (Exception e) {
 			throw new RuntimeException("Failed to provide ForgeProvider", e);
+		}
+	}
+	
+	public void installForgeDependenciesProvider() {
+		project.getLogger().lifecycle(":running dep provider 'ForgeDependenciesProvider'");
+		
+		try {
+			forgeDependenciesProvider.decorateProject(getForgeProvider());
+		} catch (Exception e) {
+			throw new RuntimeException("Failed to provide ForgeDependenciesProvider", e);
 		}
 	}
 	

@@ -55,9 +55,12 @@ public class Constants {
 	public static final String MINECRAFT = "minecraft";
 	public static final String MINECRAFT_DEPENDENCIES = "minecraftLibraries";
 	public static final String MINECRAFT_NAMED = "minecraftNamed";
+	
 	public static final String MAPPINGS = "mappings";
 	public static final String MAPPINGS_FINAL = "mappingsFinal";
+	
 	public static final String FORGE = "forge";
+	public static final String FORGE_DEPENDENCIES = "forgeLibraries";
 
 	//public static final String DEV_LAUNCH_INJECTOR_VERSION = "0.2.0+build.6";
 }
