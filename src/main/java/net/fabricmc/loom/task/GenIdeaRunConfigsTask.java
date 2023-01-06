@@ -1,5 +1,6 @@
 package net.fabricmc.loom.task;
 
+import net.fabricmc.loom.Constants;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.util.LoomTaskExt;
 import net.fabricmc.loom.util.RunConfig;
@@ -12,6 +13,11 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 public class GenIdeaRunConfigsTask extends DefaultTask implements LoomTaskExt {
+	public GenIdeaRunConfigsTask() {
+		setGroup(Constants.TASK_GROUP_IDE);
+		setDescription("Generates IDEA runConfigurations xml files, which can be used in IDEA as an alternative to the runClient task.");
+	}
+	
 	@TaskAction
 	public void doIt() throws Exception {
 		Project project = getProject();

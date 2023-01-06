@@ -43,6 +43,9 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Parses the custom non-Maven version manifest used by Minecraft. Also, downloads the split minecraft client and server jars.
+ */
 public class MinecraftProvider extends DependencyProvider {
 	public MinecraftProvider(Project project, LoomGradleExtension extension) {
 		super(project, extension);

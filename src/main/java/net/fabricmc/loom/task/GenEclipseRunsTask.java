@@ -24,6 +24,7 @@
 
 package net.fabricmc.loom.task;
 
+import net.fabricmc.loom.Constants;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.util.LoomTaskExt;
 import net.fabricmc.loom.util.RunConfig;
@@ -37,7 +38,8 @@ import java.nio.file.Path;
 
 public class GenEclipseRunsTask extends DefaultTask implements LoomTaskExt {
 	public GenEclipseRunsTask() {
-		setGroup("ide");
+		setGroup(Constants.TASK_GROUP_IDE);
+		setDescription("Generates Eclipse .launch files, which can be used in Eclipse as an alternative to the runClient task.");
 	}
 	
 	//TODO(VOLDELOOM-DISASTER): Untested, I don't have Eclipse

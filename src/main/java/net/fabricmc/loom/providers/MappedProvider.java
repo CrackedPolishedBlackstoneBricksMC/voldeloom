@@ -39,6 +39,11 @@ import java.util.Collection;
 import java.util.List;
 import java.util.function.Predicate;
 
+/**
+ * Remaps the patched+accesstransformed Minecraft+Forge jar into the user's selected mappings.
+ * 
+ * The named jar is available with getMappedJar(), and the intermediary (srg) jar is also available.
+ */
 public class MappedProvider extends DependencyProvider {
 	public MappedProvider(Project project, LoomGradleExtension extension) {
 		super(project, extension);

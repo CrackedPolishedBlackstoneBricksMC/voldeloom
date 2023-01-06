@@ -46,6 +46,9 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+/**
+ * Wrapper around the CadixDev Mercury tool; a Java source remapper tool.
+ */
 public class SourceRemapper {
 	public static void remapSources(Project project, File source, File destination, boolean toNamed) throws Exception {
 		remapSourcesInner(project, source, destination, toNamed);

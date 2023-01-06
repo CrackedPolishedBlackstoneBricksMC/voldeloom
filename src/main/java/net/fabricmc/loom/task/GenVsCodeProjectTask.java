@@ -26,6 +26,7 @@ package net.fabricmc.loom.task;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import net.fabricmc.loom.Constants;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.util.LoomTaskExt;
 import net.fabricmc.loom.util.RunConfig;
@@ -47,7 +48,8 @@ import java.util.List;
 //TODO(VOLDELOOM-DISASTER): Untested cause i don't use vscode for Java
 public class GenVsCodeProjectTask extends DefaultTask implements LoomTaskExt {
 	public GenVsCodeProjectTask() {
-		setGroup("ide");
+		setGroup(Constants.TASK_GROUP_IDE);
+		setDescription("Generates VSCode launch.json files, which can be used in VSCode as an alternative to the runClient task.");
 	}
 	
 	@TaskAction

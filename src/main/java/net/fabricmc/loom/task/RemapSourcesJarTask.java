@@ -24,6 +24,7 @@
 
 package net.fabricmc.loom.task;
 
+import net.fabricmc.loom.Constants;
 import net.fabricmc.loom.util.SourceRemapper;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.tasks.Input;
@@ -34,6 +35,11 @@ import org.gradle.api.tasks.TaskAction;
 import java.io.File;
 
 public class RemapSourcesJarTask extends DefaultTask {
+	public RemapSourcesJarTask() {
+		setGroup(Constants.TASK_GROUP_PLUMBING);
+		//TODO: fill out description
+	}
+	
 	private Object input;
 	private Object output;
 	private String direction = "intermediary";

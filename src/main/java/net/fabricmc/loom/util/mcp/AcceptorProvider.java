@@ -1,13 +1,17 @@
 package net.fabricmc.loom.util.mcp;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import net.fabricmc.tinyremapper.IMappingProvider;
 import net.fabricmc.tinyremapper.IMappingProvider.MappingAcceptor;
 
-public class AcceptorProvider implements IMappingProvider, MappingAcceptor {
+import java.util.HashMap;
+import java.util.Map;
 
+/**
+ * A mappings buffer. It can accept an arbitrary number of mappings before spilling them back out again.
+ * 
+ * @author TwilightFlower
+ */
+public class AcceptorProvider implements IMappingProvider, MappingAcceptor {
 	private final Map<String, String> classes = new HashMap<>();
 	private final Map<MemberHashCode, String> methods = new HashMap<>();
 	private final Map<MemberHashCode, String> fields = new HashMap<>();

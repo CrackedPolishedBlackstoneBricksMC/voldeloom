@@ -47,6 +47,13 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 
+/**
+ * Parses mappings. The parsed mappings are available in-memory with getMappings(), and the on-disk files are also available.
+ * 
+ * Supported formats are currently:
+ * - MCP 1.4.7 zips, which do not include package information
+ * - a zip of the Minecraft Forge source code, which does include package information
+ */
 public class MappingsProvider extends DependencyProvider {
 	public MappingsProvider(Project project, LoomGradleExtension extension) {
 		super(project, extension);

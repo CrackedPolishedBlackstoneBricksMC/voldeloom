@@ -7,11 +7,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 /**
- * Various file paths that are used throughout the plugin.
- * These used to be on LoomGradleExtension, but I've been moving extraneous things out of that class,
- * to better understand where its various pieces are used.
+ * Various file paths used throughout the plugin. (These used to be on LoomGradleExtension.)
  */
-@SuppressWarnings("ResultOfMethodCallIgnored") //mkdirs TODO migrate to Path
 public class WellKnownLocations {
 	public static Path getUserCache(Project project) {
 		Path userCache = project.getGradle().getGradleUserHomeDir().toPath().resolve("caches").resolve("fabric-loom");

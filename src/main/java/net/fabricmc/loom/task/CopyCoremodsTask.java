@@ -17,7 +17,8 @@ import java.util.stream.Collectors;
 
 public class CopyCoremodsTask extends DefaultTask implements LoomTaskExt {
 	public CopyCoremodsTask() {
-		setGroup("fabric");
+		setGroup(Constants.TASK_GROUP_PLUMBING);
+		setDescription("Copies and pastes coremods into the Forge `coremods` folder, because this version of Minecraft Forge only loads coremods out of a very specific folder, `.minecraft/coremods`, and not from the classpath.");
 		getOutputs().upToDateWhen(__ -> false); //TODO
 	}
 	

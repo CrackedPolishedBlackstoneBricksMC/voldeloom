@@ -27,6 +27,11 @@ package net.fabricmc.loom.util;
 import org.gradle.api.artifacts.Configuration;
 import org.gradle.api.artifacts.ConfigurationContainer;
 
+/**
+ * A relationship between various Configurations. Mods need to be remapped to bring them across these configurations.
+ * 
+ * @see net.fabricmc.loom.Constants
+ */
 public class RemappedConfigurationEntry {
 	private final String sourceConfiguration;
 	private final String targetConfiguration;

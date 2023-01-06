@@ -1,18 +1,25 @@
 package net.fabricmc.loom.util.mcp;
 
+import net.fabricmc.tinyremapper.IMappingProvider.MappingAcceptor;
+import net.fabricmc.tinyremapper.IMappingProvider.Member;
+
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.Map;
 
-import net.fabricmc.tinyremapper.IMappingProvider.MappingAcceptor;
-import net.fabricmc.tinyremapper.IMappingProvider.Member;
-
 /**
+ * A MappingAcceptor that buffers all mappings it accepts and can write them back as a tinyv1 file.
+ * Input mappings from "firstCol" to "secondCol", then call `acceptSecond` and input mappings from "secondCol" to "thirdCol".
+ * (I (quat) think that's how it works anyway)
+ * 
+ * @author TwilightFlower
+ * 
+ * Original comment:
+ * 
  * note: if the 2nd set has mappings that are not in the first, this will error.
  * if the 1st set contains mappings not in the 1st, the output tiny file will be malformed.
  */
-
 public class TinyWriter3Column implements MappingAcceptor {
 	
 	private final Map<String, MutablePair<String, String>> classes = new HashMap<>();

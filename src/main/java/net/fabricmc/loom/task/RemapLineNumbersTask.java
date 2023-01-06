@@ -24,6 +24,7 @@
 
 package net.fabricmc.loom.task;
 
+import net.fabricmc.loom.Constants;
 import net.fabricmc.loom.util.LineNumberRemapper;
 import net.fabricmc.stitch.util.StitchUtil;
 import org.gradle.api.DefaultTask;
@@ -37,7 +38,8 @@ import java.io.IOException;
 
 public class RemapLineNumbersTask extends DefaultTask {
 	public RemapLineNumbersTask() {
-		setGroup("fabric");
+		setGroup(Constants.TASK_GROUP_PLUMBING);
+		setDescription("Corrects line numbers in Fernflower's output. This improves the experience of using breakpoints in the generated sources.");
 		getOutputs().upToDateWhen(t -> false);
 	}
 	

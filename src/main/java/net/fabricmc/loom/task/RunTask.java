@@ -24,6 +24,7 @@
 
 package net.fabricmc.loom.task;
 
+import net.fabricmc.loom.Constants;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.util.LoomTaskExt;
 import net.fabricmc.loom.util.RunConfig;
@@ -39,10 +40,12 @@ import java.util.List;
 public abstract class RunTask extends JavaExec implements LoomTaskExt {
 	@Inject
 	public RunTask(RunConfig config) throws Exception {
-		setGroup("minecraftMapped");
+		setGroup(Constants.TASK_GROUP_RUNNING);
 		
 		LoomGradleExtension extension = getLoomGradleExtension();
 		config = config.cook(extension);
+		
+		setDescription("Starts Minecraft using the '" + config.getName() + "' run configuration.");
 
 		//Classpath
 		List<String> classpath = new ArrayList<>();

@@ -17,6 +17,11 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Collection;
 import java.util.Collections;
 
+/**
+ * Installs Forge inside of the Minecraft merged jar. The post-installation jar is available with getPatchedJar().
+ * 
+ * During this period, Forge was installable as a jarmod. This class is simply a programattic version of "deleting META-INF". 
+ */
 public class ForgePatchedProvider extends DependencyProvider {
 	public ForgePatchedProvider(Project project, LoomGradleExtension extension) {
 		super(project, extension);

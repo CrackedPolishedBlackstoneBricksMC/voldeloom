@@ -32,6 +32,11 @@ import net.fabricmc.mapping.tree.ParameterDef;
 import net.fabricmc.mapping.tree.TinyTree;
 import net.fabricmc.tinyremapper.IMappingProvider;
 
+/**
+ * Utilities for bridging tiny-mappings-parser and tiny-remapper data structures.
+ * 
+ * Also (TODO) currently the home of about ten kludges.
+ */
 public class TinyRemapperMappingsHelper {
 	private TinyRemapperMappingsHelper() { }
 

@@ -24,6 +24,9 @@
 
 package net.fabricmc.loom.util;
 
+/**
+ * Utilities for reading properties of the current operating system.
+ */
 public class OperatingSystem {
 	public static String getOS() {
 		String osName = System.getProperty("os.name").toLowerCase();

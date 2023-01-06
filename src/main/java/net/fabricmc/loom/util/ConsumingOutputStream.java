@@ -30,6 +30,9 @@ import java.util.function.Consumer;
 
 /**
  * Created by covers1624 on 20/12/18.
+ * 
+ * An OutputStream that writes to a Consumer<String>.
+ * The consumer will be notified after each line of text is written to the OutputStream.
  */
 public class ConsumingOutputStream extends OutputStream {
 	private final Consumer<String> consumer;

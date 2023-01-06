@@ -37,9 +37,10 @@ import org.gradle.api.model.ObjectFactory;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
-//This is used to bridge the gap over large gradle api changes.
+/**
+ * Bridges the gap over large gradle api changes. 
+ */
 public class GradleSupport {
-	//(WEIRD VOLDELOOM STUFF)
 	public static String compileOrImplementation;
 	public static String runtimeOrRuntimeOnly;
 	

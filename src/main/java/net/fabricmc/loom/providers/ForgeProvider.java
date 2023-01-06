@@ -15,6 +15,11 @@ import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Collections;
 
+/**
+ * Just wraps the Forge dependency.
+ * 
+ * Why are access transformers read here? Good question!
+ */
 public class ForgeProvider extends DependencyProvider {
 	public ForgeProvider(Project project, LoomGradleExtension extension) {
 		super(project, extension);

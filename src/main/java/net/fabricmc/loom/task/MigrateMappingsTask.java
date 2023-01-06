@@ -26,6 +26,7 @@ package net.fabricmc.loom.task;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
+import net.fabricmc.loom.Constants;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.providers.MappingsProvider;
 import net.fabricmc.loom.providers.MappedProvider;
@@ -60,7 +61,8 @@ public class MigrateMappingsTask extends DefaultTask implements LoomTaskExt {
 	private String mappings;
 
 	public MigrateMappingsTask() {
-		setGroup("fabric");
+		setGroup(Constants.TASK_GROUP_TOOLS);
+		setDescription("Migrate sourcecode between two mapping sets. TODO: very broken in Voldeloom.");
 		getOutputs().upToDateWhen(t -> false);
 		inputDir = getProject().file("src/main/java").toPath();
 		outputDir = getProject().file("remappedSrc").toPath();

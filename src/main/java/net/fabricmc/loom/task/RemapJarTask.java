@@ -24,6 +24,7 @@
 
 package net.fabricmc.loom.task;
 
+import net.fabricmc.loom.Constants;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.providers.MappingsProvider;
 import net.fabricmc.loom.util.GradleSupport;
@@ -43,7 +44,8 @@ import java.util.stream.Collectors;
 
 public class RemapJarTask extends Jar {
 	public RemapJarTask() {
-		setGroup("fabric");
+		setGroup(Constants.TASK_GROUP_PLUMBING);
+		setDescription("Remaps the mod under development into official names, for release purposes.");
 	}
 	
 	private final RegularFileProperty input = GradleSupport.getfileProperty(getProject());

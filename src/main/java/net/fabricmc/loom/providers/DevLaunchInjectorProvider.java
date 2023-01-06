@@ -40,6 +40,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.StringJoiner;
 
+/**
+ * Creates the DevLaunchInjector launch script. The script's location is accessible with getConfig().
+ * 
+ * TODO: This is broken, and vestigial since I don't use DevLaunchInjector at the moment anyway.
+ *  It should probably be made into a Gradle task as well, like the IDE run configs are.
+ */
 public class DevLaunchInjectorProvider extends DependencyProvider {
 	public DevLaunchInjectorProvider(Project project, LoomGradleExtension extension) {
 		super(project, extension);
@@ -65,7 +71,7 @@ public class DevLaunchInjectorProvider extends DependencyProvider {
 		installed = true;
 	}
 	
-	public Path config() {
+	public Path getConfig() {
 		return devLauncherConfigFile;
 	}
 	

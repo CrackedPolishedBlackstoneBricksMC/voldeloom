@@ -24,6 +24,7 @@
 
 package net.fabricmc.loom.task;
 
+import net.fabricmc.loom.Constants;
 import net.fabricmc.loom.util.LoomTaskExt;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.Project;
@@ -36,7 +37,8 @@ import java.io.IOException;
 
 public class GenIdeaProjectTask extends DefaultTask implements LoomTaskExt {
 	public GenIdeaProjectTask() {
-		setGroup("ide");
+		setGroup(Constants.TASK_GROUP_IDE);
+		setDescription("Generates IDEA .ipr files, which can be used in lieu of importing the project into Gradle, for... some reason?");
 	}
 	
 	@TaskAction

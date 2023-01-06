@@ -203,13 +203,14 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		
 		//Remapping artifacts:
 		tasks.register("remapJar", RemapJarTask.class);
-		tasks.register("remapSourcesJar", RemapSourcesJarTask.class, task -> task.setGroup("fabric"));
+		tasks.register("remapSourcesJar", RemapSourcesJarTask.class);
 		
 		//genSources:
 		tasks.register("genSourcesDecompile", FernFlowerTask.class);
 		tasks.register("genSourcesRemapLineNumbers", RemapLineNumbersTask.class, task -> task.dependsOn("genSourcesDecompile"));
 		tasks.register("genSources", task -> {
-			task.setGroup("fabric");
+			task.setGroup(Constants.TASK_GROUP_TOOLS);
+			task.setDescription("Decompile Minecraft and Forge using the Fernflower decompiler. The resulting file may be attached to your IDE to provide a better Minecraft-browsing experience.");
 			task.getOutputs().upToDateWhen(t -> false);
 			task.dependsOn("genSourcesRemapLineNumbers");
 		});
@@ -243,11 +244,16 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		//Cleaning
 		List<TaskProvider<?>> cleaningTasks = extensionUnconfigured.getDependencyManager().installCleaningTasks();
 		tasks.register("cleanEverything").configure(task -> {
-			task.setGroup("fabric-clean");
+			task.setGroup(Constants.TASK_GROUP_CLEANING);
+			task.setDescription("Try to remove all files relating to the currently selected Minecraft version, Forge version, and mappings.\n" +
+				"Caveat creare: this clumsily runs after all the DependencyProviders do, so it will clean things *after* computing them.");
 			for(TaskProvider<?> t : cleaningTasks) task.dependsOn(t);
 		});
-		tasks.register("cleanEverythingOtherThanAssets").configure(task -> {
-			task.setGroup("fabric-clean");
+		tasks.register("cleanEverythingNotAssets").configure(task -> {
+			task.setGroup(Constants.TASK_GROUP_CLEANING);
+			task.setDescription("Try to remove all files relating to the currently selected Minecraft version, Forge version, and mappings...\n" +
+				"except for the asset index, because that takes forever to redownload and is rarely a problem.\n" +
+				"Caveat creare: this clumsily runs after all the DependencyProviders do, so it will clean things *after* computing them.");
 			for(TaskProvider<?> t : cleaningTasks) if(!t.getName().equals("cleanAssetsProvider")) task.dependsOn(t);
 		});
 

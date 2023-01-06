@@ -12,6 +12,11 @@ import java.util.Map;
 import java.util.Scanner;
 import java.util.function.IntUnaryOperator;
 
+/**
+ * A pile of Forge-format access transformers, and a parser for them.
+ * 
+ * @author quat
+ */
 public class ForgeAccessTransformerSet {
 	//class
 	private final Map<String, AccessTransformation> classTransformers = new HashMap<>();

@@ -44,6 +44,9 @@ import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+/**
+ * Wrapper around FabricMC's tiny-remapper, a class binary remapper tool. 
+ */
 public class TinyRemapperSession {
 	public TinyRemapperSession() {}
 	

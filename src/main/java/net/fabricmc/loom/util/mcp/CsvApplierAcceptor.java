@@ -11,8 +11,13 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Scanner;
 
+/**
+ * Takes MCP-format `.csv` files and forwards them to a MappingAcceptor.
+ * Select which columns of the CSV to read using the unnamedIdx and namedIdx constructor parameters.
+ * 
+ * @author TwilightFlower
+ */
 public class CsvApplierAcceptor implements MappingAcceptor {
-
 	public static final int NEWNAME_CLIENT_IN = 0;
 	public static final int NEWNAME_SERVER_IN = 1;
 	public static final int GENERIC_IN = 0;

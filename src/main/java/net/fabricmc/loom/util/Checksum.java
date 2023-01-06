@@ -35,6 +35,9 @@ import java.math.BigInteger;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+/**
+ * Utilities for comparing file hashes.
+ */
 public class Checksum {
 	private static final Logger log = Logging.getLogger(Checksum.class);
 
@@ -61,25 +64,4 @@ public class Checksum {
 		}
 		return false;
 	}
-	
-	//		try {
-	//			if(!Files.exists(path)) {
-	//				return false;
-	//			}
-	//			
-	//			//compute SHA-1 of the file
-	//			MessageDigest readersDigest = MessageDigest.getInstance("SHA-1");
-	//			readersDigest.update(Files.readAllBytes(path));
-	//			byte[] digest = readersDigest.digest();
-	//			
-	//			//stringify it for easier comparison lol
-	//			String digestString = String.format("%040x", new BigInteger(1, digest));
-	//			
-	//			log.info("Checksum check: computed '" + digestString + "', known '" + knownDigest + "'");
-	//			return digestString.equals(knownDigest);
-	//		} catch (Exception e) {
-	//			e.printStackTrace();
-	//			return false;
-	//		}
-	//	}
 }

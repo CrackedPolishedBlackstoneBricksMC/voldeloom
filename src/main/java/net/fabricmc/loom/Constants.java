@@ -34,6 +34,12 @@ public class Constants {
 	public static final String FML_LIBRARIES_BASE = "https://files.prismlauncher.org/fmllibs/";
 	public static final String RESOURCES_BASE = "http://resources.download.minecraft.net/";
 
+	public static final String TASK_GROUP_CLEANING = "fabric.clean";
+	public static final String TASK_GROUP_IDE = "fabric.ide";
+	public static final String TASK_GROUP_PLUMBING = "fabric.plumbing";
+	public static final String TASK_GROUP_RUNNING = "fabric.run";
+	public static final String TASK_GROUP_TOOLS = "fabric.tools";
+	
 	public static final String SYSTEM_ARCH = System.getProperty("os.arch").equals("64") ? "64" : "32";
 
 	public static final String MOD_COMPILE_CLASSPATH = "modCompileClasspath";

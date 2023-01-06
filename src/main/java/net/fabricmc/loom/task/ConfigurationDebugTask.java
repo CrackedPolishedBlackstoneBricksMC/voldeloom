@@ -1,5 +1,6 @@
 package net.fabricmc.loom.task;
 
+import net.fabricmc.loom.Constants;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.artifacts.Configuration;
 import org.gradle.api.artifacts.Dependency;
@@ -11,7 +12,8 @@ import java.io.File;
 
 public abstract class ConfigurationDebugTask extends DefaultTask {
 	public ConfigurationDebugTask() {
-		setGroup("fabric-debug");
+		setGroup(Constants.TASK_GROUP_TOOLS);
+		setDescription("Prints some information about the Configurations used in the project and their relationships between each other.");
 		getOutputs().upToDateWhen(__ -> false);
 	}
 	

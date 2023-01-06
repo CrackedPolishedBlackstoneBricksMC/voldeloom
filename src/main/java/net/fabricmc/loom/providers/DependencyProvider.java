@@ -27,6 +27,7 @@ package net.fabricmc.loom.providers;
 import com.google.common.collect.Iterables;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
+import net.fabricmc.loom.Constants;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.LoomGradlePlugin;
 import net.fabricmc.loom.util.LoomTaskExt;
@@ -58,6 +59,11 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+/**
+ * Dependency providers are is a Loom concept for "things that have to run in afterEvaluate".
+ * 
+ * @see net.fabricmc.loom.LoomDependencyManager
+ */
 public abstract class DependencyProvider {
 	public DependencyProvider(Project project, LoomGradleExtension extension) {
 		this.project = project;
@@ -287,7 +293,7 @@ public abstract class DependencyProvider {
 	public abstract static class CleaningTask extends DefaultTask implements LoomTaskExt {
 		@Inject
 		public CleaningTask(DependencyProvider prov) {
-			setGroup("fabric-clean");
+			setGroup(Constants.TASK_GROUP_CLEANING);
 			this.prov = prov;
 		}
 		

@@ -18,6 +18,11 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
+/**
+ * Minecraft mods are re-proguarded at distribution time. This is in charge of remapping them to the chosen mapping set.
+ * 
+ * TODO: Clusterfuck
+ */
 public class RemappedDependenciesProvider extends DependencyProvider {
 	public RemappedDependenciesProvider(Project project, LoomGradleExtension extension) {
 		super(project, extension);

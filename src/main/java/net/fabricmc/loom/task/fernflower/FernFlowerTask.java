@@ -24,6 +24,7 @@
 
 package net.fabricmc.loom.task.fernflower;
 
+import net.fabricmc.loom.Constants;
 import net.fabricmc.loom.task.AbstractDecompileTask;
 import net.fabricmc.loom.task.ForkingJavaExecTask;
 import net.fabricmc.loom.util.ConsumingOutputStream;
@@ -53,7 +54,8 @@ import static java.text.MessageFormat.format;
  */
 public class FernFlowerTask extends AbstractDecompileTask implements ForkingJavaExecTask, LoomTaskExt {
 	public FernFlowerTask() {
-		setGroup("fabric");
+		setGroup(Constants.TASK_GROUP_PLUMBING);
+		setDescription("Runs the Fernflower decompiler on the Minecraft Forge jar.");
 		getOutputs().upToDateWhen(t -> false);
 	}
 	

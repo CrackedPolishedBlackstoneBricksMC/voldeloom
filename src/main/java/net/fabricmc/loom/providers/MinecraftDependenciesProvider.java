@@ -39,6 +39,11 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 
+/**
+ * Minecraft has a number of dependencies and native libraries. They are specified in a custom version manifest format, not with a maven POM.
+ * This is in charge of reading the version manifest and adding them as real Gradle project dependencies.
+ * It also downloads native libraries and extracts their contents.
+ */
 public class MinecraftDependenciesProvider extends DependencyProvider {
 	public MinecraftDependenciesProvider(Project project, LoomGradleExtension extension) {
 		super(project, extension);

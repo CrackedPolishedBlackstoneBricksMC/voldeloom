@@ -37,6 +37,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.function.Supplier;
 
+/**
+ * A Gradle extension. When you write "minecraft {" in a project's build.gradle, you get access to one of these.
+ */
 public class LoomGradleExtension {
 	public LoomGradleExtension(@SuppressWarnings("unused") Project project) { //Gradle reflectively finds this ctor
 		runConfigs = project.container(RunConfig.class, name -> new RunConfig(project, name));

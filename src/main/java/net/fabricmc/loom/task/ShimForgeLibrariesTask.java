@@ -17,7 +17,8 @@ import java.util.stream.Collectors;
 
 public class ShimForgeLibrariesTask extends DefaultTask implements LoomTaskExt {
 	public ShimForgeLibrariesTask() {
-		setGroup("fabric");
+		setGroup(Constants.TASK_GROUP_PLUMBING);
+		setDescription("Copies Forge's runtime-downloaded dependencies into the folder where Forge expects to find them, because Forge tries to download dependencies at game startup, and the server it downloads them from is long-dead.");
 		
 		getOutputs().upToDateWhen(__ -> {
 			for(Path libDir : getLibraryDirectories()) {

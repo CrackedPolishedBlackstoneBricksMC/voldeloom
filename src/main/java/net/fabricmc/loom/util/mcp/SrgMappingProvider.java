@@ -25,6 +25,11 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Scanner;
 
+/**
+ * A parser for MCP-format `.srg` files. Augments data discovered in the SRGs with inner-class and field method from a scanned JAR.
+ * 
+ * @author TwilightFlower
+ */
 public class SrgMappingProvider implements IMappingProvider {
 	private final HashMap<String, String> classes = new HashMap<>();
 	private final Collection<Pair<Member, String>> methods = new ArrayList<>();

@@ -42,6 +42,11 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * All the information required to launch a working copy of the game.
+ * 
+ * Voldeloom is based off of Loom 0.4; this stuff is backported from Loom 1.
+ */
 public class RunConfig implements Named {
 	private final Project project;
 	private final String baseName;

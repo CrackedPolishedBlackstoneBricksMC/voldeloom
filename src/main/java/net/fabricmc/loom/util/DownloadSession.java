@@ -17,8 +17,10 @@ import java.nio.file.attribute.FileTime;
 import java.util.zip.GZIPInputStream;
 
 /**
- * Very largely based off of Loom's old DownloadUtil, but it's more builder-flavored now
- * Also allows to turn off gzip support because java's gzipinputstream is a bit funky x)
+ * Utilities for downloading files from HTTP servers.
+ * 
+ * (Very largely based off of Loom's old DownloadUtil, but it's more builder-flavored now
+ * Also allows to turn off gzip support because java's gzipinputstream is a bit funky x))
  */
 public class DownloadSession {
 	public DownloadSession(Project project) {

@@ -27,6 +27,15 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 
+/**
+ * Merges the Minecraft client jar and server jar into a sinlge -merged jar. When a member is available in only one jar,
+ * a SideOnly annotation is attached to the corresponding member in the merged jar.
+ * 
+ * The merging tool used is FabricMC's JarMerger. This always leaves Fabric's `@Environment` annotations on the single-sided artifacts.
+ * It's hardcoded, so a postprocessing step is used to change those into Forge's @SideOnly annotations.
+ * 
+ * The merged (and postprocessed) jar is available with getMergedJar().
+ */
 public class MergedProvider extends DependencyProvider {
 	public MergedProvider(Project project, LoomGradleExtension extension) {
 		super(project, extension);

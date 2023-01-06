@@ -1,5 +1,6 @@
 package net.fabricmc.loom.task;
 
+import net.fabricmc.loom.Constants;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.providers.AssetsProvider;
 import net.fabricmc.loom.util.LoomTaskExt;
@@ -20,7 +21,8 @@ import java.util.stream.Collectors;
 //TODO: extend AbstractCopyTask once i figure that out, instead of DefaultTask
 public class ShimResourcesTask extends DefaultTask implements LoomTaskExt {
 	public ShimResourcesTask() {
-		setGroup("fabric");
+		setGroup(Constants.TASK_GROUP_PLUMBING);
+		setDescription("Copies Minecraft's assets into the folder where the client expects to find them, since it tries to download them from a long-dead S3 bucket at game startup, and this version of the game does not support an --assetIndex parameter.");
 		getOutputs().upToDateWhen(__ -> getResourceTargetDirectories().stream().allMatch(Files::exists));
 	}
 	
