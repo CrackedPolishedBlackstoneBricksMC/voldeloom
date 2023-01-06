@@ -121,10 +121,10 @@ public class MinecraftProvider extends DependencyProvider {
 
 		Optional<ManifestVersion.Versions> optionalVersion = Optional.empty();
 		
-		if (extension.customManifest != null) {
+		if (extension.customManifestUrl != null) {
 			ManifestVersion.Versions customVersion = new ManifestVersion.Versions();
 			customVersion.id = minecraftVersion;
-			customVersion.url = extension.customManifest;
+			customVersion.url = extension.customManifestUrl;
 			optionalVersion = Optional.of(customVersion);
 			project.getLogger().lifecycle("Using custom minecraft manifest");
 		}

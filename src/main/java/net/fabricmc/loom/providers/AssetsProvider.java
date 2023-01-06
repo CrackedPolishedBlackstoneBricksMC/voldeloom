@@ -26,7 +26,6 @@ package net.fabricmc.loom.providers;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
-import net.fabricmc.loom.Constants;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.WellKnownLocations;
 import net.fabricmc.loom.util.Checksum;
@@ -113,7 +112,7 @@ public class AssetsProvider extends DependencyProvider {
 					
 					String sha1 = objectsJson.get(filename).getAsJsonObject().get("hash").getAsString();
 					String shsha1 = sha1.substring(0, 2) + '/' + sha1;
-					new DownloadSession(Constants.RESOURCES_BASE + shsha1, project)
+					new DownloadSession(extension.resourcesBaseUrl + shsha1, project)
 						.quiet()
 						.dest(destFile)
 						.gzip(true)

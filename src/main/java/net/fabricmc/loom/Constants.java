@@ -30,10 +30,6 @@ import net.fabricmc.loom.util.RemappedConfigurationEntry;
 import java.util.List;
 
 public class Constants {
-	public static final String LIBRARIES_BASE = "https://libraries.minecraft.net/";
-	public static final String FML_LIBRARIES_BASE = "https://files.prismlauncher.org/fmllibs/";
-	public static final String RESOURCES_BASE = "http://resources.download.minecraft.net/";
-
 	public static final String TASK_GROUP_CLEANING = "fabric.clean";
 	public static final String TASK_GROUP_IDE = "fabric.ide";
 	public static final String TASK_GROUP_PLUMBING = "fabric.plumbing";

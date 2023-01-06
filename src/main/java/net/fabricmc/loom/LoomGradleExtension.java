@@ -39,6 +39,11 @@ import java.util.function.Supplier;
 
 /**
  * A Gradle extension. When you write "minecraft {" in a project's build.gradle, you get access to one of these.
+ * The extension is added to the project at the top of LoomGradlePlugin.
+ * @see LoomGradlePlugin
+ * 
+ * Originally (in Loom 0.4) this contained a million things. I am trying to strip it back to mainly be a thin configuration dsl for Gradle.
+ * Obvious exception is anything relating to getDependencyManager.
  */
 public class LoomGradleExtension {
 	public LoomGradleExtension(@SuppressWarnings("unused") Project project) { //Gradle reflectively finds this ctor
@@ -46,12 +51,44 @@ public class LoomGradleExtension {
 		dependencyManager = new LoomDependencyManager(project, this);
 	}
 	
+	/**
+	 * If this is set to `false`, your mod won't get remapped to proguard names upon distribution.
+	 * TODO: Not sure why you'd want this when the `-dev` jars do the same thing, lol
+	 *  I heard Loom was initially developed under the assumption parts would be split off into other games (perhaps games that didn't use remapping),
+	 *  so this is possibly vestige from then
+	 */
 	public boolean remapMod = true;
-	public String customManifest = null;
 	
+	/**
+	 * If nonnull, this URL will be contacted to download the Minecraft per-version manifest, instead of reading from version_manifest.json. 
+	 * @see net.fabricmc.loom.providers.MinecraftProvider
+	 */
+	public String customManifestUrl = null;
+	
+	/**
+	 * Server that Minecraft's libraries are to be downloaded from, including trailing `/`.
+	 * TODO: It appears that only native libraries are downloaded from this URL, and the rest are resolved over Maven normally.
+	 */
+	public String librariesBaseUrl = "https://libraries.minecraft.net/";
+	
+	/**
+	 * Server that Minecraft Forge's libraries are to be downloaded from, including trailing `/`.
+	 * The original server that Forge uses is long-dead; pick your favorite mirror.
+	 */
+	public String fmlLibrariesBaseUrl = "https://files.prismlauncher.org/fmllibs/";
+	
+	/**
+	 * Server that Minecraft's assets are to be downloaded from, including trailing `/`.
+	 */
+	public String resourcesBaseUrl = "http://resources.download.minecraft.net/";
+	
+	/**
+	 * Holder for run configurations (essentially a Map<String, RunConfig>).
+	 * 
+	 * In Groovy, prefer to use the `runs` method to configure instead.
+	 */
 	public final NamedDomainObjectContainer<RunConfig> runConfigs;
 	
-	//Not to be set in the build.gradle
 	private final LoomDependencyManager dependencyManager;
 	private final List<Path> unmappedModsBuilt = new ArrayList<>();
 	private final MappingSet[] srcMappingCache = new MappingSet[2];
@@ -72,12 +109,13 @@ public class LoomGradleExtension {
 		unmappedModsBuilt.add(file);
 	}
 
-	//AbstractRunTask and SourceRemapper
+	//AbstractRunTask and SourceRemapper - todo why
 	public List<Path> getUnmappedMods() {
 		return Collections.unmodifiableList(unmappedModsBuilt);
 	}
 	
 	//gradle api
+	@SuppressWarnings("unused")
 	public void runs(Action<NamedDomainObjectContainer<RunConfig>> action) {
 		action.execute(runConfigs);
 	}

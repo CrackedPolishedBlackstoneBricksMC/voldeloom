@@ -27,6 +27,7 @@ package net.fabricmc.loom.util;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import net.fabricmc.loom.Constants;
+import net.fabricmc.loom.LoomGradleExtension;
 
 import java.io.File;
 import java.nio.file.Path;
@@ -67,11 +68,11 @@ public class MinecraftVersionInfo {
 		private Artifact artifact;
 		public Rule[] rules;
 
-		public String getURL() {
+		public String getURL(LoomGradleExtension ext) {
 			String path;
 			String[] parts = this.name.split(":", 3);
 			path = parts[0].replace(".", "/") + "/" + parts[1] + "/" + parts[2] + "/" + parts[1] + "-" + parts[2] + getClassifier() + ".jar";
-			return Constants.LIBRARIES_BASE + path;
+			return ext.librariesBaseUrl + path;
 		}
 		
 		public Path getPath(Path basePath) {

@@ -61,7 +61,7 @@ public class ForgeDependenciesProvider extends DependencyProvider {
 		for(String lib : sniffedLibraries) {
 			Path dest = forgeLibsFolder.resolve(lib);
 			
-			new DownloadSession(Constants.FML_LIBRARIES_BASE + lib, project)
+			new DownloadSession(extension.fmlLibrariesBaseUrl + lib, project)
 				.dest(dest)
 				.etag(true)
 				.gzip(false)
