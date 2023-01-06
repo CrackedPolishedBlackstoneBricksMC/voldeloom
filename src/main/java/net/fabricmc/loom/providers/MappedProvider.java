@@ -47,7 +47,7 @@ public class MappedProvider extends DependencyProvider {
 	private Path minecraftMappedJar;
 	private Path minecraftIntermediaryJar;
 
-	public void decorateProject(MinecraftProvider mc, LibraryProvider libs, ForgePatchedAccessTxdProvider patchedTxd, MappingsProvider mappings) throws Exception {
+	public void decorateProject(MinecraftProvider mc, MinecraftDependenciesProvider libs, ForgePatchedAccessTxdProvider patchedTxd, MappingsProvider mappings) throws Exception {
 		//inputs
 		List<Path> libPaths = new ArrayList<>(libs.getNonNativeLibraries());
 		Path forgePatchedJar = patchedTxd.getTransformedJar();

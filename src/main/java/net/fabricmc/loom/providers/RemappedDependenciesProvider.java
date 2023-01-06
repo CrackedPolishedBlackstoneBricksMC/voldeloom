@@ -23,7 +23,7 @@ public class RemappedDependenciesProvider extends DependencyProvider {
 		super(project, extension);
 	}
 	
-	public void decorateProject(LibraryProvider libraryProvider, MappingsProvider mappingsProvider, MappedProvider mappedProvider) throws Exception {
+	public void decorateProject(MinecraftDependenciesProvider minecraftDependenciesProvider, MappingsProvider mappingsProvider, MappedProvider mappedProvider) throws Exception {
 		String mappingsSuffix = mappingsProvider.getMappingsName() + "-" + mappingsProvider.getMappingsVersion();
 		
 		//MERGED from ModCompileRemapper in old tools
@@ -39,7 +39,7 @@ public class RemappedDependenciesProvider extends DependencyProvider {
 				Path mappedPath = modStore.resolve(unmappedPath.getFileName().toString() + "-mapped-" + mappingsSuffix + ".jar");
 				
 				try {
-					processMod(unmappedPath, mappedPath, null, null, libraryProvider, mappingsProvider, mappedProvider);
+					processMod(unmappedPath, mappedPath, null, null, minecraftDependenciesProvider, mappingsProvider, mappedProvider);
 					project.getDependencies().add(modCompileRemapped.getName(), project.files(mappedPath));
 				} catch (Exception e) {
 					throw new RuntimeException("phooey", e);
@@ -87,10 +87,10 @@ public class RemappedDependenciesProvider extends DependencyProvider {
 		installed = true;
 	}
 	
-	private void processMod(Path input, Path output, Configuration config, /* TODO */ ResolvedArtifact artifact, LibraryProvider libraryProvider, MappingsProvider mappingsProvider, MappedProvider mappedProvider) throws IOException {
+	private void processMod(Path input, Path output, Configuration config, /* TODO */ ResolvedArtifact artifact, MinecraftDependenciesProvider minecraftDependenciesProvider, MappingsProvider mappingsProvider, MappedProvider mappedProvider) throws IOException {
 		Set<Path> remapClasspath = new HashSet<>();
 		remapClasspath.add(mappedProvider.getMappedJar());
-		remapClasspath.addAll(libraryProvider.getNonNativeLibraries());
+		remapClasspath.addAll(minecraftDependenciesProvider.getNonNativeLibraries());
 		
 		for(RemappedConfigurationEntry entry : Constants.MOD_COMPILE_ENTRIES) {
 			for(File file : project.getConfigurations().getByName(entry.getSourceConfiguration()).getFiles()) {

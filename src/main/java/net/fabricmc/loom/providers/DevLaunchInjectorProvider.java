@@ -47,7 +47,7 @@ public class DevLaunchInjectorProvider extends DependencyProvider {
 	
 	private final Path devLauncherConfigFile = WellKnownLocations.getRootProjectPersistentCache(project).resolve("launch.cfg");
 	
-	public void decorateProject(MinecraftProvider mc, LibraryProvider libs) throws IOException {
+	public void decorateProject(MinecraftProvider mc, MinecraftDependenciesProvider libs) throws IOException {
 		final LaunchConfig launchConfig = new LaunchConfig()
 				.property("fabric.development", "true")
 

@@ -265,7 +265,7 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		dmgr.installForgeProvider();
 		dmgr.installMinecraftProvider();
 		dmgr.installAssetsProvider();
-		dmgr.installLibraryProvider();
+		dmgr.installMinecraftDependenciesProvider();
 		dmgr.installMergedProvider();
 		dmgr.installForgePatchedProvider();
 		dmgr.installForgePatchedAccessTxdProvider();
@@ -287,7 +287,7 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		genSourcesDecompileTask.setInput(mappedJar);
 		genSourcesDecompileTask.setOutput(sourcesJar);
 		genSourcesDecompileTask.setLineMapFile(linemapFile);
-		genSourcesDecompileTask.setLibraries(dmgr.getLibraryProvider().getNonNativeLibraries());
+		genSourcesDecompileTask.setLibraries(dmgr.getMinecraftDependenciesProvider().getNonNativeLibraries());
 		
 		genSourcesRemapLineNumbersTask.setInput(mappedJar);
 		genSourcesRemapLineNumbersTask.setLineMapFile(linemapFile);

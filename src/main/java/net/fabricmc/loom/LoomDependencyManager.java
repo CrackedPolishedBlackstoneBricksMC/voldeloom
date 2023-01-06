@@ -29,7 +29,7 @@ import net.fabricmc.loom.providers.DevLaunchInjectorProvider;
 import net.fabricmc.loom.providers.ForgePatchedAccessTxdProvider;
 import net.fabricmc.loom.providers.ForgePatchedProvider;
 import net.fabricmc.loom.providers.ForgeProvider;
-import net.fabricmc.loom.providers.LibraryProvider;
+import net.fabricmc.loom.providers.MinecraftDependenciesProvider;
 import net.fabricmc.loom.providers.MappedProvider;
 import net.fabricmc.loom.providers.MappingsProvider;
 import net.fabricmc.loom.providers.MergedProvider;
@@ -53,7 +53,7 @@ public class LoomDependencyManager {
 			new ForgeProvider(project, extension),
 			new MinecraftProvider(project, extension),
 			new AssetsProvider(project, extension),
-			new LibraryProvider(project, extension),
+			new MinecraftDependenciesProvider(project, extension),
 			new MergedProvider(project, extension),
 			new ForgePatchedProvider(project, extension),
 			new ForgePatchedAccessTxdProvider(project, extension),
@@ -64,13 +64,13 @@ public class LoomDependencyManager {
 		);
 	}
 	
-	public LoomDependencyManager(Project project, ForgeProvider forgeProvider, MinecraftProvider minecraftProvider, AssetsProvider assetsProvider, LibraryProvider libraryProvider, MergedProvider mergedProvider, ForgePatchedProvider forgePatchedProvider, ForgePatchedAccessTxdProvider forgePatchedAccessTxdProvider, MappingsProvider mappingsProvider, MappedProvider mappedProvider, RemappedDependenciesProvider remappedDependenciesProvider, DevLaunchInjectorProvider devLaunchInjectorProvider) {
+	public LoomDependencyManager(Project project, ForgeProvider forgeProvider, MinecraftProvider minecraftProvider, AssetsProvider assetsProvider, MinecraftDependenciesProvider minecraftDependenciesProvider, MergedProvider mergedProvider, ForgePatchedProvider forgePatchedProvider, ForgePatchedAccessTxdProvider forgePatchedAccessTxdProvider, MappingsProvider mappingsProvider, MappedProvider mappedProvider, RemappedDependenciesProvider remappedDependenciesProvider, DevLaunchInjectorProvider devLaunchInjectorProvider) {
 		this.project = project;
 		
 		this.forgeProvider = forgeProvider;
 		this.minecraftProvider = minecraftProvider;
 		this.assetsProvider = assetsProvider;
-		this.libraryProvider = libraryProvider;
+		this.minecraftDependenciesProvider = minecraftDependenciesProvider;
 		this.mergedProvider = mergedProvider;
 		this.forgePatchedProvider = forgePatchedProvider;
 		this.forgePatchedAccessTxdProvider = forgePatchedAccessTxdProvider;
@@ -85,7 +85,7 @@ public class LoomDependencyManager {
 	private final ForgeProvider forgeProvider;
 	private final MinecraftProvider minecraftProvider;
 	private final AssetsProvider assetsProvider;
-	private final LibraryProvider libraryProvider;
+	private final MinecraftDependenciesProvider minecraftDependenciesProvider;
 	private final MergedProvider mergedProvider;
 	private final ForgePatchedProvider forgePatchedProvider;
 	private final ForgePatchedAccessTxdProvider forgePatchedAccessTxdProvider;
@@ -124,13 +124,13 @@ public class LoomDependencyManager {
 		}
 	}
 	
-	public void installLibraryProvider() {
-		project.getLogger().lifecycle(":running dep provider 'LibraryProvider'");
+	public void installMinecraftDependenciesProvider() {
+		project.getLogger().lifecycle(":running dep provider 'MinecraftDependenciesProvider'");
 		
 		try {
-			libraryProvider.decorateProject(getMinecraftProvider());
+			minecraftDependenciesProvider.decorateProject(getMinecraftProvider());
 		} catch (Exception e) {
-			throw new RuntimeException("Failed to provide LibraryProvider", e);
+			throw new RuntimeException("Failed to provide MinecraftDependenciesProvider", e);
 		}
 	}
 	
@@ -178,7 +178,7 @@ public class LoomDependencyManager {
 		project.getLogger().lifecycle(":running dep provider 'MappedProvider'");
 		
 		try {
-			mappedProvider.decorateProject(getMinecraftProvider(), getLibraryProvider(), getForgePatchedAccessTxdProvider(), getMappingsProvider());
+			mappedProvider.decorateProject(getMinecraftProvider(), getMinecraftDependenciesProvider(), getForgePatchedAccessTxdProvider(), getMappingsProvider());
 		} catch (Exception e) {
 			throw new RuntimeException("Failed to provide MappedProvider", e);
 		}
@@ -188,7 +188,7 @@ public class LoomDependencyManager {
 		project.getLogger().lifecycle(":running dep provider 'RemappedDependenciesProvider'");
 		
 		try {
-			remappedDependenciesProvider.decorateProject(getLibraryProvider(), getMappingsProvider(), getMappedProvider());
+			remappedDependenciesProvider.decorateProject(getMinecraftDependenciesProvider(), getMappingsProvider(), getMappedProvider());
 		} catch (Exception e) {
 			throw new RuntimeException("Failed to provide RemappedDependenciesProvider", e);
 		}
@@ -198,7 +198,7 @@ public class LoomDependencyManager {
 		project.getLogger().lifecycle(":running dep provider 'DevLaunchInjectorProvider'");
 		
 		try {
-			devLaunchInjectorProvider.decorateProject(getMinecraftProvider(), getLibraryProvider());
+			devLaunchInjectorProvider.decorateProject(getMinecraftProvider(), getMinecraftDependenciesProvider());
 		} catch (Exception e) {
 			throw new RuntimeException("Failed to provide DevLaunchInjectorProvider", e);
 		}
@@ -219,9 +219,9 @@ public class LoomDependencyManager {
 		return assetsProvider;
 	}
 	
-	public LibraryProvider getLibraryProvider() {
-		if(!libraryProvider.installed) throw new IllegalStateException("LibraryProvider hasn't been installed yet!");
-		else return libraryProvider;
+	public MinecraftDependenciesProvider getMinecraftDependenciesProvider() {
+		if(!minecraftDependenciesProvider.installed) throw new IllegalStateException("MinecraftDependenciesProvider hasn't been installed yet!");
+		else return minecraftDependenciesProvider;
 	}
 	
 	public MergedProvider getMergedProvider() {
@@ -264,7 +264,7 @@ public class LoomDependencyManager {
 			forgeProvider.addCleaningTask(),
 			minecraftProvider.addCleaningTask(),
 			assetsProvider.addCleaningTask(),
-			libraryProvider.addCleaningTask(),
+			minecraftDependenciesProvider.addCleaningTask(),
 			mergedProvider.addCleaningTask(),
 			forgePatchedProvider.addCleaningTask(),
 			forgePatchedAccessTxdProvider.addCleaningTask(),

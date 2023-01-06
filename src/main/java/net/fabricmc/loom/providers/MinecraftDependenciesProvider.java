@@ -39,8 +39,8 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 
-public class LibraryProvider extends DependencyProvider {
-	public LibraryProvider(Project project, LoomGradleExtension extension) {
+public class MinecraftDependenciesProvider extends DependencyProvider {
+	public MinecraftDependenciesProvider(Project project, LoomGradleExtension extension) {
 		super(project, extension);
 	}
 	
