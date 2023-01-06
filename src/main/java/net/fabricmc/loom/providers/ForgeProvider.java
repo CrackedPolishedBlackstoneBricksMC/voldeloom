@@ -2,6 +2,7 @@ package net.fabricmc.loom.providers;
 
 import net.fabricmc.loom.Constants;
 import net.fabricmc.loom.LoomGradleExtension;
+import net.fabricmc.loom.task.CleaningTask;
 import net.fabricmc.loom.util.mcp.ForgeAccessTransformerSet;
 import org.gradle.api.Project;
 
@@ -12,6 +13,7 @@ import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Collection;
 import java.util.Collections;
 
 public class ForgeProvider extends DependencyProvider {
@@ -51,5 +53,13 @@ public class ForgeProvider extends DependencyProvider {
 	
 	public ForgeAccessTransformerSet getUnmappedAccessTransformers() {
 		return unmappedAts;
+	}
+	
+	public static class ForgeCleaningTask extends CleaningTask {
+		@Override
+		public Collection<Path> locationsToDelete() {
+			ForgeProvider prov = getLoomGradleExtension().getDependencyManager().getForgeProvider();
+			return Collections.singleton(prov.getJar());
+		}
 	}
 }

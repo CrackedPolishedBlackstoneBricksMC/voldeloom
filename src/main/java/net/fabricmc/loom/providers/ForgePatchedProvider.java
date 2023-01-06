@@ -2,6 +2,7 @@ package net.fabricmc.loom.providers;
 
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.WellKnownLocations;
+import net.fabricmc.loom.task.CleaningTask;
 import org.gradle.api.Project;
 
 import java.io.IOException;
@@ -14,6 +15,7 @@ import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.Collection;
 import java.util.Collections;
 
 public class ForgePatchedProvider extends DependencyProvider {
@@ -102,5 +104,13 @@ public class ForgePatchedProvider extends DependencyProvider {
 	
 	public Path getPatchedJar() {
 		return patched;
+	}
+	
+	public static class ForgePatchedCleaningTask extends CleaningTask {
+		@Override
+		public Collection<Path> locationsToDelete() {
+			ForgePatchedProvider prov = getLoomGradleExtension().getDependencyManager().getForgePatchedProvider();
+			return Collections.singleton(prov.getPatchedJar());
+		}
 	}
 }

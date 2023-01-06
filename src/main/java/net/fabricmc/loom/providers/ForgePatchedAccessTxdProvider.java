@@ -2,6 +2,7 @@ package net.fabricmc.loom.providers;
 
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.WellKnownLocations;
+import net.fabricmc.loom.task.CleaningTask;
 import net.fabricmc.loom.util.mcp.ForgeAccessTransformerSet;
 import org.gradle.api.Project;
 import org.objectweb.asm.ClassReader;
@@ -18,6 +19,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.Collection;
 import java.util.Collections;
 
 public class ForgePatchedAccessTxdProvider extends DependencyProvider {
@@ -82,5 +84,13 @@ public class ForgePatchedAccessTxdProvider extends DependencyProvider {
 	
 	public Path getTransformedJar() {
 		return accessTransformedMc;
+	}
+	
+	public static class ForgePatchedAccessTxdCleaningTask extends CleaningTask {
+		@Override
+		public Collection<Path> locationsToDelete() {
+			ForgePatchedAccessTxdProvider prov = getLoomGradleExtension().getDependencyManager().getForgePatchedAccessTxdProvider();
+			return Collections.singleton(prov.getTransformedJar());
+		}
 	}
 }

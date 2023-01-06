@@ -27,6 +27,7 @@ package net.fabricmc.loom.providers;
 import net.fabricmc.loom.Constants;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.WellKnownLocations;
+import net.fabricmc.loom.task.CleaningTask;
 import net.fabricmc.loom.util.DownloadSession;
 import net.fabricmc.loom.util.MinecraftVersionInfo;
 import org.gradle.api.Project;
@@ -34,6 +35,7 @@ import org.zeroturnaround.zip.ZipUtil;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -66,10 +68,12 @@ public class LibraryProvider extends DependencyProvider {
 					.dest(libJarFile)
 					.etag(true)
 					.gzip(false)
+					.skipIfExists()
+					.skipIfSha1Equals(library.getSha1())
 					.download();
 				
 				//TODO possibly find a way to prevent needing to re-extract after each run, doesnt seem too slow (original Loom comment)
-				// DOUBLE TODO uncomment this cause its currently a cheap hack to allow concurrent runs
+				// DOUBLE TODO this line crashes when opening two copies of the game client lol. i need a less cheap hack
 				ZipUtil.unpack(libJarFile.toFile(), nativesDir.toFile());
 			} else {
 				String depToAdd = library.getArtifactName();
@@ -106,5 +110,16 @@ public class LibraryProvider extends DependencyProvider {
 	
 	public Path getNativesDir() {
 		return nativesDir;
+	}
+	
+	public static class LibraryCleaningTask extends CleaningTask {
+		@Override
+		public Collection<Path> locationsToDelete() {
+			LibraryProvider prov = getLoomGradleExtension().getDependencyManager().getLibraryProvider();
+			
+			ArrayList<Path> funny = new ArrayList<>(prov.getNonNativeLibraries());
+			funny.add(prov.getNativesDir());
+			return funny;
+		}
 	}
 }

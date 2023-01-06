@@ -29,6 +29,7 @@ import com.google.gson.JsonObject;
 import net.fabricmc.loom.Constants;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.WellKnownLocations;
+import net.fabricmc.loom.task.CleaningTask;
 import net.fabricmc.loom.util.Checksum;
 import net.fabricmc.loom.util.DownloadSession;
 import net.fabricmc.loom.util.MinecraftVersionInfo;
@@ -38,6 +39,8 @@ import org.gradle.api.Project;
 import java.io.BufferedReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
+import java.util.Collection;
 
 public class AssetsProvider extends DependencyProvider {
 	public AssetsProvider(Project project, LoomGradleExtension extension, MinecraftProvider mc) {
@@ -136,5 +139,13 @@ public class AssetsProvider extends DependencyProvider {
 	
 	public Path getAssetsDir() {
 		return thisVersionAssetsDir;
+	}
+	
+	public static class AssetCleaningTask extends CleaningTask {
+		@Override
+		public Collection<Path> locationsToDelete() {
+			AssetsProvider prov = getLoomGradleExtension().getDependencyManager().getAssetsProvider();
+			return Arrays.asList(prov.getAssetIndexFile(), prov.getAssetsDir());
+		}
 	}
 }

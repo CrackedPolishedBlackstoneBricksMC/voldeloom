@@ -2,7 +2,6 @@ package net.fabricmc.loom;
 
 import org.gradle.api.Project;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -26,15 +25,20 @@ public class WellKnownLocations {
 		return userCache;
 	}
 	
-	public static File getRootProjectPersistentCache(Project project) {
-		File rootProjectCache = new File(project.getRootProject().file(".gradle"), "loom-cache");
-		if (!rootProjectCache.exists()) rootProjectCache.mkdirs();
+	public static Path getRootProjectPersistentCache(Project project) {
+		Path rootProjectCache = project.getRootProject().file(".gradle").toPath().resolve("loom-cache");
+		
+		try {
+			Files.createDirectories(rootProjectCache);
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+		
 		return rootProjectCache;
 	}
 	
 	public static Path getRemappedModCache(Project project) {
-		Path projectCache = getRootProjectPersistentCache(project).toPath();
-		Path remappedModCache = projectCache.resolve("remapped-mods");
+		Path remappedModCache = getRootProjectPersistentCache(project).resolve("remapped-mods");
 		
 		try {
 			Files.createDirectories(remappedModCache);

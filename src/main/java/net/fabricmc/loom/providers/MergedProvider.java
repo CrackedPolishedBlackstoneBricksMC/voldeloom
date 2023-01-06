@@ -2,6 +2,7 @@ package net.fabricmc.loom.providers;
 
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.WellKnownLocations;
+import net.fabricmc.loom.task.CleaningTask;
 import net.fabricmc.stitch.merge.JarMerger;
 import org.gradle.api.Project;
 import org.objectweb.asm.AnnotationVisitor;
@@ -23,6 +24,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 
 public class MergedProvider extends DependencyProvider {
@@ -172,6 +175,14 @@ public class MergedProvider extends DependencyProvider {
 					return super.visitAnnotation(descriptor, visible);
 				}
 			}
+		}
+	}
+	
+	public static class MergedCleaningTask extends CleaningTask {
+		@Override
+		public Collection<Path> locationsToDelete() {
+			MergedProvider prov = getLoomGradleExtension().getDependencyManager().getMergedProvider();
+			return Arrays.asList(prov.getMergedJar(), prov.mergedUnfixed);
 		}
 	}
 }

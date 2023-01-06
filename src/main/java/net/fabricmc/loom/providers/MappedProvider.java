@@ -24,16 +24,19 @@
 
 package net.fabricmc.loom.providers;
 
-import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.Constants;
-import net.fabricmc.loom.util.TinyRemapperSession;
+import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.WellKnownLocations;
+import net.fabricmc.loom.task.CleaningTask;
+import net.fabricmc.loom.util.TinyRemapperSession;
 import net.fabricmc.mapping.tree.TinyTree;
 import org.gradle.api.Project;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.function.Predicate;
 
@@ -68,16 +71,16 @@ public class MappedProvider extends DependencyProvider {
 		String intermediaryJarNameKinda = String.format("%s-%s-%s-%s",
 			mc.getJarStuff(),
 			"intermediary",
-			mappings.mappingsName,
-			mappings.mappingsVersion
+			mappings.getMappingsName(),
+			mappings.getMappingsVersion()
 		);
 		String intermediaryJarName = "minecraft-" + intermediaryJarNameKinda + ".jar";
 		
 		String mappedJarNameKinda = String.format("%s-%s-%s-%s",
 			mc.getJarStuff(),
 			"mapped",
-			mappings.mappingsName,
-			mappings.mappingsVersion
+			mappings.getMappingsName(),
+			mappings.getMappingsVersion()
 		);
 		String mappedJarName = "minecraft-" + mappedJarNameKinda + ".jar";
 		Path mappedDestDir = userCache.resolve(mappedJarNameKinda);
@@ -126,5 +129,13 @@ public class MappedProvider extends DependencyProvider {
 	
 	public Path getIntermediaryJar() {
 		return minecraftIntermediaryJar;
+	}
+	
+	public static class MappedCleaningTask extends CleaningTask {
+		@Override
+		public Collection<Path> locationsToDelete() {
+			MappedProvider prov = getLoomGradleExtension().getDependencyManager().getMappedProvider();
+			return Arrays.asList(prov.getMappedJar(), prov.getIntermediaryJar());
+		}
 	}
 }

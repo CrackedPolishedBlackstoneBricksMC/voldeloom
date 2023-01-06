@@ -45,7 +45,7 @@ public class GenIdeaProjectTask extends DefaultTask implements LoomTaskExt {
 		
 		//hmmmmmmmmmmmmmmmmmmmm
 		if(true) {
-			project.getLogger().warn("Intellij .ipr run config generation is currently Broken!!!!");
+			project.getLogger().warn("Intellij .ipr run config generation is currently Broken!!!! I think!!");
 			project.getLogger().warn("Just import the project through gradle instead, it seems to work ok?");
 			project.getLogger().warn("You might have to use the directory-based project format: ");
 			project.getLogger().warn("https://www.jetbrains.com/help/idea/creating-and-managing-projects.html#convert-project-format");

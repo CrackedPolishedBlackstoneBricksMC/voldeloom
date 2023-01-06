@@ -5,6 +5,7 @@ import org.objectweb.asm.FieldVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
+import javax.annotation.Nonnull;
 import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
@@ -25,17 +26,17 @@ public class ForgeAccessTransformerSet {
 	//class + "." + method + descriptor
 	private final Map<String, AccessTransformation> methodTransformers = new HashMap<>();
 	
-	public AccessTransformation getClassTransformation(String className) {
+	public @Nonnull AccessTransformation getClassTransformation(String className) {
 		return classTransformers.getOrDefault(className, AccessTransformation.NO_CHANGE);
 	}
 	
-	public AccessTransformation getFieldTransformation(String className, String fieldName) {
+	public @Nonnull AccessTransformation getFieldTransformation(String className, String fieldName) {
 		AccessTransformation wildcardResult = wildcardFieldTransformers.get(className);
 		if(wildcardResult != null) return wildcardResult;
 		else return fieldTransformers.getOrDefault(className + "." + fieldName, AccessTransformation.NO_CHANGE);
 	}
 	
-	public AccessTransformation getMethodTransformation(String className, String methodName, String methodDescriptor) {
+	public @Nonnull AccessTransformation getMethodTransformation(String className, String methodName, String methodDescriptor) {
 		AccessTransformation wildcardResult = wildcardMethodTransformers.get(className);
 		if(wildcardResult != null) return wildcardResult;
 		else return methodTransformers.getOrDefault(className + "." + methodName + methodDescriptor, AccessTransformation.NO_CHANGE);
@@ -134,13 +135,8 @@ public class ForgeAccessTransformerSet {
 			}
 		}
 		
-		private static int clearPublicityModifiers(int access) {
-			int publicityModifiers = ACC_PUBLIC | ACC_PROTECTED | ACC_PRIVATE;
-			return access & ~publicityModifiers;
-		}
-		
 		private static int replacePublicityModifier(int access, int publicityModifier) {
-			return clearPublicityModifiers(access) | publicityModifier;
+			return (access & ~(ACC_PUBLIC | ACC_PROTECTED | ACC_PRIVATE)) | publicityModifier;
 		}
 		
 		private static int finalize(int access) { //not a keyword!

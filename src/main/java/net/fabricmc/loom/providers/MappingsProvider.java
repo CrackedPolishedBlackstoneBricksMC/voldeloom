@@ -26,8 +26,8 @@ package net.fabricmc.loom.providers;
 
 import net.fabricmc.loom.Constants;
 import net.fabricmc.loom.LoomGradleExtension;
-import net.fabricmc.loom.LoomGradlePlugin;
 import net.fabricmc.loom.WellKnownLocations;
+import net.fabricmc.loom.task.CleaningTask;
 import net.fabricmc.loom.util.mcp.AcceptorProvider;
 import net.fabricmc.loom.util.mcp.CsvApplierAcceptor;
 import net.fabricmc.loom.util.mcp.SrgMappingProvider;
@@ -44,52 +44,41 @@ import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 
 public class MappingsProvider extends DependencyProvider {
-	public MappingsProvider(Project project, LoomGradleExtension extension, MinecraftProvider mc, ForgePatchedProvider forgePatched) {
+	public MappingsProvider(Project project, LoomGradleExtension extension, ForgePatchedProvider forgePatched) {
 		super(project, extension);
-		this.mc = mc;
 		this.forgePatched = forgePatched;
 	}
 	
-	private final MinecraftProvider mc;
 	private final ForgePatchedProvider forgePatched;
+	private final Path mappingsDir = WellKnownLocations.getUserCache(project).resolve("mappings");
 	
-	public String mappingsName;
-	public String minecraftVersion;
-	public String mappingsVersion;
-
-	private Path mappingsDir;
-	public Path tinyMappings;
-	public Path tinyMappingsJar;
-	
+	private String mappingsName;
+	private String mappingsVersion;
 	private TinyTree parsedMappings;
 	
-	//TODO: let's try and make this into a project-wide `clean` system that threads through each task,
-	// instead of an ad-hoc thing
-	public void clean() {
-		LoomGradlePlugin.delete(project, mappingsDir);
-	}
+	private Path tinyMappings;
+	private Path tinyMappingsJar;
 
 	@Override
 	public void decorateProject() throws Exception {
 		//deps
 		DependencyInfo mappingsDependency = getSingleDependency(Constants.MAPPINGS);
 		
-		project.getLogger().lifecycle("|-> setting up mappings (" + mappingsDependency.getDependency().getName() + " " + mappingsDependency.getResolvedVersion() + ")");
-
-		String version = mappingsDependency.getResolvedVersion();
+		project.getLogger().lifecycle("] mappings name: " + mappingsDependency.getDependency().getName() + ", version: " + mappingsDependency.getResolvedVersion());
+		
 		Path mappingsJar = mappingsDependency.resolveSinglePath().orElseThrow(() -> new RuntimeException("Could not find mcp mappings: " + mappingsDependency));
 
 		this.mappingsName = mappingsDependency.getDependency().getGroup() + "." + mappingsDependency.getDependency().getName();
-		this.minecraftVersion = mc.getJarStuff();
-		this.mappingsVersion = version;
-		this.mappingsDir = WellKnownLocations.getUserCache(project).resolve("mappings");
-		Files.createDirectories(mappingsDir);
-
+		this.mappingsVersion = mappingsDependency.getResolvedVersion();
+		
 		tinyMappings = mappingsDir.resolve(mappingsJar.getFileName() + ".tiny");
 		tinyMappingsJar = mappingsDir.resolve(mappingsJar.getFileName() + ".tiny.jar");
+		Files.createDirectories(mappingsDir);
 		
 		if (Files.notExists(tinyMappings)) {
 			long filesize;
@@ -173,7 +162,7 @@ public class MappingsProvider extends DependencyProvider {
 			}
 		}
 		
-		//make them available for other tasks TODO move
+		//make them available for other tasks TODO make it not roundtrip through a file lol
 		try(BufferedReader lol = Files.newBufferedReader(tinyMappings)) {
 			parsedMappings = TinyMappingFactory.loadWithDetection(lol);
 		}
@@ -184,5 +173,29 @@ public class MappingsProvider extends DependencyProvider {
 	
 	public TinyTree getMappings() {
 		return parsedMappings;
+	}
+	
+	public String getMappingsName() {
+		return mappingsName;
+	}
+	
+	public String getMappingsVersion() {
+		return mappingsVersion;
+	}
+	
+	public Path getTinyMappings() {
+		return tinyMappings;
+	}
+	
+	public Path getTinyMappingsJar() {
+		return tinyMappingsJar;
+	}
+	
+	public static class MappingsCleaningTask extends CleaningTask {
+		@Override
+		public Collection<Path> locationsToDelete() {
+			MappingsProvider prov = getLoomGradleExtension().getDependencyManager().getMappingsProvider();
+			return Arrays.asList(prov.getTinyMappings(), prov.getTinyMappingsJar());
+		}
 	}
 }

@@ -24,8 +24,11 @@ What works:
   * See sample mod for how to do this.
   * If you still choose to download an mcp zip, when the internet archive inevitably gives you a zero-byte there's a nicer error now lol
 * Partial backport of the "extendable run configs" thing from newer Fabric Loom versions
-  * Define your own run configs with custom system properties
-  * 1.4 doesn't parse any program arguments apart from the username (arg 0) and session token (arg 1) 
+  * Define your own run configs, with custom vm args and system properties and stuff
+  * 1.4 doesn't parse any program arguments apart from the username (arg 0) and session token (arg 1)
+* `modCompile`/etc might even work!
+  * `coremodCompile`/etc exists for coremods (they will be moved to the `coremods` folder, where Forge wants to find them) 
+  * Currently contains some magic kludges to get Ears working (it just doesn't expect to be ran inside deobf. Lol)
 
 Main focus is on Gradle 7. Gradle 4 probably doesn't work yet; i'd like it to
 
@@ -33,13 +36,8 @@ What doesn't work yet:
 
 * Minecraft versions other than 1.4.7 don't work
   * The long-term goal is to merge the differences between the 1.2.5/1.5.2 branches into something runtime-configurable
-  * But the short-term goal is to make 1.4.7 work!
-* Generated IDE run configs are a bit janky (there's a kludge in the `runClient` task that appends a few extra args)
+* Generated IDE run configs are likely broken. The `runClient` task is more of a priority
 * I don't know how broken Eclipse/VSCode are
-* `modCompile` configurations and friends don't work
-  * if i put mods and coremods on the classpath will Forge find them automatically?
-  * Forge requires you to put coremods in their own folder in this version but does anything apply to classpath coremods?
-  * Might need `coremodCompile` versions of the configurations too lol
 * Source remapping tasks don't work (but who cares cause you're stuck with MCP)
 * `migrateMappings` doesn't work (but who cares cause you're stuck with MCP)
 * Probably a lot of other things don't work
@@ -53,6 +51,7 @@ What I'd like to add:
 
 * Quiltflower lol (kinda a java 11 moment though)
 * Launchwrapper and/or DevLaunchInjector support would be nice
+  * Possibly ship a launchwrapper injector that makes Forge, e.g. scan for coremods from the classpath instead of just that one coremods folder, dont attempt to download libraries, etc
 * (if i wanna get really silly) Use Forge's secret access transformer command-line program instead of maintaining an access transformer parser
 
 ## Sample projects

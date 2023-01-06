@@ -28,6 +28,7 @@ import com.google.gson.Gson;
 import net.fabricmc.loom.Constants;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.WellKnownLocations;
+import net.fabricmc.loom.task.CleaningTask;
 import net.fabricmc.loom.util.DownloadSession;
 import net.fabricmc.loom.util.MinecraftVersionInfo;
 import org.gradle.api.GradleException;
@@ -38,6 +39,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -52,6 +55,8 @@ public class MinecraftProvider extends DependencyProvider {
 	private String minecraftVersion;
 	private String minecraftJarStuff;
 	private MinecraftVersionInfo versionInfo;
+	
+	private final Path manifests = WellKnownLocations.getUserCache(project).resolve("version_manifest.json");
 	private Path minecraftJson;
 	private Path minecraftClientJar;
 	private Path minecraftServerJar;
@@ -91,8 +96,6 @@ public class MinecraftProvider extends DependencyProvider {
 	}
 	
 	private void downloadMcJson(boolean offline) throws IOException {
-		Path manifests = WellKnownLocations.getUserCache(project).resolve("version_manifest.json");
-
 		if (offline) {
 			if (Files.exists(manifests)) {
 				//If there is the manifests already we'll presume that's good enough
@@ -195,6 +198,14 @@ public class MinecraftProvider extends DependencyProvider {
 	
 		public static class Versions {
 			public String id, url;
+		}
+	}
+	
+	public static class MinecraftCleaningTask extends CleaningTask {
+		@Override
+		public Collection<Path> locationsToDelete() {
+			MinecraftProvider prov = getLoomGradleExtension().getDependencyManager().getMinecraftProvider();
+			return Arrays.asList(prov.getClientJar(), prov.getServerJar(), prov.minecraftJson, prov.manifests);
 		}
 	}
 }

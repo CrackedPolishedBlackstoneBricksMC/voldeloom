@@ -26,13 +26,16 @@ package net.fabricmc.loom.providers;
 
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.WellKnownLocations;
-import org.apache.commons.io.FileUtils;
+import net.fabricmc.loom.task.CleaningTask;
 import org.gradle.api.Project;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -48,7 +51,7 @@ public class DevLaunchInjectorProvider extends DependencyProvider {
 	private final MinecraftProvider mc;
 	private final LibraryProvider libs;
 	
-	private final File devLauncherConfigFile = new File(WellKnownLocations.getRootProjectPersistentCache(project), "launch.cfg");
+	private final Path devLauncherConfigFile = WellKnownLocations.getRootProjectPersistentCache(project).resolve("launch.cfg");
 
 	@Override
 	public void decorateProject() throws IOException {
@@ -63,13 +66,12 @@ public class DevLaunchInjectorProvider extends DependencyProvider {
 				.argument("client", "--assetsDir")
 				.argument("client", WellKnownLocations.getUserCache(project).resolve("assets").toAbsolutePath().toString());
 		
-		devLauncherConfigFile.getParentFile().mkdirs();
-		FileUtils.writeStringToFile(devLauncherConfigFile, launchConfig.asString(), StandardCharsets.UTF_8);
+		Files.write(devLauncherConfigFile, launchConfig.asString().getBytes(StandardCharsets.UTF_8));
 
 		//addDependency("net.fabricmc:dev-launch-injector:" + Constants.DEV_LAUNCH_INJECTOR_VERSION, "runtimeOnly");
 	}
 	
-	public File getConfigFile() {
+	public Path config() {
 		return devLauncherConfigFile;
 	}
 	
@@ -108,6 +110,14 @@ public class DevLaunchInjectorProvider extends DependencyProvider {
 			}
 
 			return stringJoiner.toString();
+		}
+	}
+	
+	public static class DevLaunchInjectorCleaningTask extends CleaningTask {
+		@Override
+		public Collection<Path> locationsToDelete() {
+			DevLaunchInjectorProvider prov = getLoomGradleExtension().getDependencyManager().getDevLaunchInjectorProvider();
+			return Collections.singleton(prov.config());
 		}
 	}
 }

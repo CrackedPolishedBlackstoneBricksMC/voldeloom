@@ -30,7 +30,6 @@ import net.fabricmc.loom.providers.DevLaunchInjectorProvider;
 import net.fabricmc.loom.providers.ForgePatchedAccessTxdProvider;
 import net.fabricmc.loom.providers.ForgePatchedProvider;
 import net.fabricmc.loom.providers.ForgeProvider;
-import net.fabricmc.loom.providers.IntellijRunConfigsProvider;
 import net.fabricmc.loom.providers.LibraryProvider;
 import net.fabricmc.loom.providers.MappedProvider;
 import net.fabricmc.loom.providers.MappingsProvider;
@@ -38,12 +37,11 @@ import net.fabricmc.loom.providers.MergedProvider;
 import net.fabricmc.loom.providers.MinecraftProvider;
 import net.fabricmc.loom.providers.RemappedDependenciesProvider;
 import net.fabricmc.loom.task.AbstractDecompileTask;
-import net.fabricmc.loom.task.CleanLoomBinaries;
-import net.fabricmc.loom.task.CleanLoomMappings;
 import net.fabricmc.loom.task.ConfigurationDebugTask;
 import net.fabricmc.loom.task.CopyCoremodsTask;
 import net.fabricmc.loom.task.GenEclipseRunsTask;
 import net.fabricmc.loom.task.GenIdeaProjectTask;
+import net.fabricmc.loom.task.GenIdeaRunConfigsTask;
 import net.fabricmc.loom.task.GenVsCodeProjectTask;
 import net.fabricmc.loom.task.MigrateMappingsTask;
 import net.fabricmc.loom.task.RemapJarTask;
@@ -75,6 +73,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -92,11 +92,11 @@ public class LoomGradlePlugin implements Plugin<Project> {
 	public static void delete(Project project, Object... things) {
 		project.delete(deleteSpec -> {
 			deleteSpec.setFollowSymlinks(false);
-			
 			for(Object thing : things) {
-				project.getLogger().info("Deleting " + thing);
-				deleteSpec.delete(thing);
+				project.getLogger().lifecycle("Deleting " + thing);
 			}
+			
+			deleteSpec.delete(things);
 		});
 	}
 	
@@ -206,12 +206,28 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		//Note that `register` doesn't add the task right away, but Gradle will reflectively creates it when someone asks for it,
 		//and (if a closure is specified) call the closure to configure the task. Optimization thing, I guess.
 		TaskContainer tasks = project.getTasks();
+		
 		//Cleaning:
-		tasks.register("cleanLoomBinaries", CleanLoomBinaries.class);
-		tasks.register("cleanLoomMappings", CleanLoomMappings.class);
-		tasks.register("cleanLoom").configure(task -> {
-			task.setGroup("fabric");
-			task.dependsOn("cleanLoomBinaries", "cleanLoomMappings");
+		List<TaskProvider<?>> cleaningTasks = new ArrayList<>(Arrays.asList(
+			tasks.register("cleanAssets", AssetsProvider.AssetCleaningTask.class),
+			tasks.register("cleanDevLaunchInjector", DevLaunchInjectorProvider.DevLaunchInjectorCleaningTask.class),
+			tasks.register("cleanForgePatchedAccessTxd", ForgePatchedAccessTxdProvider.ForgePatchedAccessTxdCleaningTask.class),
+			tasks.register("cleanForgePatched", ForgePatchedProvider.ForgePatchedCleaningTask.class),
+			tasks.register("cleanForge", ForgeProvider.ForgeCleaningTask.class),
+			tasks.register("cleanMinecraftLibraries", LibraryProvider.LibraryCleaningTask.class),
+			tasks.register("cleanMapped", MappedProvider.MappedCleaningTask.class),
+			tasks.register("cleanMappings", MappingsProvider.MappingsCleaningTask.class),
+			tasks.register("cleanMerged", MergedProvider.MergedCleaningTask.class),
+			tasks.register("cleanMinecraft", MinecraftProvider.MinecraftCleaningTask.class),
+			tasks.register("cleanRemappedDependencies", RemappedDependenciesProvider.RemappedDependenciesCleaningTask.class)
+		));
+		tasks.register("cleanEverything").configure(task -> {
+			task.setGroup("fabric-clean");
+			for(TaskProvider<?> t : cleaningTasks) task.dependsOn(t);
+		});
+		tasks.register("cleanEverythingOtherThanAssets").configure(task -> {
+			task.setGroup("fabric-clean");
+			for(TaskProvider<?> t : cleaningTasks) if(!t.getName().equals("cleanAssets")) task.dependsOn(t);
 		});
 		
 		//Utility:
@@ -232,6 +248,7 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		
 		//IDE integration and run configs:
 		tasks.register("genIdeaWorkspace", GenIdeaProjectTask.class, t -> t.dependsOn("idea"));
+		tasks.register("genIdeaRuns", GenIdeaRunConfigsTask.class, t -> t.dependsOn("idea"));
 		tasks.register("genEclipseRuns", GenEclipseRunsTask.class);
 		tasks.register("vscode", GenVsCodeProjectTask.class);
 		
@@ -243,7 +260,6 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		
 		extensionUnconfigured.runConfigs.whenObjectAdded(cfg -> {
 			TaskProvider<RunTask> runTask = tasks.register("run" + cfg.getBaseName().substring(0, 1).toUpperCase(Locale.ROOT) + cfg.getBaseName().substring(1), RunTask.class, cfg);
-			//n.b. the object was just constructed and hasn't been configured yet
 			runTask.configure(t -> {
 				t.dependsOn("assemble", "shimForgeLibraries", "copyCoremods");
 				if(cfg.getEnvironment().equals("client")) t.dependsOn("shimResources");
@@ -253,7 +269,7 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		extensionUnconfigured.runConfigs.add(RunConfig.defaultServerRunConfig(project));
 		
 		//TODO is it safe to configure this now? I ask because upstream did it in afterEvaluate
-		tasks.named("idea").configure(t -> t.finalizedBy(tasks.named("genIdeaWorkspace")));
+		tasks.named("idea").configure(t -> t.finalizedBy(tasks.named("genIdeaWorkspace"), tasks.named("genIdeaRuns")));
 		tasks.named("eclipse").configure(t -> t.finalizedBy(tasks.named("genEclipseRuns")));
 		
 		//So. build.gradle files *look* declarative, but recall that they are imperative programs, executed top-to-bottom.
@@ -286,7 +302,7 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		ForgePatchedAccessTxdProvider patchedTxd = dmgr.installForgePatchedAccessTxdProvider(new ForgePatchedAccessTxdProvider(project, extension, mc, forge, forgePatched));
 		
 		//mappings
-		MappingsProvider mappings = dmgr.installMappingsProvider(new MappingsProvider(project, extension, mc, forgePatched));
+		MappingsProvider mappings = dmgr.installMappingsProvider(new MappingsProvider(project, extension, forgePatched));
 		
 		//forge + vanilla + mappings
 		MappedProvider mapped = dmgr.installMappedProvider(new MappedProvider(project, extension, mc, libs, patchedTxd, mappings));
@@ -296,9 +312,6 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		
 		//launcher stuff
 		dmgr.installDevLaunchInjectorProvider(new DevLaunchInjectorProvider(project, extension, mc, libs));
-		
-		//IntelliJ run configs jank
-		new IntellijRunConfigsProvider(project, extension).decorateProjectOrThrow();
 		
 		//Misc wiring-up of genSources-related tasks.
 		AbstractDecompileTask genSourcesDecompileTask = (AbstractDecompileTask) project.getTasks().getByName("genSourcesDecompile");

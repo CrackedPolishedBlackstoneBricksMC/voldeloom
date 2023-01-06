@@ -98,10 +98,10 @@ public class DownloadSession {
 		
 		Path etagFile = dest.resolveSibling(dest.getFileName().toString() + ".etag");
 		String knownEtag = null;
-		if(useEtag && Files.exists(etagFile)) {
+		if(useEtag && Files.exists(etagFile) && Files.exists(dest)) {
 			knownEtag = new String(Files.readAllBytes(etagFile), StandardCharsets.UTF_8);
 			conn.setRequestProperty("If-None-Match", knownEtag);
-			if(Files.exists(dest)) conn.setIfModifiedSince(Files.getLastModifiedTime(dest).toMillis());
+			conn.setIfModifiedSince(Files.getLastModifiedTime(dest).toMillis());
 		}
 		
 		if(requestGzip) conn.setRequestProperty("Accept-Encoding", "gzip");

@@ -41,8 +41,10 @@ import net.fabricmc.loom.providers.RemappedDependenciesProvider;
  *  - it makes use of a "derived dependency" (like "minecraft, but merged and remapped")
  *  - it has to run *after* said dependency is set up (an ordering relationship)
  *  
- *  TODO(VOLDELOOM-DISASTER): Phase this out in favor of, say, real Gradle tasks? Is it possible?
- *   I don't think it's possible to add dependencies *in* a task, but it might be possible to depend on the output *of* a task
+ *  TODO(VOLDELOOM-DISASTER): Ideally this class shouldn't exist.
+ *    The "provider" pattern is fine, but providers take dependencies through their constructor.
+ *    These getters are only used when non-provider bits of code need access, which could be done with more Gradley methods
+ *    (such as querying the contents of a configuration, dependency injection into a task, or whatever)
  */
 public class LoomDependencyManager {
 	public LoomDependencyManager() {

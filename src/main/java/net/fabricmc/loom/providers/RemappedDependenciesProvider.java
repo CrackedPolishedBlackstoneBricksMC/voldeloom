@@ -3,6 +3,7 @@ package net.fabricmc.loom.providers;
 import net.fabricmc.loom.Constants;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.WellKnownLocations;
+import net.fabricmc.loom.task.CleaningTask;
 import net.fabricmc.loom.util.RemappedConfigurationEntry;
 import net.fabricmc.loom.util.TinyRemapperSession;
 import org.gradle.api.Project;
@@ -13,6 +14,8 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -23,7 +26,7 @@ public class RemappedDependenciesProvider extends DependencyProvider {
 		this.libraryProvider = libraryProvider;
 		this.mappingsProvider = mappingsProvider;
 		this.mappedProvider = mappedProvider;
-		this.mappingsSuffix = mappingsProvider.mappingsName + "-" + mappingsProvider.mappingsVersion;
+		this.mappingsSuffix = mappingsProvider.getMappingsName() + "-" + mappingsProvider.getMappingsVersion();
 	}
 	
 	private final String mappingsSuffix;
@@ -124,6 +127,13 @@ public class RemappedDependenciesProvider extends DependencyProvider {
 		
 		if (Files.notExists(output)) {
 			throw new RuntimeException("Failed to remap JAR to " + "named" + " - file not found: " + output.toAbsolutePath());
+		}
+	}
+	
+	public static class RemappedDependenciesCleaningTask extends CleaningTask {
+		@Override
+		public Collection<Path> locationsToDelete() {
+			return Collections.singleton(WellKnownLocations.getRemappedModCache(getProject()));
 		}
 	}
 	
