@@ -28,7 +28,6 @@ import com.google.gson.Gson;
 import net.fabricmc.loom.Constants;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.WellKnownLocations;
-import net.fabricmc.loom.task.CleaningTask;
 import net.fabricmc.loom.util.DownloadSession;
 import net.fabricmc.loom.util.MinecraftVersionInfo;
 import org.gradle.api.GradleException;
@@ -45,12 +44,9 @@ import java.util.List;
 import java.util.Optional;
 
 public class MinecraftProvider extends DependencyProvider {
-	public MinecraftProvider(Project project, LoomGradleExtension extension, ForgeProvider forge) {
+	public MinecraftProvider(Project project, LoomGradleExtension extension) {
 		super(project, extension);
-		this.forge = forge;
 	}
-	
-	private final ForgeProvider forge;
 	
 	private String minecraftVersion;
 	private String minecraftJarStuff;
@@ -60,9 +56,8 @@ public class MinecraftProvider extends DependencyProvider {
 	private Path minecraftJson;
 	private Path minecraftClientJar;
 	private Path minecraftServerJar;
-
-	@Override
-	public void decorateProject() throws Exception {
+	
+	public void decorateProject(ForgeProvider forge) throws Exception {
 		//deps
 		DependencyInfo minecraftDependency = getSingleDependency(Constants.MINECRAFT);
 		minecraftVersion = minecraftDependency.getDependency().getVersion();
@@ -93,6 +88,8 @@ public class MinecraftProvider extends DependencyProvider {
 		} else {
 			downloadJars();
 		}
+		
+		installed = true;
 	}
 	
 	private void downloadMcJson(boolean offline) throws IOException {
@@ -201,11 +198,8 @@ public class MinecraftProvider extends DependencyProvider {
 		}
 	}
 	
-	public static class MinecraftCleaningTask extends CleaningTask {
-		@Override
-		public Collection<Path> locationsToDelete() {
-			MinecraftProvider prov = getLoomGradleExtension().getDependencyManager().getMinecraftProvider();
-			return Arrays.asList(prov.getClientJar(), prov.getServerJar(), prov.minecraftJson, prov.manifests);
-		}
+	@Override
+	protected Collection<Path> pathsToClean() {
+		return andEtags(Arrays.asList(minecraftClientJar, minecraftServerJar, minecraftJson, manifests));
 	}
 }

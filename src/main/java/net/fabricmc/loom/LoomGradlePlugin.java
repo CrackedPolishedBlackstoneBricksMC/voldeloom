@@ -25,17 +25,6 @@
 package net.fabricmc.loom;
 
 import groovy.util.Node;
-import net.fabricmc.loom.providers.AssetsProvider;
-import net.fabricmc.loom.providers.DevLaunchInjectorProvider;
-import net.fabricmc.loom.providers.ForgePatchedAccessTxdProvider;
-import net.fabricmc.loom.providers.ForgePatchedProvider;
-import net.fabricmc.loom.providers.ForgeProvider;
-import net.fabricmc.loom.providers.LibraryProvider;
-import net.fabricmc.loom.providers.MappedProvider;
-import net.fabricmc.loom.providers.MappingsProvider;
-import net.fabricmc.loom.providers.MergedProvider;
-import net.fabricmc.loom.providers.MinecraftProvider;
-import net.fabricmc.loom.providers.RemappedDependenciesProvider;
 import net.fabricmc.loom.task.AbstractDecompileTask;
 import net.fabricmc.loom.task.ConfigurationDebugTask;
 import net.fabricmc.loom.task.CopyCoremodsTask;
@@ -73,8 +62,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -207,29 +194,6 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		//and (if a closure is specified) call the closure to configure the task. Optimization thing, I guess.
 		TaskContainer tasks = project.getTasks();
 		
-		//Cleaning:
-		List<TaskProvider<?>> cleaningTasks = new ArrayList<>(Arrays.asList(
-			tasks.register("cleanAssets", AssetsProvider.AssetCleaningTask.class),
-			tasks.register("cleanDevLaunchInjector", DevLaunchInjectorProvider.DevLaunchInjectorCleaningTask.class),
-			tasks.register("cleanForgePatchedAccessTxd", ForgePatchedAccessTxdProvider.ForgePatchedAccessTxdCleaningTask.class),
-			tasks.register("cleanForgePatched", ForgePatchedProvider.ForgePatchedCleaningTask.class),
-			tasks.register("cleanForge", ForgeProvider.ForgeCleaningTask.class),
-			tasks.register("cleanMinecraftLibraries", LibraryProvider.LibraryCleaningTask.class),
-			tasks.register("cleanMapped", MappedProvider.MappedCleaningTask.class),
-			tasks.register("cleanMappings", MappingsProvider.MappingsCleaningTask.class),
-			tasks.register("cleanMerged", MergedProvider.MergedCleaningTask.class),
-			tasks.register("cleanMinecraft", MinecraftProvider.MinecraftCleaningTask.class),
-			tasks.register("cleanRemappedDependencies", RemappedDependenciesProvider.RemappedDependenciesCleaningTask.class)
-		));
-		tasks.register("cleanEverything").configure(task -> {
-			task.setGroup("fabric-clean");
-			for(TaskProvider<?> t : cleaningTasks) task.dependsOn(t);
-		});
-		tasks.register("cleanEverythingOtherThanAssets").configure(task -> {
-			task.setGroup("fabric-clean");
-			for(TaskProvider<?> t : cleaningTasks) if(!t.getName().equals("cleanAssets")) task.dependsOn(t);
-		});
-		
 		//Utility:
 		tasks.register("migrateMappings", MigrateMappingsTask.class);
 		
@@ -272,6 +236,17 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		tasks.named("idea").configure(t -> t.finalizedBy(tasks.named("genIdeaWorkspace"), tasks.named("genIdeaRuns")));
 		tasks.named("eclipse").configure(t -> t.finalizedBy(tasks.named("genEclipseRuns")));
 		
+		//Cleaning
+		List<TaskProvider<?>> cleaningTasks = extensionUnconfigured.getDependencyManager().installCleaningTasks();
+		tasks.register("cleanEverything").configure(task -> {
+			task.setGroup("fabric-clean");
+			for(TaskProvider<?> t : cleaningTasks) task.dependsOn(t);
+		});
+		tasks.register("cleanEverythingOtherThanAssets").configure(task -> {
+			task.setGroup("fabric-clean");
+			for(TaskProvider<?> t : cleaningTasks) if(!t.getName().equals("cleanAssetsProvider")) task.dependsOn(t);
+		});
+
 		//So. build.gradle files *look* declarative, but recall that they are imperative programs, executed top-to-bottom.
 		//All of the above happens immediately upon encountering the `apply plugin` line. The rest of the script hasn't executed yet.
 		//But what if we want to make choices based on the things the user configured in LoomGradleExtensions?
@@ -282,43 +257,29 @@ public class LoomGradlePlugin implements Plugin<Project> {
 	private void afterEvaluate(Project project) {
 		LoomGradleExtension extension = project.getExtensions().getByType(LoomGradleExtension.class);
 		
-		LoomDependencyManager dmgr = extension.getDependencyManager();
 		//This is where the Magic happens.
-		//These dependencies are dynamic; their content depends on the values of the stuff configured in LoomGradleExtension
-		//Even though the process of creating them *looks* like a task graph, task execution is too late to configure dependencies
-		//Without the ability to leverage Gradle's task graph, doing it all in `afterEvaluate` is the best we can do, regrettably.
-		//At least I can fake a task graph via constructor parameters...
-		
-		//forge jar
-		ForgeProvider forge = dmgr.installForgeProvider(new ForgeProvider(project, extension));
-		//vanilla minecraft
-		MinecraftProvider mc = dmgr.installMinecraftProvider(new MinecraftProvider(project, extension, forge));
-		AssetsProvider assets = dmgr.installAssetsProvider(new AssetsProvider(project, extension, mc));
-		LibraryProvider libs = dmgr.installLibraryProvider(new LibraryProvider(project, extension, mc));
-		MergedProvider merged = dmgr.installMergedProvider(new MergedProvider(project, extension, mc));
-		
-		//forge + vanilla
-		ForgePatchedProvider forgePatched = dmgr.installForgePatchedProvider(new ForgePatchedProvider(project, extension, mc, merged, forge));
-		ForgePatchedAccessTxdProvider patchedTxd = dmgr.installForgePatchedAccessTxdProvider(new ForgePatchedAccessTxdProvider(project, extension, mc, forge, forgePatched));
-		
-		//mappings
-		MappingsProvider mappings = dmgr.installMappingsProvider(new MappingsProvider(project, extension, forgePatched));
-		
-		//forge + vanilla + mappings
-		MappedProvider mapped = dmgr.installMappedProvider(new MappedProvider(project, extension, mc, libs, patchedTxd, mappings));
-		
-		//Dependency remapping jank
-		dmgr.installRemappedDependenciesProvider(new RemappedDependenciesProvider(project, extension, libs, mappings, mapped));
-		
-		//launcher stuff
-		dmgr.installDevLaunchInjectorProvider(new DevLaunchInjectorProvider(project, extension, mc, libs));
+		//These dependencies are dynamic; their content depends on the values of the stuff configured in LoomGradleExtension.
+		//They form a task graph; content of later providers depends on the stuff provided by earlier providers.
+		//Regrettably, we cannot use the real Gradle task graph to configure this stuff, because task execution time is too late to modify project dependencies.
+		LoomDependencyManager dmgr = extension.getDependencyManager();
+		dmgr.installForgeProvider();
+		dmgr.installMinecraftProvider();
+		dmgr.installAssetsProvider();
+		dmgr.installLibraryProvider();
+		dmgr.installMergedProvider();
+		dmgr.installForgePatchedProvider();
+		dmgr.installForgePatchedAccessTxdProvider();
+		dmgr.installMappingsProvider();
+		dmgr.installMappedProvider();
+		dmgr.installRemappedDependenciesProvider();
+		dmgr.installDevLaunchInjectorProvider();
 		
 		//Misc wiring-up of genSources-related tasks.
 		AbstractDecompileTask genSourcesDecompileTask = (AbstractDecompileTask) project.getTasks().getByName("genSourcesDecompile");
 		RemapLineNumbersTask genSourcesRemapLineNumbersTask = (RemapLineNumbersTask) project.getTasks().getByName("genSourcesRemapLineNumbers");
 		Task genSourcesTask = project.getTasks().getByName("genSources");
 		
-		Path mappedJar = mapped.getMappedJar();
+		Path mappedJar = dmgr.getMappedProvider().getMappedJar();
 		Path linemappedJar = getMappedByproduct(extension, "-linemapped.jar");
 		Path sourcesJar = getMappedByproduct(extension, "-sources.jar");
 		Path linemapFile = getMappedByproduct(extension, "-sources.lmap");
@@ -326,7 +287,7 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		genSourcesDecompileTask.setInput(mappedJar);
 		genSourcesDecompileTask.setOutput(sourcesJar);
 		genSourcesDecompileTask.setLineMapFile(linemapFile);
-		genSourcesDecompileTask.setLibraries(libs.getNonNativeLibraries());
+		genSourcesDecompileTask.setLibraries(dmgr.getLibraryProvider().getNonNativeLibraries());
 		
 		genSourcesRemapLineNumbersTask.setInput(mappedJar);
 		genSourcesRemapLineNumbersTask.setLineMapFile(linemapFile);

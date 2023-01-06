@@ -29,7 +29,6 @@ import com.google.gson.JsonObject;
 import net.fabricmc.loom.Constants;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.WellKnownLocations;
-import net.fabricmc.loom.task.CleaningTask;
 import net.fabricmc.loom.util.Checksum;
 import net.fabricmc.loom.util.DownloadSession;
 import net.fabricmc.loom.util.MinecraftVersionInfo;
@@ -43,18 +42,14 @@ import java.util.Arrays;
 import java.util.Collection;
 
 public class AssetsProvider extends DependencyProvider {
-	public AssetsProvider(Project project, LoomGradleExtension extension, MinecraftProvider mc) {
+	public AssetsProvider(Project project, LoomGradleExtension extension) {
 		super(project, extension);
-		this.mc = mc;
 	}
-	
-	private final MinecraftProvider mc;
 	
 	private Path assetIndexFile;
 	private Path thisVersionAssetsDir;
 	
-	@Override
-	public void decorateProject() throws Exception {
+	public void decorateProject(MinecraftProvider mc) throws Exception {
 		MinecraftVersionInfo versionInfo = mc.getVersionManifest();
 		MinecraftVersionInfo.AssetIndex assetIndexInfo = versionInfo.assetIndex;
 		
@@ -131,6 +126,8 @@ public class AssetsProvider extends DependencyProvider {
 			}
 			project.getLogger().lifecycle("|-> Done!");
 		}
+		
+		installed = true;
 	}
 	
 	public Path getAssetIndexFile() {
@@ -141,11 +138,8 @@ public class AssetsProvider extends DependencyProvider {
 		return thisVersionAssetsDir;
 	}
 	
-	public static class AssetCleaningTask extends CleaningTask {
-		@Override
-		public Collection<Path> locationsToDelete() {
-			AssetsProvider prov = getLoomGradleExtension().getDependencyManager().getAssetsProvider();
-			return Arrays.asList(prov.getAssetIndexFile(), prov.getAssetsDir());
-		}
+	@Override
+	protected Collection<Path> pathsToClean() {
+		return Arrays.asList(assetIndexFile, thisVersionAssetsDir);
 	}
 }

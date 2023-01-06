@@ -2,7 +2,6 @@ package net.fabricmc.loom.providers;
 
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.WellKnownLocations;
-import net.fabricmc.loom.task.CleaningTask;
 import net.fabricmc.stitch.merge.JarMerger;
 import org.gradle.api.Project;
 import org.objectweb.asm.AnnotationVisitor;
@@ -29,18 +28,14 @@ import java.util.Collection;
 import java.util.Collections;
 
 public class MergedProvider extends DependencyProvider {
-	public MergedProvider(Project project, LoomGradleExtension extension, MinecraftProvider mc) {
+	public MergedProvider(Project project, LoomGradleExtension extension) {
 		super(project, extension);
-		this.mc = mc;
 	}
-	
-	private final MinecraftProvider mc;
 	
 	private Path mergedUnfixed;
 	private Path merged;
 	
-	@Override
-	public void decorateProject() throws Exception {
+	public void decorateProject(MinecraftProvider mc) throws Exception {
 		//inputs
 		Path client = mc.getClientJar();
 		Path server = mc.getServerJar();
@@ -100,6 +95,8 @@ public class MergedProvider extends DependencyProvider {
 			
 			project.getLogger().lifecycle("|-> Annotation remap success! :)");
 		}
+		
+		installed = true;
 	}
 	
 	public Path getMergedJar() {
@@ -178,11 +175,8 @@ public class MergedProvider extends DependencyProvider {
 		}
 	}
 	
-	public static class MergedCleaningTask extends CleaningTask {
-		@Override
-		public Collection<Path> locationsToDelete() {
-			MergedProvider prov = getLoomGradleExtension().getDependencyManager().getMergedProvider();
-			return Arrays.asList(prov.getMergedJar(), prov.mergedUnfixed);
-		}
+	@Override
+	protected Collection<Path> pathsToClean() {
+		return Arrays.asList(merged, mergedUnfixed);
 	}
 }

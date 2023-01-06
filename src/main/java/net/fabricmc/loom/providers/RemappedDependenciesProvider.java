@@ -3,7 +3,6 @@ package net.fabricmc.loom.providers;
 import net.fabricmc.loom.Constants;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.WellKnownLocations;
-import net.fabricmc.loom.task.CleaningTask;
 import net.fabricmc.loom.util.RemappedConfigurationEntry;
 import net.fabricmc.loom.util.TinyRemapperSession;
 import org.gradle.api.Project;
@@ -20,22 +19,13 @@ import java.util.HashSet;
 import java.util.Set;
 
 public class RemappedDependenciesProvider extends DependencyProvider {
-	
-	public RemappedDependenciesProvider(Project project, LoomGradleExtension extension, LibraryProvider libraryProvider, MappingsProvider mappingsProvider, MappedProvider mappedProvider) {
+	public RemappedDependenciesProvider(Project project, LoomGradleExtension extension) {
 		super(project, extension);
-		this.libraryProvider = libraryProvider;
-		this.mappingsProvider = mappingsProvider;
-		this.mappedProvider = mappedProvider;
-		this.mappingsSuffix = mappingsProvider.getMappingsName() + "-" + mappingsProvider.getMappingsVersion();
 	}
 	
-	private final String mappingsSuffix;
-	private final LibraryProvider libraryProvider;
-	private final MappingsProvider mappingsProvider;
-	private final MappedProvider mappedProvider;
-	
-	@Override
-	public void decorateProject() throws Exception {
+	public void decorateProject(LibraryProvider libraryProvider, MappingsProvider mappingsProvider, MappedProvider mappedProvider) throws Exception {
+		String mappingsSuffix = mappingsProvider.getMappingsName() + "-" + mappingsProvider.getMappingsVersion();
+		
 		//MERGED from ModCompileRemapper in old tools
 		
 		for(RemappedConfigurationEntry entry : Constants.MOD_COMPILE_ENTRIES) {
@@ -49,7 +39,7 @@ public class RemappedDependenciesProvider extends DependencyProvider {
 				Path mappedPath = modStore.resolve(unmappedPath.getFileName().toString() + "-mapped-" + mappingsSuffix + ".jar");
 				
 				try {
-					processMod(unmappedPath, mappedPath, null, null);
+					processMod(unmappedPath, mappedPath, null, null, libraryProvider, mappingsProvider, mappedProvider);
 					project.getDependencies().add(modCompileRemapped.getName(), project.files(mappedPath));
 				} catch (Exception e) {
 					throw new RuntimeException("phooey", e);
@@ -93,9 +83,11 @@ public class RemappedDependenciesProvider extends DependencyProvider {
 //	//			}
 //			}
 		}
+		
+		installed = true;
 	}
 	
-	private void processMod(Path input, Path output, Configuration config, /* TODO */ ResolvedArtifact artifact) throws IOException {
+	private void processMod(Path input, Path output, Configuration config, /* TODO */ ResolvedArtifact artifact, LibraryProvider libraryProvider, MappingsProvider mappingsProvider, MappedProvider mappedProvider) throws IOException {
 		Set<Path> remapClasspath = new HashSet<>();
 		remapClasspath.add(mappedProvider.getMappedJar());
 		remapClasspath.addAll(libraryProvider.getNonNativeLibraries());
@@ -130,11 +122,9 @@ public class RemappedDependenciesProvider extends DependencyProvider {
 		}
 	}
 	
-	public static class RemappedDependenciesCleaningTask extends CleaningTask {
-		@Override
-		public Collection<Path> locationsToDelete() {
-			return Collections.singleton(WellKnownLocations.getRemappedModCache(getProject()));
-		}
+	@Override
+	protected Collection<Path> pathsToClean() {
+		return Collections.singleton(WellKnownLocations.getRemappedModCache(project));
 	}
 	
 //	private void remapArtifact(Configuration config, ResolvedArtifact artifact, String remappedFilename, Path modStore) throws IOException {

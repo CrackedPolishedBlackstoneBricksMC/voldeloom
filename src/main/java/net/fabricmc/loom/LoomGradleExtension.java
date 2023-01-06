@@ -39,8 +39,8 @@ import java.util.function.Supplier;
 
 public class LoomGradleExtension {
 	public LoomGradleExtension(@SuppressWarnings("unused") Project project) { //Gradle reflectively finds this ctor
-		dependencyManager = new LoomDependencyManager();
 		runConfigs = project.container(RunConfig.class, name -> new RunConfig(project, name));
+		dependencyManager = new LoomDependencyManager(project, this);
 	}
 	
 	public boolean remapMod = true;
@@ -49,8 +49,8 @@ public class LoomGradleExtension {
 	public final NamedDomainObjectContainer<RunConfig> runConfigs;
 	
 	//Not to be set in the build.gradle
-	private final List<Path> unmappedModsBuilt = new ArrayList<>();
 	private final LoomDependencyManager dependencyManager;
+	private final List<Path> unmappedModsBuilt = new ArrayList<>();
 	private final MappingSet[] srcMappingCache = new MappingSet[2];
 	private final Mercury[] srcMercuryCache = new Mercury[2];
 

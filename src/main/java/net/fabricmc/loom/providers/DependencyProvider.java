@@ -28,7 +28,10 @@ import com.google.common.collect.Iterables;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import net.fabricmc.loom.LoomGradleExtension;
+import net.fabricmc.loom.LoomGradlePlugin;
+import net.fabricmc.loom.util.LoomTaskExt;
 import org.apache.commons.io.FilenameUtils;
+import org.gradle.api.DefaultTask;
 import org.gradle.api.InvalidUserDataException;
 import org.gradle.api.Project;
 import org.gradle.api.artifacts.Configuration;
@@ -36,40 +39,47 @@ import org.gradle.api.artifacts.Dependency;
 import org.gradle.api.artifacts.DependencySet;
 import org.gradle.api.artifacts.ResolvedDependency;
 import org.gradle.api.artifacts.SelfResolvingDependency;
+import org.gradle.api.tasks.TaskAction;
+import org.gradle.api.tasks.TaskProvider;
 import org.zeroturnaround.zip.ZipUtil;
 
+import javax.inject.Inject;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 public abstract class DependencyProvider {
-	protected final Project project;
-	protected final LoomGradleExtension extension;
-
 	public DependencyProvider(Project project, LoomGradleExtension extension) {
 		this.project = project;
 		this.extension = extension;
 	}
 	
-	public final void decorateProjectOrThrow() {
-		String name = getClass().getSimpleName();
-		project.getLogger().lifecycle(":running dep provider '" + name + "'");
-		
-		try {
-			decorateProject();
-		} catch (Exception e) {
-			throw new RuntimeException("Failed to provide " + name, e);
-		}
+	protected final Project project;
+	protected final LoomGradleExtension extension;
+	
+	//set this to `true` after running the provide method
+	//(which is no longer in this class as `abstract`, because it takes a per-provider argument list)
+	public boolean installed = false;
+	
+	protected abstract Collection<Path> pathsToClean();
+	
+	public final TaskProvider<CleaningTask> addCleaningTask() {
+		String nameFunny = getClass().getSimpleName();
+		nameFunny = nameFunny.substring(0, 1).toUpperCase(Locale.ROOT) + nameFunny.substring(1);
+		return project.getTasks().register("clean" + nameFunny, CleaningTask.class, this);
 	}
-
-	public abstract void decorateProject() throws Exception;
+	
+	///
 	
 	protected DependencyInfo getSingleDependency(String targetConfig) {
 		Configuration config = project.getConfigurations().getByName(targetConfig);
@@ -263,6 +273,29 @@ public abstract class DependencyProvider {
 		@Override
 		public String getResolvedDepString() {
 			return getDepString();
+		}
+	}
+	
+	protected Collection<Path> andEtags(Collection<Path> in) {
+		ArrayList<Path> out = new ArrayList<>(in);
+		for(Path i : in) {
+			out.add(i.resolveSibling(i.getFileName().toString() + ".etag"));
+		}
+		return out;
+	}
+	
+	public abstract static class CleaningTask extends DefaultTask implements LoomTaskExt {
+		@Inject
+		public CleaningTask(DependencyProvider prov) {
+			setGroup("fabric-clean");
+			this.prov = prov;
+		}
+		
+		private final DependencyProvider prov;
+		
+		@TaskAction
+		public void delete() {
+			LoomGradlePlugin.delete(getProject(), (Object[]) prov.pathsToClean().toArray(new Path[0]));
 		}
 	}
 }

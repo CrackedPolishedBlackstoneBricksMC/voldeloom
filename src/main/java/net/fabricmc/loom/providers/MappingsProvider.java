@@ -27,7 +27,6 @@ package net.fabricmc.loom.providers;
 import net.fabricmc.loom.Constants;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.WellKnownLocations;
-import net.fabricmc.loom.task.CleaningTask;
 import net.fabricmc.loom.util.mcp.AcceptorProvider;
 import net.fabricmc.loom.util.mcp.CsvApplierAcceptor;
 import net.fabricmc.loom.util.mcp.SrgMappingProvider;
@@ -49,12 +48,10 @@ import java.util.Collection;
 import java.util.Collections;
 
 public class MappingsProvider extends DependencyProvider {
-	public MappingsProvider(Project project, LoomGradleExtension extension, ForgePatchedProvider forgePatched) {
+	public MappingsProvider(Project project, LoomGradleExtension extension) {
 		super(project, extension);
-		this.forgePatched = forgePatched;
 	}
 	
-	private final ForgePatchedProvider forgePatched;
 	private final Path mappingsDir = WellKnownLocations.getUserCache(project).resolve("mappings");
 	
 	private String mappingsName;
@@ -63,9 +60,8 @@ public class MappingsProvider extends DependencyProvider {
 	
 	private Path tinyMappings;
 	private Path tinyMappingsJar;
-
-	@Override
-	public void decorateProject() throws Exception {
+	
+	public void decorateProject(ForgePatchedProvider forgePatched) throws Exception {
 		//deps
 		DependencyInfo mappingsDependency = getSingleDependency(Constants.MAPPINGS);
 		
@@ -169,6 +165,8 @@ public class MappingsProvider extends DependencyProvider {
 		
 		//add it as a project dependency TODO move
 		project.getDependencies().add(Constants.MAPPINGS_FINAL, project.files(tinyMappingsJar));
+		
+		installed = true;
 	}
 	
 	public TinyTree getMappings() {
@@ -191,11 +189,8 @@ public class MappingsProvider extends DependencyProvider {
 		return tinyMappingsJar;
 	}
 	
-	public static class MappingsCleaningTask extends CleaningTask {
-		@Override
-		public Collection<Path> locationsToDelete() {
-			MappingsProvider prov = getLoomGradleExtension().getDependencyManager().getMappingsProvider();
-			return Arrays.asList(prov.getTinyMappings(), prov.getTinyMappingsJar());
-		}
+	@Override
+	protected Collection<Path> pathsToClean() {
+		return Arrays.asList(tinyMappings, tinyMappingsJar);
 	}
 }

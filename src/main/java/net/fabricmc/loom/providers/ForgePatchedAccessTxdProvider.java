@@ -2,7 +2,6 @@ package net.fabricmc.loom.providers;
 
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.WellKnownLocations;
-import net.fabricmc.loom.task.CleaningTask;
 import net.fabricmc.loom.util.mcp.ForgeAccessTransformerSet;
 import org.gradle.api.Project;
 import org.objectweb.asm.ClassReader;
@@ -23,21 +22,13 @@ import java.util.Collection;
 import java.util.Collections;
 
 public class ForgePatchedAccessTxdProvider extends DependencyProvider {
-	public ForgePatchedAccessTxdProvider(Project project, LoomGradleExtension extension, MinecraftProvider mc, ForgeProvider forge, ForgePatchedProvider forgePatched) {
+	public ForgePatchedAccessTxdProvider(Project project, LoomGradleExtension extension) {
 		super(project, extension);
-		this.mc = mc;
-		this.forge = forge;
-		this.forgePatched = forgePatched;
 	}
-	
-	private final MinecraftProvider mc;
-	private final ForgeProvider forge;
-	private final ForgePatchedProvider forgePatched;
 	
 	private Path accessTransformedMc;
 	
-	@Override
-	public void decorateProject() throws Exception {
+	public void decorateProject(MinecraftProvider mc, ForgeProvider forge, ForgePatchedProvider forgePatched) throws Exception {
 		//inputs
 		String jarStuff = mc.getJarStuff();
 		ForgeAccessTransformerSet unmappedAts = forge.getUnmappedAccessTransformers();
@@ -80,17 +71,16 @@ public class ForgePatchedAccessTxdProvider extends DependencyProvider {
 			
 			project.getLogger().lifecycle("|-> Access transformation success! :)");
 		}
+		
+		installed = true;
 	}
 	
 	public Path getTransformedJar() {
 		return accessTransformedMc;
 	}
 	
-	public static class ForgePatchedAccessTxdCleaningTask extends CleaningTask {
-		@Override
-		public Collection<Path> locationsToDelete() {
-			ForgePatchedAccessTxdProvider prov = getLoomGradleExtension().getDependencyManager().getForgePatchedAccessTxdProvider();
-			return Collections.singleton(prov.getTransformedJar());
-		}
+	@Override
+	protected Collection<Path> pathsToClean() {
+		return Collections.singleton(accessTransformedMc);
 	}
 }

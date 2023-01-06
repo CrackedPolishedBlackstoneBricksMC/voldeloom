@@ -27,7 +27,6 @@ package net.fabricmc.loom.providers;
 import net.fabricmc.loom.Constants;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.WellKnownLocations;
-import net.fabricmc.loom.task.CleaningTask;
 import net.fabricmc.loom.util.TinyRemapperSession;
 import net.fabricmc.mapping.tree.TinyTree;
 import org.gradle.api.Project;
@@ -41,24 +40,14 @@ import java.util.List;
 import java.util.function.Predicate;
 
 public class MappedProvider extends DependencyProvider {
-	public MappedProvider(Project project, LoomGradleExtension extension, MinecraftProvider mc, LibraryProvider libs, ForgePatchedAccessTxdProvider patchedTxd, MappingsProvider mappings) {
+	public MappedProvider(Project project, LoomGradleExtension extension) {
 		super(project, extension);
-		this.mc = mc;
-		this.libs = libs;
-		this.patchedTxd = patchedTxd;
-		this.mappings = mappings;
 	}
-	
-	private final MinecraftProvider mc;
-	private final LibraryProvider libs;
-	private final ForgePatchedAccessTxdProvider patchedTxd;
-	private final MappingsProvider mappings;
 	
 	private Path minecraftMappedJar;
 	private Path minecraftIntermediaryJar;
 
-	@Override
-	public void decorateProject() throws Exception {
+	public void decorateProject(MinecraftProvider mc, LibraryProvider libs, ForgePatchedAccessTxdProvider patchedTxd, MappingsProvider mappings) throws Exception {
 		//inputs
 		List<Path> libPaths = new ArrayList<>(libs.getNonNativeLibraries());
 		Path forgePatchedJar = patchedTxd.getTransformedJar();
@@ -121,6 +110,8 @@ public class MappedProvider extends DependencyProvider {
 		//TODO: move this out?
 		project.getRepositories().flatDir(repository -> repository.dir(mappedDestDir));
 		project.getDependencies().add(Constants.MINECRAFT_NAMED, project.getDependencies().module("net.minecraft:minecraft:" + mappedJarNameKinda));
+		
+		installed = true;
 	}
 	
 	public Path getMappedJar() {
@@ -131,11 +122,8 @@ public class MappedProvider extends DependencyProvider {
 		return minecraftIntermediaryJar;
 	}
 	
-	public static class MappedCleaningTask extends CleaningTask {
-		@Override
-		public Collection<Path> locationsToDelete() {
-			MappedProvider prov = getLoomGradleExtension().getDependencyManager().getMappedProvider();
-			return Arrays.asList(prov.getMappedJar(), prov.getIntermediaryJar());
-		}
+	@Override
+	protected Collection<Path> pathsToClean() {
+		return Arrays.asList(minecraftMappedJar, minecraftIntermediaryJar);
 	}
 }

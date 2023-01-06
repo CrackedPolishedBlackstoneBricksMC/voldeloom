@@ -2,7 +2,6 @@ package net.fabricmc.loom.providers;
 
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.WellKnownLocations;
-import net.fabricmc.loom.task.CleaningTask;
 import org.gradle.api.Project;
 
 import java.io.IOException;
@@ -19,21 +18,13 @@ import java.util.Collection;
 import java.util.Collections;
 
 public class ForgePatchedProvider extends DependencyProvider {
-	public ForgePatchedProvider(Project project, LoomGradleExtension extension, MinecraftProvider mc, MergedProvider merged, ForgeProvider forge) {
+	public ForgePatchedProvider(Project project, LoomGradleExtension extension) {
 		super(project, extension);
-		this.mc = mc;
-		this.merged = merged;
-		this.forge = forge;
 	}
-	
-	private final MinecraftProvider mc;
-	private final MergedProvider merged;
-	private final ForgeProvider forge;
 	
 	private Path patched;
 	
-	@Override
-	public void decorateProject() throws Exception {
+	public void decorateProject(MinecraftProvider mc, MergedProvider merged, ForgeProvider forge) throws Exception {
 		//inputs
 		String jarStuff = mc.getJarStuff();
 		Path mergedJar = merged.getMergedJar();
@@ -100,17 +91,16 @@ public class ForgePatchedProvider extends DependencyProvider {
 			
 			project.getLogger().lifecycle("|-> Patch success!");
 		}
+		
+		installed = true;
 	}
 	
 	public Path getPatchedJar() {
 		return patched;
 	}
 	
-	public static class ForgePatchedCleaningTask extends CleaningTask {
-		@Override
-		public Collection<Path> locationsToDelete() {
-			ForgePatchedProvider prov = getLoomGradleExtension().getDependencyManager().getForgePatchedProvider();
-			return Collections.singleton(prov.getPatchedJar());
-		}
+	@Override
+	protected Collection<Path> pathsToClean() {
+		return Collections.singleton(patched);
 	}
 }

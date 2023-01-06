@@ -26,7 +26,6 @@ package net.fabricmc.loom.providers;
 
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.WellKnownLocations;
-import net.fabricmc.loom.task.CleaningTask;
 import org.gradle.api.Project;
 
 import java.io.IOException;
@@ -42,19 +41,13 @@ import java.util.Map;
 import java.util.StringJoiner;
 
 public class DevLaunchInjectorProvider extends DependencyProvider {
-	public DevLaunchInjectorProvider(Project project, LoomGradleExtension extension, MinecraftProvider mc, LibraryProvider libs) {
+	public DevLaunchInjectorProvider(Project project, LoomGradleExtension extension) {
 		super(project, extension);
-		this.mc = mc;
-		this.libs = libs;
 	}
 	
-	private final MinecraftProvider mc;
-	private final LibraryProvider libs;
-	
 	private final Path devLauncherConfigFile = WellKnownLocations.getRootProjectPersistentCache(project).resolve("launch.cfg");
-
-	@Override
-	public void decorateProject() throws IOException {
+	
+	public void decorateProject(MinecraftProvider mc, LibraryProvider libs) throws IOException {
 		final LaunchConfig launchConfig = new LaunchConfig()
 				.property("fabric.development", "true")
 
@@ -69,6 +62,7 @@ public class DevLaunchInjectorProvider extends DependencyProvider {
 		Files.write(devLauncherConfigFile, launchConfig.asString().getBytes(StandardCharsets.UTF_8));
 
 		//addDependency("net.fabricmc:dev-launch-injector:" + Constants.DEV_LAUNCH_INJECTOR_VERSION, "runtimeOnly");
+		installed = true;
 	}
 	
 	public Path config() {
@@ -113,11 +107,8 @@ public class DevLaunchInjectorProvider extends DependencyProvider {
 		}
 	}
 	
-	public static class DevLaunchInjectorCleaningTask extends CleaningTask {
-		@Override
-		public Collection<Path> locationsToDelete() {
-			DevLaunchInjectorProvider prov = getLoomGradleExtension().getDependencyManager().getDevLaunchInjectorProvider();
-			return Collections.singleton(prov.config());
-		}
+	@Override
+	protected Collection<Path> pathsToClean() {
+		return Collections.singleton(devLauncherConfigFile);
 	}
 }

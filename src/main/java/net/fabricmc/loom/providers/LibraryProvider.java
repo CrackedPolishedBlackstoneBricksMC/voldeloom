@@ -27,7 +27,6 @@ package net.fabricmc.loom.providers;
 import net.fabricmc.loom.Constants;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.WellKnownLocations;
-import net.fabricmc.loom.task.CleaningTask;
 import net.fabricmc.loom.util.DownloadSession;
 import net.fabricmc.loom.util.MinecraftVersionInfo;
 import org.gradle.api.Project;
@@ -41,18 +40,14 @@ import java.util.Collections;
 import java.util.HashSet;
 
 public class LibraryProvider extends DependencyProvider {
-	public LibraryProvider(Project project, LoomGradleExtension extension, MinecraftProvider mc) {
+	public LibraryProvider(Project project, LoomGradleExtension extension) {
 		super(project, extension);
-		this.mc = mc;
 	}
-	
-	private final MinecraftProvider mc;
 	
 	private final Collection<Path> nonNativeLibs = new HashSet<>();
 	private Path nativesDir;
 	
-	@Override
-	public void decorateProject() throws Exception {
+	public void decorateProject(MinecraftProvider mc) throws Exception {
 		MinecraftVersionInfo versionInfo = mc.getVersionManifest();
 		
 		nativesDir = WellKnownLocations.getUserCache(project).resolve("natives").resolve(mc.getVersion());
@@ -99,6 +94,8 @@ public class LibraryProvider extends DependencyProvider {
 				project.getDependencies().add(Constants.MINECRAFT_DEPENDENCIES, depToAdd);
 			}
 		}
+		
+		installed = true;
 	}
 
 	//TODO: Voldeloom had a bug where it didn't actually write anything to this collection lol
@@ -112,14 +109,10 @@ public class LibraryProvider extends DependencyProvider {
 		return nativesDir;
 	}
 	
-	public static class LibraryCleaningTask extends CleaningTask {
-		@Override
-		public Collection<Path> locationsToDelete() {
-			LibraryProvider prov = getLoomGradleExtension().getDependencyManager().getLibraryProvider();
-			
-			ArrayList<Path> funny = new ArrayList<>(prov.getNonNativeLibraries());
-			funny.add(prov.getNativesDir());
-			return funny;
-		}
+	@Override
+	protected Collection<Path> pathsToClean() {
+		ArrayList<Path> funny = new ArrayList<>(nonNativeLibs);
+		funny.add(nativesDir);
+		return funny;
 	}
 }

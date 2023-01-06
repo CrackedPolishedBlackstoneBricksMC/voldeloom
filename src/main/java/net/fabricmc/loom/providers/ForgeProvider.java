@@ -2,7 +2,6 @@ package net.fabricmc.loom.providers;
 
 import net.fabricmc.loom.Constants;
 import net.fabricmc.loom.LoomGradleExtension;
-import net.fabricmc.loom.task.CleaningTask;
 import net.fabricmc.loom.util.mcp.ForgeAccessTransformerSet;
 import org.gradle.api.Project;
 
@@ -25,7 +24,6 @@ public class ForgeProvider extends DependencyProvider {
 	private String forgeVersion;
 	private ForgeAccessTransformerSet unmappedAts;
 	
-	@Override
 	public void decorateProject() throws Exception {
 		DependencyInfo forgeDependency = getSingleDependency(Constants.FORGE);
 		forge = forgeDependency.resolveSinglePath().orElseThrow(() -> new RuntimeException("No forge dep!"));
@@ -41,6 +39,8 @@ public class ForgeProvider extends DependencyProvider {
 			unmappedAts.load(forgeAt);
 		}
 		project.getLogger().lifecycle("|-> AT parse success! :)");
+		
+		installed = true;
 	}
 	
 	public Path getJar() {
@@ -55,11 +55,8 @@ public class ForgeProvider extends DependencyProvider {
 		return unmappedAts;
 	}
 	
-	public static class ForgeCleaningTask extends CleaningTask {
-		@Override
-		public Collection<Path> locationsToDelete() {
-			ForgeProvider prov = getLoomGradleExtension().getDependencyManager().getForgeProvider();
-			return Collections.singleton(prov.getJar());
-		}
+	@Override
+	protected Collection<Path> pathsToClean() {
+		return Collections.singleton(forge);
 	}
 }
