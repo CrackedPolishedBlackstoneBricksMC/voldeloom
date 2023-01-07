@@ -81,10 +81,6 @@ public class RemappedConfigurationEntry {
 		return configurations.maybeCreate(getSourceConfiguration());
 	}
 	
-	public Configuration getOrCreateRemappedConfiguration(ConfigurationContainer configurations) {
-		return configurations.maybeCreate(getRemappedConfiguration());
-	}
-
 	public Configuration getOrCreateTargetConfiguration(ConfigurationContainer configurations) {
 		//todo huh
 		if (configurations.findByName(targetConfiguration) == null) {
@@ -92,5 +88,9 @@ public class RemappedConfigurationEntry {
 		} else {
 			return configurations.maybeCreate(targetConfiguration);
 		}
+	}
+	
+	public Configuration getOrCreateRemappedConfiguration(ConfigurationContainer configurations) {
+		return configurations.maybeCreate(getRemappedConfiguration());
 	}
 }

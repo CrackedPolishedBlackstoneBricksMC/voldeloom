@@ -54,6 +54,21 @@ What I'd like to add:
   * Possibly ship a launchwrapper injector that makes Forge, e.g. scan for coremods from the classpath instead of just that one coremods folder, dont attempt to download libraries, etc
 * (if i wanna get really silly) Use Forge's secret access transformer command-line program instead of maintaining an access transformer parser
 
+# Differences between this toolchain and period-accurate Forge
+
+Basically this uses a more Fabricy "do as much as possible with binaries" approach. This partially owes to the project's roots in Fabric Loom, which is a completely binary-based modding toolchain, but also because it's a good idea.
+
+* Operating at the level of whole class files, we install Forge the end-user way by downloading Minecraft, pasting the release Forge jar on top, and deleting META-INF.
+* Operating inside each class file, we then apply dev-environment creature-comforts like statically applied access transformers, remapping to MCP, blah blah.
+* Only *then* do we even *think* about touching Fernflower.
+  * It's even optional; `genSources` is not required to compile a mod.
+
+One exception to this hierarchy is that we merge the client and server jars first (using FabricMC's JarMerger) and paste Forge's files on top of the merged jar, when the period-accurate installation process would probably paste Forge on top of merely a client jar or server jar. This is seamless because Forge's class-overwrites were evidently computed against a merged jar in the first place (see `in.class`, which ships a `SideOnly` annotation on a vanilla method).
+
+Forge's period-accurate installation process is much more source-based - the game is immediately decompiled using a known Fernflower version (I think some binary remapping is done using a tool called Retroguard), source-patches are applied to fill decompiler gaps + to patch in Forge's features, the rest of remapping is performed using textual find-and-replace, and the whole thing is fed back to `javac` to produce the jar you run in development. This was done using some Python 2 scripts and binaries that you'd download alongside the forge/mcp install and trigger from your Ant build.
+
+These days we have a much more well-rounded set of class binary-manipulation tools available straight off-the-shelf, like `tiny-remapper`, `JarMerger`, Java's `ZipFileSystem`, etc, that make working with class binaries very expressive and fun. There isn't much reason to drop back to source files.
+
 ## Sample projects
 
 TODO: there's also atm only one sample project, for 1.4.7
@@ -412,6 +427,52 @@ well in voldeloom there are only two. and there's *always* two, so it always end
 Why weren't these written as tasks? Probably cause its too late to add dependencies when task execution begins. So you need some sort of franken system that happens in `afterEvaluate`
 
 I feel like this system either *wants* to be backed by a task graph, or *wants* to be simplified into straight-shot control flow, because right now it's some mixture of both where it's technically broken up into task-like pieces, but they actually have an ordering anyway
+
+# (back to new notes) How does modCompile and friends work
+
+Constants.MOD_COMPILE_ENTRIES contains a table of `RemappedConfigurationEntry`s. Recall that a Configuration is a pile of dependencies.
+
+Each entry consists of:
+
+* a "source configuration" like `modImplementation`
+* a "target configuration" like `implementation`
+* a "remapped configuration" like `modImplementationMapped`
+* boolean for whether it's on the compilation classpath, here `true`
+* the maven scope that it roughly maps onto (`compile`, `runtime`, or none; here `compile`)
+* (my addition) whether it's a coremod config entry, here `false`
+
+The target configuration extends from the remapped config; here `implementation` extends from `modImplementationMapped`. Also, if the entry is on the compilation classpath, the configuration named `modCompileClasspath` extends from the source configuration, and the configuration named `modCompileClasspathMapped` extends from the remapped configuration.
+
+Developers usually interface with this system by adding mods to the source configuration, like using `modImplementation "vazkii:Botania:12345"` to declare a dependency on Botania. The expectation is that this artifact points to a mod distributed in the release namespace, and the intention is that it will be fed through the same remapping process that Minecraft was fed through, to bring it into the named namespace.
+
+Functionally this means:
+* take each of the standard gradle Java dependency scopes (`implementation`/`api`/`runtimeOnly`/`compileOnly`, and also `compile` for legacy reasons i should probaby nix)
+* derive a "source configuration" from it that holds incoming modded artifacts
+* derive a "remapped configuration" from it that holds remapped-to-current-namespace modded artifacts - this config is made a *part* of the standard Java dependency scope
+
+The job of RemappedDependenciesProvider is to locate artifacts in the source configurations, remap them, and dump them into in the remapped configurations.
+
+#### `Constants.MOD_COMPILE_ENTRIES` is touched in five places
+
+* once in LoomGradlePlugin to set up the above relationships
+* again in LoomGradlePlugin to apply their maven scopes
+* once in RemappedDependenciesProvider to enumerate mods to remap
+* again in RemappedDependenciesProvider to enumerate the mod remap classpath (which seems unnecessary, because isn't that what something like `modCompileClasspath` is for? i can make something like `modRemapClasspath` that unconditionally contains every source config)
+* once in CopyCoremodsTask to implement the kludge where remapped coremod jars are copied into the `run/coremods` folder for Forge to find
+
+It probably *should* be touched in `RunTask` to implement the other part of that kludge, where things in `coremods` are left off the runtime classpath. Basically a `coremodCompile` dependency will turn up on the runtime classpath due to (this is why i built the graphviz task) `RemappedDependenciesProvider` producing a version in `coremodCompileMapped`, which is extended by `implementation`, which is extended by `runtimeClasspath`, which is the task RunTask uses to enumerate mods.
+
+### Questions and notes
+
+So. How good is this structure.
+
+Arguably the only important factors for a *remapped* mod are "is it on the mod compile classpath" and "does it turn up at runtime". There's two ways it can show up at runtime: either by being put on the classpath, or by being copied into the `coremods` folder for FML's coremod scanner to find.
+
+These don't have to be defined ahead-of-time, right? The important part is a) inheritance relations are set up and b) `RemappedDependenciesProvider` can find it, but it's nothing that can't be done in, say, `LoomGradleExtension`? Modders messing with their own configurations and source-set stuff should be able to add their own remapping versions of them too.
+
+`coremod` configs should *never* appear on things extended by `runtimeClasspath` or Forge will notice and complain about duplicate mods. This means no `runtimeOnly` and no `implementation`. If this is done, the silly hack in `RunTask` won't be needed.
+
+For completeness's sake, (this is regular gradle stuff) the Venn diagram has `compileOnly` in the circle labeled `compileClasspath`, `runtimeOnly` in the circle labeled `runtimeClasspath`, and `implementation` in the intersection because it ends up on both classpaths. (I'm not sure where `api` fits in actually, some goofy hack is currently making it extend `implementation` in voldeloom right now)
 
 ## ?
 
