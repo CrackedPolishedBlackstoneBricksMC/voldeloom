@@ -60,7 +60,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * Dependency providers are is a Loom concept for "things that have to run in afterEvaluate".
+ * Dependency providers are a Loom concept for "things that have to run in afterEvaluate".
  * 
  * @see net.fabricmc.loom.LoomDependencyManager
  */
