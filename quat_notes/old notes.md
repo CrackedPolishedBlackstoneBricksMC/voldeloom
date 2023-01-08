@@ -1,3 +1,51 @@
+## How does modCompile and friends work
+
+`Constants.MOD_COMPILE_ENTRIES` contains a table of `RemappedConfigurationEntry`s. Recall that a Configuration is a pile of dependencies.
+
+Each entry consists of:
+
+* a "source configuration" like `modImplementation`
+* a "target configuration" like `implementation`
+* a "remapped configuration" like `modImplementationMapped`
+* boolean for whether it's on the compilation classpath, here `true`
+* the maven scope that it roughly maps onto (`compile`, `runtime`, or none; here `compile`)
+* (my addition) whether it's a coremod config entry, here `false`
+
+The target configuration extends from the remapped config; here `implementation` extends from `modImplementationMapped`. Also, if the entry is on the compilation classpath, the configuration named `modCompileClasspath` extends from the source configuration, and the configuration named `modCompileClasspathMapped` extends from the remapped configuration.
+
+Developers usually interface with this system by adding mods to the source configuration, like using `modImplementation "vazkii:Botania:12345"` to declare a dependency on Botania. The expectation is that this artifact points to a mod distributed in the release namespace, and the intention is that it will be fed through the same remapping process that Minecraft was fed through, to bring it into the named namespace.
+
+Functionally this means:
+* take each of the standard gradle Java dependency scopes (`implementation`/`api`/`runtimeOnly`/`compileOnly`, and also `compile` for legacy reasons i should probaby nix)
+* derive a "source configuration" from it that holds incoming modded artifacts
+* derive a "remapped configuration" from it that holds remapped-to-current-namespace modded artifacts - this config is made a *part* of the standard Java dependency scope
+
+The job of RemappedDependenciesProvider is to locate artifacts in the source configurations, remap them, and dump them into in the remapped configurations.
+
+#### `Constants.MOD_COMPILE_ENTRIES` is touched in five places
+
+* once in LoomGradlePlugin to set up the above relationships
+* again in LoomGradlePlugin to apply their maven scopes
+* once in RemappedDependenciesProvider to enumerate mods to remap
+* again in RemappedDependenciesProvider to enumerate the mod remap classpath (which seems unnecessary, because isn't that what something like `modCompileClasspath` is for? i can make something like `modRemapClasspath` that unconditionally contains every source config)
+* once in CopyCoremodsTask to implement the kludge where remapped coremod jars are copied into the `run/coremods` folder for Forge to find
+
+It probably *should* be touched in `RunTask` to implement the other part of that kludge, where things in `coremods` are left off the runtime classpath. Basically a `coremodCompile` dependency will turn up on the runtime classpath due to (this is why i built the graphviz task) `RemappedDependenciesProvider` producing a version in `coremodCompileMapped`, which is extended by `implementation`, which is extended by `runtimeClasspath`, which is the task RunTask uses to enumerate mods.
+
+`modCompileClasspath` and `modCompileClasspathMapped` seem to go unused.
+
+### Questions and notes
+
+So. How good is this structure.
+
+Arguably the only important factors for a *remapped* mod are "is it on the mod compile classpath" and "does it turn up at runtime". There's two ways it can show up at runtime: either by being put on the classpath, or by being copied into the `coremods` folder for FML's coremod scanner to find.
+
+These don't have to be defined ahead-of-time, right? The important part is a) inheritance relations are set up and b) `RemappedDependenciesProvider` can find it, but it's nothing that can't be done in, say, `LoomGradleExtension`? Modders messing with their own configurations and source-set stuff should be able to add their own remapping versions of them too.
+
+`coremod` configs should *never* appear on things extended by `runtimeClasspath` or Forge will notice and complain about duplicate mods. This means no `runtimeOnly` and no `implementation`. If this is done, the silly hack in `RunTask` won't be needed.
+
+For completeness's sake, (this is regular gradle stuff) the Venn diagram has `compileOnly` in the circle labeled `compileClasspath`, `runtimeOnly` in the circle labeled `runtimeClasspath`, and `implementation` in the intersection because it ends up on both classpaths. (I'm not sure where `api` fits in actually, some goofy hack is currently making it extend `implementation` in voldeloom right now)
+
 ## gradle support woes
 
 Gradle 7 has `toolchains`, a very appealing feature that allows the build environment to use an arbitrary version of java. in Hoppers I used a Java 11 build environment because it was the newest one that can target Java 6 bytecode, and it worked WAY better than i thought it would. gradle 7 also has other breaking changes that make it kinda a pain to deal with sometimes. It does support java 8 execution environments.

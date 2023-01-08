@@ -48,6 +48,7 @@ import java.util.function.Supplier;
 public class LoomGradleExtension {
 	public LoomGradleExtension(@SuppressWarnings("unused") Project project) { //Gradle reflectively finds this ctor
 		runConfigs = project.container(RunConfig.class, name -> new RunConfig(project, name));
+		remappedConfigurationEntries = project.container(RemappedConfigurationEntry.class, inputName -> new RemappedConfigurationEntry(project, inputName));
 		dependencyManager = new LoomDependencyManager(project, this);
 	}
 	
@@ -89,6 +90,11 @@ public class LoomGradleExtension {
 	 */
 	public final NamedDomainObjectContainer<RunConfig> runConfigs;
 	
+	/**
+	 * Holder for remapped configuration entries
+	 */
+	public final NamedDomainObjectContainer<RemappedConfigurationEntry> remappedConfigurationEntries;
+	
 	private final LoomDependencyManager dependencyManager;
 	private final List<Path> unmappedModsBuilt = new ArrayList<>();
 	private final MappingSet[] srcMappingCache = new MappingSet[2];
@@ -114,10 +120,14 @@ public class LoomGradleExtension {
 		return Collections.unmodifiableList(unmappedModsBuilt);
 	}
 	
-	//gradle api
-	@SuppressWarnings("unused")
+	@SuppressWarnings("unused") //Gradle api
 	public void runs(Action<NamedDomainObjectContainer<RunConfig>> action) {
 		action.execute(runConfigs);
+	}
+	
+	@SuppressWarnings("unused") //Gradle api
+	public void remappedConfigs(Action<NamedDomainObjectContainer<RemappedConfigurationEntry>> action) {
+		action.execute(remappedConfigurationEntries);
 	}
 	
 	public LoomDependencyManager getDependencyManager() {

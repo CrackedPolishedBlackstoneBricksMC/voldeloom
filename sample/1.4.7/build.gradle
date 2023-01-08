@@ -32,7 +32,7 @@ dependencies {
 	forge "net.minecraftforge:forge:${forgeVersion}:universal@zip"
 	mappings "net.minecraftforge:forge:${forgeVersion}:src@zip"
 	
-	coremodCompile files("dep_testin/ears-forge-1.4-1.4.5_01.jar")
+	coremodImplementation files("dep_testin/ears-forge-1.4-1.4.5_01.jar")
 }
 
 minecraft {

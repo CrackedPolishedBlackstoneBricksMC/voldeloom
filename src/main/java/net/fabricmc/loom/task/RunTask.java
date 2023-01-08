@@ -50,15 +50,12 @@ public abstract class RunTask extends JavaExec implements LoomTaskExt {
 		//Classpath
 		List<String> classpath = new ArrayList<>();
 
-		//TODO this should also go in RunConfig#cook
+		//TODO, this should also go in RunConfig#cook, one purpose of this is picking up on mod dependencies 
 		for(File file : getProject().getConfigurations().getByName("runtimeClasspath").getFiles()) {
-			//todo Pretty big hack to skip putting coremods on the classpath when they're already in the coremods folder
-			// Need to find a better way to do this tbh
-			Path coremodsDir = config.resolveRunDir().resolve("coremods");
-			if(!Files.exists(coremodsDir.resolve(file.getName()))) {
-				classpath.add(file.getAbsolutePath());
-			}
+			classpath.add(file.getAbsolutePath());
 		}
+		
+		//TODO what is this about
 		for (Path file : extension.getUnmappedMods()) {
 			if (Files.isRegularFile(file)) {
 				classpath.add(file.toFile().getAbsolutePath());

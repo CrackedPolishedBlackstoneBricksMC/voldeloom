@@ -2,8 +2,8 @@ package net.fabricmc.loom.providers;
 
 import net.fabricmc.loom.Constants;
 import net.fabricmc.loom.LoomGradleExtension;
+import net.fabricmc.loom.RemappedConfigurationEntry;
 import net.fabricmc.loom.WellKnownLocations;
-import net.fabricmc.loom.util.RemappedConfigurationEntry;
 import net.fabricmc.loom.util.TinyRemapperSession;
 import org.gradle.api.Project;
 import org.gradle.api.artifacts.Configuration;
@@ -33,19 +33,18 @@ public class RemappedDependenciesProvider extends DependencyProvider {
 		
 		//MERGED from ModCompileRemapper in old tools
 		
-		for(RemappedConfigurationEntry entry : Constants.MOD_COMPILE_ENTRIES) {
+		for(RemappedConfigurationEntry entry : extension.remappedConfigurationEntries) {
 			Path modStore = WellKnownLocations.getRemappedModCache(project);
 			
-			Configuration modCompile = entry.getOrCreateSourceConfiguration(project.getConfigurations());
-			Configuration modCompileRemapped = entry.getOrCreateRemappedConfiguration(project.getConfigurations());
+			Configuration inputConfig = entry.getInputConfig();
+			Configuration outputConfig = entry.getOutputConfig();
 			
-			for(File unmappedFile : modCompile.getResolvedConfiguration().getFiles()) {
-				Path unmappedPath = unmappedFile.toPath();
-				Path mappedPath = modStore.resolve(unmappedPath.getFileName().toString() + "-mapped-" + mappingsSuffix + ".jar");
-				
+			for(File unmappedFile : inputConfig.getResolvedConfiguration().getFiles()) {
 				try {
+					Path unmappedPath = unmappedFile.toPath();
+					Path mappedPath = modStore.resolve(unmappedPath.getFileName().toString() + "-mapped-" + mappingsSuffix + ".jar");
 					processMod(unmappedPath, mappedPath, null, null, minecraftDependenciesProvider, mappingsProvider, mappedProvider);
-					project.getDependencies().add(modCompileRemapped.getName(), project.files(mappedPath));
+					project.getDependencies().add(outputConfig.getName(), project.files(mappedPath));
 				} catch (Exception e) {
 					throw new RuntimeException("phooey", e);
 				}
@@ -53,7 +52,7 @@ public class RemappedDependenciesProvider extends DependencyProvider {
 			
 			//TODO old code is below (that more-or-less correctly handles artifacts instead of using `files`, but also doesn't work with `files` input artifacts...)
 			
-//			for(ResolvedArtifact artifact : modCompile.getResolvedConfiguration().getResolvedArtifacts()) {
+//			for(ResolvedArtifact artifact : inputConfig.getResolvedConfiguration().getResolvedArtifacts()) {
 //				String group;
 //				String name;
 //				String version;
@@ -76,11 +75,11 @@ public class RemappedDependenciesProvider extends DependencyProvider {
 //				String remappedFilename = String.format("%s-%s@%s", name, version, mappingsSuffix + classifierSuffix.replace(':', '-'));
 //				
 //				try {
-//					remapArtifact(modCompileRemapped, artifact, remappedFilename, modStore);
+//					remapArtifact(outputConfig, artifact, remappedFilename, modStore);
 //				} catch (Exception e) {
 //					throw new RuntimeException("didnt remap good todo make this error better", e);
 //				}
-//				project.getDependencies().add(modCompileRemapped.getName(), project.getDependencies().module(remappedNotation));
+//				project.getDependencies().add(outputConfig.getName(), project.getDependencies().module(remappedNotation));
 //	
 //	//			File sources = findSources(dependencies, artifact);
 //	//			if (sources != null) {
@@ -94,15 +93,13 @@ public class RemappedDependenciesProvider extends DependencyProvider {
 	
 	private void processMod(Path input, Path output, Configuration config, /* TODO */ ResolvedArtifact artifact, MinecraftDependenciesProvider minecraftDependenciesProvider, MappingsProvider mappingsProvider, MappedProvider mappedProvider) throws IOException {
 		Set<Path> remapClasspath = new HashSet<>();
+		
 		remapClasspath.add(mappedProvider.getMappedJar());
 		remapClasspath.addAll(minecraftDependenciesProvider.getNonNativeLibraries());
-		
-		for(RemappedConfigurationEntry entry : Constants.MOD_COMPILE_ENTRIES) {
-			for(File file : project.getConfigurations().getByName(entry.getSourceConfiguration()).getFiles()) {
-				Path p = file.toPath();
-				if(!p.equals(input)) {
-					remapClasspath.add(p);
-				}
+		for(File file : project.getConfigurations().getByName(Constants.EVERY_UNMAPPED_MOD).getFiles()) {
+			Path p = file.toPath();
+			if(!p.equals(input)) {
+				remapClasspath.add(p);
 			}
 		}
 		
@@ -123,7 +120,7 @@ public class RemappedDependenciesProvider extends DependencyProvider {
 			.run();
 		
 		if (Files.notExists(output)) {
-			throw new RuntimeException("Failed to remap JAR to " + "named" + " - file not found: " + output.toAbsolutePath());
+			throw new RuntimeException("Failed to remap JAR to 'named' - file not found: " + output.toAbsolutePath());
 		}
 	}
 	

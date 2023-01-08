@@ -24,35 +24,19 @@
 
 package net.fabricmc.loom;
 
-import com.google.common.collect.ImmutableList;
-import net.fabricmc.loom.util.RemappedConfigurationEntry;
-
-import java.util.List;
-
 public class Constants {
+	//Task groups
 	public static final String TASK_GROUP_CLEANING = "fabric.clean";
 	public static final String TASK_GROUP_IDE = "fabric.ide";
 	public static final String TASK_GROUP_PLUMBING = "fabric.plumbing";
 	public static final String TASK_GROUP_RUNNING = "fabric.run";
 	public static final String TASK_GROUP_TOOLS = "fabric.tools";
 	
+	//Lol why is this here
 	public static final String SYSTEM_ARCH = System.getProperty("os.arch").equals("64") ? "64" : "32";
 
-	public static final String MOD_COMPILE_CLASSPATH = "modCompileClasspath";
-	public static final String MOD_COMPILE_CLASSPATH_MAPPED = "modCompileClasspathMapped";
-	public static final List<RemappedConfigurationEntry> MOD_COMPILE_ENTRIES = ImmutableList.of(
-		//modded config, regular java config, modded remapped config, whether it gets on the mod compile classpath, maven relation, and coremoddiness
-		new RemappedConfigurationEntry("modCompile"           , "compile"       , "modCompileMapped"           , true , "compile", false),
-		new RemappedConfigurationEntry("modApi"               , "api"           , "modApiMapped"               , true , "compile", false),
-		new RemappedConfigurationEntry("modImplementation"    , "implementation", "modImplementationMapped"    , true , "runtime", false),
-		new RemappedConfigurationEntry("modRuntime"           , "runtimeOnly"   , "modRuntimeMapped"           , false, ""       , false),
-		new RemappedConfigurationEntry("modCompileOnly"       , "compileOnly"   , "modCompileOnlyMapped"       , true , ""       , false),
-		new RemappedConfigurationEntry("coremodCompile"       , "compile"       , "coremodCompileMapped"       , true , "compile", true),
-		new RemappedConfigurationEntry("coremodApi"           , "api"           , "coremodApiMapped"           , true , "compile", true),
-		new RemappedConfigurationEntry("coremodImplementation", "implementation", "coremodImplementationMapped", true , "runtime", true),
-		new RemappedConfigurationEntry("coremodRuntime"       , "runtimeOnly"   , "coremodRuntimeMapped"       , false, ""       , true),
-		new RemappedConfigurationEntry("coremodCompileOnly"   , "compileOnly"   , "coremodCompileOnlyMapped"   , true , ""       , true)
-	);
+	//Configuration names
+	public static final String EVERY_UNMAPPED_MOD = "everyUnmappedMod";
 	
 	public static final String MINECRAFT = "minecraft";
 	public static final String MINECRAFT_DEPENDENCIES = "minecraftLibraries";

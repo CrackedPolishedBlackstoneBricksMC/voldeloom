@@ -27,7 +27,7 @@ package net.fabricmc.loom;
 import groovy.util.Node;
 import net.fabricmc.loom.task.AbstractDecompileTask;
 import net.fabricmc.loom.task.ConfigurationDebugTask;
-import net.fabricmc.loom.task.CopyCoremodsTask;
+import net.fabricmc.loom.task.RemappedConfigEntryFolderCopyTask;
 import net.fabricmc.loom.task.GenEclipseRunsTask;
 import net.fabricmc.loom.task.GenIdeaProjectTask;
 import net.fabricmc.loom.task.GenIdeaRunConfigsTask;
@@ -42,7 +42,6 @@ import net.fabricmc.loom.task.ShimResourcesTask;
 import net.fabricmc.loom.task.fernflower.FernFlowerTask;
 import net.fabricmc.loom.util.GradleSupport;
 import net.fabricmc.loom.util.GroovyXmlUtil;
-import net.fabricmc.loom.util.RemappedConfigurationEntry;
 import net.fabricmc.loom.util.RunConfig;
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
@@ -51,6 +50,7 @@ import org.gradle.api.UnknownTaskException;
 import org.gradle.api.artifacts.Configuration;
 import org.gradle.api.artifacts.Dependency;
 import org.gradle.api.artifacts.repositories.MavenArtifactRepository;
+import org.gradle.api.plugins.JavaPlugin;
 import org.gradle.api.publish.PublishingExtension;
 import org.gradle.api.publish.maven.MavenPublication;
 import org.gradle.api.tasks.TaskContainer;
@@ -137,11 +137,6 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		//In short, I think that if configuration A extends B, all the artifacts in B have to be ready before A can be ready.
 		Configuration compileOrImplementation = GradleSupport.getCompileOrImplementationConfiguration(project.getConfigurations());
 		
-		//All mods on the compilation classpath, including the mod under development.
-		Configuration modCompileClasspath = project.getConfigurations().maybeCreate(Constants.MOD_COMPILE_CLASSPATH).setTransitive(true);
-		//TODO: dont know what this one's used for lol
-		Configuration modCompileClasspathMapped = project.getConfigurations().maybeCreate(Constants.MOD_COMPILE_CLASSPATH_MAPPED).setTransitive(false);
-		
 		//Vanilla Minecraft, straight off Mojang's server.
 		Configuration minecraft = project.getConfigurations().maybeCreate(Constants.MINECRAFT).setTransitive(false);
 		
@@ -166,21 +161,45 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		Configuration forgeDependencies = project.getConfigurations().maybeCreate(Constants.FORGE_DEPENDENCIES).setTransitive(false);
 		minecraftNamed.extendsFrom(forgeDependencies);
 		
-		//Modded *versions* of existing Java configuration types, such as `modCompile`, `modApi`, etc
-		for(RemappedConfigurationEntry entry : Constants.MOD_COMPILE_ENTRIES) {
-			//e.g. "modImplementation"
-			Configuration modSource = entry.getOrCreateSourceConfiguration(project.getConfigurations()).setTransitive(true);
-			//e.g. "modImplementationMapped"
-			Configuration modRemapped = entry.getOrCreateRemappedConfiguration(project.getConfigurations()).setTransitive(false); // Don't get transitive deps of already remapped mods
-			//e.g. "implementation"
-			Configuration modTarget = entry.getOrCreateTargetConfiguration(project.getConfigurations());
-			modTarget.extendsFrom(modRemapped);
-			
-			if(entry.isOnModCompileClasspath()) {
-				modCompileClasspath.extendsFrom(modSource);
-				modCompileClasspathMapped.extendsFrom(modRemapped);
-			}
-		}
+		//Mod dependency types!
+		//First, I'd like to know about every mod participating in the remap process
+		Configuration everyUnmappedMod = project.getConfigurations().maybeCreate(Constants.EVERY_UNMAPPED_MOD).setTransitive(false);
+		extensionUnconfigured.remappedConfigurationEntries.whenObjectAdded(entry -> everyUnmappedMod.extendsFrom(entry.inputConfig));
+		
+		//Then preconfigure a few. TODO figure out how `api` works lol
+		extensionUnconfigured.remappedConfigurationEntries.create("modImplementation", mod -> {
+			mod.mavenScope("compile");
+			project.getConfigurations().getByName(JavaPlugin.IMPLEMENTATION_CONFIGURATION_NAME).extendsFrom(mod.outputConfig);
+		});
+		extensionUnconfigured.remappedConfigurationEntries.create("modCompileOnly", mod -> {
+			mod.mavenScope("compile");
+			project.getConfigurations().getByName(JavaPlugin.COMPILE_ONLY_CONFIGURATION_NAME).extendsFrom(mod.outputConfig);
+		});
+		extensionUnconfigured.remappedConfigurationEntries.create("modRuntimeOnly", mod -> {
+			mod.mavenScope("runtime");
+			project.getConfigurations().getByName(JavaPlugin.RUNTIME_ONLY_CONFIGURATION_NAME).extendsFrom(mod.outputConfig);
+		});
+		extensionUnconfigured.remappedConfigurationEntries.create("modLocalRuntime", mod -> {
+			//No maven scope
+			project.getConfigurations().getByName(JavaPlugin.RUNTIME_CLASSPATH_CONFIGURATION_NAME).extendsFrom(mod.outputConfig);
+		});
+		
+		//and some for coremods
+		
+		extensionUnconfigured.remappedConfigurationEntries.create("coremodImplementation", mod -> {
+			mod.mavenScope("compile").copyToFolder("coremods");
+			project.getConfigurations().getByName(JavaPlugin.COMPILE_ONLY_CONFIGURATION_NAME).extendsFrom(mod.outputConfig); //coremods do not go on runtime the usual way
+		});
+		//(No need for coremodCompileOnly - just use modCompileOnly, coremod hackery is only relevant to getting the dev environment working)
+		extensionUnconfigured.remappedConfigurationEntries.create("coremodRuntimeOnly", mod -> {
+			mod.mavenScope("runtime").copyToFolder("coremods");
+			//doesn't extend from runtimeOnly since copyToFolder will take care of it
+		});
+		extensionUnconfigured.remappedConfigurationEntries.create("coremodLocalRuntime", mod -> {
+			//No maven scope
+			mod.copyToFolder("coremods");
+			//doesn't extend from runtimeClasspath since copyToFolder will take care of it
+		});
 		
 		//Preconfigure a couple things in IntelliJ. Nothing you can't do yourself by clicking on things, but, well, now you don't have to.
 		//This can also be configured by writing your own `idea { }` block in the script.
@@ -222,7 +241,7 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		tasks.register("vscode", GenVsCodeProjectTask.class);
 		
 		tasks.register("shimForgeLibraries", ShimForgeLibrariesTask.class);
-		tasks.register("copyCoremods", CopyCoremodsTask.class);
+		tasks.register("remappedConfigEntryFolderCopy", RemappedConfigEntryFolderCopyTask.class);
 		tasks.register("shimResources", ShimResourcesTask.class);
 		
 		tasks.register("printConfigurationsPlease", ConfigurationDebugTask.class);
@@ -230,7 +249,7 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		extensionUnconfigured.runConfigs.whenObjectAdded(cfg -> {
 			TaskProvider<RunTask> runTask = tasks.register("run" + cfg.getBaseName().substring(0, 1).toUpperCase(Locale.ROOT) + cfg.getBaseName().substring(1), RunTask.class, cfg);
 			runTask.configure(t -> {
-				t.dependsOn("assemble", "shimForgeLibraries", "copyCoremods");
+				t.dependsOn("assemble", "shimForgeLibraries", "remappedConfigEntryFolderCopy");
 				if(cfg.getEnvironment().equals("client")) t.dependsOn("shimResources");
 			});
 		});
@@ -359,9 +378,11 @@ public class LoomGradlePlugin implements Plugin<Project> {
 				.map(p -> (MavenPublication) p)
 				.collect(Collectors.toList());
 			
-			for(RemappedConfigurationEntry entry : Constants.MOD_COMPILE_ENTRIES) {
-				if(!entry.hasMavenScope()) continue;
-				Configuration compileModsConfig = entry.getOrCreateSourceConfiguration(project.getConfigurations());
+			for(RemappedConfigurationEntry entry : extension.remappedConfigurationEntries) {
+				String mavenScope = entry.getMavenScope();
+				if(mavenScope == null || mavenScope.isEmpty()) continue;
+				
+				Configuration compileModsConfig = entry.getInputConfig();
 				for(MavenPublication pub : mavenPubs) {
 					pub.pom(pom -> pom.withXml(xml -> {
 						Node dependencies = GroovyXmlUtil.getOrCreateNode(xml.asNode(), "dependencies");
@@ -385,7 +406,7 @@ public class LoomGradlePlugin implements Plugin<Project> {
 							depNode.appendNode("groupId", dependency.getGroup());
 							depNode.appendNode("artifactId", dependency.getName());
 							depNode.appendNode("version", dependency.getVersion());
-							depNode.appendNode("scope", entry.getMavenScope());
+							depNode.appendNode("scope", mavenScope);
 						}
 					}));
 				}
