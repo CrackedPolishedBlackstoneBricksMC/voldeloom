@@ -28,6 +28,7 @@ public abstract class ConfigurationDebugTask extends DefaultTask implements Loom
 		l.lifecycle("  scale=2; //makes neato look less crap");
 		l.lifecycle("  rankdir=LR; //makes dot look less crap");
 		l.lifecycle("  node[shape=\"rect\"]; //tightens up dot a bit");
+		l.lifecycle("  splines=false; //reduces dot spaghetti");
 		l.lifecycle("  ");
 		
 		for(Configuration configuration : getProject().getConfigurations()) {
