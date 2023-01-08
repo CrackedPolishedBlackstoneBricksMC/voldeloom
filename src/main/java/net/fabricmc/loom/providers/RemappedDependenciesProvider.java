@@ -28,7 +28,7 @@ public class RemappedDependenciesProvider extends DependencyProvider {
 		super(project, extension);
 	}
 	
-	public void decorateProject(MinecraftDependenciesProvider minecraftDependenciesProvider, MappingsProvider mappingsProvider, MappedProvider mappedProvider) throws Exception {
+	public void decorateProject(MinecraftDependenciesProvider minecraftDependenciesProvider, MappingsProvider mappingsProvider, ForgePatchedAccessTxdProvider patchedAccessTxdProvider) throws Exception {
 		String mappingsSuffix = mappingsProvider.getMappingsName() + "-" + mappingsProvider.getMappingsVersion();
 		
 		//MERGED from ModCompileRemapper in old tools
@@ -43,7 +43,7 @@ public class RemappedDependenciesProvider extends DependencyProvider {
 				try {
 					Path unmappedPath = unmappedFile.toPath();
 					Path mappedPath = modStore.resolve(unmappedPath.getFileName().toString() + "-mapped-" + mappingsSuffix + ".jar");
-					processMod(unmappedPath, mappedPath, null, null, minecraftDependenciesProvider, mappingsProvider, mappedProvider);
+					processMod(unmappedPath, mappedPath, null, null, minecraftDependenciesProvider, mappingsProvider, patchedAccessTxdProvider);
 					project.getDependencies().add(outputConfig.getName(), project.files(mappedPath));
 				} catch (Exception e) {
 					throw new RuntimeException("phooey", e);
@@ -91,10 +91,10 @@ public class RemappedDependenciesProvider extends DependencyProvider {
 		installed = true;
 	}
 	
-	private void processMod(Path input, Path output, Configuration config, /* TODO */ ResolvedArtifact artifact, MinecraftDependenciesProvider minecraftDependenciesProvider, MappingsProvider mappingsProvider, MappedProvider mappedProvider) throws IOException {
+	private void processMod(Path input, Path output, Configuration config, /* TODO */ ResolvedArtifact artifact, MinecraftDependenciesProvider minecraftDependenciesProvider, MappingsProvider mappingsProvider, ForgePatchedAccessTxdProvider patchedAccessTxdProvider) throws IOException {
 		Set<Path> remapClasspath = new HashSet<>();
 		
-		remapClasspath.add(mappedProvider.getMappedJar());
+		remapClasspath.add(patchedAccessTxdProvider.getTransformedJar());
 		remapClasspath.addAll(minecraftDependenciesProvider.getNonNativeLibraries());
 		for(File file : project.getConfigurations().getByName(Constants.EVERY_UNMAPPED_MOD).getFiles()) {
 			Path p = file.toPath();

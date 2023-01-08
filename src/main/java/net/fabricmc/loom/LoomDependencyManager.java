@@ -183,7 +183,7 @@ public class LoomDependencyManager {
 		project.getLogger().lifecycle(":running dep provider 'RemappedDependenciesProvider'");
 		
 		try {
-			remappedDependenciesProvider.decorateProject(getMinecraftDependenciesProvider(), getMappingsProvider(), getMappedProvider());
+			remappedDependenciesProvider.decorateProject(getMinecraftDependenciesProvider(), getMappingsProvider(), getForgePatchedAccessTxdProvider());
 		} catch (Exception e) {
 			throw new RuntimeException("Failed to provide RemappedDependenciesProvider", e);
 		}
