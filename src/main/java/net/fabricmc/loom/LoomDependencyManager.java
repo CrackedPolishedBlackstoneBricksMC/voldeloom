@@ -25,15 +25,14 @@
 package net.fabricmc.loom;
 
 import net.fabricmc.loom.providers.AssetsProvider;
-import net.fabricmc.loom.providers.DevLaunchInjectorProvider;
 import net.fabricmc.loom.providers.ForgeDependenciesProvider;
 import net.fabricmc.loom.providers.ForgePatchedAccessTxdProvider;
 import net.fabricmc.loom.providers.ForgePatchedProvider;
 import net.fabricmc.loom.providers.ForgeProvider;
-import net.fabricmc.loom.providers.MinecraftDependenciesProvider;
 import net.fabricmc.loom.providers.MappedProvider;
 import net.fabricmc.loom.providers.MappingsProvider;
 import net.fabricmc.loom.providers.MergedProvider;
+import net.fabricmc.loom.providers.MinecraftDependenciesProvider;
 import net.fabricmc.loom.providers.MinecraftProvider;
 import net.fabricmc.loom.providers.RemappedDependenciesProvider;
 import org.gradle.api.Project;
@@ -61,7 +60,6 @@ public class LoomDependencyManager {
 		this.mappingsProvider = new MappingsProvider(project, extension);
 		this.mappedProvider = new MappedProvider(project, extension);
 		this.remappedDependenciesProvider = new RemappedDependenciesProvider(project, extension);
-		this.devLaunchInjectorProvider = new DevLaunchInjectorProvider(project, extension);
 	}
 	
 	private final Project project;
@@ -77,7 +75,6 @@ public class LoomDependencyManager {
 	private final MappingsProvider mappingsProvider;
 	private final MappedProvider mappedProvider;
 	private final RemappedDependenciesProvider remappedDependenciesProvider;
-	private final DevLaunchInjectorProvider devLaunchInjectorProvider;
 	
 	public void installForgeProvider() {
 		project.getLogger().lifecycle(":running dep provider 'ForgeProvider'");
@@ -189,16 +186,6 @@ public class LoomDependencyManager {
 		}
 	}
 	
-	public void installDevLaunchInjectorProvider() {
-		project.getLogger().lifecycle(":running dep provider 'DevLaunchInjectorProvider'");
-		
-		try {
-			devLaunchInjectorProvider.decorateProject(getMinecraftProvider(), getMinecraftDependenciesProvider());
-		} catch (Exception e) {
-			throw new RuntimeException("Failed to provide DevLaunchInjectorProvider", e);
-		}
-	}
-	
 	public ForgeProvider getForgeProvider() {
 		if(!forgeProvider.installed) throw new IllegalStateException("ForgeProvider hasn't been installed yet!");
 		else return forgeProvider;
@@ -249,11 +236,6 @@ public class LoomDependencyManager {
 		return remappedDependenciesProvider;
 	}
 	
-	public DevLaunchInjectorProvider getDevLaunchInjectorProvider() {
-		if(!devLaunchInjectorProvider.installed) throw new IllegalStateException("DevLaunchInjectorProvider hasn't been installed yet!");
-		else return devLaunchInjectorProvider;
-	}
-	
 	public List<TaskProvider<?>> installCleaningTasks() {
 		return new ArrayList<>(Arrays.asList(
 			forgeProvider.addCleaningTask(),
@@ -265,8 +247,7 @@ public class LoomDependencyManager {
 			forgePatchedAccessTxdProvider.addCleaningTask(),
 			mappingsProvider.addCleaningTask(),
 			mappedProvider.addCleaningTask(),
-			remappedDependenciesProvider.addCleaningTask(),
-			devLaunchInjectorProvider.addCleaningTask()
+			remappedDependenciesProvider.addCleaningTask()
 		));
 	}
 }

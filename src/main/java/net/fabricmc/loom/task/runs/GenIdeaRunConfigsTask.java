@@ -1,4 +1,4 @@
-package net.fabricmc.loom.task;
+package net.fabricmc.loom.task.runs;
 
 import net.fabricmc.loom.Constants;
 import net.fabricmc.loom.LoomGradleExtension;

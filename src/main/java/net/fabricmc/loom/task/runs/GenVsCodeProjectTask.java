@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package net.fabricmc.loom.task;
+package net.fabricmc.loom.task.runs;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;

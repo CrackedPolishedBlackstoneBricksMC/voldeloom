@@ -266,8 +266,7 @@ public class RunConfig implements Named {
 		return templatedConfig;
 	}
 	
-	//TODO: I know this function is important, but where is this form of escaping needed Tbh
-	private static String encodeEscaped(String s) {
+	private static String encodeDevLaunchInjectorEscaped(String s) {
 		StringBuilder ret = new StringBuilder();
 
 		for (int i = 0; i < s.length(); i++) {

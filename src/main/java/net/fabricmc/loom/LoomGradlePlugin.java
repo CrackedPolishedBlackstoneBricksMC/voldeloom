@@ -28,10 +28,11 @@ import groovy.util.Node;
 import net.fabricmc.loom.task.AbstractDecompileTask;
 import net.fabricmc.loom.task.ConfigurationDebugTask;
 import net.fabricmc.loom.task.RemappedConfigEntryFolderCopyTask;
-import net.fabricmc.loom.task.GenEclipseRunsTask;
-import net.fabricmc.loom.task.GenIdeaProjectTask;
-import net.fabricmc.loom.task.GenIdeaRunConfigsTask;
-import net.fabricmc.loom.task.GenVsCodeProjectTask;
+import net.fabricmc.loom.task.runs.GenDevLaunchInjectorConfigsTask;
+import net.fabricmc.loom.task.runs.GenEclipseRunsTask;
+import net.fabricmc.loom.task.runs.GenIdeaProjectTask;
+import net.fabricmc.loom.task.runs.GenIdeaRunConfigsTask;
+import net.fabricmc.loom.task.runs.GenVsCodeProjectTask;
 import net.fabricmc.loom.task.MigrateMappingsTask;
 import net.fabricmc.loom.task.RemapJarTask;
 import net.fabricmc.loom.task.RemapLineNumbersTask;
@@ -235,10 +236,11 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		});
 		
 		//IDE integration and run configs:
-		tasks.register("genIdeaWorkspace", GenIdeaProjectTask.class, t -> t.dependsOn("idea"));
-		tasks.register("genIdeaRuns", GenIdeaRunConfigsTask.class, t -> t.dependsOn("idea"));
 		tasks.register("genEclipseRuns", GenEclipseRunsTask.class);
+		tasks.register("genIdeaRuns", GenIdeaRunConfigsTask.class, t -> t.dependsOn("idea"));
+		tasks.register("genIdeaWorkspace", GenIdeaProjectTask.class, t -> t.dependsOn("idea"));
 		tasks.register("vscode", GenVsCodeProjectTask.class);
+		tasks.register("genDevLaunchInjectorConfigs", GenDevLaunchInjectorConfigsTask.class);
 		
 		tasks.register("shimForgeLibraries", ShimForgeLibrariesTask.class);
 		tasks.register("remappedConfigEntryFolderCopy", RemappedConfigEntryFolderCopyTask.class);
@@ -302,7 +304,6 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		dmgr.installMappingsProvider();
 		dmgr.installMappedProvider();
 		dmgr.installRemappedDependenciesProvider();
-		dmgr.installDevLaunchInjectorProvider();
 		
 		//Misc wiring-up of genSources-related tasks.
 		AbstractDecompileTask genSourcesDecompileTask = (AbstractDecompileTask) project.getTasks().getByName("genSourcesDecompile");
