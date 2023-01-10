@@ -28,48 +28,75 @@ What works:
   * The `shimResources` task will copy assets from your local assets cache into the run directory (because you can't configure `--assetsDir` in this version of the game)
 * Parse MCP mappings directly out of a Forge `-src` zip! No need to download MCP separately, and definitely no need to manually paste the Forge zip on top
   * See sample mod for how to do this.
-  * If you still choose to download an mcp zip, when the internet archive inevitably gives you a zero-byte there's a nicer error now lol
+  * If you still choose to download an mcp zip, when the internet archive inevitably gives you a zero-byte, there's a nicer error now lol
 * Partial backport of the "extendable run configs" thing from newer Fabric Loom versions
-  * Define your own run configs, with custom vm args and system properties and stuff
+  * Define your own run configs, with per-config vm args and system properties and stuff
   * 1.4 doesn't parse any program arguments apart from the username (arg 0) and session token (arg 1)
-* `modCompile`/etc might even work!
-  * `coremodCompile`/etc exists for coremods (they will be moved to the `coremods` folder, where Forge wants to find them) 
-* Currently contains some magic kludges to get Ears working (it just doesn't expect to be ran inside deobf. Lol)
+* `modImplementation`/etc works!
+  * `coremodImplementation`/etc exists for coremods (they will be moved to the `coremods` folder, where Forge wants to find them) 
 
-Main focus is on Gradle 7. Gradle 4 probably doesn't work yet; i'd like it to
+Magical secret kludges that make the above work:
+
+* One mapping cheat to fix `Block$1` showing up in the wrong spot
+  * Needs a fix in the mappings parser or processor or something
+* Two mapping cheats to get Ears running
+  * The mod remaps fine, but the release binary looks up classes by their proguarded names with `Class.forName`.
+  * (Working 1.4 dev environments were a thing of the past when Ears was written, so it just doesn't expect to be ran in deobf lol.)
+  * Ideally I should backport customizable per-project mappings, so you can fix stuff like this yourself.
 
 What doesn't work yet:
 
+* Gradle versions older than 7 (I'd like to get it working on Gradle 4, if at all possible, possibly with degraded functionality)
 * Minecraft versions other than 1.4.7 don't work
   * The long-term goal is to merge the differences between the 1.2.5/1.5.2 branches into something runtime-configurable
-* Generated IDE run configs are likely broken. The `runClient` task is more of a priority.
+* Generated IDE run configs are broken.
+  * The `runClient` task is more of a priority because it's much easier to work with and more flexible.
+  * (I don't think many modders know what the actual difference between `runClient` and ide runs are, maybe i should write something up)
 * I don't know how broken Eclipse/VSCode are
 * Source remapping tasks don't work (but who cares cause you're stuck with MCP)
 * `migrateMappings` doesn't work (but who cares cause you're stuck with MCP)
 * Probably a lot of other things don't work
 
-What I'd like to fix:
+To do list:
 
 * Ideally the game should be launched with a copy of java 6 or 8, right now i think gradle itself has to be running on an appropriate jdk
-* I might have wandered right into this bug https://github.com/FabricMC/fabric-loom/issues/633 (even though the cause is completely different) if mezz is right I cannot believe Java is this shitty. Come on now
+* Root out "Intermediary" names from the experience where appropriate. Forge 1.4 doesn't use intermediary names except as a remapping implementation detail; unmapped methods are `a` in the live game, not `func_12345`.
+  * Haven't researched when intermediary names started being shipped in real mods though, so i can't delete them all
+* Write a jar remapper with a more basic "search and replace" name-finding algorithm for reobf, emulating what MCP's reobf script does (basically i want to make [this commit](https://github.com/unascribed/BuildCraft/commit/06dc8a89f4ea503eb7dc696395187344658cf9c1) not something you have to worry about)
+* Investigate what's going on with the intellij run-config classpath that makes Forge try and load a bunch of java 8 jars
+* You can depend on coremods with `coremodImplementation`, but you can't actually write your own, because it won't be in the coremods folder. Boo hiss.
+  * Fixable with a task... possibly not fixable with a run config unless they let you run arbitrary gradle tasks
+* Consider patching Forge itself on its way in to the dev workspace.
+  * Upsides: Can fix the dependency downloader, can fix coremod-detection being very picky.
+  * Downsides: Will need to modify the patch for every version of Forge, it's "magic" hardcoded in the gradle plugin, and Idk I like working off the original assets
+* Make `--refreshDependencies` dump all cached resources
+* Rebrand:tm: the project tbh.. Lol there's still a lot of user-facing references to "fabric" even
 
 What I'd like to add:
 
-* Quiltflower lol (kinda a java 11 moment though)
-* Launchwrapper and/or DevLaunchInjector support would be nice
-  * Possibly ship a launchwrapper injector that makes Forge, e.g. scan for coremods from the classpath instead of just that one coremods folder, dont attempt to download libraries, etc
+* Propagate MCP comments into the remapped jars (I think it's possible)
+* Quiltflower lol. This isn't "using shiny new tech for the sake of it", it does successfully grab some methods that Fernflower fails to decompile due to switchmap comedy. Quiltflower only runs on java 11 though
+* Launchwrapper support.
+  * For flexibility's sake.
+  * It starts coming into the picture later in the timeline of minecraft though. Currently the game is directly launched through `net.minecraft.client.MinecraftClient#main`, which this version of Forge patches
+* DevLaunchInjector????
+  * I feel like it's not much of a value-add, given that all it can do is set system properties and program arguments, which i have to be able to do anyway to configure devlaunchinjector in the first place...?
+  * Wait ok, so why does loom use dli then
+  * Depends how shitty various IDE's run config interfaces are though
 * (if i wanna get really silly) Use Forge's secret access transformer command-line program instead of maintaining an access transformer parser
 
 # Differences between this toolchain and period-accurate Forge
 
-Basically this uses a more Fabricy "do as much as possible with binaries" approach. This partially owes to the project's roots in Fabric Loom, which is a completely binary-based modding toolchain, but also because it's a good idea.
+Basically this uses a more Fabricy "do as much as possible with binaries" approach. This partially owes to the project's roots in Fabric Loom, which is a completely binary-based modding toolchain, but also because it's a good idea
 
 * Operating at the level of whole class files, we install Forge the end-user way by downloading Minecraft, pasting the release Forge jar on top, and deleting META-INF.
 * Operating inside each class file, we then apply dev-environment creature-comforts like statically applied access transformers, remapping to MCP, blah blah.
 * Only *then* do we even *think* about touching Fernflower.
   * It's even optional; running `genSources` is not required to compile a mod.
 
-Skipping Fernflower makes everything nice and snappy. One exception to this hierarchy is that we merge the client and server jars first (using FabricMC's JarMerger) and paste Forge's files on top of the merged jar, when the period-accurate installation process would probably paste Forge on top of merely a client jar or server jar. This is seamless because Forge's class-overwrites were evidently computed against a merged jar in the first place (see `in.class`, which ships a `SideOnly` annotation on a vanilla method).
+We do miss out on the occasional line-comment that Forge's source patches add, but skipping Fernflower makes everything nice and quick.
+
+One exception to this hierarchy is that we merge the client and server jars first (using FabricMC's JarMerger) and paste Forge's files on top of the merged jar, when the period-accurate installation process would probably paste Forge on top of merely a client jar or server jar. This is seamless because Forge's class-overwrites were evidently computed against a merged jar in the first place (see `in.class`, which ships a `SideOnly` annotation on a vanilla method).
 
 Forge's period-accurate installation process is much more source-based - the game is immediately decompiled using a known Fernflower version (I think maybe some binary remapping is done using a tool called Retroguard), source-patches are applied to fill decompiler gaps + to patch in Forge's features, the rest of remapping is performed using textual find-and-replace, and the whole thing is fed back to `javac` to produce the jar you run in development. This was done using some Python 2 scripts and binaries that you'd download alongside the forge/mcp install and trigger from your Ant build.
 

@@ -58,7 +58,7 @@ public class RunConfig implements Named {
 	private String mainClass;
 	private String runDir;
 	private boolean ideConfigGenerated;
-	//TODO: loom 1 has a "source" param
+	//TODO: loom 1 has a "source" param, but i think it's mainly for their split sourceset nonsense
 	
 	public RunConfig(Project project, String name) {
 		this.baseName = this.name = name;
@@ -84,8 +84,7 @@ public class RunConfig implements Named {
 	}
 	
 	public String stringifyVmArgs() {
-		String funni = String.join(" ", vmArgs);
-		return funni;
+		return String.join(" ", vmArgs);
 	}
 	
 	public Path resolveRunDir() {

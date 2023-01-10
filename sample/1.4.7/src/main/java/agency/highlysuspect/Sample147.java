@@ -7,7 +7,7 @@ import cpw.mods.fml.common.event.FMLPreInitializationEvent;
 
 import java.util.logging.Logger;
 
-@Mod(modid = "sample147", name = "Sample Mod 1.4.7", version = "0.99999999999945646554684999")
+@Mod(modid = "sample147", name = "Sample Mod 1.4.7", version = "0.99999999679897865743763999945646554684999")
 public class Sample147 {
 	public static final Logger LOGGER = Logger.getLogger("sample147");
 	
