@@ -28,19 +28,15 @@ import net.fabricmc.loom.Constants;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.WellKnownLocations;
 import net.fabricmc.loom.util.DownloadSession;
+import net.fabricmc.loom.util.ZipUtil;
 import net.fabricmc.loom.util.MinecraftVersionInfo;
 import org.gradle.api.Project;
 
-import java.io.IOException;
-import java.net.URI;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.FileSystem;
-import java.nio.file.FileSystems;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
-import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -86,21 +82,13 @@ public class MinecraftDependenciesProvider extends DependencyProvider {
 				Path unpackFlag = libJarFile.resolveSibling(libJarFile.getFileName().toString() + ".unpack-flag");
 				if(!Files.exists(unpackFlag)) {
 					//unpack the natives jar
-					try(FileSystem nativesJarFs = FileSystems.newFileSystem(URI.create("jar:" + libJarFile.toUri()), Collections.emptyMap())) {
-						Files.walkFileTree(nativesJarFs.getPath("/"), new SimpleFileVisitor<Path>() {
-							@Override
-							public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
-								if(dir.endsWith("META-INF")) return FileVisitResult.SKIP_SUBTREE;
-								else return FileVisitResult.CONTINUE;
-							}
-							
-							@Override
-							public FileVisitResult visitFile(Path pathInsideJar, BasicFileAttributes attrs) throws IOException {
-								Files.copy(pathInsideJar, nativesDir.resolve(pathInsideJar.getFileName().toString()), StandardCopyOption.REPLACE_EXISTING);
-								return FileVisitResult.CONTINUE;
-							}
-						});
-					}
+					ZipUtil.unpack(libJarFile, nativesDir, new SimpleFileVisitor<Path>() {
+						@Override
+						public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
+							if(dir.endsWith("META-INF")) return FileVisitResult.SKIP_SUBTREE;
+							else return FileVisitResult.CONTINUE;
+						}
+					});
 					
 					//create the unpack-flag file, so i don't have to do this again next time
 					//(partially because the files are in-use by running copies of the Minecraft client, so they can't be overwritten while one is open,

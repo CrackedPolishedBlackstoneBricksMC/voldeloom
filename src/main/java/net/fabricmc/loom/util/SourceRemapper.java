@@ -39,7 +39,6 @@ import org.cadixdev.lorenz.model.ClassMapping;
 import org.cadixdev.mercury.Mercury;
 import org.cadixdev.mercury.remapper.MercuryRemapper;
 import org.gradle.api.Project;
-import org.zeroturnaround.zip.ZipUtil;
 
 import java.io.File;
 import java.io.IOException;
@@ -110,7 +109,7 @@ public class SourceRemapper {
 			// create tmp directory
 			isSrcTmp = true;
 			srcPath = Files.createTempDirectory("fabric-loom-src");
-			ZipUtil.unpack(source, srcPath.toFile());
+			ZipUtil.unpack(source.toPath(), srcPath);
 		}
 
 		if (!destination.isDirectory() && destination.exists()) {

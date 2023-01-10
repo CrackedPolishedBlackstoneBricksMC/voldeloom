@@ -31,7 +31,7 @@ import net.fabricmc.loom.Constants;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.LoomGradlePlugin;
 import net.fabricmc.loom.util.LoomTaskExt;
-import org.apache.commons.io.FilenameUtils;
+import net.fabricmc.loom.util.ZipUtil;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.InvalidUserDataException;
 import org.gradle.api.Project;
@@ -42,7 +42,6 @@ import org.gradle.api.artifacts.ResolvedDependency;
 import org.gradle.api.artifacts.SelfResolvingDependency;
 import org.gradle.api.tasks.TaskAction;
 import org.gradle.api.tasks.TaskProvider;
-import org.zeroturnaround.zip.ZipUtil;
 
 import javax.inject.Inject;
 import java.io.File;
@@ -210,7 +209,7 @@ public abstract class DependencyProvider {
 				List<File> sortedFiles = files.stream().sorted(Comparator.comparing(File::getName, Comparator.comparingInt(String::length))).collect(Collectors.toList());
 				//First element in sortedFiles is the one with the shortest name, we presume all the others are different classifier types of this
 				File shortest = sortedFiles.remove(0);
-				String shortestName = FilenameUtils.removeExtension(shortest.getName()); //name.jar -> name
+				String shortestName = removeExtension(shortest); //name.jar -> name
 
 				for (File file : sortedFiles) {
 					if (!file.getName().startsWith(shortestName)) {
@@ -225,7 +224,7 @@ public abstract class DependencyProvider {
 
 				for (File file : sortedFiles) {
 					//Now we just have to work out what classifier type the other files are, this shouldn't even return an empty string
-					String classifier = FilenameUtils.removeExtension(file.getName()).substring(start);
+					String classifier = removeExtension(file).substring(start);
 
 					//The classifier could well be separated with a dash (thing name.jar and name-sources.jar), we don't want that leading dash
 					if (classifierToFile.put(classifier.charAt(0) == '-' ? classifier.substring(1) : classifier, file) != null) {
@@ -242,7 +241,7 @@ public abstract class DependencyProvider {
 				group = "net.fabricmc.synthetic";
 				File root = classifierToFile.get(""); //We've built the classifierToFile map, now to try find a name and version for our dependency
 
-				if ("jar".equals(FilenameUtils.getExtension(root.getName())) && ZipUtil.containsEntry(root, "fabric.mod.json")) {
+				if("jar".equals(getExtension(root)) && ZipUtil.containsEntry(root, "fabric.mod.json")) {
 					//It's a Fabric mod, see how much we can extract out
 					JsonObject json = new Gson().fromJson(new String(ZipUtil.unpackEntry(root, "fabric.mod.json"), StandardCharsets.UTF_8), JsonObject.class);
 
@@ -259,7 +258,7 @@ public abstract class DependencyProvider {
 					version = json.get("version").getAsString();
 				} else {
 					//Not a Fabric mod, just have to make something up
-					name = FilenameUtils.removeExtension(root.getName());
+					name = removeExtension(root);
 					version = "1.0";
 				}
 			}
@@ -279,6 +278,20 @@ public abstract class DependencyProvider {
 		@Override
 		public String getResolvedDepString() {
 			return getDepString();
+		}
+		
+		public static String getExtension(File in) {
+			String filename = in.getName();
+			int dotIndex = filename.indexOf('.');
+			if(dotIndex == -1 || dotIndex == filename.length() - 1) return "";
+			else return filename.substring(dotIndex + 1);
+		}
+		
+		public static String removeExtension(File in) {
+			String filename = in.getName();
+			int dotIndex = filename.indexOf('.');
+			if(dotIndex == -1) return filename;
+			else return filename.substring(0, dotIndex);
 		}
 	}
 	

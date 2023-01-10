@@ -25,8 +25,8 @@
 package net.fabricmc.loom.util;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.io.ByteStreams;
 import net.fabricmc.loom.LoomGradleExtension;
-import org.apache.commons.io.IOUtils;
 import org.gradle.api.Named;
 import org.gradle.api.Project;
 import org.w3c.dom.Document;
@@ -248,9 +248,13 @@ public class RunConfig implements Named {
 	public String configureTemplate(String template) throws IOException {
 		String templatedConfig;
 		
-		try (InputStream input = RunConfig.class.getClassLoader().getResourceAsStream(template)) {
+		try(InputStream input = RunConfig.class.getClassLoader().getResourceAsStream(template)) {
 			if(input == null) throw new IllegalArgumentException("Couldn't find template " + template + " in " + RunConfig.class.getClassLoader());
-			templatedConfig = IOUtils.toString(input, StandardCharsets.UTF_8);
+			try {
+				templatedConfig = new String(ByteStreams.toByteArray(input), StandardCharsets.UTF_8);
+			} catch (IOException e) {
+				throw new IllegalStateException("Problem reading template " + template + " to string in " + RunConfig.class.getClassLoader());
+			}
 		}
 		
 		templatedConfig = templatedConfig.replace("%NAME%", getName());
