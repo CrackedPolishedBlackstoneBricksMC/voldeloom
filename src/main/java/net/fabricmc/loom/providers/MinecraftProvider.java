@@ -37,6 +37,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Period;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -52,7 +53,6 @@ public class MinecraftProvider extends DependencyProvider {
 	}
 	
 	private String minecraftVersion;
-	private String minecraftJarStuff;
 	private MinecraftVersionInfo versionInfo;
 	
 	private final Path manifests = WellKnownLocations.getUserCache(project).resolve("version_manifest.json");
@@ -64,9 +64,6 @@ public class MinecraftProvider extends DependencyProvider {
 		//deps
 		DependencyInfo minecraftDependency = getSingleDependency(Constants.MINECRAFT);
 		minecraftVersion = minecraftDependency.getDependency().getVersion();
-		
-		//TODO remove this dep, move "jar stuff" to ForgePatchedProvider or remove it 
-		minecraftJarStuff = minecraftDependency.getDependency().getVersion() + "-forge-" + forge.getVersion();
 		
 		//outputs (+versionInfo)
 		Path userCache = WellKnownLocations.getUserCache(project);
@@ -106,11 +103,11 @@ public class MinecraftProvider extends DependencyProvider {
 			}
 		} else {
 			project.getLogger().debug("Downloading version manifests");
-			//TODO: some kind of little timed-cache system, because we really don't need to go contact launchermeta every launch...
 			new DownloadSession("https://launchermeta.mojang.com/mc/game/version_manifest.json", project)
 				.dest(manifests)
 				.etag(true)
 				.gzip(true)
+				.skipIfNewerThan(Period.ofDays(14))
 				.download();
 		}
 
@@ -159,7 +156,7 @@ public class MinecraftProvider extends DependencyProvider {
 		new DownloadSession(versionInfo.downloads.get("client").url, project)
 			.dest(minecraftClientJar)
 			.etag(true)
-			.gzip(false) //TODO why do i get nonmatching hashes using this downloader + gzip?
+			.gzip(false)
 			.skipIfExists()
 			.skipIfSha1Equals(versionInfo.downloads.get("client").sha1)
 			.download();
@@ -167,7 +164,7 @@ public class MinecraftProvider extends DependencyProvider {
 		new DownloadSession(versionInfo.downloads.get("server").url, project)
 			.dest(minecraftServerJar)
 			.etag(true)
-			.gzip(false) //TODO why do i get nonmatching hashes using this downloader + gzip?
+			.gzip(false)
 			.skipIfExists()
 			.skipIfSha1Equals(versionInfo.downloads.get("server").sha1)
 			.download();
@@ -187,10 +184,6 @@ public class MinecraftProvider extends DependencyProvider {
 	
 	public MinecraftVersionInfo getVersionManifest() {
 		return versionInfo;
-	}
-	
-	public String getJarStuff() {
-		return minecraftJarStuff;
 	}
 	
 	public static class ManifestVersion {

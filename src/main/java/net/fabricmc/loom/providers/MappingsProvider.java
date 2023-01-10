@@ -103,7 +103,7 @@ public class MappingsProvider extends DependencyProvider {
 					project.getLogger().lifecycle("] joined.srg detected - looks like a forge sources zip");
 					Path conf = mcpZipFs.getPath("forge/fml/conf");
 					
-					//Scan JAR (TODO: why?)
+					//Scan JAR
 					SrgMappingProvider.JarScanData data = SrgMappingProvider.scan(forgePatched.getPatchedJar());
 					
 					//Read joined SRG (classes, newid fields, newid methods)
@@ -125,7 +125,7 @@ public class MappingsProvider extends DependencyProvider {
 					project.getLogger().warn("] TODO i didn't retest this after implementing reading forge zips"); //TODO
 					Path conf = mcpZipFs.getPath("conf");
 					
-					//Scan JAR (TODO: why?)
+					//Scan JAR
 					SrgMappingProvider.JarScanData data = SrgMappingProvider.scan(forgePatched.getPatchedJar());
 					
 					//Read client and server SRGs (classes, splitid fields, splitid methods)

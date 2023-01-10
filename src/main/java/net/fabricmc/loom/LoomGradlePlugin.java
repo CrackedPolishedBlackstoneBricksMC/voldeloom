@@ -118,7 +118,7 @@ public class LoomGradlePlugin implements Plugin<Project> {
 			//I don't believe this breaks Gradle 4.
 			repo.metadataSources(MavenArtifactRepository.MetadataSources::artifact);
 		});
-		//Remapped mods TODO fix
+		//Remapped mods
 		project.getRepositories().flatDir(repo -> {
 			repo.dir(WellKnownLocations.getRemappedModCache(project));
 			repo.setName("UserLocalRemappedMods");

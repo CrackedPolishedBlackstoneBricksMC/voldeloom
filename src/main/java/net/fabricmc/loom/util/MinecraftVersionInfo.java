@@ -61,7 +61,7 @@ public class MinecraftVersionInfo {
 		}
 	}
 
-	public class Library {
+	public static class Library {
 		public String name;
 		public JsonObject natives;
 		public JsonObject downloads;
@@ -146,7 +146,7 @@ public class MinecraftVersionInfo {
 			return artifact.getArtifact(artifact.classifier);
 		}
 
-		private class Artifact {
+		private static class Artifact {
 			private final String domain, name, version, classifier, ext;
 
 			Artifact(String name) {
@@ -190,11 +190,11 @@ public class MinecraftVersionInfo {
 		}
 	}
 
-	private class Rule {
+	private static class Rule {
 		public String action;
 		public OS os;
 
-		private class OS {
+		private static class OS {
 			String name;
 		}
 	}

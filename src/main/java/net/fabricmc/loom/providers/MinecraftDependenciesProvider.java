@@ -30,10 +30,18 @@ import net.fabricmc.loom.WellKnownLocations;
 import net.fabricmc.loom.util.DownloadSession;
 import net.fabricmc.loom.util.MinecraftVersionInfo;
 import org.gradle.api.Project;
-import org.zeroturnaround.zip.ZipUtil;
 
+import java.io.IOException;
+import java.net.URI;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystems;
+import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.StandardCopyOption;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -57,13 +65,15 @@ public class MinecraftDependenciesProvider extends DependencyProvider {
 		
 		nativesDir = WellKnownLocations.getUserCache(project).resolve("natives").resolve(mc.getVersion());
 		Path nativesJarStore = nativesDir.resolve("jars");
-		Files.createDirectories(nativesJarStore.getParent());
+		Files.createDirectories(nativesJarStore);
 		
 		for(MinecraftVersionInfo.Library library : versionInfo.libraries) {
 			if(!library.allowed()) continue;
 			
 			if(library.isNative()) {
 				Path libJarFile = library.getPath(nativesJarStore);
+				
+				//download the natives jar
 				new DownloadSession(library.getURL(extension), project)
 					.dest(libJarFile)
 					.etag(true)
@@ -72,9 +82,31 @@ public class MinecraftDependenciesProvider extends DependencyProvider {
 					.skipIfSha1Equals(library.getSha1())
 					.download();
 				
-				//TODO possibly find a way to prevent needing to re-extract after each run, doesnt seem too slow (original Loom comment)
-				// DOUBLE TODO this line crashes when opening two copies of the game client lol. i need a less cheap hack
-				ZipUtil.unpack(libJarFile.toFile(), nativesDir.toFile());
+				//unpack it
+				Path unpackFlag = libJarFile.resolveSibling(libJarFile.getFileName().toString() + ".unpack-flag");
+				if(!Files.exists(unpackFlag)) {
+					//unpack the natives jar
+					try(FileSystem nativesJarFs = FileSystems.newFileSystem(URI.create("jar:" + libJarFile.toUri()), Collections.emptyMap())) {
+						Files.walkFileTree(nativesJarFs.getPath("/"), new SimpleFileVisitor<Path>() {
+							@Override
+							public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
+								if(dir.endsWith("META-INF")) return FileVisitResult.SKIP_SUBTREE;
+								else return FileVisitResult.CONTINUE;
+							}
+							
+							@Override
+							public FileVisitResult visitFile(Path pathInsideJar, BasicFileAttributes attrs) throws IOException {
+								Files.copy(pathInsideJar, nativesDir.resolve(pathInsideJar.getFileName().toString()), StandardCopyOption.REPLACE_EXISTING);
+								return FileVisitResult.CONTINUE;
+							}
+						});
+					}
+					
+					//create the unpack-flag file, so i don't have to do this again next time
+					//(partially because the files are in-use by running copies of the Minecraft client, so they can't be overwritten while one is open,
+					//and partially because this gets hit every time you launch the game, so i shouldn't do work i can skip :) )
+					Files.write(unpackFlag, "Presence of this file tells Voldeloom that the corresponding native library JAR was already extracted to the filesystem.\n".getBytes(StandardCharsets.UTF_8));
+				}
 			} else {
 				String depToAdd = library.getArtifactName();
 				

@@ -20,6 +20,9 @@ import java.util.Collections;
 /**
  * Installs Forge inside of the Minecraft merged jar. The post-installation jar is available with getPatchedJar().
  * 
+ * Also performs the, uh, critically important task of gluing the Minecraft version number onto the Forge version number.
+ * This version tag is used in a few places.
+ * 
  * During this period, Forge was installable as a jarmod. This class is simply a programattic version of "deleting META-INF". 
  */
 public class ForgePatchedProvider extends DependencyProvider {
@@ -27,17 +30,18 @@ public class ForgePatchedProvider extends DependencyProvider {
 		super(project, extension);
 	}
 	
+	private String patchedVersionTag;
 	private Path patched;
 	
 	public void decorateProject(MinecraftProvider mc, MergedProvider merged, ForgeProvider forge) throws Exception {
 		//inputs
-		String jarStuff = mc.getJarStuff();
 		Path mergedJar = merged.getMergedJar();
 		Path forgeJar = forge.getJar();
 		
 		//outputs
 		Path userCache = WellKnownLocations.getUserCache(project);
-		patched = userCache.resolve("minecraft-" + jarStuff + "-merged.jar");
+		patchedVersionTag = mc.getVersion() + "-forge-" + forge.getVersion();
+		patched = userCache.resolve("minecraft-" + patchedVersionTag + "-merged.jar");
 		
 		//execution
 		project.getLogger().lifecycle("] patched jar is at: " + patched);
@@ -98,6 +102,10 @@ public class ForgePatchedProvider extends DependencyProvider {
 		}
 		
 		installed = true;
+	}
+	
+	public String getPatchedVersionTag() {
+		return patchedVersionTag;
 	}
 	
 	public Path getPatchedJar() {

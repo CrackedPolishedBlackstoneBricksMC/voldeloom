@@ -153,7 +153,7 @@ public class LoomDependencyManager {
 		project.getLogger().lifecycle(":running dep provider 'ForgePatchedAccessTxdProvider'");
 		
 		try {
-			forgePatchedAccessTxdProvider.decorateProject(getMinecraftProvider(), getForgeProvider(), getForgePatchedProvider());
+			forgePatchedAccessTxdProvider.decorateProject(getForgeProvider(), getForgePatchedProvider());
 		} catch (Exception e) {
 			throw new RuntimeException("Failed to provide ForgePatchedAccessTxdProvider", e);
 		}
@@ -173,7 +173,7 @@ public class LoomDependencyManager {
 		project.getLogger().lifecycle(":running dep provider 'MappedProvider'");
 		
 		try {
-			mappedProvider.decorateProject(getMinecraftProvider(), getMinecraftDependenciesProvider(), getForgePatchedAccessTxdProvider(), getMappingsProvider());
+			mappedProvider.decorateProject(getMinecraftDependenciesProvider(), getForgePatchedProvider(), getForgePatchedAccessTxdProvider(), getMappingsProvider());
 		} catch (Exception e) {
 			throw new RuntimeException("Failed to provide MappedProvider", e);
 		}

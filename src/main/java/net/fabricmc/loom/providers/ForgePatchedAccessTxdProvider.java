@@ -34,15 +34,15 @@ public class ForgePatchedAccessTxdProvider extends DependencyProvider {
 	
 	private Path accessTransformedMc;
 	
-	public void decorateProject(MinecraftProvider mc, ForgeProvider forge, ForgePatchedProvider forgePatched) throws Exception {
+	public void decorateProject(ForgeProvider forge, ForgePatchedProvider forgePatched) throws Exception {
 		//inputs
-		String jarStuff = mc.getJarStuff();
 		ForgeAccessTransformerSet unmappedAts = forge.getUnmappedAccessTransformers();
 		Path unAccessTransformedMc = forgePatched.getPatchedJar();
+		String patchedVersionTag = forgePatched.getPatchedVersionTag();
 		
 		//outputs
 		Path userCache = WellKnownLocations.getUserCache(project);
-		accessTransformedMc = userCache.resolve("minecraft-" + jarStuff + "-atd.jar");
+		accessTransformedMc = userCache.resolve("minecraft-" + patchedVersionTag + "-atd.jar");
 		
 		//task
 		project.getLogger().lifecycle("] access-transformed jar is at: " + accessTransformedMc);

@@ -88,8 +88,7 @@ public class AssetsProvider extends DependencyProvider {
 			}
 		}
 		
-		//TODO: I removed all code relating to the modern assets system (that uses the objects/ folder)
-		//Btw, using this `legacy` folder just to get out of its way
+		//Btw, using this `legacy` folder just to get out of regular Loom's way
 		
 		if(Files.notExists(thisVersionAssetsDir)) {
 			project.getLogger().lifecycle(":downloading assets...");

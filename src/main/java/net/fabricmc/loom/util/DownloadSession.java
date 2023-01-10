@@ -13,7 +13,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
-import java.nio.file.attribute.FileTime;
+import java.time.Instant;
+import java.time.temporal.TemporalAmount;
 import java.util.zip.GZIPInputStream;
 
 /**
@@ -34,10 +35,14 @@ public class DownloadSession {
 	
 	private URL url;
 	private Path dest;
-	private boolean useEtag = false, requestGzip = true;
+	//If the server sends an ETag, save it in an auxillary file and send it back to the server when rerequesting the file
+	private boolean useEtag = false;
+	//Send an Accept-Encoding: gzip header and decompress the file on the client
+	private boolean requestGzip = true;
 	
 	private boolean skipIfExists = false;
 	private @Nullable String skipIfSha1 = null;
+	private @Nullable TemporalAmount skipIfNewerThan = null;
 	
 	private final Project project;
 	private boolean quiet;
@@ -76,6 +81,11 @@ public class DownloadSession {
 		return this;
 	}
 	
+	public DownloadSession skipIfNewerThan(@Nullable TemporalAmount skipIfNewerThan) { //e.g. "Period.ofDays()"
+		this.skipIfNewerThan = skipIfNewerThan;
+		return this;
+	}
+	
 	public DownloadSession quiet() {
 		this.quiet = true;
 		return this;
@@ -85,22 +95,31 @@ public class DownloadSession {
 		Preconditions.checkNotNull(url, "url");
 		Preconditions.checkNotNull(dest, "dest");
 		
-		if(skipIfExists && Files.exists(dest)) {
-			info("Not connecting to {} because {} exists", url, dest);
-			return;
-		}
-		if(skipIfSha1 != null && Checksum.compareSha1(dest, skipIfSha1)) {
-			info("Not connecting to {} because {} exists and has correct SHA-1 hash ({})", url, dest, skipIfSha1);
-			return;
+		Path etagFile = dest.resolveSibling(dest.getFileName().toString() + ".etag");
+		boolean destExists = Files.exists(dest);
+		boolean etagExists = Files.exists(etagFile);
+		
+		if(destExists) {
+			if(skipIfExists) {
+				info("Not connecting to {} because {} exists", url, dest);
+				return;
+			}
+			if(skipIfSha1 != null && Checksum.compareSha1(dest, skipIfSha1)) {
+				info("Not connecting to {} because {} exists and has correct SHA-1 hash ({})", url, dest, skipIfSha1);
+				return;
+			}
+			if(skipIfNewerThan != null && Files.getLastModifiedTime(dest).toInstant().isAfter(Instant.now().minus(skipIfNewerThan))) {
+				info("Not connecting to {} because {} exists and was downloaded within {}", url, dest, skipIfNewerThan);
+				return;
+			}
 		}
 		
 		Files.createDirectories(dest.getParent());
 		
 		HttpURLConnection conn = (HttpURLConnection) url.openConnection(); //doesnt actually open html connection yet
 		
-		Path etagFile = dest.resolveSibling(dest.getFileName().toString() + ".etag");
 		String knownEtag = null;
-		if(useEtag && Files.exists(etagFile) && Files.exists(dest)) {
+		if(useEtag && destExists && etagExists) {
 			knownEtag = new String(Files.readAllBytes(etagFile), StandardCharsets.UTF_8);
 			conn.setRequestProperty("If-None-Match", knownEtag);
 			conn.setIfModifiedSince(Files.getLastModifiedTime(dest).toMillis());
@@ -117,12 +136,8 @@ public class DownloadSession {
 			throw new IOException("Got " + code + " " + conn.getResponseMessage() + " from connection to " + url);
 		}
 		
-		long srvModtime = conn.getHeaderFieldDate("Last-Modified", -1);
 		if(code == HttpURLConnection.HTTP_NOT_MODIFIED) {
 			info("\\-> Not Modified (etag match)");
-			return;
-		} else if (Files.exists(dest) && srvModtime > 0 && Files.getLastModifiedTime(dest).toMillis() >= srvModtime) {
-			info("\\-> Our copy is new enough");
 			return;
 		}
 		
@@ -134,8 +149,6 @@ public class DownloadSession {
 			try { Files.deleteIfExists(dest); } catch (Exception ignored) {}
 			throw e;
 		}
-		
-		if(srvModtime > 0) Files.setLastModifiedTime(dest, FileTime.fromMillis(srvModtime));
 		
 		String srvEtag = conn.getHeaderField("ETag");
 		if(useEtag && srvEtag != null) {

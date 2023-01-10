@@ -52,7 +52,7 @@ public class MappedProvider extends DependencyProvider {
 	private Path minecraftMappedJar;
 	private Path minecraftIntermediaryJar;
 
-	public void decorateProject(MinecraftProvider mc, MinecraftDependenciesProvider libs, ForgePatchedAccessTxdProvider patchedTxd, MappingsProvider mappings) throws Exception {
+	public void decorateProject(MinecraftDependenciesProvider libs, ForgePatchedProvider forgePatched, ForgePatchedAccessTxdProvider patchedTxd, MappingsProvider mappings) throws Exception {
 		//inputs
 		List<Path> libPaths = new ArrayList<>(libs.getNonNativeLibraries());
 		Path forgePatchedJar = patchedTxd.getTransformedJar();
@@ -63,7 +63,7 @@ public class MappedProvider extends DependencyProvider {
 		
 		//TODO kludgy? yeah
 		String intermediaryJarNameKinda = String.format("%s-%s-%s-%s",
-			mc.getJarStuff(),
+			forgePatched.getPatchedVersionTag(),
 			"intermediary",
 			mappings.getMappingsName(),
 			mappings.getMappingsVersion()
@@ -71,7 +71,7 @@ public class MappedProvider extends DependencyProvider {
 		String intermediaryJarName = "minecraft-" + intermediaryJarNameKinda + ".jar";
 		
 		String mappedJarNameKinda = String.format("%s-%s-%s-%s",
-			mc.getJarStuff(),
+			forgePatched.getPatchedVersionTag(),
 			"mapped",
 			mappings.getMappingsName(),
 			mappings.getMappingsVersion()
@@ -94,8 +94,8 @@ public class MappedProvider extends DependencyProvider {
 			Files.deleteIfExists(minecraftIntermediaryJar);
 			
 			//These are minecraft libraries that conflict with the ones forge wants
-			//theyre obfuscated and mcp maps them back to reality
-			//TODO, if leaving them in crashes, how did forge work back in the day?
+			//They're obfuscated and mcp maps them back to reality. The forge Ant script had a task to delete them lol.
+			//https://github.com/MinecraftForge/FML/blob/8e7956397dd80902f7ca69c466e833047dfa5010/build.xml#L295-L298
 			Predicate<String> classFilter = s -> !s.startsWith("argo") && !s.startsWith("org");
 			
 			new TinyRemapperSession()
