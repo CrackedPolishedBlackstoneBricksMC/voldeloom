@@ -71,7 +71,7 @@ public class MappingsProvider extends DependencyProvider {
 	public void decorateProject(ForgePatchedProvider forgePatched) throws Exception {
 		//inputs
 		DependencyInfo mappingsDependency = getSingleDependency(Constants.MAPPINGS);
-		Path mappingsJar = mappingsDependency.resolveSinglePath().orElseThrow(() -> new RuntimeException("Could not find mcp mappings: " + mappingsDependency));
+		Path mappingsJar = mappingsDependency.resolveSinglePath();
 		project.getLogger().lifecycle("] mappings name: " + mappingsDependency.getDependency().getName() + ", version: " + mappingsDependency.getResolvedVersion());
 
 		//outputs

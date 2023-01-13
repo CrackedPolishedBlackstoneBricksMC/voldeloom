@@ -54,7 +54,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -160,13 +159,13 @@ public abstract class DependencyProvider {
 			return sourceConfiguration.files(dependency);
 		}
 		
-		public Optional<Path> resolveSinglePath() {
+		public Path resolveSinglePath() {
 			Set<File> files = resolve();
 			
 			if(files.size() == 0) {
 				throw new IllegalStateException("Expected configuration '" + sourceConfiguration.getName() + "' to resolve to one file, but found zero.");
 			} else if(files.size() == 1) {
-				return files.stream().findFirst().map(File::toPath);
+				return files.iterator().next().toPath();
 			} else {
 				StringBuilder builder = new StringBuilder("Expected configuration '");
 				builder.append(sourceConfiguration.getName());

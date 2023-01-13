@@ -21,7 +21,7 @@ public class ForgeProvider extends DependencyProvider {
 	
 	public void decorateProject() throws Exception {
 		DependencyInfo forgeDependency = getSingleDependency(Constants.FORGE);
-		forge = forgeDependency.resolveSinglePath().orElseThrow(() -> new RuntimeException("No forge dep!"));
+		forge = forgeDependency.resolveSinglePath();
 		forgeVersion = forgeDependency.getDependency().getVersion();
 		
 		project.getLogger().lifecycle("] forge JAR is at: " + forge);
