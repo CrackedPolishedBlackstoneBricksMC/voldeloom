@@ -34,7 +34,7 @@ public class ForgeProvider extends DependencyProvider {
 		forge = forgeDependency.resolveSinglePath().orElseThrow(() -> new RuntimeException("No forge dep!"));
 		forgeVersion = forgeDependency.getDependency().getVersion();
 		
-		project.getLogger().info("] Forge: " + forge);
+		project.getLogger().lifecycle("] forge JAR is at: " + forge);
 		
 		//TODO: move to the access txd provider lol
 		
@@ -84,6 +84,6 @@ public class ForgeProvider extends DependencyProvider {
 	
 	@Override
 	protected Collection<Path> pathsToClean() {
-		return Collections.singleton(forge);
+		return Collections.emptyList(); //It's a normal gradle dependency so gradle will refresh it on its own
 	}
 }

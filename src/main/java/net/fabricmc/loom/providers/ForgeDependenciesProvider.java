@@ -44,12 +44,19 @@ public class ForgeDependenciesProvider extends DependencyProvider {
 	private Path forgeLibsFolder;
 	
 	public void decorateProject(ForgeProvider forge) throws Exception {
-		forgeLibsFolder = WellKnownLocations.getUserCache(project).resolve("forgeLibs").resolve(forge.getVersion());
-		Files.createDirectories(forgeLibsFolder);
+		//inputs
+		String forgeVersion = forge.getVersion();
+		Path forgeJar = forge.getJar();
 		
+		//outputs
+		forgeLibsFolder = WellKnownLocations.getUserCache(project).resolve("forgeLibs").resolve(forgeVersion);
+		Files.createDirectories(forgeLibsFolder);
+		cleanIfRefreshDependencies();
+		
+		//outputs and task
 		List<String> sniffedLibraries = new ArrayList<>();
 		
-		try(FileSystem forgeFs = FileSystems.newFileSystem(URI.create("jar:" + forge.getJar().toUri()), Collections.emptyMap())) {
+		try(FileSystem forgeFs = FileSystems.newFileSystem(URI.create("jar:" + forgeJar.toUri()), Collections.emptyMap())) {
 			//read from magical hardcoded path inside the forge jar; this is where the auto-downloaded library paths are stored
 			//TODO: applies from forge 1.3 through forge 1.5, dropped in 1.6
 			//TODO: at least 1.5 includes additional "deobfuscation data" zip dep, but also contains a sys property to change download mirror

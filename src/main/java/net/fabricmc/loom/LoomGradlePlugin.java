@@ -92,8 +92,17 @@ public class LoomGradlePlugin implements Plugin<Project> {
 	
 	@Override
 	public void apply(Project project) {
+		//Hi!
+		project.getLogger().lifecycle("=====");
 		project.getLogger().lifecycle("Applying Voldeloom " + getClass().getPackage().getImplementationVersion() + " to " + project.getDisplayName() + ".");
 		project.getLogger().lifecycle("Java version is '" + System.getProperty("java.version") + "', Gradle version is '" + project.getGradle().getGradleVersion() + "'. I hope it works :)");
+		
+		//Initialize some global variables.
+		Constants.init(project.getGradle());
+		if(Constants.offline) project.getLogger().warn("!! We're in offline mode - downloads will abort");
+		if(Constants.refreshDependencies) project.getLogger().warn("!! We're in refresh-dependencies mode - intermediate products will be recomputed");
+		
+		project.getLogger().lifecycle("=====");
 		
 		//Apply a handful of bonus plugins. This acts the same as writing `apply plugin: 'java'` in the buildscript.
 		project.getPlugins().apply("java");

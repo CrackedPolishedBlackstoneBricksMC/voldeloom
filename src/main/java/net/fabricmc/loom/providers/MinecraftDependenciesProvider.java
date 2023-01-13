@@ -57,12 +57,17 @@ public class MinecraftDependenciesProvider extends DependencyProvider {
 	private Path nativesDir;
 	
 	public void decorateProject(MinecraftProvider mc) throws Exception {
+		//inputs
 		MinecraftVersionInfo versionInfo = mc.getVersionManifest();
 		
+		//outputs
 		nativesDir = WellKnownLocations.getUserCache(project).resolve("natives").resolve(mc.getVersion());
 		Path nativesJarStore = nativesDir.resolve("jars");
+		cleanIfRefreshDependencies();
+		
 		Files.createDirectories(nativesJarStore);
 		
+		//task
 		for(MinecraftVersionInfo.Library library : versionInfo.libraries) {
 			if(!library.allowed()) continue;
 			

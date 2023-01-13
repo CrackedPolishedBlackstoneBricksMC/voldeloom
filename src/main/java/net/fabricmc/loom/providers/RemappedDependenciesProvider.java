@@ -43,7 +43,11 @@ public class RemappedDependenciesProvider extends DependencyProvider {
 				try {
 					Path unmappedPath = unmappedFile.toPath();
 					Path mappedPath = modStore.resolve(unmappedPath.getFileName().toString() + "-mapped-" + mappingsSuffix + ".jar");
-					processMod(unmappedPath, mappedPath, null, null, minecraftDependenciesProvider, mappingsProvider, patchedAccessTxdProvider);
+					
+					if(Files.notExists(mappedPath) || Constants.refreshDependencies) {
+						processMod(unmappedPath, mappedPath, null, null, minecraftDependenciesProvider, mappingsProvider, patchedAccessTxdProvider);
+					}
+					
 					project.getDependencies().add(outputConfig.getName(), project.files(mappedPath));
 				} catch (Exception e) {
 					throw new RuntimeException("phooey", e);

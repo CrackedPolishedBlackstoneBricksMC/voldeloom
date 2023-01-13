@@ -42,6 +42,7 @@ public class ForgePatchedProvider extends DependencyProvider {
 		Path userCache = WellKnownLocations.getUserCache(project);
 		patchedVersionTag = mc.getVersion() + "-forge-" + forge.getVersion();
 		patched = userCache.resolve("minecraft-" + patchedVersionTag + "-merged.jar");
+		cleanIfRefreshDependencies();
 		
 		//execution
 		project.getLogger().lifecycle("] patched jar is at: " + patched);

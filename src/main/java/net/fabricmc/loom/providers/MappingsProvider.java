@@ -69,21 +69,22 @@ public class MappingsProvider extends DependencyProvider {
 	private Path tinyMappingsJar;
 	
 	public void decorateProject(ForgePatchedProvider forgePatched) throws Exception {
-		//deps
+		//inputs
 		DependencyInfo mappingsDependency = getSingleDependency(Constants.MAPPINGS);
-		
-		project.getLogger().lifecycle("] mappings name: " + mappingsDependency.getDependency().getName() + ", version: " + mappingsDependency.getResolvedVersion());
-		
 		Path mappingsJar = mappingsDependency.resolveSinglePath().orElseThrow(() -> new RuntimeException("Could not find mcp mappings: " + mappingsDependency));
+		project.getLogger().lifecycle("] mappings name: " + mappingsDependency.getDependency().getName() + ", version: " + mappingsDependency.getResolvedVersion());
 
-		this.mappingsName = mappingsDependency.getDependency().getGroup() + "." + mappingsDependency.getDependency().getName();
-		this.mappingsVersion = mappingsDependency.getResolvedVersion();
-		
+		//outputs
+		mappingsName = mappingsDependency.getDependency().getGroup() + "." + mappingsDependency.getDependency().getName();
+		mappingsVersion = mappingsDependency.getResolvedVersion();
 		tinyMappings = mappingsDir.resolve(mappingsJar.getFileName() + ".tiny");
 		tinyMappingsJar = mappingsDir.resolve(mappingsJar.getFileName() + ".tiny.jar");
+		
+		cleanIfRefreshDependencies();
 		Files.createDirectories(mappingsDir);
 		
-		if (Files.notExists(tinyMappings)) {
+		//task
+		if(Files.notExists(tinyMappings)) {
 			long filesize;
 			try {
 				filesize = Files.size(mappingsJar);

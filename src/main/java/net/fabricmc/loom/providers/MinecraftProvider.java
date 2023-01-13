@@ -71,6 +71,8 @@ public class MinecraftProvider extends DependencyProvider {
 		minecraftClientJar = userCache.resolve("minecraft-" + minecraftVersion + "-client.jar");
 		minecraftServerJar = userCache.resolve("minecraft-" + minecraftVersion + "-server.jar");
 		
+		cleanIfRefreshDependencies();
+		
 		//execution
 		boolean offline = project.getGradle().getStartParameter().isOffline();
 		downloadMcJson(offline);

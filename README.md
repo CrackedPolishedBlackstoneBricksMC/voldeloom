@@ -71,7 +71,6 @@ To do list:
 * Consider patching Forge itself on its way in to the dev workspace.
   * Upsides: Can fix the dependency downloader, can fix coremod-detection being very picky.
   * Downsides: Will need to modify the patch for every version of Forge, it's "magic" hardcoded in the gradle plugin, and Idk I like working off the original assets
-* Make `--refreshDependencies` dump all cached resources
 * Rebrand:tm: the project tbh.. Lol there's still a lot of user-facing references to "fabric" even
 
 What I'd like to add:

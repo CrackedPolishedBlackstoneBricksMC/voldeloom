@@ -43,6 +43,7 @@ public class ForgePatchedAccessTxdProvider extends DependencyProvider {
 		//outputs
 		Path userCache = WellKnownLocations.getUserCache(project);
 		accessTransformedMc = userCache.resolve("minecraft-" + patchedVersionTag + "-atd.jar");
+		cleanIfRefreshDependencies();
 		
 		//task
 		project.getLogger().lifecycle("] access-transformed jar is at: " + accessTransformedMc);

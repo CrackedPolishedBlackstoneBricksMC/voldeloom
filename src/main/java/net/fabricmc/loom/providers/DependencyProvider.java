@@ -84,6 +84,13 @@ public abstract class DependencyProvider {
 		return project.getTasks().register("clean" + nameFunny, CleaningTask.class, this);
 	}
 	
+	public void cleanIfRefreshDependencies() {
+		if(Constants.refreshDependencies) {
+			project.getLogger().lifecycle("|-> Deleting outputs of " + getClass().getSimpleName() + " because --refresh-dependencies was passed");
+			LoomGradlePlugin.delete(project, pathsToClean());
+		}
+	}
+	
 	///
 	
 	protected DependencyInfo getSingleDependency(String targetConfig) {

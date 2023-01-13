@@ -24,6 +24,8 @@
 
 package net.fabricmc.loom;
 
+import org.gradle.api.invocation.Gradle;
+
 public class Constants {
 	//Task groups
 	public static final String TASK_GROUP_CLEANING = "fabric.clean";
@@ -44,4 +46,13 @@ public class Constants {
 	
 	public static final String FORGE = "forge";
 	public static final String FORGE_DEPENDENCIES = "forgeLibraries";
+	
+	//Gradle settings
+	public static boolean refreshDependencies = false;
+	public static boolean offline = false;
+	
+	public static void init(Gradle gradle) {
+		refreshDependencies = gradle.getStartParameter().isRefreshDependencies();
+		offline = gradle.getStartParameter().isOffline();
+	}
 }

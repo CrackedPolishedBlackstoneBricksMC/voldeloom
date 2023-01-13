@@ -1,6 +1,7 @@
 package net.fabricmc.loom.util;
 
 import com.google.common.base.Preconditions;
+import net.fabricmc.loom.Constants;
 import org.gradle.api.Project;
 
 import javax.annotation.Nullable;
@@ -95,11 +96,18 @@ public class DownloadSession {
 		Preconditions.checkNotNull(url, "url");
 		Preconditions.checkNotNull(dest, "dest");
 		
-		Path etagFile = dest.resolveSibling(dest.getFileName().toString() + ".etag");
 		boolean destExists = Files.exists(dest);
-		boolean etagExists = Files.exists(etagFile);
 		
-		if(destExists) {
+		//If we're offline, assume the file is up-to-date enough; and if we don't have the file, there's no way to get it.
+		if(Constants.offline) {
+			if(destExists) {
+				info("Not connecting to {} because {} exists and we're in offline mode.", url, dest);
+				return;
+			} else throw new IllegalStateException("Need to download " + url + " to " + dest + ", but Gradle was started in offline mode. Aborting."); 
+		}
+		
+		//More fine-grained up-to-dateness checks that we skip in refreshDependencies mode.
+		if(destExists && !Constants.refreshDependencies) {
 			if(skipIfExists) {
 				info("Not connecting to {} because {} exists", url, dest);
 				return;
@@ -114,42 +122,45 @@ public class DownloadSession {
 			}
 		}
 		
-		Files.createDirectories(dest.getParent());
-		
 		HttpURLConnection conn = (HttpURLConnection) url.openConnection(); //doesnt actually open html connection yet
 		
+		//Read the locally known etag, if one exists, and set the etag header.
 		String knownEtag = null;
-		if(useEtag && destExists && etagExists) {
+		Path etagFile = dest.resolveSibling(dest.getFileName().toString() + ".etag");
+		if(useEtag && destExists && Files.exists(etagFile) && !Constants.refreshDependencies) {
 			knownEtag = new String(Files.readAllBytes(etagFile), StandardCharsets.UTF_8);
 			conn.setRequestProperty("If-None-Match", knownEtag);
 			conn.setIfModifiedSince(Files.getLastModifiedTime(dest).toMillis());
 		}
 		
+		//Request a gzip header, if compression was requested.
 		if(requestGzip) conn.setRequestProperty("Accept-Encoding", "gzip");
 		
-		lifecycle("Establishing connection to {} (sending etag header: {}, gzip encoding: {})...", url.toString(), knownEtag != null, requestGzip);
+		//Actually connect.
+		lifecycle("Establishing connection to {} (sending etag header: {}, gzip encoding: {})...", url, knownEtag != null, requestGzip);
 		conn.connect();
 		
+		//We'll take a 304, or something in the OK section.
 		int code = conn.getResponseCode();
-		if((code < 200 || code >= 300) && code != HttpURLConnection.HTTP_NOT_MODIFIED) {
-			//unexpected response code
+		if(code == HttpURLConnection.HTTP_NOT_MODIFIED) {
+			lifecycle("\\-> Not Modified (etag match)"); //The server *shouldn't* send a 304 if we didn't send an etag?
+			return;
+		} else if(code / 100 != 2) {
 			throw new IOException("Got " + code + " " + conn.getResponseMessage() + " from connection to " + url);
 		}
 		
-		if(code == HttpURLConnection.HTTP_NOT_MODIFIED) {
-			info("\\-> Not Modified (etag match)");
-			return;
-		}
-		
+		//Download the entire file and save it to disk.
 		lifecycle("\\-> Saving to {} ", dest);
+		Files.createDirectories(dest.getParent());
 		try(InputStream in = "gzip".equals(conn.getContentEncoding()) ? new GZIPInputStream(conn.getInputStream()) : conn.getInputStream()) {
 			Files.copy(in, dest, StandardCopyOption.REPLACE_EXISTING);
 		} catch (IOException e) {
-			//not keeping this
+			//don't keep a half-downloaded file, if we can
 			try { Files.deleteIfExists(dest); } catch (Exception ignored) {}
 			throw e;
 		}
 		
+		//Save the etag to disk too, if one was sent alongside the file.
 		String srvEtag = conn.getHeaderField("ETag");
 		if(useEtag && srvEtag != null) {
 			info("\\-> Saving etag to {} ", etagFile);

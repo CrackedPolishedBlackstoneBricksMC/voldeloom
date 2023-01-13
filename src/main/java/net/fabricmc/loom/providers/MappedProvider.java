@@ -82,6 +82,7 @@ public class MappedProvider extends DependencyProvider {
 		
 		minecraftIntermediaryJar = userCache.resolve(intermediaryJarName);
 		minecraftMappedJar = mappedDestDir.resolve(mappedJarName);
+		cleanIfRefreshDependencies();
 		
 		//task
 		project.getLogger().lifecycle("] intermediary jar is at: " + minecraftIntermediaryJar);

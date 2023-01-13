@@ -54,6 +54,7 @@ public class MergedProvider extends DependencyProvider {
 		Path userCache = WellKnownLocations.getUserCache(project);
 		merged = userCache.resolve("minecraft-" + version + "-merged.jar");
 		mergedUnfixed = userCache.resolve("minecraft-" + version + "-merged-unfixed.jar");
+		cleanIfRefreshDependencies();
 		
 		//execution
 		project.getLogger().lifecycle("] merged-unfixed jar is at: " + mergedUnfixed);

@@ -53,19 +53,20 @@ public class AssetsProvider extends DependencyProvider {
 	
 	private Path assetIndexFile;
 	private Path thisVersionAssetsDir;
+	private final Path globalAssetsCache = WellKnownLocations.getUserCache(project).resolve("assets");
 	
 	public void decorateProject(MinecraftProvider mc) throws Exception {
+		//inputs
 		MinecraftVersionInfo versionInfo = mc.getVersionManifest();
 		MinecraftVersionInfo.AssetIndex assetIndexInfo = versionInfo.assetIndex;
-		
-		Path globalAssetsCache = WellKnownLocations.getUserCache(project).resolve("assets");
 		
 		//outputs
 		assetIndexFile = globalAssetsCache.resolve("indexes").resolve(assetIndexInfo.getFabricId(mc.getVersion()) + ".json");
 		thisVersionAssetsDir = globalAssetsCache.resolve("legacy").resolve(mc.getVersion());
+		//Btw, using this `legacy` folder just to get out of regular Loom's way.
+		//(We don't clean these on refreshDependencies just beacuse they take a long time to download.)
 		
-		//tasks
-		
+		//task
 		boolean offline = project.getGradle().getStartParameter().isOffline();
 		if (Files.notExists(assetIndexFile) || !Checksum.compareSha1(assetIndexFile, assetIndexInfo.sha1)) {
 			project.getLogger().lifecycle(":downloading asset index");
@@ -87,8 +88,6 @@ public class AssetsProvider extends DependencyProvider {
 					.download();
 			}
 		}
-		
-		//Btw, using this `legacy` folder just to get out of regular Loom's way
 		
 		if(Files.notExists(thisVersionAssetsDir)) {
 			project.getLogger().lifecycle(":downloading assets...");
