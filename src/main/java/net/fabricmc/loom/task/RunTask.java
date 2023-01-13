@@ -26,6 +26,7 @@ package net.fabricmc.loom.task;
 
 import net.fabricmc.loom.Constants;
 import net.fabricmc.loom.LoomGradleExtension;
+import net.fabricmc.loom.util.GradleSupport;
 import net.fabricmc.loom.util.LoomTaskExt;
 import net.fabricmc.loom.util.RunConfig;
 import org.gradle.api.tasks.JavaExec;
@@ -37,7 +38,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
-public abstract class RunTask extends JavaExec implements LoomTaskExt {
+public class RunTask extends JavaExec implements LoomTaskExt {
 	@Inject
 	public RunTask(RunConfig config) throws Exception {
 		setGroup(Constants.TASK_GROUP_RUNNING);
@@ -96,8 +97,7 @@ public abstract class RunTask extends JavaExec implements LoomTaskExt {
 		args(config.getProgramArgs());
 
 		//Main class
-		getMainClass().set(config.getMainClass()); //todo gradle 4? this is relatively new
-		//setMain(config.mainClass);
+		GradleSupport.setMainClass(this, config.getMainClass());
 
 		//Pwd
 		Path runDir = getProject().getRootDir().toPath().resolve(config.getRunDir());

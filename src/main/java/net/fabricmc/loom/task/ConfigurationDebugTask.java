@@ -12,7 +12,7 @@ import org.gradle.api.tasks.TaskAction;
 
 import java.io.File;
 
-public abstract class ConfigurationDebugTask extends DefaultTask implements LoomTaskExt {
+public class ConfigurationDebugTask extends DefaultTask implements LoomTaskExt {
 	public ConfigurationDebugTask() {
 		setGroup(Constants.TASK_GROUP_TOOLS);
 		setDescription("Prints some information about the Configurations used in the project and their relationships between each other.");

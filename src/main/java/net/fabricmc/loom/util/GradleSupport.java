@@ -33,6 +33,8 @@ import org.gradle.api.artifacts.repositories.ArtifactRepository;
 import org.gradle.api.file.ProjectLayout;
 import org.gradle.api.file.RegularFileProperty;
 import org.gradle.api.model.ObjectFactory;
+import org.gradle.api.provider.Property;
+import org.gradle.api.tasks.JavaExec;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -115,5 +117,26 @@ public class GradleSupport {
 		} catch (ReflectiveOperationException e) {
 			throw new RuntimeException(e);
 		}
+	}
+	
+	public static void setMainClass(JavaExec task, String mainClass) {
+		try {
+			setMainClassModern(task, mainClass);
+		} catch (ReflectiveOperationException ignore) {
+			setMainClassLegacy(task, mainClass);
+		}
+	}
+	
+	private static void setMainClassModern(JavaExec task, String mainClass) throws ReflectiveOperationException {
+		Method getMainClassMethod = task.getClass().getMethod("getMainClass");
+		getMainClassMethod.setAccessible(true);
+		
+		Property<String> mainClassProp = (Property<String>) getMainClassMethod.invoke(task);
+		mainClassProp.set(mainClass);
+	}
+	
+	private static void setMainClassLegacy(JavaExec task, String mainClass) {
+		//Method still exists in Gradle 7, but is deprecated and doesn't work
+		task.setMain(mainClass);
 	}
 }

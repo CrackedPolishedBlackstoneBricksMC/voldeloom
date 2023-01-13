@@ -12,16 +12,12 @@ buildscript {
 
 apply plugin: "com.unascribed.voldeloom"
 
-java {
-	toolchain {
-		//Last version able to set a --release as low as 6.
-		languageVersion = JavaLanguageVersion.of(11)
-	}
-}
+//Gradle 4 does not support the "toolchains" feature, so you must be running Gradle through a Java 8 JVM
 
 compileJava {
 	//Forge doesn't understand classes compiled to versions of the class-file format newer than Java 6's.
-	options.release.set(6)
+	sourceCompatibility = "6"
+	targetCompatibility = "6"
 }
 
 String minecraftVersion = "1.4.7"

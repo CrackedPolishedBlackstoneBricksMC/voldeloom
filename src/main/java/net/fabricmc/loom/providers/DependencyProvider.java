@@ -303,7 +303,7 @@ public abstract class DependencyProvider {
 		return out;
 	}
 	
-	public abstract static class CleaningTask extends DefaultTask implements LoomTaskExt {
+	public static class CleaningTask extends DefaultTask implements LoomTaskExt {
 		@Inject
 		public CleaningTask(DependencyProvider prov) {
 			setGroup(Constants.TASK_GROUP_CLEANING);
