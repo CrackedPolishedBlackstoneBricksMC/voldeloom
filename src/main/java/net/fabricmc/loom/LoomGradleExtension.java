@@ -53,6 +53,13 @@ public class LoomGradleExtension {
 	}
 	
 	/**
+	 * A common error when updating to Gradle 7 is forgetting to switch `compile` to `implementation`.
+	 * The plugin adds a rule to the project's configuration container that logs a message when you access, say, `modCompile`,
+	 * but you're on an `implementation`-flavored Gradle.
+	 */
+	public boolean warnOnProbablyWrongConfigurationNames = true;
+	
+	/**
 	 * If this is set to `false`, your mod won't get remapped to proguard names upon distribution.
 	 * TODO: Not sure why you'd want this when the `-dev` jars do the same thing, lol
 	 *  I heard Loom was initially developed under the assumption parts would be split off into other games (perhaps games that didn't use remapping),
@@ -127,7 +134,12 @@ public class LoomGradleExtension {
 	
 	@SuppressWarnings("unused") //Gradle api
 	public void remappedConfigs(Action<NamedDomainObjectContainer<RemappedConfigurationEntry>> action) {
+		boolean last = warnOnProbablyWrongConfigurationNames;
+		warnOnProbablyWrongConfigurationNames = false;
+		
 		action.execute(remappedConfigurationEntries);
+		
+		warnOnProbablyWrongConfigurationNames = last;
 	}
 	
 	public LoomDependencyManager getDependencyManager() {

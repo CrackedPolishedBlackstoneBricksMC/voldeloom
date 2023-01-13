@@ -27,20 +27,20 @@ package net.fabricmc.loom;
 import groovy.util.Node;
 import net.fabricmc.loom.task.AbstractDecompileTask;
 import net.fabricmc.loom.task.ConfigurationDebugTask;
+import net.fabricmc.loom.task.MigrateMappingsTask;
+import net.fabricmc.loom.task.RemapJarTask;
+import net.fabricmc.loom.task.RemapLineNumbersTask;
+import net.fabricmc.loom.task.RemapSourcesJarTask;
 import net.fabricmc.loom.task.RemappedConfigEntryFolderCopyTask;
+import net.fabricmc.loom.task.RunTask;
+import net.fabricmc.loom.task.ShimForgeLibrariesTask;
+import net.fabricmc.loom.task.ShimResourcesTask;
+import net.fabricmc.loom.task.fernflower.FernFlowerTask;
 import net.fabricmc.loom.task.runs.GenDevLaunchInjectorConfigsTask;
 import net.fabricmc.loom.task.runs.GenEclipseRunsTask;
 import net.fabricmc.loom.task.runs.GenIdeaProjectTask;
 import net.fabricmc.loom.task.runs.GenIdeaRunConfigsTask;
 import net.fabricmc.loom.task.runs.GenVsCodeProjectTask;
-import net.fabricmc.loom.task.MigrateMappingsTask;
-import net.fabricmc.loom.task.RemapJarTask;
-import net.fabricmc.loom.task.RemapLineNumbersTask;
-import net.fabricmc.loom.task.RemapSourcesJarTask;
-import net.fabricmc.loom.task.RunTask;
-import net.fabricmc.loom.task.ShimForgeLibrariesTask;
-import net.fabricmc.loom.task.ShimResourcesTask;
-import net.fabricmc.loom.task.fernflower.FernFlowerTask;
 import net.fabricmc.loom.util.GradleSupport;
 import net.fabricmc.loom.util.GroovyXmlUtil;
 import net.fabricmc.loom.util.RunConfig;
@@ -63,9 +63,11 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -90,8 +92,8 @@ public class LoomGradlePlugin implements Plugin<Project> {
 	
 	@Override
 	public void apply(Project project) {
-		project.getLogger().lifecycle("applying Voldeloom " + getClass().getPackage().getImplementationVersion() + " to " + project.getDisplayName());
-		project.getLogger().lifecycle("Java version is " + System.getProperty("java.version") + ". I hope it works :)");
+		project.getLogger().lifecycle("Applying Voldeloom " + getClass().getPackage().getImplementationVersion() + " to " + project.getDisplayName() + ".");
+		project.getLogger().lifecycle("Java version is '" + System.getProperty("java.version") + "', Gradle version is '" + project.getGradle().getGradleVersion() + "'. I hope it works :)");
 		
 		//Apply a handful of bonus plugins. This acts the same as writing `apply plugin: 'java'` in the buildscript.
 		project.getPlugins().apply("java");
@@ -168,7 +170,53 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		extensionUnconfigured.remappedConfigurationEntries.whenObjectAdded(entry -> everyUnmappedMod.extendsFrom(entry.inputConfig));
 		
 		//Then preconfigure a few. TODO figure out how `api` works lol
-		extensionUnconfigured.remappedConfigurationEntries.create("modImplementation", mod -> {
+		//First do some Gradle back-compat stuff. We should create configurations with the same naming conventions as the ones in the current Gradle version.
+		String modImplementationName, modRuntimeOnlyName;
+		Map<String, String> corrections = new HashMap<>();
+		if(GradleSupport.compileOrImplementation.equals("compile")) {
+			//Gradle 6-
+			modImplementationName = "modCompile";
+			corrections.put("modImplementation", "modCompile");
+			corrections.put("coremodImplementation", "coremodCompile");
+		} else { 
+			//Gradle 7
+			modImplementationName = "modImplementation";
+			corrections.put("modCompile", "modImplementation");
+			corrections.put("coremodCompile", "coremodImplementation");
+		}
+		
+		if(GradleSupport.runtimeOrRuntimeOnly.equals("runtime")) {
+			//Gradle 6-
+			modRuntimeOnlyName = "modRuntime";
+			corrections.put("modRuntimeOnly", "modRuntime");
+			corrections.put("coremodRuntimeOnly", "coremodRuntime");
+		} else {
+			//Gradle 7
+			modRuntimeOnlyName = "modRuntimeOnly";
+			corrections.put("modRuntime", "modRuntimeOnly");
+			corrections.put("coremodRuntime", "coremodRuntimeOnly");
+		}
+		
+		//Rules (on NamedDomainObjectCollections, such as the ConfigurtionContainer) get called when someone attempts to look up a name that doesn't exist.
+		//I use this to print warnings for common incorrect access patterns. Throwing an exception is also possible, and will crash with a nicer error,
+		//but I figure those might get in the way if someone wants to do Crimes:tm:...
+		project.getConfigurations().addRule("Detector for incorrect Voldeloom configuration names", wrongName -> {
+			if(!extensionUnconfigured.warnOnProbablyWrongConfigurationNames) return; //Your funeral.
+			
+			String rightName = corrections.get(wrongName);
+			if(rightName != null) {
+				project.getLogger().error("!! [Voldeloom] The '" + wrongName + "' configuration isn't created when running on Gradle " + project.getGradle().getGradleVersion() + ".");
+				project.getLogger().error("!! Please use the '" + rightName + "' configuration on this version instead.");
+			}
+			
+			if("coremodCompileOnly".equals(wrongName)) {
+				project.getLogger().error("!! [Voldeloom] No need to use 'coremodCompileOnly', simply use regular 'compileOnly'.");
+				project.getLogger().error("!! Coremod special-casing is only relevant to getting mods onto the runtime classpath.");
+			}
+		});
+		
+		//Ok now actually add them.
+		extensionUnconfigured.remappedConfigurationEntries.create(modImplementationName, mod -> {
 			mod.mavenScope("compile");
 			project.getConfigurations().getByName(JavaPlugin.IMPLEMENTATION_CONFIGURATION_NAME).extendsFrom(mod.outputConfig);
 		});
@@ -176,7 +224,7 @@ public class LoomGradlePlugin implements Plugin<Project> {
 			mod.mavenScope("compile");
 			project.getConfigurations().getByName(JavaPlugin.COMPILE_ONLY_CONFIGURATION_NAME).extendsFrom(mod.outputConfig);
 		});
-		extensionUnconfigured.remappedConfigurationEntries.create("modRuntimeOnly", mod -> {
+		extensionUnconfigured.remappedConfigurationEntries.create(modRuntimeOnlyName, mod -> {
 			mod.mavenScope("runtime");
 			project.getConfigurations().getByName(JavaPlugin.RUNTIME_ONLY_CONFIGURATION_NAME).extendsFrom(mod.outputConfig);
 		});
@@ -187,12 +235,11 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		
 		//and some for coremods
 		
-		extensionUnconfigured.remappedConfigurationEntries.create("coremodImplementation", mod -> {
+		extensionUnconfigured.remappedConfigurationEntries.create("core" + modImplementationName, mod -> {
 			mod.mavenScope("compile").copyToFolder("coremods");
 			project.getConfigurations().getByName(JavaPlugin.COMPILE_ONLY_CONFIGURATION_NAME).extendsFrom(mod.outputConfig); //coremods do not go on runtime the usual way
 		});
-		//(No need for coremodCompileOnly - just use modCompileOnly, coremod hackery is only relevant to getting the dev environment working)
-		extensionUnconfigured.remappedConfigurationEntries.create("coremodRuntimeOnly", mod -> {
+		extensionUnconfigured.remappedConfigurationEntries.create("core" + modRuntimeOnlyName, mod -> {
 			mod.mavenScope("runtime").copyToFolder("coremods");
 			//doesn't extend from runtimeOnly since copyToFolder will take care of it
 		});
@@ -413,12 +460,6 @@ public class LoomGradlePlugin implements Plugin<Project> {
 				}
 			}
 		}
-	}
-	
-	//Intellij IDEA's "import gradle project" button spins up a JVM, sets the "idea.sync.active" property to "true", then runs the 'idea' task.
-	//I think that's what it does. Anyway, it's a litte bit fragile, sometimes you have to dance around it.
-	public static boolean ideaSync() {
-		return Boolean.parseBoolean(System.getProperty("idea.sync.active", "false"));
 	}
 	
 	public static Path getMappedByproduct(LoomGradleExtension extension, String suffix) {

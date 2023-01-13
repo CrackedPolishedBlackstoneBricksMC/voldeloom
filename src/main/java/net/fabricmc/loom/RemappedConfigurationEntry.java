@@ -87,4 +87,9 @@ public class RemappedConfigurationEntry implements Named {
 	public String getName() {
 		return inputConfig.getName();
 	}
+	
+	//Note that this doesn't copy any setup done relating to `outputConfig`, like setting an unrelated configuration to extend from it.
+	public RemappedConfigurationEntry copy() {
+		return new RemappedConfigurationEntry(inputConfig, outputConfig).copyToFolder(copyToFolder).mavenScope(mavenScope);
+	}
 }

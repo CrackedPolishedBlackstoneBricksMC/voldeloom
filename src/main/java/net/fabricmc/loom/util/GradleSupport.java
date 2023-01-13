@@ -26,7 +26,6 @@ package net.fabricmc.loom.util;
 
 import org.gradle.api.Action;
 import org.gradle.api.Project;
-import org.gradle.api.UnknownDomainObjectException;
 import org.gradle.api.artifacts.Configuration;
 import org.gradle.api.artifacts.ConfigurationContainer;
 import org.gradle.api.artifacts.repositories.ArtifactRepository;
@@ -38,6 +37,7 @@ import org.gradle.api.tasks.JavaExec;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.Set;
 
 /**
  * Bridges the gap over large gradle api changes. 
@@ -78,14 +78,25 @@ public class GradleSupport {
 	//(VOLDELOOM-DISASTER) Gradle 7 decided to rename "compile" to "implementation" and "runtime" to "runtimeOnly"
 	//They're basically the same thing, so we can just swap out the names as-appropriate.
 	public static void init(Project project) {
-		try {
-			project.getConfigurations().getByName("compile");
+		Set<String> names = project.getConfigurations().getNames();
+		
+		if(names.contains("compile")) {
 			compileOrImplementation = "compile";
-			runtimeOrRuntimeOnly = "runtime";
-		} catch (UnknownDomainObjectException e) {
+		} else if(names.contains("implementation")) {
 			compileOrImplementation = "implementation";
-			runtimeOrRuntimeOnly = "runtimeOnly";
+		} else {
+			throw new IllegalStateException("Not sure what the name of the compilation configuration is (apparently not `compile` or `implementation`)");
 		}
+		
+		if(names.contains("runtime")) {
+			runtimeOrRuntimeOnly = "runtime";
+		} else if(names.contains("runtimeOnly")) {
+			runtimeOrRuntimeOnly = "runtimeOnly";
+		} else {
+			throw new IllegalStateException("Not sure what the name of the runtime-only configuration is (apparently not `runtime` or `runtimeOnly`)");
+		}
+		
+		project.getLogger().info("We're on a '" + compileOrImplementation + "'-flavored Gradle; slight aftertaste of '" + runtimeOrRuntimeOnly + "'.");
 	}
 	
 	public static Configuration getCompileOrImplementationConfiguration(ConfigurationContainer configurations) {
