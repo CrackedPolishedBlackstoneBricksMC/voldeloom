@@ -31,6 +31,8 @@ public class ForgeAccessTransformerSet {
 	//class + "." + method + descriptor
 	private final Map<String, AccessTransformation> methodTransformers = new HashMap<>();
 	
+	private int count = 0; //Just for curiosity's sake.
+	
 	public @Nonnull AccessTransformation getClassTransformation(String className) {
 		return classTransformers.getOrDefault(className, AccessTransformation.NO_CHANGE);
 	}
@@ -79,6 +81,12 @@ public class ForgeAccessTransformerSet {
 				}
 			}
 		}
+		
+		count = classTransformers.size() + fieldTransformers.size() + methodTransformers.size() + wildcardFieldTransformers.size() + wildcardMethodTransformers.size();
+	}
+	
+	public int getCount() {
+		return count;
 	}
 	
 	public class AccessTransformingClassVisitor extends ClassVisitor {

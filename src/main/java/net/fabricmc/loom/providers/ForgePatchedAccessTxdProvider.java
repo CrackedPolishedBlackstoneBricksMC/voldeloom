@@ -18,6 +18,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 
@@ -36,7 +37,7 @@ public class ForgePatchedAccessTxdProvider extends DependencyProvider {
 	
 	public void decorateProject(ForgeProvider forge, ForgePatchedProvider forgePatched) throws Exception {
 		//inputs
-		ForgeAccessTransformerSet unmappedAts = forge.getUnmappedAccessTransformers();
+		Path forgeJar = forge.getJar();
 		Path unAccessTransformedMc = forgePatched.getPatchedJar();
 		String patchedVersionTag = forgePatched.getPatchedVersionTag();
 		
@@ -46,9 +47,29 @@ public class ForgePatchedAccessTxdProvider extends DependencyProvider {
 		cleanIfRefreshDependencies();
 		
 		//task
-		project.getLogger().lifecycle("] access-transformed jar is at: " + accessTransformedMc);
+		project.getLogger().lifecycle("] access-transformed jar is at: {}", accessTransformedMc);
 		if(Files.notExists(accessTransformedMc)) {
-			project.getLogger().lifecycle("|-> Does not exist, performing access transform...");
+			project.getLogger().lifecycle("|-> Does not exist, parsing Forge's access transformers...");
+			
+			//Read forge ats
+			ForgeAccessTransformerSet ats = new ForgeAccessTransformerSet();
+			try(FileSystem forgeFs = FileSystems.newFileSystem(URI.create("jar:" + forgeJar.toUri()), Collections.emptyMap())) {
+				//TODO: where do these names come from, can they be read from the jar?
+				// 1.2.5 does not have these files
+				for(String atFileName : Arrays.asList("forge_at.cfg", "fml_at.cfg")) {
+					Path atFilePath = forgeFs.getPath(atFileName);
+					if(Files.exists(atFilePath)) {
+						project.getLogger().info("|-> Loading {}", atFileName);
+						try(InputStream atIn = new BufferedInputStream(Files.newInputStream(atFilePath))) {
+							ats.load(atIn);
+						}
+					} else {
+						project.getLogger().info("|-> No {} in the Forge jar", atFileName);
+					}
+				}
+			}
+			
+			project.getLogger().lifecycle("|-> Found {} access transformers. Performing transform...", ats.getCount());
 			
 			try(
 				FileSystem unAccessTransformedFs = FileSystems.newFileSystem(URI.create("jar:" + unAccessTransformedMc.toUri()), Collections.emptyMap());
@@ -64,7 +85,7 @@ public class ForgePatchedAccessTxdProvider extends DependencyProvider {
 							try(InputStream srcReader = new BufferedInputStream((Files.newInputStream(srcPath)))) {
 								ClassReader srcClassReader = new ClassReader(srcReader);
 								ClassWriter dstClassWriter = new ClassWriter(0);
-								srcClassReader.accept(unmappedAts.new AccessTransformingClassVisitor(dstClassWriter), 0);
+								srcClassReader.accept(ats.new AccessTransformingClassVisitor(dstClassWriter), 0);
 								Files.write(dstPath, dstClassWriter.toByteArray());
 							}
 						} else {
