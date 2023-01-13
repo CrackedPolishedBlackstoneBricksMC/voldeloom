@@ -104,17 +104,16 @@ These days we have a much more well-rounded set of class binary-manipulation too
 
 # Running sample projects
 
-TODO: there's also atm only one sample project, for 1.4.7
-
 There doesn't seem to be a nice way to develop a Gradle plugin and actually *use* the plugin to see if it works (no, not "write automated tests for the plugin", *actually* use it) at the same time. This is because Gradle sucks.
 
-So: 
+Sample projects contain a line in `settings.gradle` that includes the main voldeloom project as an "included build". This feels a bit backwards because the subfolder is "including" the parent folder. It is what it is.
 
-* Sample projects contain a line in `settings.gradle` that includes the main voldeloom project as an "included build". This feels a bit backwards because the subfolder is "including" the parent folder. It is what it is.
-* In IDEA, you can right-click on each sample project's `build.gradle` and press "Link Gradle Project" towards the bottom of the dropdown. It's like how IntelliJ is able to discover subprojects and put them in the gradle tool window, but it needs a bit of manual assistance cause this isn't a subproject.
-* The sample projects will then appear in the Gradle tool window for perusal. Note that the plugin will also be *compiled against* the version of Gradle used in the sample project.
+Gotchas with this scheme:
 
-Due to this cursed Gradle setup, the "root project" is not what you think the "root project" is, so run configs generate in the wrong spot. Basically you need to make a `./sample/1.4.7/.idea` directory, voldeloom will think it belongs to the root project and dump run configs into that, copypaste them back into `./.idea`, restart IDE. There's your run configs. Need to investigate this further, see if this root-not-actually-root situation happens in real projects too...
+* The "root project" is actually the sample project, so run configs generate in the wrong spot. Basically you need to make a `./sample/1.4.7/.idea` directory, voldeloom will think it belongs to the root project and dump run configs into that, copypaste them back into `./.idea`, restart IDE. There's your run configs. (Or use `runClient`.)
+* Because of the included-build mechanism, the sample project is actually in charge of *compiling* the Gradle plugin too. So on Gradle 4 it will be compiled against the Gradle 4 api and on Gradle 7 it will be compiled against the Gradle 7 api. To avoid breaking the sample projects, if something was removed in *either* Gradle version you will need reflection to access it.
+
+IntelliJ users can right-click on each sample project's `build.gradle` and press "Link Gradle Project", which is towards the bottom of the dropdown. The sample projects will then appear in the Gradle tool window for perusal. Because of the multiple Gradle versions in play, it's not a good idea to use the global "reload all gradle projects" buttons, but you can right-click on each sample project in the tool window and refresh it individually. (It seems like code-completion in the editor uses the Gradle API that you last refreshed a project from.)
 
 #### Debugging the plugin
 
