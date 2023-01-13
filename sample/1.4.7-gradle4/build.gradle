@@ -12,12 +12,13 @@ buildscript {
 
 apply plugin: "com.unascribed.voldeloom"
 
-//Gradle 4 does not support the "toolchains" feature, so you must be running Gradle through a Java 8 JVM
+//Gradle 4 does not support the "toolchains" feature.
+//You must run Gradle through a Java 8 JVM.
 
 compileJava {
 	//Forge doesn't understand classes compiled to versions of the class-file format newer than Java 6's.
-	sourceCompatibility = "6"
-	targetCompatibility = "6"
+	sourceCompatibility = "1.6"
+	targetCompatibility = "1.6"
 }
 
 String minecraftVersion = "1.4.7"
