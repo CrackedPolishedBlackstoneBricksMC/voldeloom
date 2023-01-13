@@ -1,0 +1,42 @@
+buildscript {
+	repositories {
+		mavenCentral()
+		gradlePluginPortal()
+		maven { url "https://maven.fabricmc.net" }
+		//maven { url "https://repo.sleeping.town" } //Commented out to use the version of voldeloom in the settings.gradle includeBuild (hopefully??)
+	}
+	dependencies {
+		classpath "com.unascribed:voldeloom:1.0+1.4.7disaster"
+	}
+}
+
+apply plugin: "com.unascribed.voldeloom"
+
+java {
+	toolchain {
+		//Last version able to set a --release as low as 6.
+		languageVersion = JavaLanguageVersion.of(11)
+	}
+}
+
+compileJava {
+	//Forge doesn't understand classes compiled to versions of the class-file format newer than Java 6's.
+	options.release.set(6)
+}
+
+String minecraftVersion = "1.3.2"
+String forgeVersion = "1.3.2-4.3.5.318"
+
+minecraft {
+	runs {
+		client {
+			programArg "quaternary"
+		}
+	}
+}
+
+dependencies {
+	minecraft "com.mojang:minecraft:${minecraftVersion}"
+	forge "net.minecraftforge:forge:${forgeVersion}:universal@zip"
+	mappings "net.minecraftforge:forge:${forgeVersion}:src@zip"
+}

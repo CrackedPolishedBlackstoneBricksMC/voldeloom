@@ -34,6 +34,9 @@ What works:
   * 1.4 doesn't parse any program arguments apart from the username (arg 0) and session token (arg 1)
 * `modImplementation`/etc works!
   * `coremodImplementation`/etc exists for coremods (they will be moved to the `coremods` folder, where Forge wants to find them) 
+* Gradle 4 works, probably
+  * Maybe even Gradles 5 and 6, too, although they're not a priority 
+  * Use `modCompile` instead of `modImplementation`, and drop the `only` from `modRuntimeOnly` (`implementation`/`runtimeOnly` are a gradle 7 convention)
 
 Magical secret kludges that make the above work:
 
@@ -46,7 +49,6 @@ Magical secret kludges that make the above work:
 
 What doesn't work yet:
 
-* Gradle versions older than 7 (I'd like to get it working on Gradle 4, if at all possible, possibly with degraded functionality)
 * Minecraft versions other than 1.4.7 don't work
   * The long-term goal is to merge the differences between the 1.2.5/1.5.2 branches into something runtime-configurable
 * Generated IDE run configs are broken.
@@ -148,7 +150,9 @@ Forge assumes the `.minecraft` directory exists without checking or creating it,
 
 ### Buuuunch of logspam about "Unable to read a class file correctly" or "probably a corrupt zip"
 
-This tends to happen if anything compiled with the Java 8 class file format is on the classpath. Forge scans the entire classpath to look for mods, and uses ObjectWeb ASM 4 to do so, which fails to parse classes newer than the ones used in Java 6. It's ultimately harmless because it wasn't going to find any Forge mods inside `rt.jar` anyway.
+This tends to happen if anything compiled with the Java 8 class file format is on the classpath. Forge scans the entire classpath to look for mods, and uses ObjectWeb ASM 4 to do so, which fails to parse classes newer than the ones used in Java 6.
+
+It wasn't going to find any Forge mods inside `rt.jar` anyway, so that part's harmless, but if you are intentionally putting something on the classpath, it will not be visible to mods **even if it's not itself a mod**.
 
 (Not sure why this happens when using generated run configs, instead of the gradle runClient task, probably a classpath difference)
 

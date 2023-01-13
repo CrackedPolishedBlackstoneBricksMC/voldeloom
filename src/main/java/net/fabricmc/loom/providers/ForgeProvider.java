@@ -34,15 +34,37 @@ public class ForgeProvider extends DependencyProvider {
 		forge = forgeDependency.resolveSinglePath().orElseThrow(() -> new RuntimeException("No forge dep!"));
 		forgeVersion = forgeDependency.getDependency().getVersion();
 		
+		project.getLogger().info("] Forge: " + forge);
+		
+		//TODO: move to the access txd provider lol
+		
 		project.getLogger().lifecycle("|-> Parsing Forge and FML's access transformers...");
 		unmappedAts = new ForgeAccessTransformerSet();
-		try(FileSystem zipFs = FileSystems.newFileSystem(URI.create("jar:" + forge.toUri()), Collections.emptyMap());
-		    InputStream fmlAt = new BufferedInputStream(Files.newInputStream(zipFs.getPath("fml_at.cfg")));
-		    InputStream forgeAt = new BufferedInputStream(Files.newInputStream(zipFs.getPath("forge_at.cfg"))))
-		{
-			unmappedAts.load(fmlAt);
-			unmappedAts.load(forgeAt);
+		try(FileSystem zipFs = FileSystems.newFileSystem(URI.create("jar:" + forge.toUri()), Collections.emptyMap())) {
+			//TODO: where do these names come from, can they be read from the jar?
+			// 1.2.5 does not have these files
+			
+			Path fmlAtPath = zipFs.getPath("fml_at.cfg");
+			if(Files.exists(fmlAtPath)) {
+				project.getLogger().info("|-> Loading fml_at.cfg");
+				try(InputStream fmlAt = new BufferedInputStream(Files.newInputStream(fmlAtPath))) {
+					unmappedAts.load(fmlAt);
+				}
+			} else {
+				project.getLogger().info("|-> No fml_at.cfg in this jar.");
+			}
+			
+			Path forgeAtPath = zipFs.getPath("forge_at.cfg");
+			if(Files.exists(forgeAtPath)) {
+				project.getLogger().info("|-> Loading forge_at.cfg");
+				try(InputStream forgeAt = new BufferedInputStream(Files.newInputStream(forgeAtPath))) {
+					unmappedAts.load(forgeAt);
+				}
+			} else {
+				project.getLogger().info("|-> No forge_at.cfg in this jar.");
+			}
 		}
+		
 		project.getLogger().lifecycle("|-> AT parse success! :)");
 		
 		installed = true;

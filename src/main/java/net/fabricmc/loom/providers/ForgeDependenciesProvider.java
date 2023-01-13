@@ -51,9 +51,16 @@ public class ForgeDependenciesProvider extends DependencyProvider {
 		
 		try(FileSystem forgeFs = FileSystems.newFileSystem(URI.create("jar:" + forge.getJar().toUri()), Collections.emptyMap())) {
 			//read from magical hardcoded path inside the forge jar; this is where the auto-downloaded library paths are stored
+			//TODO: applies from forge 1.3 through forge 1.5, dropped in 1.6
+			//TODO: at least 1.5 includes additional "deobfuscation data" zip dep, but also contains a sys property to change download mirror
 			Path coreFmlLibsPath = forgeFs.getPath("/cpw/mods/fml/relauncher/CoreFMLLibraries.class");
-			try(InputStream in = Files.newInputStream(coreFmlLibsPath)) {
-				new ClassReader(in).accept(new LibrarySniffingClassVisitor(null, sniffedLibraries), ClassReader.SKIP_FRAMES); //just don't need frames
+			if(Files.exists(coreFmlLibsPath)) {
+				project.getLogger().info("|-> Parsing cpw.mods.fml.relauncher.CoreFMLLibraries...");
+				try(InputStream in = Files.newInputStream(coreFmlLibsPath)) {
+					new ClassReader(in).accept(new LibrarySniffingClassVisitor(null, sniffedLibraries), ClassReader.SKIP_FRAMES); //just don't need frames
+				}
+			} else {
+				project.getLogger().info("|-> No cpw.mods.fml.relauncher.CoreFMLLibraries class in this jar.");
 			}
 		}
 		

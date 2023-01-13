@@ -112,6 +112,12 @@ public class RunConfig implements Named {
 			copy.property("java.library.path", nativeLibsDir);
 			copy.property("org.lwjgl.librarypath", nativeLibsDir);
 		}
+		
+		//TODO: only has any effect on 1.5.2 (see CoreFMLLibraries), maybe 1.6
+		// kinda makes ForgeDependenciesProvider redundant for the actual *downloading* process,
+		// but it's still valuable because it adds them as gradle deps
+		copy.property("fml.core.libraries.mirror", ext.fmlLibrariesBaseUrl + "%s"); //forge uses it as a format string
+		
 		return copy;
 	}
 	

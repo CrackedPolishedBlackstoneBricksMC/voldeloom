@@ -112,7 +112,9 @@ public class MappingsProvider extends DependencyProvider {
 					
 					//Apply Forge's packaging data (MCP doesn't have packaging data yet)
 					AcceptorProvider packaged = new AcceptorProvider();
-					joined.load(new CsvApplierAcceptor(packaged, conf.resolve("packages.csv"), CsvApplierAcceptor.PACKAGES_IN, CsvApplierAcceptor.PACKAGES_OUT));
+					if(Files.exists(conf.resolve("packages.csv"))) { //TODO 1.3.2 packages didn't exist yet
+						joined.load(new CsvApplierAcceptor(packaged, conf.resolve("packages.csv"), CsvApplierAcceptor.PACKAGES_IN, CsvApplierAcceptor.PACKAGES_OUT));
+					}
 					
 					packaged.load(writer);
 					

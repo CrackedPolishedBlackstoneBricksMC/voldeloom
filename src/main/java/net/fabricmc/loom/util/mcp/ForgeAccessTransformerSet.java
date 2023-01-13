@@ -127,6 +127,7 @@ public class ForgeAccessTransformerSet {
 		
 		public static AccessTransformation fromString(String name) {
 			switch(name) {
+				case "default": return NO_CHANGE; //TODO: Forge 1.5.2 has one of these at the bottom of forge_at, might actually be a no-op at?
 				case "public": return PUBLIC;
 				case "public-f": return PUBLIC_DEFINALIZE;
 				case "public+f": return PUBLIC_FINALIZE;
