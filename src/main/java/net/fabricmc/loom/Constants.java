@@ -31,9 +31,6 @@ public class Constants {
 	public static final String TASK_GROUP_PLUMBING = "fabric.plumbing";
 	public static final String TASK_GROUP_RUNNING = "fabric.run";
 	public static final String TASK_GROUP_TOOLS = "fabric.tools";
-	
-	//Lol why is this here
-	public static final String SYSTEM_ARCH = System.getProperty("os.arch").equals("64") ? "64" : "32";
 
 	//Configuration names
 	public static final String EVERY_UNMAPPED_MOD = "everyUnmappedMod";
@@ -47,6 +44,4 @@ public class Constants {
 	
 	public static final String FORGE = "forge";
 	public static final String FORGE_DEPENDENCIES = "forgeLibraries";
-
-	//public static final String DEV_LAUNCH_INJECTOR_VERSION = "0.2.0+build.6";
 }

@@ -26,7 +26,6 @@ package net.fabricmc.loom.util;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import net.fabricmc.loom.Constants;
 import net.fabricmc.loom.LoomGradleExtension;
 
 import java.io.File;
@@ -170,7 +169,7 @@ public class MinecraftVersionInfo {
 				String ret = domain + ":" + name + ":" + version;
 
 				if (classifier != null && classifier.indexOf('$') > -1) {
-					classifier = classifier.replace("${arch}", Constants.SYSTEM_ARCH);
+					classifier = classifier.replace("${arch}", OperatingSystem.getArch());
 				}
 
 				if (classifier != null) {
