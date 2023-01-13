@@ -333,11 +333,15 @@ public class LoomGradlePlugin implements Plugin<Project> {
 	}
 	
 	private void afterEvaluate(Project project) {
+		//"For some crazy reason afterEvaluate is still invoked when the configuration fails" - modmuss in loom 1. I agree with this adjective
+		if(project.getState().getFailure() != null) return;
+		
+		//The extension's been configured, grab it.
 		LoomGradleExtension extension = project.getExtensions().getByType(LoomGradleExtension.class);
 		
 		//This is where the Magic happens.
 		//These dependencies are dynamic; their content depends on the values of the stuff configured in LoomGradleExtension.
-		//They form a task graph; content of later providers depends on the stuff provided by earlier providers.
+		//They form a task graph. Content of later providers depends on the stuff provided by earlier providers.
 		//Regrettably, we cannot use the real Gradle task graph to configure this stuff, because task execution time is too late to modify project dependencies.
 		LoomDependencyManager dmgr = extension.getDependencyManager();
 		dmgr.installForgeProvider();
