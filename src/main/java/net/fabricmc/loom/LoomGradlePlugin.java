@@ -72,7 +72,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-@SuppressWarnings("UnstableApiUsage")
 public class LoomGradlePlugin implements Plugin<Project> {
 	/**
 	 * Deletes a file or directory using Gradle's machinery. Announces each file to be deleted.
