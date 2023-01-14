@@ -191,14 +191,21 @@ The entrypoint is `LoomGradlePlugin`, which gets called upon writing the `apply 
         * Forge artifact straight off of Maven
     * `forgeDependencies`
         * Forge's autodownloaded libraries, like Guava
-    * and a couple for mod dependencies:
-    * `modCompileClasspath`
-    * `modCompileClasspathMapped`
-    * `modCompile` - extends `modCompileClasspath` (and `compile` is set to extend `modCompileClasspathMapped`)
-    * `modApi` - extends `modCompileClasspath` (and `api` is set to extend `modCompileClasspathMapped`)
-    * `modImplementation` - extends `modCompileClasspath` (and `implementation` is set to extend `modCompileClasspathMapped`)
-    * `modRuntime` (and `runtime` is set to extend `modCompileClasspathMapped`)
-    * `modCompileOnly` - extends `modCompileClasspath` (and `compileOnly` is set to extend `modCompileClasspathMapped`)
+    * and a couple for mod dependencies. These are added in pairs, and stowed in a "remapped configuration entries" list that later tasks will use
+    * `modImplementation` and `modImplementationNamed`
+        * `implementation` extends `modImplementationNamed`
+    * `modCompileOnly` and `modCompileOnlyNamed`
+        * `compileOnly` extends `modCompileOnlyNamed`
+    * `modRuntimeOnly` and `modRuntimeOnlyNamed`
+        * `runtimeOnly` extends `modRuntimeOnlyNamed`
+    * `modLocalRuntime` and `modLocalRuntimeNamed`
+        * `runtimeOnly` extends `modLocalRuntimeNamed`
+    * `coremodImplementation` and `coremodImplementationNamed`
+        * `compileOnly` extends `coremodImplementationNamed`
+    * `coremodRuntimeOnly` and `coremodRuntimeOnlyNamed`
+        * no extensions
+    * `coremodLocalRuntime` and `coremodLocalRuntimeNamed`
+        * no extensions
 7. some IntelliJ IDEA settings are configured, same stuff you could do if you wrote an `idea { }` block in the script
 8. All the Gradle tasks are registered
     * migrateMappings
@@ -214,15 +221,15 @@ The entrypoint is `LoomGradlePlugin`, which gets called upon writing the `apply 
 
 Then we ask for an `afterEvaluate` callback, so the following is able to access the settings configured in the `minecraft { }` block:
 
-1. Run all the *dep providers*. These are a little system for "things that must run before task execution/dependency resolution, but depend on the values set in the `minecraft` block, so they can't run too early either" as you can see... very elegant and beautiful, not at all a kludge
-    * Inspect Forge and parse its access transformers.
+1. Run all the *dep providers*. These are a little system for "things that must run before task execution/dependency resolution, but depend on the values set in the `minecraft` block, so they can't run too early either" as you can see... very elegant and beautiful, not at all a kludge. All these are ran one-after-the-other unconditionally
+    * Download Forge.
     * Parse a class in the Forge jar; take note of its autodownloaded dependencies.
     * Download Minecraft.
     * Download Minecraft's assets.
     * Download Minecraft's dependencies and native libraries.
     * Merge Minecraft client and server together into one merged jar.
     * Paste the Forge jar on top of the merged jar and delete META-INF.
-    * Access transform the pasted jar according to Forge's access transformers.
+    * Parse Forge's access transformers and AT the pasted jar with them.
     * Parse the mappings file.
     * Remap the AT'd jar using the mappings.
     * Remap mod dependencies (`modImplementation` etc) using the mappings.
