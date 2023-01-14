@@ -114,7 +114,9 @@ Gotchas with this scheme:
 * The "root project" is actually the sample project, so run configs generate in the wrong spot. Basically you need to make a `./sample/1.4.7/.idea` directory, voldeloom will think it belongs to the root project and dump run configs into that, copypaste them back into `./.idea`, restart IDE. There's your run configs. (Or use `runClient`.)
 * Because of the included-build mechanism, the sample project is actually in charge of *compiling* the Gradle plugin too. So on Gradle 4 it will be compiled against the Gradle 4 api and on Gradle 7 it will be compiled against the Gradle 7 api. To avoid breaking the sample projects, if something was removed in *either* Gradle version you will need reflection to access it.
 
-IntelliJ users can right-click on each sample project's `build.gradle` and press "Link Gradle Project", which is towards the bottom of the dropdown. The sample projects will then appear in the Gradle tool window for perusal. Because of the multiple Gradle versions in play, it's not a good idea to use the global "reload all gradle projects" buttons, but you can right-click on each sample project in the tool window and refresh it individually. (It seems like code-completion in the editor uses the Gradle API that you last refreshed a project from.)
+IntelliJ users can right-click on each sample project's `build.gradle` and press "Link Gradle Project", which is towards the bottom of the dropdown. The sample projects will then appear in the Gradle tool window for perusal. (It seems like code-completion in the editor uses the Gradle API that you last refreshed a project from.)
+
+Do **not** press the "reload all gradle projects" buttons. Because of the multiple Gradle versions in play they will fail to read each other's lock files, so the gradles will stomp on each other, write to the cache at the same time, try to delete each other's output etc. Crap will end up in your Gradle cache too. Instead, to refresh projects, right-click on each sample project in the tool window you're interested in and refresh it individually. 
 
 #### Debugging the plugin
 

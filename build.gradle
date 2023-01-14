@@ -1,73 +1,70 @@
 plugins {
-	id 'java'
-	id 'maven-publish'
-	id 'java-gradle-plugin'
-	id 'idea'
-	id 'eclipse'
+	id "java"
+	id "maven-publish"
+	id "java-gradle-plugin"
+	id "idea"
+	id "eclipse"
 }
 
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
 
-group = 'com.unascribed'
-archivesBaseName = 'voldeloom'
-version = '1.0+1.4.7disaster'
+group = "com.unascribed"
+archivesBaseName = "voldeloom"
+version = "2.0+disaster"
 
 repositories {
-	mavenCentral()
 	maven {
 		name = "Fabric"
-		url = 'https://maven.fabricmc.net/'
+		url = "https://maven.fabricmc.net/"
+		
+		if(it.respondsTo("mavenContent")) { //doesn't exist in Gradle 4
+			it.mavenContent {
+				includeGroup("net.fabricmc")
+				includeGroup("org.jetbrains")
+				includeGroup("org.cadixdev")
+			}
+		}
 	}
+	
+	mavenCentral()
 }
 
 dependencies {
 	implementation gradleApi()
-
-	// libraries
-	implementation ('com.google.code.gson:gson:2.8.5')
-	implementation ('com.google.guava:guava:28.0-jre')
-
-	// game handling utils
-	implementation ('net.fabricmc:stitch:0.4.3.71') {
-		exclude module: 'enigma'
-	}
-
-	// tinyfile management
-	implementation ('net.fabricmc:tiny-remapper:0.2.0.57') {
-		transitive = false
-	}
-
-	implementation ('net.fabricmc:lorenz-tiny:1.0.0+build.1') {
-		transitive = false
-	}
-
-	// decompilers
-	implementation ('net.fabricmc:procyon-fabric-compilertools:0.5.35.+')
-	implementation ('org.jetbrains:intellij-fernflower:1.1.0.11')
-
-	// source code remapping
-	implementation ('org.cadixdev:mercury:0.1.0.fabric-SNAPSHOT')
+	implementation "com.google.code.gson:gson:2.8.5"
+	implementation "com.google.guava:guava:28.0-jre"
+	
+	//mapping tools
+	implementation ("net.fabricmc:stitch:0.4.3.71") { exclude module: "enigma" }
+	implementation ("net.fabricmc:tiny-remapper:0.2.0.57") { transitive = false }
+	implementation ("net.fabricmc:lorenz-tiny:1.0.0+build.1") { transitive = false }
+	
+	//other stuff
+	implementation "org.jetbrains:intellij-fernflower:1.1.0.11" //decompiler
+	implementation "org.cadixdev:mercury:0.1.0.fabric-SNAPSHOT" //source remapper
 }
 
 jar {
 	manifest {
-		def build = "local"
+		String build = "local"
 		if(System.getenv().BUILD_NUMBER) {
 			build = "jenkins #${System.getenv().BUILD_NUMBER}"
 		}
 		
-		attributes 'Implementation-Version': version + " Build(" + build + ")"
+		//Reading from project.version is deprecated in Gradle 7 lol
+		String ver = project.respondsTo("archivesVersion") ? project.archivesVersion : project.version
+		attributes 'Implementation-Version': ver + " Build(" + build + ")"
 	}
 }
 
 task sourcesJar(type: Jar, dependsOn: classes) {
-	classifier = 'sources'
+	classifier = "sources"
 	from sourceSets.main.allSource
 }
 
 task javadocJar(type: Jar, dependsOn: javadoc) {
-	classifier = 'javadoc'
+	classifier = "javadoc"
 	from javadoc.destinationDir
 }
 
@@ -104,7 +101,7 @@ publishing {
 			}
 		}
 		maven {
-			url file('build/maven').toURI().toString()
+			url file("build/maven").toURI().toString()
 		}
 	}
 }
