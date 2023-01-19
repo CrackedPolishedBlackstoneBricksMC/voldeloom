@@ -43,7 +43,6 @@ import net.fabricmc.loom.task.runs.GenIdeaRunConfigsTask;
 import net.fabricmc.loom.task.runs.GenVsCodeProjectTask;
 import net.fabricmc.loom.util.GradleSupport;
 import net.fabricmc.loom.util.GroovyXmlUtil;
-import net.fabricmc.loom.util.RunConfig;
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
 import org.gradle.api.Task;

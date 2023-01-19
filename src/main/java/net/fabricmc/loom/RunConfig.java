@@ -22,11 +22,11 @@
  * SOFTWARE.
  */
 
-package net.fabricmc.loom.util;
+package net.fabricmc.loom;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.ByteStreams;
-import net.fabricmc.loom.LoomGradleExtension;
+import net.fabricmc.loom.util.OperatingSystem;
 import org.gradle.api.Named;
 import org.gradle.api.Project;
 import org.w3c.dom.Document;

@@ -24,7 +24,6 @@
 
 package net.fabricmc.loom;
 
-import net.fabricmc.loom.util.RunConfig;
 import org.cadixdev.lorenz.MappingSet;
 import org.cadixdev.mercury.Mercury;
 import org.gradle.api.Action;

@@ -5,7 +5,7 @@ import net.fabricmc.loom.WellKnownLocations;
 import net.fabricmc.loom.providers.MinecraftDependenciesProvider;
 import net.fabricmc.loom.providers.MinecraftProvider;
 import net.fabricmc.loom.util.LoomTaskExt;
-import net.fabricmc.loom.util.RunConfig;
+import net.fabricmc.loom.RunConfig;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.tasks.OutputFile;
 import org.gradle.api.tasks.TaskAction;
