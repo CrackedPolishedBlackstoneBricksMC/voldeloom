@@ -34,7 +34,7 @@ import net.fabricmc.tinyremapper.IMappingProvider;
 
 /**
  * Utilities for bridging tiny-mappings-parser and tiny-remapper data structures.
- * 
+ * <p>
  * Also (TODO) currently the home of about ten kludges.
  */
 public class TinyRemapperMappingsHelper {

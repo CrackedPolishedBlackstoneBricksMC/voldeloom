@@ -26,7 +26,7 @@ import java.util.Map;
 import java.util.Scanner;
 
 /**
- * A parser for MCP-format `.srg` files. Augments data discovered in the SRGs with inner-class and field method from a scanned JAR.
+ * A parser for MCP-format {@code .srg} files. Augments data discovered in the SRGs with inner-class and field method from a scanned JAR.
  * 
  * @author TwilightFlower
  */

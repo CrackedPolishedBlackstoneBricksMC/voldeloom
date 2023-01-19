@@ -24,16 +24,18 @@ import java.util.List;
 /**
  * Forge/FML depends on a handful of additional libraries, which it wants to download at runtime then shove onto the classpath.
  * (At the time, the FML coremod system included functionality for specifying libraries to automatically download.)
- * 
+ * <p>
  * Two problems with this:
- * - I'd like to know about the dependencies, so I can attach them in the IDE.
- * -> They aren't in the maven POM.
- * - The servers it wants to download from are long-dead. The download will fail.
- * -> I need to download the libraries first and put them where Forge expects to find them, so it won't try.
- * 
+ * <ul>
+ *   <li>I'd like to know about the dependencies, so I can attach them in the IDE.</li>
+ *   <li>&gt; They aren't in the maven POM.</li>
+ *   <li>The servers it wants to download from are long-dead. The download will fail.</li>
+ *   <li>&gt;  I need to download the libraries first and put them where Forge expects to find them, so it won't try.</li>
+ * </ul>
+ * <p>
  * This provider statically analyzes the class that Forge stores its library list in, downloads them from a mirror service,
- * then adds them as true project dependencies. The library folder is also accessible with getForgeLibsFolder().
- * 
+ * then adds them as true project dependencies. The library folder is also accessible with {@code getForgeLibsFolder()}.
+ * <p>
  * The "putting them where Forge expects to find them" step is handled by ShimForgeLibrariesTask.
  */
 public class ForgeDependenciesProvider extends DependencyProvider {

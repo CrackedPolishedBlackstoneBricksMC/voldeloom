@@ -10,13 +10,13 @@ import java.util.Map;
 
 /**
  * A MappingAcceptor that buffers all mappings it accepts and can write them back as a tinyv1 file.
- * Input mappings from "firstCol" to "secondCol", then call `acceptSecond` and input mappings from "secondCol" to "thirdCol".
+ * Input mappings from "firstCol" to "secondCol", then call {@code acceptSecond} and input mappings from "secondCol" to "thirdCol".
  * (I (quat) think that's how it works anyway)
  * 
  * @author TwilightFlower
- * 
+ * <hr>
  * Original comment:
- * 
+ * <p>
  * note: if the 2nd set has mappings that are not in the first, this will error.
  * if the 1st set contains mappings not in the 1st, the output tiny file will be malformed.
  */

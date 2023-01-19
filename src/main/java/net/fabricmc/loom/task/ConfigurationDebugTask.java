@@ -12,6 +12,9 @@ import org.gradle.api.tasks.TaskAction;
 
 import java.io.File;
 
+/**
+ * Gradle task that prints some information about the way Configurations are used in the project, and their relationships.
+ */
 public class ConfigurationDebugTask extends DefaultTask implements LoomTaskExt {
 	public ConfigurationDebugTask() {
 		setGroup(Constants.TASK_GROUP_TOOLS);

@@ -34,6 +34,9 @@ import org.gradle.api.tasks.TaskAction;
 
 import java.io.File;
 
+/**
+ * Gradle task that uhhhh umm i forgor
+ */
 public class RemapSourcesJarTask extends DefaultTask {
 	public RemapSourcesJarTask() {
 		setGroup(Constants.TASK_GROUP_PLUMBING);

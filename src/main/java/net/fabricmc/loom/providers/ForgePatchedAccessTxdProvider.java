@@ -24,8 +24,8 @@ import java.util.Collections;
 
 /**
  * Applies Forge's access transformers on top of the patched Minecraft + Forge jar.
- * The access-transformed jar is accessible with getTransformedJar().
- * 
+ * The access-transformed jar is accessible with {@code getTransformedJar()}.
+ * <p>
  * Outside of development, this is normally done by Forge as it classloads Minecraft.
  */
 public class ForgePatchedAccessTxdProvider extends DependencyProvider {

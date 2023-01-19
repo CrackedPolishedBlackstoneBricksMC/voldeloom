@@ -20,8 +20,7 @@ import java.util.Set;
 
 /**
  * Minecraft mods are re-proguarded at distribution time. This is in charge of remapping them to the chosen mapping set.
- * 
- * TODO: Clusterfuck
+ * <h2>TODO: Clusterfuck</h2>
  */
 public class RemappedDependenciesProvider extends DependencyProvider {
 	public RemappedDependenciesProvider(Project project, LoomGradleExtension extension) {

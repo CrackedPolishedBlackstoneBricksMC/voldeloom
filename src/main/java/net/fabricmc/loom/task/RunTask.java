@@ -39,6 +39,9 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Archetypical Gradle task that starts Minecraft. Make sure to pass an argument when you create it with TaskContainer#register.
+ */
 public class RunTask extends JavaExec implements LoomTaskExt {
 	@Inject
 	public RunTask(RunConfig config) throws Exception {

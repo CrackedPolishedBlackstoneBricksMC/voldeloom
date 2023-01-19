@@ -34,7 +34,9 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * A per-version Minecraft version manifest. This class is intended to be deserialized with Google GSON.
+ * A per-version Minecraft version manifest.
+ * <p>
+ * This class is intended to be deserialized with Google GSON.
  */
 public class MinecraftVersionInfo {
 	public List<Library> libraries;

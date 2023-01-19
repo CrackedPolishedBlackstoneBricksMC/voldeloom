@@ -36,6 +36,9 @@ import org.gradle.api.tasks.TaskAction;
 import java.io.File;
 import java.io.IOException;
 
+/**
+ * Gradle task used when decompiling the game that corrects line numbers in Fernflower's output.
+ */
 public class RemapLineNumbersTask extends DefaultTask {
 	public RemapLineNumbersTask() {
 		setGroup(Constants.TASK_GROUP_PLUMBING);

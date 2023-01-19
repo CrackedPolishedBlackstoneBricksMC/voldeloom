@@ -15,6 +15,9 @@ import java.util.Collection;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+/**
+ * Gradle task that copies Forge's runtime-downloaded libraries into place.
+ */
 public class ShimForgeLibrariesTask extends DefaultTask implements LoomTaskExt {
 	public ShimForgeLibrariesTask() {
 		setGroup(Constants.TASK_GROUP_PLUMBING);

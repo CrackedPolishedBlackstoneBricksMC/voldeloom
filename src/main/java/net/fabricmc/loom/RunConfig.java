@@ -47,8 +47,8 @@ import java.util.Map;
 
 /**
  * All the information required to launch a working copy of the game.
- * 
- * Voldeloom is based off of Loom 0.4; this stuff is backported from Loom 1.
+ * <p>
+ * Voldeloom is based off of Loom 0.4; the bulk of this stuff is backported from Loom 1.
  */
 public class RunConfig implements Named {
 	private final Project project;

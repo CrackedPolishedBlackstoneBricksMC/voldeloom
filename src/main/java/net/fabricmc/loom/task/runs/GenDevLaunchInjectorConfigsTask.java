@@ -21,9 +21,11 @@ import java.util.Map;
 import java.util.StringJoiner;
 
 /**
+ * Gradle task that generates a launch script for DevLaunchInjector.
+ * <p>
  * TODO: This whole thing was basically copy-pasted from original Loom and doesn't work.
  *  At this point I don't even use DevLaunchInjector to launch the game anyway.
- *  I'm... not really sure what the benefit is? Its only purpose seems to be specifying the main class & system properties,
+ *  I'm... not really sure what the benefit is? Its only purpose seems to be specifying the main class &amp; system properties,
  *   but i can do that with a run config
  */
 public class GenDevLaunchInjectorConfigsTask extends DefaultTask implements LoomTaskExt {

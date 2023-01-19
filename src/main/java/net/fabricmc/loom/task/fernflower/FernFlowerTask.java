@@ -50,6 +50,8 @@ import java.util.function.Supplier;
 import static java.text.MessageFormat.format;
 
 /**
+ * A Gradle task that invokes Fernflower!
+ * <p>
  * Created by covers1624 on 9/02/19.
  */
 public class FernFlowerTask extends AbstractDecompileTask implements ForkingJavaExecTask, LoomTaskExt {

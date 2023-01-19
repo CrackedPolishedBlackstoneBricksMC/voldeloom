@@ -71,10 +71,15 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+/**
+ * Main entrypoint for the plugin.
+ */
 public class LoomGradlePlugin implements Plugin<Project> {
 	/**
-	 * Deletes a file or directory using Gradle's machinery. Announces each file to be deleted.
-	 * Gradle's machinery accepts a million different types of object here, but the most important ones are `File` and `Path`.
+	 * Okay, this is a random utility method. Sorry.
+	 * <p>
+	 * Deletes a file or directory using Gradle's machinery. Announces each file to be deleted.<br>
+	 * Gradle's machinery accepts a million different types of object here, but the most important ones are {@code File} and {@code Path}.<br>
 	 * Deleting a directory will recursively delete all files inside it, too.
 	 */
 	public static void delete(Project project, Object... things) {

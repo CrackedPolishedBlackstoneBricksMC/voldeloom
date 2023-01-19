@@ -42,6 +42,11 @@ import java.nio.file.Path;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+/**
+ * Gradle task that remaps the mod under development into official names so you can release it!
+ * 
+ * TODO: Investigate...
+ */
 public class RemapJarTask extends Jar {
 	public RemapJarTask() {
 		setGroup(Constants.TASK_GROUP_PLUMBING);

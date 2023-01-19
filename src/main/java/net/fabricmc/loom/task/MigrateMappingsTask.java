@@ -55,6 +55,11 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.Set;
 
+/**
+ * Gradle task that migrates source code between two mapping sets.
+ * 
+ * TODO: Doesn't work in Voldeloom.
+ */
 public class MigrateMappingsTask extends DefaultTask implements LoomTaskExt {
 	private Path inputDir;
 	private Path outputDir;

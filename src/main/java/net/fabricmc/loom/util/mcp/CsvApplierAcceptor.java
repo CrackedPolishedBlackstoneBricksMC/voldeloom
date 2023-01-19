@@ -12,7 +12,7 @@ import java.util.Map;
 import java.util.Scanner;
 
 /**
- * Takes MCP-format `.csv` files and forwards them to a MappingAcceptor.
+ * Takes MCP-format {@code .csv} files and forwards them to a MappingAcceptor.
  * Select which columns of the CSV to read using the unnamedIdx and namedIdx constructor parameters.
  * 
  * @author TwilightFlower

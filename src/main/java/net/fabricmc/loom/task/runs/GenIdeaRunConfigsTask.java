@@ -12,6 +12,9 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+/**
+ * Gradle task that generates IDEA @{code runConfigurations/*.xml} files.
+ */
 public class GenIdeaRunConfigsTask extends DefaultTask implements LoomTaskExt {
 	public GenIdeaRunConfigsTask() {
 		setGroup(Constants.TASK_GROUP_IDE);

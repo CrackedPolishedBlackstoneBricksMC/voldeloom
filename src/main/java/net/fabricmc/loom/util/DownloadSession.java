@@ -21,7 +21,7 @@ import java.util.zip.GZIPInputStream;
 /**
  * Utilities for downloading files from HTTP servers.
  * 
- * (Very largely based off of Loom's old DownloadUtil, but it's more builder-flavored now
+ * (Very largely based off of Loom's old DownloadUtil, but it's more builder-flavored now.
  * Also allows to turn off gzip support because java's gzipinputstream is a bit funky x))
  */
 public class DownloadSession {

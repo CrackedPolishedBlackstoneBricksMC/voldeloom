@@ -36,13 +36,17 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+/**
+ * Gradle task that generates Eclipse {@code .launch} files.
+ * 
+ * TODO: I don't have Eclipse so it's probably broken.
+ */
 public class GenEclipseRunsTask extends DefaultTask implements LoomTaskExt {
 	public GenEclipseRunsTask() {
 		setGroup(Constants.TASK_GROUP_IDE);
 		setDescription("Generates Eclipse .launch files, which can be used in Eclipse as an alternative to the runClient task.");
 	}
 	
-	//TODO(VOLDELOOM-DISASTER): Untested, I don't have Eclipse
 	@TaskAction
 	public void genRuns() throws IOException {
 		LoomGradleExtension extension = getLoomGradleExtension();

@@ -7,25 +7,21 @@ import org.gradle.api.artifacts.Configuration;
 import javax.annotation.Nullable;
 
 /**
- * When working with artifacts that are themselves mods, it is nice to remap
- * them "on the way in", from the release namespace into the dev workspace's namespace.
- * This eliminates the need for "dev jars" and all the fuss those entail,
- * like ensuring whoever made the dev jar used the same version of the same mappings.
- * 
- * This class defines a relationship between an an "input" configuration (ex "modImplementation"),
- * where developers are free to pour modded artifacts, and an "output" configuration
- * (ex "modImplementationNamed"), which is where artifacts turn up after being remapped.
- * 
+ * When working with artifacts that are themselves mods, it is nice to remap them "on the way in", from the release namespace into the dev workspace's namespace.
+ * This eliminates the need for "dev jars" and all the fuss those entail, like ensuring whoever made the dev jar used the same version of the same mappings.
+ * <p>
+ * This class defines a relationship between an an "input" configuration (ex "modImplementation"), where developers are free to pour modded artifacts,
+ * and an "output" configuration (ex "modImplementationNamed"), which is where artifacts turn up after being remapped.
+ * <p>
  * This class does not manage the relationship between the output configuration and any existing Gradle
  * configs (like "implementation"). Users of this class should set that relationship up themself.
- * 
+ * <p>
  * Additionally, there's two other miscellaneous bits of functionality:
- * - `mavenScope`, if nonnull, applies the selected Maven scope to artifacts in the *input* configuration.
- *     This makes it so a "modRuntime" dependency turns up in your maven POM with "runtime" scope, for example.
  * 
- * - `copyToFolder`, if nonnull, will copy artifacts from the *output* configuration to a folder inside run configs.
- *     This is mainly to work around Forge being unable to find coremods on the classpath,
- *     so putting coremods in "runtime" or "implementation" doesn't work.
+ * <ul>
+ *   <li>{@code mavenScope}, if nonnull, applies the selected Maven scope to artifacts in the *input* configuration. This makes it so a "modRuntime" dependency turns up in your maven POM with "runtime" scope, for example.</li>
+ *   <li>{@code copyToFolder}, if nonnull, will copy artifacts from the *output* configuration to a folder inside run configs. This is mainly to work around Forge being unable to find coremods on the classpath, so putting coremods in "runtime" or "implementation" doesn't work.</li>
+ * </ul>
  */
 public class RemappedConfigurationEntry implements Named {
 	/** Creating with live Configuration objects */

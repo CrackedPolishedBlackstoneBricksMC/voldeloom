@@ -28,6 +28,9 @@ package net.fabricmc.loom.util;
  * Utilities for reading properties of the current operating system.
  */
 public class OperatingSystem {
+	/**
+	 * @return "windows", "osx", or "linux"
+	 */
 	public static String getOS() {
 		String osName = System.getProperty("os.name").toLowerCase();
 
@@ -39,7 +42,10 @@ public class OperatingSystem {
 			return "linux";
 		}
 	}
-
+	
+	/**
+	 * @return "64" or "32"
+	 */
 	public static String getArch() {
 		if (is64Bit()) {
 			return "64";
@@ -47,7 +53,8 @@ public class OperatingSystem {
 			return "32";
 		}
 	}
-
+	
+	//TODO: remove lol
 	public static boolean is64Bit() {
 		return System.getProperty("sun.arch.data.model").contains("64");
 	}

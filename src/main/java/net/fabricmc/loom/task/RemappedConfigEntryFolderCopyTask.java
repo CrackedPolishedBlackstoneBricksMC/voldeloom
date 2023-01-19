@@ -16,6 +16,9 @@ import java.nio.file.StandardCopyOption;
 import java.util.Collection;
 import java.util.stream.Collectors;
 
+/**
+ * Gradle task that copies and pastes coremods into the Forge `coremods` folder, because Forge doesn't support reading them off the classpath.
+ */
 public class RemappedConfigEntryFolderCopyTask extends DefaultTask implements LoomTaskExt {
 	public RemappedConfigEntryFolderCopyTask() {
 		setGroup(Constants.TASK_GROUP_PLUMBING);

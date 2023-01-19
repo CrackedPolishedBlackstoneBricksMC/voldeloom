@@ -32,6 +32,12 @@ public class ZipUtil {
 		}
 	}
 	
+	/**
+	 * Unpacks one item from a zip file.
+	 *
+	 * @param file The zip file to extract.
+	 * @param name The entry to extract.
+	 */
 	public static byte[] unpackEntry(File file, String name) {
 		try(ZipFile zf = new ZipFile(file)) {
 			ZipEntry entry = zf.getEntry(name);
@@ -43,10 +49,23 @@ public class ZipUtil {
 		}
 	}
 	
+	/**
+	 * Extracts a ZIP file into the directory specified by {@code destRoot}.
+	 *
+	 * @param inZip The Zip file to extract.
+	 * @param destRoot The root directory that the zip will be extracted into.
+	 */
 	public static void unpack(Path inZip, Path destRoot) {
 		unpack(inZip, destRoot, new SimpleFileVisitor<Path>() {}); //always returns CONTINUE
 	}
 	
+	/**
+	 * Extracts a ZIP file into the directory specified by {@code destRoot}. You may filter the extraction.
+	 * 
+	 * @param inZip The Zip file to extract.
+	 * @param destRoot The root directory that the zip will be extracted into.
+	 * @param filter If this returns anything other than {@code FileVisitResult.CONTINUE}, the file will not be extracted.
+	 */
 	public static void unpack(Path inZip, Path destRoot, SimpleFileVisitor<Path> filter) {
 		try(FileSystem zipFs = FileSystems.newFileSystem(URI.create("jar:" + inZip.toUri()), Collections.emptyMap())) {
 			Files.walkFileTree(zipFs.getPath("/"), new SimpleFileVisitor<Path>() {
@@ -78,6 +97,11 @@ public class ZipUtil {
 		}
 	}
 	
+	/**
+	 * Starts as {@code resolveRoot}, and resolves each segment of {@code in} against it, even if {@code in} is on a separate filesystem.
+	 * 
+	 * @throws IllegalArgumentException if {@code in} contains the {@code ../} parent-directory segment.
+	 */
 	public static Path resolveAcrossFilesystems(Path resolveRoot, Path in) {
 		Path out = resolveRoot, last = resolveRoot;
 		for(Path element : in) {

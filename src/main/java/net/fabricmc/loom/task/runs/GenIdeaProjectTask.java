@@ -35,6 +35,11 @@ import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.TransformerException;
 import java.io.IOException;
 
+/**
+ * Gradle task that generates IDEA {@code .ipr} files.
+ * <p>
+ * Ostensibly.
+ */
 public class GenIdeaProjectTask extends DefaultTask implements LoomTaskExt {
 	public GenIdeaProjectTask() {
 		setGroup(Constants.TASK_GROUP_IDE);

@@ -44,7 +44,7 @@ import java.util.List;
 
 /**
  * A nexus for derived depenencies (like "minecraft, but merged and remapped").
- * Anything that accesses this class is signaling that it has to run *after* said dependency is derived (an ordering relationship).
+ * Anything that accesses this class is signaling that it has to run <i>after</i> said dependency is derived (an ordering relationship).
  */
 public class LoomDependencyManager {
 	public LoomDependencyManager(Project project, LoomGradleExtension extension) {

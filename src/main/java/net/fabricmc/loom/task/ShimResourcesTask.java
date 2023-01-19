@@ -18,6 +18,9 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Collection;
 import java.util.stream.Collectors;
 
+/**
+ * Gradle task that copies Minecraft's assets into place.
+ */
 //TODO: extend AbstractCopyTask once i figure that out, instead of DefaultTask
 public class ShimResourcesTask extends DefaultTask implements LoomTaskExt {
 	public ShimResourcesTask() {

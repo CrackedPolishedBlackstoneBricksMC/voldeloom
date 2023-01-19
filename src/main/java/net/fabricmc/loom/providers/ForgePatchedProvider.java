@@ -18,11 +18,11 @@ import java.util.Collection;
 import java.util.Collections;
 
 /**
- * Installs Forge inside of the Minecraft merged jar. The post-installation jar is available with getPatchedJar().
- * 
+ * Installs Forge inside of the Minecraft merged jar. The post-installation jar is available with {@code getPatchedJar()}.
+ * <p>
  * Also performs the, uh, critically important task of gluing the Minecraft version number onto the Forge version number.
  * This version tag is used in a few places.
- * 
+ * <p>
  * During this period, Forge was installable as a jarmod. This class is simply a programattic version of "deleting META-INF". 
  */
 public class ForgePatchedProvider extends DependencyProvider {

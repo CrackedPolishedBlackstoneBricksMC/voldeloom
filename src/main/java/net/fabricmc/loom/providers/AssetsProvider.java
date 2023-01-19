@@ -43,7 +43,7 @@ import java.util.Collection;
 /**
  * Downloads Minecraft's global asset index, the asset index for the selected version, and downloads all assets inside that index.
  * Results go into the Gradle user cache.
- * 
+ * <p>
  * This class resolves assets using the "legacy" file layout only (real filenames, not hashes with the `objects` folder).
  */
 public class AssetsProvider extends DependencyProvider {

@@ -40,10 +40,10 @@ import java.util.List;
 import java.util.function.Supplier;
 
 /**
- * A Gradle extension. When you write "minecraft {" in a project's build.gradle, you get access to one of these.
+ * A Gradle extension. When you write <code>minecraft {</code> in a project's build.gradle, you get access to one of these.
  * The extension is added to the project at the top of LoomGradlePlugin.
  * @see LoomGradlePlugin
- * 
+ * <p>
  * Originally (in Loom 0.4) this contained a million things. I am trying to strip it back to mainly be a thin configuration dsl for Gradle.
  * Obvious exception is anything relating to getDependencyManager.
  */
@@ -93,7 +93,7 @@ public class LoomGradleExtension {
 	public String resourcesBaseUrl = "http://resources.download.minecraft.net/";
 	
 	/**
-	 * Holder for run configurations (essentially a Map<String, RunConfig>).
+	 * Holder for run configurations (essentially a {@code Map<String, RunConfig>}).
 	 * 
 	 * In Groovy, prefer to use the `runs` method to configure instead.
 	 */

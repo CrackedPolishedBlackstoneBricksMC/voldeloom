@@ -24,6 +24,11 @@
 
 package net.fabricmc.loom.task.fernflower;
 
+import net.fabricmc.fernflower.api.IFabricJavadocProvider;
+import org.jetbrains.java.decompiler.main.Fernflower;
+import org.jetbrains.java.decompiler.main.extern.IFernflowerLogger;
+import org.jetbrains.java.decompiler.main.extern.IResultSaver;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -32,17 +37,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-import org.jetbrains.java.decompiler.main.Fernflower;
-import org.jetbrains.java.decompiler.main.extern.IFernflowerLogger;
-import org.jetbrains.java.decompiler.main.extern.IResultSaver;
-
-import net.fabricmc.fernflower.api.IFabricJavadocProvider;
-
 /**
- * Entry point for Forked FernFlower task.
- * Takes one parameter, a single file, each line is treated as command line input.
- * Forces one input file.
- * Forces one output file using '-o=/path/to/output'
+ * Entry point for Forked FernFlower task.<br>
+ * Takes one parameter, a single file, each line is treated as command line input.<br>
+ * Forces one input file.<br>
+ * Forces one output file using @{code -o=/path/to/output}.<br>
  * Created by covers1624 on 11/02/19.
  */
 public class ForkedFFExecutor {

@@ -26,6 +26,9 @@ package net.fabricmc.loom;
 
 import org.gradle.api.invocation.Gradle;
 
+/**
+ * Values that do not change across an invocation of the plugin.
+ */
 public class Constants {
 	//Task groups
 	public static final String TASK_GROUP_CLEANING = "fabric.clean";

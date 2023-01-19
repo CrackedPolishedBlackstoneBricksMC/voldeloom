@@ -45,7 +45,11 @@ import java.util.List;
 // https://marketplace.visualstudio.com/items?itemName=vscjava.vscode-java-debug
 // https://marketplace.visualstudio.com/items?itemName=vscjava.vscode-java-pack
 
-//TODO(VOLDELOOM-DISASTER): Untested cause i don't use vscode for Java
+/**
+ * Gradle task that generates VSCode @{code launch.json} files.
+ * 
+ * TODO: I don't have VSCode so it's probably broken.
+ */
 public class GenVsCodeProjectTask extends DefaultTask implements LoomTaskExt {
 	public GenVsCodeProjectTask() {
 		setGroup(Constants.TASK_GROUP_IDE);
