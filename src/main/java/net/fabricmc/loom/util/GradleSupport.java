@@ -25,6 +25,7 @@
 package net.fabricmc.loom.util;
 
 import org.gradle.api.Action;
+import org.gradle.api.JavaVersion;
 import org.gradle.api.Project;
 import org.gradle.api.artifacts.Configuration;
 import org.gradle.api.artifacts.ConfigurationContainer;
@@ -35,10 +36,12 @@ import org.gradle.api.model.ObjectFactory;
 import org.gradle.api.provider.Property;
 import org.gradle.api.provider.Provider;
 import org.gradle.api.tasks.JavaExec;
+import org.gradle.internal.Pair;
 
+import javax.annotation.Nullable;
 import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.Locale;
 import java.util.Set;
 
 /**
@@ -89,20 +92,17 @@ public class GradleSupport {
 			}
 		}
 	}
-
-	private static RegularFileProperty getRegularFilePropertyModern(Project project) throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+	
+	private static RegularFileProperty getRegularFilePropertyModern(Project project) throws ReflectiveOperationException {
 		ObjectFactory objectFactory = project.getObjects();
-		Method method = objectFactory.getClass().getDeclaredMethod("fileProperty");
-		method.setAccessible(true);
-		return (RegularFileProperty) method.invoke(objectFactory);
+		return (RegularFileProperty) getAccessibleMethod(objectFactory.getClass(), "fileProperty")
+			.invoke(objectFactory);
 	}
-
-	//VOLDELOOM-DISASTER: Rewrote this to use reflection too, so it at least compiles against modern Gradle
+	
 	private static RegularFileProperty getRegularFilePropertyLegacy(Project project) throws ReflectiveOperationException {
 		ProjectLayout layout = project.getLayout();
-		Method method = layout.getClass().getDeclaredMethod("fileProperty");
-		method.setAccessible(true);
-		return (RegularFileProperty) method.invoke(layout);
+		return (RegularFileProperty) getAccessibleMethod(layout.getClass(), "fileProperty")
+			.invoke(layout);
 	}
 	
 	//(VOLDELOOM-DISASTER) includeGroup is an optimization that avoids making spurious HTTP requests to unrelated repos.
@@ -119,13 +119,12 @@ public class GradleSupport {
 		try {
 			Action<Object> erasedAction = (obj) -> {
 				try {
-					Method what = obj.getClass().getMethod("includeGroup", String.class);
-					what.setAccessible(true);
-					what.invoke(obj, includeGroup);
+					getAccessibleMethod(obj.getClass(), "includeGroup", String.class).invoke(obj, includeGroup);
 				} catch (ReflectiveOperationException e) {
 					throw new RuntimeException(e);
 				}
 			};
+			contentMethod.setAccessible(true);
 			contentMethod.invoke(repo, erasedAction);
 		} catch (ReflectiveOperationException e) {
 			throw new RuntimeException(e);
@@ -159,8 +158,8 @@ public class GradleSupport {
 		"UnstableApiUsage", //Most of the API was marked unstable in Gradle 4. It got stabilized as-is in 7...
 		"RedundantSuppression" //...so when i'm using Gradle 7, the UnstableApiUsage warning is redundant.
 	})
-	public static boolean trySetJavaToolchain(JavaExec task, int javaVersion, String vendor) {
-		task.getLogger().info("] Trying to set up a Java {} {} toolchain for {}", javaVersion, vendor, task.getName());
+	public static boolean trySetJavaToolchain(JavaExec task, @Nullable JavaVersion javaVersion, @Nullable String vendorString) {
+		task.getLogger().info("] Trying to set up a Java {} {} toolchain for {}", javaVersion, vendorString, task.getName());
 		
 		Class<?> javaLanguageVersionClass;
 		Class<?> javaToolchainServiceClass;
@@ -183,12 +182,25 @@ public class GradleSupport {
 			Object javaToolchainSpec = task.getProject().getObjects().newInstance(defaultToolchainSpecClass);
 			
 			//configure language version
-			Property languageVersionProperty = (Property) getAccessibleMethod(javaToolchainSpec.getClass(), "getLanguageVersion").invoke(javaToolchainSpec);
-			languageVersionProperty.set(getAccessibleMethod(javaLanguageVersionClass, "of", int.class).invoke(null, javaVersion));
+			if(javaVersion != null) {
+				int javaVersionString = javaVersion.ordinal() + 1; //SORRY ITS WEIRD
+				Property languageVersionProperty = (Property) getAccessibleMethod(javaToolchainSpec.getClass(), "getLanguageVersion").invoke(javaToolchainSpec);
+				languageVersionProperty.set(getAccessibleMethod(javaLanguageVersionClass, "of", int.class).invoke(null, javaVersionString));
+			}
 			
 			//configure vendor
-			Property vendorProperty = (Property) getAccessibleMethod(javaToolchainSpec.getClass(), "getVendor").invoke(javaToolchainSpec);
-			vendorProperty.set(getAccessibleField(jvmVendorSpecClass, vendor).get(null));
+			if(vendorString != null && !"ANY".equals(vendorString)) {
+				Property vendorProperty = (Property) getAccessibleMethod(javaToolchainSpec.getClass(), "getVendor").invoke(javaToolchainSpec);
+				
+				Field vendorField;
+				try {
+					vendorField = getAccessibleField(jvmVendorSpecClass, vendorString);
+				} catch (ReflectiveOperationException e) {
+					throw new RuntimeException("Unknown JVM vendor '" + vendorString + "'. Note that Voldeloom uses some weird hacks to get the vendor, might not be your fault");
+				}
+				
+				vendorProperty.set(vendorField.get(null));
+			}
 			
 			//create a launcher toolchain
 			Object javaToolchainService = task.getProject().getExtensions().getByType(javaToolchainServiceClass);
@@ -202,6 +214,45 @@ public class GradleSupport {
 			return true;
 		} catch (ReflectiveOperationException e) {
 			throw new RuntimeException("Reflection exception while configuring JavaToolchainSpec", e);
+		}
+	}
+	
+	public static JavaVersion convertToJavaVersion(Object o) {
+		//This will handle integers, strings, JavaVersions, and (through an accident of
+		//how toString is implemented on it) the Gradle 6 JavaLanguageVersion object too.
+		//The method is mostly here in GradleSupport for consistency with convertToVendorString.
+		return JavaVersion.toVersion(o);
+	}
+	
+	public static String convertToVendorString(Object o) {
+		if(o instanceof String) {
+			return ((String) o).toUpperCase(Locale.ROOT);
+		}
+		
+		//Maybe we're on Gradle 7 and this is a JvmVendorSpec.ADOPTOPENJDK sort of thing?
+		if(o.getClass().getName().equals("org.gradle.jvm.toolchain.internal.DefaultJvmVendorSpec")) {
+			//As of Gradle 7.6, these have a toString() that describes what i want
+			return (o.toString()).toUpperCase(Locale.ROOT);
+		}
+		
+		throw new IllegalArgumentException("[Voldeloom GradleSupport] Not sure how to parse this " + o.getClass() + " as a JVM vendor.");
+	}
+	
+	public static Pair<JavaVersion, String> readToolchainSpec(Object javaToolchainSpec) {
+		try {
+			Method getLanguageVersion = getAccessibleMethod(javaToolchainSpec.getClass(), "getLanguageVersion");
+			Property<?> languageVersionProperty = (Property<?>) getLanguageVersion.invoke(javaToolchainSpec);
+			Object languageVersion = languageVersionProperty.getOrNull();
+			JavaVersion javaVersion = convertToJavaVersion(languageVersion == null ? 8 : languageVersion);
+			
+			Method getVendor = getAccessibleMethod(javaToolchainSpec.getClass(), "getVendor");
+			Property<?> vendorProperty = (Property<?>) getVendor.invoke(javaToolchainSpec);
+			Object vendor = vendorProperty.getOrNull();
+			String vendorString = convertToVendorString(vendor == null ? "ADOPTIUM" : vendor);
+			
+			return Pair.of(javaVersion, vendorString);
+		} catch (ReflectiveOperationException e) {
+			throw new RuntimeException("[Voldeloom GradleSupport] Unable to readToolchainSpec this " + javaToolchainSpec.getClass());
 		}
 	}
 	

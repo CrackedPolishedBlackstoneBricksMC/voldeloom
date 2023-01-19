@@ -24,11 +24,14 @@
 
 package net.fabricmc.loom;
 
+import net.fabricmc.loom.util.GradleSupport;
 import org.cadixdev.lorenz.MappingSet;
 import org.cadixdev.mercury.Mercury;
 import org.gradle.api.Action;
+import org.gradle.api.JavaVersion;
 import org.gradle.api.NamedDomainObjectContainer;
 import org.gradle.api.Project;
+import org.gradle.internal.Pair;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -97,9 +100,34 @@ public class LoomGradleExtension {
 	public final NamedDomainObjectContainer<RunConfig> runConfigs;
 	
 	/**
-	 * Holder for remapped configuration entries
+	 * Holder for remapped configuration entries. These are how Voldeloom manages artifacts in the `modCompileOnly`-et-al configurations.
+	 * 
+	 * In Groovy, prefer to use the `remappedConfigs` method to configure instead.
 	 */
 	public final NamedDomainObjectContainer<RemappedConfigurationEntry> remappedConfigurationEntries;
+	
+	/**
+	 * If you're on Gradle 6 or above and this is `true`, Voldeloom will automatically provision a Java toolchain and use it for run configurations.
+	 * This means you can execute Gradle with whatever you want, but still get a compatible JVM to use for running the game.
+	 * (Gradles earlier than 6 do not have a toolchains feature, so they must be invoked using a compatible JVM, which is probably Java 8.)
+	 */
+	public boolean autoConfigureToolchains = true;
+	
+	/**
+	 * This *JavaVersion* contains the default toolchain Java version, used when a run configuration does not configure a Java version of its own.
+	 *
+	 * Note that it's a JavaVersion, and not a JavaLanguageVersion. Ditto for the reasoning.
+	 * The setter methods will accept JavaLanguageVersions and convert them to JavaVersions.
+	 */
+	public JavaVersion defaultRunToolchainVersion = JavaVersion.VERSION_1_8;
+	
+	/**
+	 * This *string* contains the default toolchain vendor, used when a run configuration does not configure a vendor of its own.
+	 * 
+	 * Note that it's a string, and not a JvmVendorSpec. This is because Voldeloom remains source-compatible with Gradle 4, which doesn't have that class.
+	 * The setter methods will accept JvmVendorSpecs and convert them to strings.
+	 */
+	public String defaultRunToolchainVendor = "ADOPTIUM";
 	
 	private final LoomDependencyManager dependencyManager;
 	private final List<Path> unmappedModsBuilt = new ArrayList<>();
@@ -143,5 +171,20 @@ public class LoomGradleExtension {
 	
 	public LoomDependencyManager getDependencyManager() {
 		return dependencyManager;
+	}
+	
+	//Toolchain support, awkwardly at arm's length because of the Gradle 4 source-compatibility restriction
+	public void setDefaultRunToolchainVersion(Object version) {
+		this.defaultRunToolchainVersion = GradleSupport.convertToJavaVersion(version);
+	}
+	
+	public void setDefaultRunToolchainVendor(Object vendor) {
+		this.defaultRunToolchainVendor = GradleSupport.convertToVendorString(vendor);
+	}
+	
+	public void setToolchain(Object toolchain) {
+		Pair<JavaVersion, String> parsedToolchain = GradleSupport.readToolchainSpec(toolchain);
+		this.defaultRunToolchainVersion = parsedToolchain.left;
+		this.defaultRunToolchainVendor = parsedToolchain.right;
 	}
 }

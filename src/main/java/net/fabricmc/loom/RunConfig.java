@@ -26,9 +26,12 @@ package net.fabricmc.loom;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.ByteStreams;
+import net.fabricmc.loom.util.GradleSupport;
 import net.fabricmc.loom.util.OperatingSystem;
+import org.gradle.api.JavaVersion;
 import org.gradle.api.Named;
 import org.gradle.api.Project;
+import org.gradle.internal.Pair;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -59,6 +62,11 @@ public class RunConfig implements Named {
 	private String runDir;
 	private boolean ideConfigGenerated;
 	//TODO: loom 1 has a "source" param, but i think it's mainly for their split sourceset nonsense
+	
+	//and some stuff that wasn't backported
+	private boolean autoConfigureToolchains = true;
+	private JavaVersion runToolchainVersion = null;
+	private String runToolchainVendor = null;
 	
 	public RunConfig(Project project, String name) {
 		this.baseName = this.name = name;
@@ -100,6 +108,9 @@ public class RunConfig implements Named {
 		copy.mainClass = this.mainClass;
 		copy.runDir = this.runDir;
 		copy.ideConfigGenerated = this.ideConfigGenerated;
+		copy.autoConfigureToolchains = this.autoConfigureToolchains;
+		copy.runToolchainVendor = this.runToolchainVendor;
+		copy.runToolchainVersion = this.runToolchainVersion;
 		return copy;
 	}
 	
@@ -117,6 +128,13 @@ public class RunConfig implements Named {
 		// kinda makes ForgeDependenciesProvider redundant for the actual *downloading* process,
 		// but it's still valuable because it adds them as gradle deps
 		copy.property("fml.core.libraries.mirror", ext.fmlLibrariesBaseUrl + "%s"); //forge uses it as a format string
+		
+		//Toolchains nonsense
+		copy.autoConfigureToolchains &= ext.autoConfigureToolchains;
+		if(copy.autoConfigureToolchains) {
+			if(copy.runToolchainVersion == null) copy.runToolchainVersion = ext.defaultRunToolchainVersion;
+			if(copy.runToolchainVendor == null) copy.runToolchainVendor = ext.defaultRunToolchainVendor;
+		}
 		
 		return copy;
 	}
@@ -246,6 +264,42 @@ public class RunConfig implements Named {
 	
 	public void setIdeConfigGenerated(boolean ideConfigGenerated) {
 		this.ideConfigGenerated = ideConfigGenerated;
+	}
+	
+	/// Not backports ///
+	
+	public RunConfig setRunToolchainVersion(Object version) {
+		this.runToolchainVersion = GradleSupport.convertToJavaVersion(version);
+		return this;
+	}
+	
+	public JavaVersion getRunToolchainVersion() {
+		return runToolchainVersion;
+	}
+	
+	public RunConfig setRunToolchainVendor(Object vendor) {
+		this.runToolchainVendor = GradleSupport.convertToVendorString(vendor);
+		return this;
+	}
+	
+	public String getRunToolchainVendor() {
+		return runToolchainVendor;
+	}
+	
+	public RunConfig setToolchain(Object toolchain) {
+		Pair<JavaVersion, String> parsedToolchain = GradleSupport.readToolchainSpec(toolchain);
+		this.runToolchainVersion = parsedToolchain.left;
+		this.runToolchainVendor = parsedToolchain.right;
+		return this;
+	}
+	
+	public boolean getAutoConfigureToolchains() {
+		return autoConfigureToolchains;
+	}
+	
+	public RunConfig setAutoConfigureToolchains(boolean autoConfigureToolchains) {
+		this.autoConfigureToolchains = autoConfigureToolchains;
+		return this;
 	}
 	
 	/// Things I should probably find a better home for ///

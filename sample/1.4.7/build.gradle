@@ -31,6 +31,28 @@ minecraft {
 		client {
 			programArg "quaternary"
 		}
+		
+		//(please excuse me while i mess with the toolchains feature i just added...)
+		
+		//fails at runtime for the obvious reason
+		clientWithJava17Lol {
+			client()
+			runToolchainVendor = JvmVendorSpec.ADOPTIUM
+			runToolchainVersion = 17
+		}
+		
+		//fails at runtime, but at least it was able to parse the toolchain out of the JavaToolchainSpec object
+		//did u know the plugin is binary compatible with gradle 4 and JvmToolchainSpec didn't exist yet? :)
+		clientWithBuildToolchain {
+			client()
+			toolchain = java.getToolchain()
+		}
+		
+		//fails at task-execute time because there's no microsoft java 8 jdk
+		clientWithMicrosoft {
+			client()
+			runToolchainVendor = JvmVendorSpec.MICROSOFT
+		}
 	}
 }
 
