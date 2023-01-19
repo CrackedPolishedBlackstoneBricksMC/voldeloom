@@ -48,7 +48,7 @@ public class RemapJarTask extends Jar {
 		setDescription("Remaps the mod under development into official names, for release purposes.");
 	}
 	
-	private final RegularFileProperty input = GradleSupport.getfileProperty(getProject());
+	private final RegularFileProperty input = GradleSupport.getRegularFileProperty(getProject());
 
 	@TaskAction
 	public void doTask() throws Throwable {

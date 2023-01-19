@@ -29,6 +29,7 @@ import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.util.GradleSupport;
 import net.fabricmc.loom.util.LoomTaskExt;
 import net.fabricmc.loom.util.RunConfig;
+import org.gradle.api.JavaVersion;
 import org.gradle.api.tasks.JavaExec;
 
 import javax.inject.Inject;
@@ -45,8 +46,18 @@ public class RunTask extends JavaExec implements LoomTaskExt {
 		
 		LoomGradleExtension extension = getLoomGradleExtension();
 		config = config.cook(extension);
-		
 		setDescription("Starts Minecraft using the '" + config.getName() + "' run configuration.");
+		
+		//Toolchain TODO configurable
+		boolean couldSetToolchain = GradleSupport.trySetJavaToolchain(this, 8, "ADOPTIUM");
+		if(!couldSetToolchain) {
+			getLogger().warn("[Voldeloom] Could not provision a Java 8 toolchain for task '{}'.", getName());
+			getLogger().warn("According to GradleSupport.trySetJavaToolchain, this version of Gradle ({}) doesn't support toolchains.", getProject().getGradle().getGradleVersion());
+			getLogger().warn("Minecraft will run in a forked copy of the current JVM ({}).", JavaVersion.current());
+			if(JavaVersion.current().compareTo(JavaVersion.VERSION_1_8) > 0) {
+				getLogger().warn("Good luck with that!");
+			}
+		}
 
 		//Classpath
 		List<String> classpath = new ArrayList<>();
