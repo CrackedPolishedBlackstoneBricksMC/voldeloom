@@ -24,6 +24,19 @@
 
 package net.fabricmc.loom.task.fernflower;
 
+import net.fabricmc.fernflower.api.IFabricJavadocProvider;
+import net.fabricmc.loom.Constants;
+import net.fabricmc.mapping.tree.ClassDef;
+import net.fabricmc.mapping.tree.FieldDef;
+import net.fabricmc.mapping.tree.MethodDef;
+import net.fabricmc.mapping.tree.ParameterDef;
+import net.fabricmc.mapping.tree.TinyMappingFactory;
+import net.fabricmc.mapping.tree.TinyTree;
+import net.fabricmc.mappings.EntryTriple;
+import org.jetbrains.java.decompiler.struct.StructClass;
+import org.jetbrains.java.decompiler.struct.StructField;
+import org.jetbrains.java.decompiler.struct.StructMethod;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
@@ -33,25 +46,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.jetbrains.java.decompiler.struct.StructClass;
-import org.jetbrains.java.decompiler.struct.StructField;
-import org.jetbrains.java.decompiler.struct.StructMethod;
-
-import net.fabricmc.fernflower.api.IFabricJavadocProvider;
-import net.fabricmc.mapping.tree.ClassDef;
-import net.fabricmc.mapping.tree.FieldDef;
-import net.fabricmc.mapping.tree.MethodDef;
-import net.fabricmc.mapping.tree.ParameterDef;
-import net.fabricmc.mapping.tree.TinyMappingFactory;
-import net.fabricmc.mapping.tree.TinyTree;
-import net.fabricmc.mappings.EntryTriple;
-
 public class TinyJavadocProvider implements IFabricJavadocProvider {
 	private final Map<String, ClassDef> classes = new HashMap<>();
 	private final Map<EntryTriple, FieldDef> fields = new HashMap<>();
 	private final Map<EntryTriple, MethodDef> methods = new HashMap<>();
 
-	private final String namespace = "named";
+	private final String namespace = Constants.MAPPED_NAMING_SCHEME;
 
 	public TinyJavadocProvider(File tinyFile) {
 		final TinyTree mappings = readMappings(tinyFile);

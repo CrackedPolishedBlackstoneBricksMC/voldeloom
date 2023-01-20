@@ -50,6 +50,11 @@ public class Constants {
 	public static final String FORGE = "forge";
 	public static final String FORGE_DEPENDENCIES = "forgeLibraries";
 	
+	//Mapping names
+	public static final String PROGUARDED_NAMING_SCHEME = "official";
+	public static final String INTERMEDIATE_NAMING_SCHEME = "intermediary";
+	public static final String MAPPED_NAMING_SCHEME = "named";
+	
 	//Gradle settings
 	public static boolean refreshDependencies = false;
 	public static boolean offline = false;

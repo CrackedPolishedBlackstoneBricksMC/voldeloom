@@ -45,11 +45,11 @@ public class RemapSourcesJarTask extends DefaultTask {
 	
 	private Object input;
 	private Object output;
-	private String direction = "intermediary";
+	private String direction = Constants.INTERMEDIATE_NAMING_SCHEME;
 
 	@TaskAction
 	public void remap() throws Exception {
-		SourceRemapper.remapSources(getProject(), getInput(), getOutput(), direction.equals("named"));
+		SourceRemapper.remapSources(getProject(), getInput(), getOutput(), direction.equals(Constants.MAPPED_NAMING_SCHEME));
 	}
 
 	@InputFile

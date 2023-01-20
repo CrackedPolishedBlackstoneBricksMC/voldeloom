@@ -100,7 +100,11 @@ public class MappingsProvider extends DependencyProvider {
 			
 			try(FileSystem mcpZipFs = FileSystems.newFileSystem(URI.create("jar:" + mappingsJar.toUri()), Collections.singletonMap("create", "true"));
 			    OutputStream out = Files.newOutputStream(tinyMappings)) {
-				TinyWriter3Column writer = new TinyWriter3Column("official", "intermediary", "named");
+				TinyWriter3Column writer = new TinyWriter3Column(
+					Constants.PROGUARDED_NAMING_SCHEME,
+					Constants.INTERMEDIATE_NAMING_SCHEME,
+					Constants.MAPPED_NAMING_SCHEME
+				);
 				
 				if(Files.exists(mcpZipFs.getPath("forge/fml/conf/joined.srg"))) {
 					project.getLogger().lifecycle("] joined.srg detected - looks like a forge sources zip");

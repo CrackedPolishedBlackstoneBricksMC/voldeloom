@@ -161,7 +161,7 @@ public class MigrateMappingsTask extends DefaultTask implements LoomTaskExt {
 	) throws IOException {
 		project.getLogger().lifecycle(":joining mappings");
 		MappingSet mappingSet = LorenzTiny.readMappings(currentMappings, targetMappings,
-						"intermediary", "named").read();
+						Constants.INTERMEDIATE_NAMING_SCHEME, Constants.MAPPED_NAMING_SCHEME).read();
 
 		project.getLogger().lifecycle(":remapping");
 		Mercury mercury = SourceRemapper.createMercuryWithClassPath(project, false);

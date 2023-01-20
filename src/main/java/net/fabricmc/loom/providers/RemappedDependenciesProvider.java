@@ -114,10 +114,10 @@ public class RemappedDependenciesProvider extends DependencyProvider {
 		
 		new TinyRemapperSession()
 			.setMappings(mappingsProvider.getMappings())
-			.setInputNamingScheme("official")
+			.setInputNamingScheme(Constants.PROGUARDED_NAMING_SCHEME) //TODO: distribution naming scheme
 			.setInputJar(input)
 			.setInputClasspath(remapClasspath)
-			.addOutputJar("named", output)
+			.addOutputJar(Constants.MAPPED_NAMING_SCHEME, output)
 			.setLogger(project.getLogger()::info)
 			.dontRemapLocalVariables()
 			.run();

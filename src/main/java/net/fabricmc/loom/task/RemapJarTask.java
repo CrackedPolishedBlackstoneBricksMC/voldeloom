@@ -75,9 +75,9 @@ public class RemapJarTask extends Jar {
 		new TinyRemapperSession()
 			.setMappings(mappingsProvider.getMappings())
 			.setInputJar(input)
-			.setInputNamingScheme("named")
+			.setInputNamingScheme(Constants.MAPPED_NAMING_SCHEME)
 			.setInputClasspath(remapClasspath)
-			.addOutputJar("official", output)
+			.addOutputJar(Constants.PROGUARDED_NAMING_SCHEME, output) //TODO: distribution scheme
 			.setLogger(getLogger()::lifecycle)
 			.run();
 

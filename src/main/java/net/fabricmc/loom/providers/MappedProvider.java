@@ -64,7 +64,7 @@ public class MappedProvider extends DependencyProvider {
 		//TODO kludgy? yeah
 		String intermediaryJarNameKinda = String.format("%s-%s-%s-%s",
 			forgePatched.getPatchedVersionTag(),
-			"intermediary",
+			Constants.INTERMEDIATE_NAMING_SCHEME,
 			mappings.getMappingsName(),
 			mappings.getMappingsVersion()
 		);
@@ -72,7 +72,7 @@ public class MappedProvider extends DependencyProvider {
 		
 		String mappedJarNameKinda = String.format("%s-%s-%s-%s",
 			forgePatched.getPatchedVersionTag(),
-			"mapped",
+			Constants.MAPPED_NAMING_SCHEME,
 			mappings.getMappingsName(),
 			mappings.getMappingsVersion()
 		);
@@ -85,8 +85,8 @@ public class MappedProvider extends DependencyProvider {
 		cleanIfRefreshDependencies();
 		
 		//task
-		project.getLogger().lifecycle("] intermediary jar is at: " + minecraftIntermediaryJar);
-		project.getLogger().lifecycle("] mapped jar is at: " + minecraftMappedJar);
+		project.getLogger().lifecycle("] {} jar is at: {}", Constants.INTERMEDIATE_NAMING_SCHEME, minecraftIntermediaryJar);
+		project.getLogger().lifecycle("] {} jar is at: {}", Constants.MAPPED_NAMING_SCHEME, minecraftMappedJar);
 		if (Files.notExists(minecraftIntermediaryJar) || Files.notExists(minecraftMappedJar)) {
 			project.getLogger().lifecycle("|-> At least one didn't exist, performing remap...");
 			
@@ -102,10 +102,10 @@ public class MappedProvider extends DependencyProvider {
 			new TinyRemapperSession()
 				.setMappings(mappingsTree)
 				.setInputJar(forgePatchedJar)
-				.setInputNamingScheme("official")
+				.setInputNamingScheme(Constants.PROGUARDED_NAMING_SCHEME)
 				.setInputClasspath(libPaths)
-				.addOutputJar("intermediary", this.minecraftIntermediaryJar)
-				.addOutputJar("named", this.minecraftMappedJar)
+				.addOutputJar(Constants.INTERMEDIATE_NAMING_SCHEME, this.minecraftIntermediaryJar)
+				.addOutputJar(Constants.MAPPED_NAMING_SCHEME, this.minecraftMappedJar)
 				.setClassFilter(classFilter)
 				.setLogger(project.getLogger()::lifecycle)
 				.run();

@@ -62,8 +62,13 @@ public class SourceRemapper {
 		MappingSet mappings = extension.getOrCreateSrcMappingCache(toNamed ? 1 : 0, () -> {
 			try {
 				TinyTree m = mappingsProvider.getMappings();
-				project.getLogger().lifecycle(":loading " + (toNamed ? "intermediary -> named" : "named -> intermediary") + " source mappings");
-				return new TinyReader(m, toNamed ? "intermediary" : "named", toNamed ? "named" : "intermediary").read();
+				
+				//TODO distributionNamespace
+				String sourceNamingScheme = toNamed ? Constants.INTERMEDIATE_NAMING_SCHEME : Constants.MAPPED_NAMING_SCHEME;
+				String targetNamingScheme = toNamed ? Constants.MAPPED_NAMING_SCHEME : Constants.INTERMEDIATE_NAMING_SCHEME;
+				
+				project.getLogger().lifecycle(":loading {} -> {} source mappings", sourceNamingScheme, targetNamingScheme);
+				return new TinyReader(m, sourceNamingScheme, targetNamingScheme).read();
 			} catch (Exception e) {
 				throw new RuntimeException(e);
 			}
