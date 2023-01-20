@@ -11,7 +11,7 @@ import java.nio.file.Path;
  */
 public class WellKnownLocations {
 	public static Path getUserCache(Project project) {
-		Path userCache = project.getGradle().getGradleUserHomeDir().toPath().resolve("caches").resolve("fabric-loom");
+		Path userCache = project.getGradle().getGradleUserHomeDir().toPath().resolve("caches").resolve("voldeloom");
 		
 		try {
 			Files.createDirectories(userCache);
@@ -23,7 +23,7 @@ public class WellKnownLocations {
 	}
 	
 	public static Path getRootProjectPersistentCache(Project project) {
-		Path rootProjectCache = project.getRootProject().file(".gradle").toPath().resolve("loom-cache");
+		Path rootProjectCache = project.getRootProject().file(".gradle").toPath().resolve("voldeloom-cache");
 		
 		try {
 			Files.createDirectories(rootProjectCache);
@@ -35,7 +35,7 @@ public class WellKnownLocations {
 	}
 	
 	public static Path getRemappedModCache(Project project) {
-		Path remappedModCache = getRootProjectPersistentCache(project).resolve("remapped-mods");
+		Path remappedModCache = getRootProjectPersistentCache(project).resolve("voldeloom-remapped-mods");
 		
 		try {
 			Files.createDirectories(remappedModCache);
