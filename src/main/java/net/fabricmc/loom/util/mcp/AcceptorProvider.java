@@ -7,15 +7,15 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * A mappings buffer. It can accept an arbitrary number of mappings before spilling them back out again.
+ * A mappings buffer, from one naming scheme to another. Loads in a bunch of mappings, then dispenses them into another MappingAcceptor.
  * 
  * @author TwilightFlower
  */
 public class AcceptorProvider implements IMappingProvider, MappingAcceptor {
 	private final Map<String, String> classes = new HashMap<>();
-	private final Map<MemberHashCode, String> methods = new HashMap<>();
-	private final Map<MemberHashCode, String> fields = new HashMap<>();
-	private final Map<ArgIndex, String> methodArgs = new HashMap<>();
+	private final Map<HashableMember, String> methods = new HashMap<>();
+	private final Map<HashableMember, String> fields = new HashMap<>();
+	private final Map<HashableArgIndex, String> methodArgs = new HashMap<>();
 
 	@Override
 	public void acceptClass(String srcName, String dstName) {
@@ -24,62 +24,79 @@ public class AcceptorProvider implements IMappingProvider, MappingAcceptor {
 
 	@Override
 	public void acceptMethod(Member method, String dstName) {
-		methods.put(new MemberHashCode(method), dstName);
+		methods.put(new HashableMember(method), dstName);
 	}
 
 	@Override
 	public void acceptMethodArg(Member method, int lvIndex, String dstName) {
-		methodArgs.put(new ArgIndex(method, lvIndex), dstName);
+		methodArgs.put(new HashableArgIndex(new HashableMember(method), lvIndex), dstName);
 	}
 
 	@Override
 	public void acceptMethodVar(Member method, int lvIndex, int startOpIdx, int asmIndex, String dstName) {
-		
+		//it's a secret to everybody
 	}
 
 	@Override
 	public void acceptField(Member field, String dstName) {
-		fields.put(new MemberHashCode(field), dstName);
+		fields.put(new HashableMember(field), dstName);
 	}
 
 	@Override
 	public void load(MappingAcceptor out) {
 		classes.forEach(out::acceptClass);
-		methods.forEach((m, d) -> out.acceptMethod(m.actual, d));
-		fields.forEach((m, d) -> out.acceptField(m.actual, d));
-		methodArgs.forEach((a, d) -> out.acceptMethodArg(a.method, a.lvIndex, d));
+		methods.forEach((method, dstName) -> out.acceptMethod(method.actual, dstName));
+		fields.forEach((field, dstName) -> out.acceptField(field.actual, dstName));
+		methodArgs.forEach((argIndex, dstName) -> out.acceptMethodArg(argIndex.method.actual, argIndex.lvIndex, dstName));
 	}
 	
-	private static class MemberHashCode {
+	/**
+	 * tiny-remapper's Member doesn't have equals/hashcode defined, so this is a trivial wrapper around it
+	 */
+	private static class HashableMember {
 		final Member actual;
 		
-		MemberHashCode(Member actual) {
+		HashableMember(Member actual) {
 			this.actual = actual;
 		}
 		
-		public int hashCode() {
-			return actual.name.hashCode() 
-					* actual.desc.hashCode() 
-					* actual.owner.hashCode();
+		public boolean equals(Object o) {
+			if(this == o) return true;
+			if(o == null || getClass() != o.getClass()) return false;
+			HashableMember other = (HashableMember) o;
+			return other.actual.owner.equals(actual.owner) &&
+				other.actual.name.equals(actual.name) &&
+				other.actual.desc.equals(actual.desc);
 		}
 		
-		public boolean equals(Object o) {
-			if(!(o instanceof MemberHashCode)) return false;
-			MemberHashCode m = (MemberHashCode) o;
-			return m.actual.owner.equals(actual.owner) && m.actual.name.equals(actual.name) && m.actual.desc.equals(actual.desc);
+		public int hashCode() {
+			return ((actual.name.hashCode() * 31) + actual.desc.hashCode() * 31) + actual.owner.hashCode();
 		}
 	}
 	
-	private static class ArgIndex {
-		final Member method;
+	/**
+	 * we have records at home
+	 */
+	private static class HashableArgIndex {
+		final HashableMember method;
 		final int lvIndex;
-		ArgIndex(Member method, int lvIndex) {
+		
+		HashableArgIndex(HashableMember method, int lvIndex) {
 			this.method = method;
 			this.lvIndex = lvIndex;
 		}
 		
+		@Override
+		public boolean equals(Object o) {
+			if(this == o) return true;
+			if(o == null || getClass() != o.getClass()) return false;
+			HashableArgIndex other = (HashableArgIndex) o;
+			return lvIndex == other.lvIndex && method.equals(other.method);
+		}
+		
+		@Override
 		public int hashCode() {
-			return method.name.hashCode() * method.desc.hashCode() * method.owner.hashCode() * lvIndex;
+			return 31 * method.hashCode() + lvIndex;
 		}
 	}
 }

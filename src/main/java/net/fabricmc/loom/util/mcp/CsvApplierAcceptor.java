@@ -3,13 +3,12 @@ package net.fabricmc.loom.util.mcp;
 import net.fabricmc.tinyremapper.IMappingProvider.MappingAcceptor;
 import net.fabricmc.tinyremapper.IMappingProvider.Member;
 
-import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.Scanner;
 
 /**
  * Takes MCP-format {@code .csv} files and forwards them to a MappingAcceptor.
@@ -27,7 +26,7 @@ public class CsvApplierAcceptor implements MappingAcceptor {
 	public static final int PACKAGES_OUT = 1;
 	
 	private final Map<String, String> map = new HashMap<>();
-	private MappingAcceptor underlying;
+	private final MappingAcceptor underlying;
 	
 	private boolean classes = false;
 	
@@ -39,22 +38,11 @@ public class CsvApplierAcceptor implements MappingAcceptor {
 			classes = true;
 		}
 		
-		for(String line : Files.readAllLines(mcpCsv)) {
-			
-		}
-		
-		try(Scanner csvScanner = new Scanner(new BufferedInputStream(Files.newInputStream(mcpCsv)))) {
-			boolean firstLine = true;
-			while(csvScanner.hasNextLine()) {
-				if (firstLine) {
-					firstLine = false;
-					// packages CSV has a header as the first line
-					if (packages) continue;
-				}
-				String[] line = csvScanner.nextLine().split(",");
-				if(!line[unnamedIdx].equals("*")) {
-					map.put((packages ? "net/minecraft/src/" : "")+line[unnamedIdx], line[namedIdx]+(packages ? "/"+line[unnamedIdx] : ""));
-				}
+		List<String> lines = Files.readAllLines(mcpCsv);
+		for(int i = packages ? 1 : 0; i < lines.size(); i++) {
+			String[] lineSplit = lines.get(i).split(",");
+			if(!lineSplit[unnamedIdx].equals("*")) {
+				map.put((packages ? "net/minecraft/src/" : "")+lineSplit[unnamedIdx], lineSplit[namedIdx]+(packages ? "/"+lineSplit[unnamedIdx] : ""));
 			}
 		}
 	}
