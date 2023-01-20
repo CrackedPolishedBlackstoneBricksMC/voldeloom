@@ -142,6 +142,8 @@ public class MappingsProvider extends DependencyProvider {
 					SrgMappingProvider server = new SrgMappingProvider(conf.resolve("server.srg"), data);
 					
 					//Rename members from their client-only/server-only SRG splitids to their newids, which are shared across both sides
+					//TODO i don't think this is actually important lol - the mcp zip i have already has them in newids
+					// so i guess research if this is ever a thing i need to concern myself with
 					AcceptorProvider joined = new AcceptorProvider();
 					client.load(new CsvApplierAcceptor(joined, mcpZipFs.getPath("conf", "newids.csv"), CsvApplierAcceptor.NEWNAME_CLIENT_IN, CsvApplierAcceptor.NEWNAME_OUT));
 					server.load(new CsvApplierAcceptor(joined, mcpZipFs.getPath("conf", "newids.csv"), CsvApplierAcceptor.NEWNAME_SERVER_IN, CsvApplierAcceptor.NEWNAME_OUT));
