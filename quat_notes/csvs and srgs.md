@@ -200,7 +200,7 @@ at this point we start watching the death of FML as a separate project from Forg
 
 1.8.0 used [this](https://github.com/MinecraftForge/FML/tree/d4ded9d6e218ac097990e836676bbe22b47e5966) FML submodule. curiously, all CSV files are gone without replacement. there is no way to find named field/method names inside the `conf` directory anymore. (on the bright side, `exceptor.json` actually tells you which method `enclosingMethod`s belong to, not just the class that that method belongs to. so thats something)
 
-by 1.8.8, the FML submodule is gone and its java classes were merged into `src/main/java/net/minecraftforge/fml`. mappings are obtained somewhere else now. we start to venture into Modern Forge, well utside the scope of this project.
+by 1.8.8, the FML submodule is gone and its java classes were merged into `src/main/java/net/minecraftforge/fml`. mappings are obtained somewhere else now. we start to venture into Modern Forge, well outside the scope of this project.
 
 > FML is no more. FML has ceased to be. FML's expired and gone to meet its maker. FML's a stiff! Bereft of life, FML rests in peace.
 > 
