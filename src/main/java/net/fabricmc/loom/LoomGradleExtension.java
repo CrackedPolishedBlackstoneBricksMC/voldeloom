@@ -90,7 +90,7 @@ public class LoomGradleExtension {
 	/**
 	 * Server that Minecraft's assets are to be downloaded from, including trailing `/`.
 	 */
-	public String resourcesBaseUrl = "http://resources.download.minecraft.net/";
+	public String resourcesBaseUrl = "https://resources.download.minecraft.net/";
 	
 	/**
 	 * Holder for run configurations (essentially a {@code Map<String, RunConfig>}).
