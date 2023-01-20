@@ -34,9 +34,11 @@ What works:
   * 1.4 doesn't parse any program arguments apart from the username (arg 0) and session token (arg 1)
 * `modImplementation`/etc works!
   * `coremodImplementation`/etc exists for coremods (they will be moved to the `coremods` folder, where Forge wants to find them) 
-* Gradle 4 works, probably
+* Gradle 4 works
   * Maybe even Gradles 5 and 6, too, although they're not a priority 
   * Use `modCompile` instead of `modImplementation`, and drop the `only` from `modRuntimeOnly` (`implementation`/`runtimeOnly` are a gradle 7 convention)
+* On Gradle 6+, a Java 8 toolchain is provisioned for you for run configs. You can configure the version and vendor.
+  * Done without breaking Gradle 4 source compatibilty in the plugin btw... so its kinda jank
 
 Magical secret kludges that make the above work:
 
@@ -61,7 +63,6 @@ What doesn't work yet:
 
 To do list:
 
-* Ideally the game should be launched with a copy of java 6 or 8, right now i think gradle itself has to be running on an appropriate jdk
 * Root out "Intermediary" names from the experience where appropriate. Forge 1.4 doesn't use intermediary names except as a remapping implementation detail; unmapped methods are `a` in the live game, not `func_12345`.
   * Haven't researched when intermediary names started being shipped in real mods though, so i can't delete them all
 * Write a jar remapper with a more basic "search and replace" name-finding algorithm for reobf, emulating what MCP's reobf script does (basically i want to make [this commit](https://github.com/unascribed/BuildCraft/commit/06dc8a89f4ea503eb7dc696395187344658cf9c1) not something you have to worry about)

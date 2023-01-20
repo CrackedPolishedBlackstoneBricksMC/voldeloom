@@ -97,8 +97,8 @@ public class LoomGradlePlugin implements Plugin<Project> {
 	public void apply(Project project) {
 		//Hi!
 		project.getLogger().lifecycle("=====");
-		project.getLogger().lifecycle("Applying Voldeloom " + getClass().getPackage().getImplementationVersion() + " to " + project.getDisplayName() + ".");
-		project.getLogger().lifecycle("Java version is '" + System.getProperty("java.version") + "', Gradle version is '" + project.getGradle().getGradleVersion() + "'. I hope it works :)");
+		project.getLogger().lifecycle("Applying Voldeloom {} to {}.", getClass().getPackage().getImplementationVersion(), project.getDisplayName());
+		project.getLogger().lifecycle("Java version is '{}', Gradle version is '{}'. I hope it works :)", System.getProperty("java.version"), project.getGradle().getGradleVersion());
 		
 		//Initialize some global variables.
 		Constants.init(project.getGradle());
