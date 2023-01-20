@@ -132,7 +132,7 @@ since MCP maps everything to `net/minecraft/src` all the class names are already
 
 * `joined.srg`
   * `PK:`: Hey Guys. ... .Did You Know That the mapped name of the `net` package, is `net` , . Subscribe for more tips
-  * `CL:`: proguard class names to NMS mapped names (always starting with net/minecraft/src) holy shit is this where the bukkit term nms comes from....... real
+  * `CL:`: proguard class names to class names always starting with net/minecraft/src except for like 10 of them
   * `FD:`: field names. join the class name and the field name with a `/`
   * `MD:`: method names. join the class name and the method name with a `/`. and their descriptors too, mapped to both naming schemes
   * file always uses `/` characters to separate package path elements, as opposed to `.`
@@ -196,7 +196,7 @@ new file! new file! [`exceptor.json`](https://github.com/MinecraftForge/Minecraf
 
 `joined.srg` doesn't contain the `#C` `#S` tags that 1.6.4 had (interesting), and it also maps directly to classes with full package names, so the `packages.csv` file is unnecessary and was removed.
 
-this is about when ForgeGradle enters the picture btw.
+~~this is about when ForgeGradle enters the picture btw.~~ **[EXTREMELY LOUD INCORRECT BUZZER]** it was 1.6
 
 # (really out of curiosity now) 1.8
 
@@ -204,7 +204,7 @@ at this point we start watching the death of FML as a separate project from Forg
 
 1.8.0 used [this](https://github.com/MinecraftForge/FML/tree/d4ded9d6e218ac097990e836676bbe22b47e5966) FML submodule. curiously, all CSV files are gone without replacement. there is no way to find named field/method names inside the `conf` directory anymore. (on the bright side, `exceptor.json` actually tells you which method `enclosingMethod`s belong to, not just the class that that method belongs to. so thats something)
 
-by 1.8.8, the FML submodule is gone and its java classes were merged into `src/main/java/net/minecraftforge/fml`. mappings are obtained somewhere else now. in a short while, MCPConfig will be invented and we venture into Modern Forge.
+by 1.8.8, the FML submodule is gone and its java classes were merged into `src/main/java/net/minecraftforge/fml`. mappings are obtained somewhere else now. in a ~~short~~ while, MCPConfig will be invented and we venture into Modern Forge.
 
 > FML is no more. FML has ceased to be. FML's expired and gone to meet its maker. FML's a stiff! Bereft of life, FML rests in peace.
 > 
