@@ -73,6 +73,7 @@ To do list:
   * Upsides: Can fix the dependency downloader, can fix coremod-detection being very picky.
   * Downsides: Will need to modify the patch for every version of Forge, it's "magic" hardcoded in the gradle plugin, and Idk I like working off the original assets
 * Rebrand:tm: the project tbh.. Lol there's still a lot of user-facing references to "fabric" even
+* I've refactored the "provider" system a couple times and still really, really dislike it. It's very ugly and inflexible and needs a rethinking.
 
 What I'd like to add:
 
