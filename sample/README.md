@@ -40,7 +40,7 @@ Forge 1.4.7-6.6.2.534 using Gradle **4.10.3**.
 
 Forge 1.5.2-7.8.1.738 using Gradle 7.6.
 
-**Broken.** Currently this doesn't get ingame; main menu crashes due to an illegal access error. Looks like a mappings/AT application problem, probably a difference in the mcp format.
+**Works great** ever since i fixed the access transformer logic.
 
 ### 1.6.4
 

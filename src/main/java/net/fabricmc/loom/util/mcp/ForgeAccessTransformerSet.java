@@ -145,17 +145,23 @@ public class ForgeAccessTransformerSet {
 		}
 	}
 	
+	private static final int ACCESS_MASK = (Opcodes.ACC_PUBLIC | Opcodes.ACC_PRIVATE | Opcodes.ACC_PROTECTED); // == 7
+	private static final int ACC_PACKAGE_PRIVATE = 0;
+	
 	public enum AccessTransformation implements Opcodes {
-		NO_CHANGE            (acc -> acc),
-		PUBLIC               (acc -> replacePublicityModifier(acc,             ACC_PUBLIC)),
-		PUBLIC_DEFINALIZE    (acc -> replacePublicityModifier(definalize(acc), ACC_PUBLIC)),
-		PUBLIC_FINALIZE      (acc -> replacePublicityModifier(finalize(acc),   ACC_PUBLIC)),
-		PROTECTED            (acc -> replacePublicityModifier(acc,             ACC_PROTECTED)),
-		PROTECTED_DEFINALIZE (acc -> replacePublicityModifier(definalize(acc), ACC_PROTECTED)),
-		PROTECTED_FINALIZE   (acc -> replacePublicityModifier(finalize(acc),   ACC_PROTECTED)),
-		PRIVATE              (acc -> replacePublicityModifier(acc,             ACC_PRIVATE)),
-		PRIVATE_DEFINALIZE   (acc -> replacePublicityModifier(definalize(acc), ACC_PRIVATE)),
-		PRIVATE_FINALIZE     (acc -> replacePublicityModifier(finalize(acc),   ACC_PRIVATE)),
+		NO_CHANGE                  (acc -> acc),
+		PUBLIC                     (acc -> upgradePublicityModifier(acc,             ACC_PUBLIC)),
+		PUBLIC_DEFINALIZE          (acc -> upgradePublicityModifier(definalize(acc), ACC_PUBLIC)),
+		PUBLIC_FINALIZE            (acc -> upgradePublicityModifier(finalize(acc),   ACC_PUBLIC)),
+		PACKAGE_PRIVATE            (acc -> upgradePublicityModifier(acc,             ACC_PACKAGE_PRIVATE)),
+		PACKAGE_PRIVATE_FINALIZE   (acc -> upgradePublicityModifier(finalize(acc),   ACC_PACKAGE_PRIVATE)),
+		PACKAGE_PRIVATE_DEFINALIZE (acc -> upgradePublicityModifier(definalize(acc), ACC_PACKAGE_PRIVATE)),
+		PROTECTED                  (acc -> upgradePublicityModifier(acc,             ACC_PROTECTED)),
+		PROTECTED_DEFINALIZE       (acc -> upgradePublicityModifier(definalize(acc), ACC_PROTECTED)),
+		PROTECTED_FINALIZE         (acc -> upgradePublicityModifier(finalize(acc),   ACC_PROTECTED)),
+		PRIVATE                    (acc -> upgradePublicityModifier(acc,             ACC_PRIVATE)),
+		PRIVATE_DEFINALIZE         (acc -> upgradePublicityModifier(definalize(acc), ACC_PRIVATE)),
+		PRIVATE_FINALIZE           (acc -> upgradePublicityModifier(finalize(acc),   ACC_PRIVATE)),
 		;
 		
 		AccessTransformation(IntUnaryOperator operation) {
@@ -170,10 +176,12 @@ public class ForgeAccessTransformerSet {
 		
 		public static AccessTransformation fromString(String name) {
 			switch(name) {
-				case "default": return NO_CHANGE; //TODO: Forge 1.5.2 has one of these at the bottom of forge_at, might actually be a no-op at?
 				case "public": return PUBLIC;
 				case "public-f": return PUBLIC_DEFINALIZE;
 				case "public+f": return PUBLIC_FINALIZE;
+				case "default": return PACKAGE_PRIVATE;
+				case "default+f": return PACKAGE_PRIVATE_FINALIZE;
+				case "default-f": return PACKAGE_PRIVATE_DEFINALIZE;
 				case "protected": return PROTECTED;
 				case "protected-f": return PROTECTED_DEFINALIZE;
 				case "protected+f": return PROTECTED_FINALIZE;
@@ -186,15 +194,38 @@ public class ForgeAccessTransformerSet {
 		
 		@Override
 		public String toString() {
-			if(this == NO_CHANGE) return "default";
+			if(this == NO_CHANGE) return "NO_CHANGE__NOT_FROM_FORGE";
 			else return this.name()
+				.replace("PACKAGE_PRIVATE", "default")
 				.replace("_DEFINALIZE", "-f")
 				.replace("_FINALIZE", "+f")
 				.toLowerCase(Locale.ROOT);
 		}
 		
-		private static int replacePublicityModifier(int access, int publicityModifier) {
-			return (access & ~(ACC_PUBLIC | ACC_PROTECTED | ACC_PRIVATE)) | publicityModifier;
+		private static int upgradePublicityModifier(int currentAccess, int newPublicityModifier) {
+			//Ok, so this is the access mask *replaced* with the new publicity modifier:
+			int replacedAccess = (currentAccess & ~ACCESS_MASK) | newPublicityModifier;
+			//We could return this now, but we need to check that we're actually *upgrading* the visibility.
+			//In practice, this turns up in wildcard transformers. Forge 1.5.2 declares a 'protected aww.*()' transformer, e.g.
+			//We should upgrade private methods into protected ones, but we shouldn't downgrade public ones.
+			
+			//See FML's AccessTransformer.getFixedAccess.
+			//The original switch statement is kindof a mess, but it boils down to this.
+			//Also the messy ACC_PUBLIC case in the original is redundant. The ternary expression evaluates to ACC_PUBLIC in both branches.
+			switch(currentAccess & ACCESS_MASK) {
+				case ACC_PRIVATE:
+					//If the field is private, well, can't make it more private
+					return replacedAccess;
+				case ACC_PACKAGE_PRIVATE:
+					//If the field is package-private, don't replace it with a private one
+					return newPublicityModifier == ACC_PRIVATE ? currentAccess : replacedAccess;
+				case ACC_PROTECTED:
+					//If the field is protected, don't replace it with a private or package-private one
+					return newPublicityModifier == ACC_PRIVATE || newPublicityModifier == ACC_PACKAGE_PRIVATE ? currentAccess : replacedAccess;
+				default:
+					//If the field is public, well, can't make it more public
+					return currentAccess;
+			}
 		}
 		
 		private static int finalize(int access) { //not a keyword!
