@@ -101,6 +101,11 @@ public class Srg {
 		public int hashCode() {
 			return Objects.hash(owningClass, name);
 		}
+		
+		@Override
+		public String toString() {
+			return owningClass + "/" + name;
+		}
 	}
 	
 	public static class MethodEntry {
@@ -131,6 +136,11 @@ public class Srg {
 		@Override
 		public int hashCode() {
 			return Objects.hash(owningClass, name, descriptor);
+		}
+		
+		@Override
+		public String toString() {
+			return owningClass + "/" + name + " " + descriptor;
 		}
 	}
 }

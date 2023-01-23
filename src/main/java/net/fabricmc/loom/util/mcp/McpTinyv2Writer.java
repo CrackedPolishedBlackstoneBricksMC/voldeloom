@@ -1,6 +1,5 @@
 package net.fabricmc.loom.util.mcp;
 
-import com.google.common.base.Preconditions;
 import net.fabricmc.loom.Constants;
 
 import javax.annotation.Nullable;
@@ -17,7 +16,7 @@ public class McpTinyv2Writer {
 	private Members methods;
 	private @Nullable Packages packages;
 	
-	private boolean threeColumn = false;
+	private boolean srgsAsFallback = false;
 	private @Nullable JarScanData jarScanData;
 	
 	public McpTinyv2Writer srg(Srg srg) {
@@ -41,12 +40,12 @@ public class McpTinyv2Writer {
 	}
 	
 	/**
-	 * If true, proguard-to-srg-to-named mappings are written. If false, only proguard -> named mappings are written.<br>
-	 * This helps support Minecraft 1.4 and below, which didn't ever remap the game to SRGs.<br>
-	 * Unmapped fields exist in the live game environment as their proguarded names
+	 * If true, when an MCP name doesn't exist for a given field or method SRG, the SRG name will be used as-is.<br>
+	 * If false, the proguarded field name will be used instead.<br>
+	 * This helps support versions 1.4 and below, where runtime-remapping fields to SRG names did not happen yet.
 	 */
-	public McpTinyv2Writer threeColumn(boolean threeColumn) {
-		this.threeColumn = threeColumn;
+	public McpTinyv2Writer srgsAsFallback(boolean srgsAsFallback) {
+		this.srgsAsFallback = srgsAsFallback;
 		return this;
 	}
 	
@@ -63,7 +62,7 @@ public class McpTinyv2Writer {
 	public List<String> write() {
 		List<String> lines = new ArrayList<>();
 		
-		lines.add("tiny\t2\t0\t" + threecol(Constants.PROGUARDED_NAMING_SCHEME, Constants.INTERMEDIATE_NAMING_SCHEME, Constants.MAPPED_NAMING_SCHEME));
+		lines.add("tiny\t2\t0\t" + (Constants.PROGUARDED_NAMING_SCHEME + "\t" + Constants.INTERMEDIATE_NAMING_SCHEME + "\t" + Constants.MAPPED_NAMING_SCHEME));
 		
 		//for each class:
 		srg.classMappings.forEach((classProguard, classSrg) -> {
@@ -71,7 +70,7 @@ public class McpTinyv2Writer {
 			String classSrgRepackage = packages != null ? packages.repackage(classSrg) : classSrg;
 			
 			//write class name
-			lines.add("c\t" + threecol(classProguard, classSrgRepackage, classSrgRepackage)); //srg class names == named class names
+			lines.add("c\t" + classProguard + "\t" + classSrgRepackage + "\t" + classSrgRepackage); //srg class names == named class names
 			
 			//for each field in the class:
 			Map<Srg.FieldEntry, Srg.FieldEntry> fieldMappings = srg.fieldMappingsByOwningClass.get(classProguard);
@@ -80,15 +79,21 @@ public class McpTinyv2Writer {
 				String fieldType = "Ljava/lang/Void;";
 				if(jarScanData != null) {
 					String knownFieldType = jarScanData.fieldDescs.get(fieldProguard.owningClass + "/" + fieldProguard.name);
-					if(knownFieldType != null) fieldType = knownFieldType;
+					if(knownFieldType == null) {
+						System.err.println("Field " + fieldProguard + " has a mapping to " + fieldSrg + ", but its type information was not found while scanning the unmapped JAR.");
+					} else {
+						fieldType = knownFieldType;
+					}
 				}
 				
 				//find the remapped name of the field
 				Members.Entry fieldNamed = fields.remapSrg(fieldSrg.name);
-				String fieldName = fieldNamed == null ? fieldSrg.name : fieldNamed.remappedName;
+				String fieldName;
+				if(fieldNamed != null) fieldName = fieldNamed.remappedName;
+				else fieldName = srgsAsFallback ? fieldSrg.name : fieldProguard.name;
 				
 				//write mapping
-				lines.add("\tf\t" + fieldType + "\t" + threecol(fieldProguard.name, fieldSrg.name, fieldName));
+				lines.add("\tf\t" + fieldType + "\t" + fieldProguard.name + "\t" + fieldSrg.name + "\t" + fieldName);
 				
 				//write javadoc comment
 				if(fieldNamed != null && fieldNamed.comment != null) {
@@ -101,10 +106,12 @@ public class McpTinyv2Writer {
 			if(methodMappings != null) methodMappings.forEach((methodProguard, methodSrg) -> {
 				//find the remapped name of the method
 				Members.Entry methodNamed = methods.remapSrg(methodSrg.name);
-				String methodName = methodNamed == null ? methodSrg.name : methodNamed.remappedName;
+				String methodName;
+				if(methodNamed != null) methodName = methodNamed.remappedName;
+				else methodName = srgsAsFallback ? methodSrg.name : methodProguard.name;
 				
 				//write mapping
-				lines.add("\tm\t" + methodProguard.descriptor + "\t" + threecol(methodProguard.name, methodSrg.name, methodName));
+				lines.add("\tm\t" + methodProguard.descriptor + "\t" + methodProguard.name + "\t" + methodSrg.name + "\t" + methodName);
 				
 				//write javadoc comment
 				if(methodNamed != null && methodNamed.comment != null) {
@@ -114,16 +121,6 @@ public class McpTinyv2Writer {
 		});
 		
 		return lines;
-	}
-	
-	private String threecol(String proguard, String intermediate, String mapped) {
-		//do NOT stringify `null`s into the file, ever
-		Preconditions.checkNotNull(proguard, "proguard name");
-		Preconditions.checkNotNull(intermediate, "intermediate name");
-		Preconditions.checkNotNull(mapped, "mapped name");
-		
-		if(threeColumn) return proguard + "\t" + intermediate + "\t" + mapped;
-		else return proguard + "\t" + mapped;
 	}
 	
 	//TODO maybe move to Members parser

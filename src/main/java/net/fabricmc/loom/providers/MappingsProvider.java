@@ -111,53 +111,57 @@ public class MappingsProvider extends DependencyProvider {
 				} else {
 					conf = mcpZipFs.getPath(""); //manually zipped mappings?
 				}
-				project.getLogger().info("] Mappings path detected to be " + conf);
+				project.getLogger().info("] Mappings root detected to be '{}'", conf);
 				
+				project.getLogger().info("|-> Reading joined.srg...");
 				Srg joinedSrg;
 				if(Files.exists(conf.resolve("joined.srg"))) {
-					project.getLogger().info("--> Reading joined.srg...");
 					joinedSrg = new Srg().read(conf.resolve("joined.srg"));
 				} else {
 					//just assume we're manually merging a client and server srg
 					//TODO: newids?
-					project.getLogger().info("--> Reading client.srg...");
+					project.getLogger().info("\\-> No joined.srg exists. Reading client.srg...");
 					Srg client = new Srg().read(conf.resolve("client.srg"));
 					
-					project.getLogger().info("--> Reading server.srg...");
+					project.getLogger().info("\\-> Reading server.srg...");
 					Srg server = new Srg().read(conf.resolve("server.srg"));
 					
-					project.getLogger().info("--> Joining srgs...");
+					project.getLogger().info("\\-> Manually joining srgs...");
 					joinedSrg = client.mergeWith(server);
 				}
 				
-				project.getLogger().info("--> Reading fields.csv...");
+				project.getLogger().info("|-> Reading fields.csv...");
 				Members fields = new Members().read(conf.resolve("fields.csv"));
 				
-				project.getLogger().info("--> Reading methods.csv...");
+				project.getLogger().info("|-> Reading methods.csv...");
 				Members methods = new Members().read(conf.resolve("methods.csv"));
 				
+				project.getLogger().info("--> Reading packages.csv...");
 				@Nullable Packages packages;
 				if(Files.exists(conf.resolve("packages.csv"))) {
-					project.getLogger().info("--> Reading packages.csv...");
 					packages = new Packages().read(conf.resolve("packages.csv"));
 				} else {
-					project.getLogger().info("--> No packages.csv exists.");
+					project.getLogger().info("\\-> No packages.csv exists.");
 					packages = null;
 				}
 				
 				project.getLogger().info("--> Scanning unmapped jar for field types...");
 				JarScanData scanData = new JarScanData().scan(forgePatched.getPatchedJar());
 				
+				project.getLogger().info("--> Computing tinyv2 mappings...");
 				List<String> tinyv2 = new McpTinyv2Writer()
 					.srg(joinedSrg)
 					.fields(fields)
 					.methods(methods)
 					.packages(packages)
-					.threeColumn(true)
+					.srgsAsFallback(false) //TODO select from forge version/make configurable
 					.jarScanData(scanData)
 					.write();
 				
+				project.getLogger().info("--> Saving...");
 				Files.write(tinyMappings, tinyv2, StandardCharsets.UTF_8);
+				
+				project.getLogger().info("--> Done!");
 			}
 		}
 		
