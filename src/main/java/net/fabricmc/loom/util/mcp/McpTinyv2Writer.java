@@ -80,7 +80,7 @@ public class McpTinyv2Writer {
 				String fieldType = "Ljava/lang/Void;";
 				String knownFieldType = jarScanData.fieldDescs.get(fieldProguard.owningClass + "/" + fieldProguard.name);
 				if(knownFieldType == null) {
-					System.err.println("Mappings define '" + fieldProguard + " -> " + fieldSrg + "', but the type information of " + fieldProguard + "was not found while scanning the unmapped JAR.");
+					System.err.println("Mappings define '" + fieldProguard + " -> " + fieldSrg + "', but the type of " + fieldProguard + " was not found while scanning the unmapped JAR.");
 				} else {
 					fieldType = knownFieldType;
 				}
