@@ -136,7 +136,7 @@ public class MappingsProvider extends DependencyProvider {
 				project.getLogger().info("|-> Reading methods.csv...");
 				Members methods = new Members().read(conf.resolve("methods.csv"));
 				
-				project.getLogger().info("--> Reading packages.csv...");
+				project.getLogger().info("|-> Reading packages.csv...");
 				@Nullable Packages packages;
 				if(Files.exists(conf.resolve("packages.csv"))) {
 					packages = new Packages().read(conf.resolve("packages.csv"));
@@ -145,10 +145,10 @@ public class MappingsProvider extends DependencyProvider {
 					packages = null;
 				}
 				
-				project.getLogger().info("--> Scanning unmapped jar for field types...");
+				project.getLogger().info("|-> Scanning unmapped jar for field types...");
 				JarScanData scanData = new JarScanData().scan(forgePatched.getPatchedJar());
 				
-				project.getLogger().info("--> Computing tinyv2 mappings...");
+				project.getLogger().info("|-> Computing tinyv2 mappings...");
 				List<String> tinyv2 = new McpTinyv2Writer()
 					.srg(joinedSrg)
 					.fields(fields)
@@ -158,10 +158,10 @@ public class MappingsProvider extends DependencyProvider {
 					.jarScanData(scanData)
 					.write();
 				
-				project.getLogger().info("--> Saving...");
+				project.getLogger().info("|-> Saving...");
 				Files.write(tinyMappings, tinyv2, StandardCharsets.UTF_8);
 				
-				project.getLogger().info("--> Done!");
+				project.getLogger().info("|-> Done!");
 			}
 		}
 		

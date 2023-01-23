@@ -7,9 +7,14 @@ import org.objectweb.asm.Opcodes;
 
 import javax.annotation.Nonnull;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Scanner;
+import java.util.Set;
 import java.util.function.IntUnaryOperator;
 
 /**
@@ -31,22 +36,56 @@ public class ForgeAccessTransformerSet {
 	//class + "." + method + descriptor
 	private final Map<String, AccessTransformation> methodTransformers = new HashMap<>();
 	
-	private int count = 0; //Just for curiosity's sake.
+	//and for debugging:
+	private int count = 0;
+	private final Set<String> usedClassTransformers = new HashSet<>();
+	private final Set<String> usedWildcardFieldTransformers = new HashSet<>();
+	private final Set<String> usedFieldTransformers = new HashSet<>();
+	private final Set<String> usedWildcardMethodTransformers = new HashSet<>();
+	private final Set<String> usedMethodTransformers = new HashSet<>();
 	
 	public @Nonnull AccessTransformation getClassTransformation(String className) {
-		return classTransformers.getOrDefault(className, AccessTransformation.NO_CHANGE);
+		AccessTransformation classTransformation = classTransformers.get(className);
+		if(classTransformation != null) {
+			usedClassTransformers.add(className);
+			return classTransformation;
+		}
+		
+		return AccessTransformation.NO_CHANGE;
 	}
 	
 	public @Nonnull AccessTransformation getFieldTransformation(String className, String fieldName) {
-		AccessTransformation wildcardResult = wildcardFieldTransformers.get(className);
-		if(wildcardResult != null) return wildcardResult;
-		else return fieldTransformers.getOrDefault(className + "." + fieldName, AccessTransformation.NO_CHANGE);
+		AccessTransformation wildcardFieldTransformation = wildcardFieldTransformers.get(className);
+		if(wildcardFieldTransformation != null) {
+			usedWildcardFieldTransformers.add(className);
+			return wildcardFieldTransformation;
+		}
+		
+		String key = className + "." + fieldName;
+		AccessTransformation fieldTransformation = fieldTransformers.get(key);
+		if(fieldTransformation != null) {
+			usedFieldTransformers.add(key);
+			return fieldTransformation;
+		}
+		
+		return AccessTransformation.NO_CHANGE;
 	}
 	
 	public @Nonnull AccessTransformation getMethodTransformation(String className, String methodName, String methodDescriptor) {
-		AccessTransformation wildcardResult = wildcardMethodTransformers.get(className);
-		if(wildcardResult != null) return wildcardResult;
-		else return methodTransformers.getOrDefault(className + "." + methodName + methodDescriptor, AccessTransformation.NO_CHANGE);
+		AccessTransformation wildcardMethodTransformation = wildcardMethodTransformers.get(className);
+		if(wildcardMethodTransformation != null) {
+			usedWildcardMethodTransformers.add(className);
+			return wildcardMethodTransformation;
+		}
+		
+		String key = className + "." + methodName + methodDescriptor;
+		AccessTransformation methodTransformation = methodTransformers.get(key);
+		if(methodTransformation != null) {
+			usedMethodTransformers.add(key);
+			return methodTransformation;
+		}
+		
+		return AccessTransformation.NO_CHANGE;
 	}
 	
 	public void load(InputStream from) {
@@ -83,10 +122,6 @@ public class ForgeAccessTransformerSet {
 		}
 		
 		count = classTransformers.size() + fieldTransformers.size() + methodTransformers.size() + wildcardFieldTransformers.size() + wildcardMethodTransformers.size();
-	}
-	
-	public int getCount() {
-		return count;
 	}
 	
 	public class AccessTransformingClassVisitor extends ClassVisitor {
@@ -149,6 +184,15 @@ public class ForgeAccessTransformerSet {
 			}
 		}
 		
+		@Override
+		public String toString() {
+			if(this == NO_CHANGE) return "default";
+			else return this.name()
+				.replace("_DEFINALIZE", "-f")
+				.replace("_FINALIZE", "+f")
+				.toLowerCase(Locale.ROOT);
+		}
+		
 		private static int replacePublicityModifier(int access, int publicityModifier) {
 			return (access & ~(ACC_PUBLIC | ACC_PROTECTED | ACC_PRIVATE)) | publicityModifier;
 		}
@@ -160,5 +204,41 @@ public class ForgeAccessTransformerSet {
 		private static int definalize(int access) {
 			return access & ~ACC_FINAL;
 		}
+	}
+	
+	//debugging stuff:
+	
+	public int getCount() {
+		return count;
+	}
+	
+	public void resetUsageData() {
+		usedClassTransformers.clear();
+		usedWildcardFieldTransformers.clear();
+		usedFieldTransformers.clear();
+		usedWildcardMethodTransformers.clear();
+		usedMethodTransformers.clear();
+	}
+	
+	public List<String> reportUnusedTransformers() {
+		List<String> report = new ArrayList<>();
+		
+		reportUnused(classTransformers, usedClassTransformers, report, "class transformer");
+		
+		reportUnused(wildcardFieldTransformers, usedWildcardFieldTransformers, report, "wildcard field transformer");
+		reportUnused(fieldTransformers, usedFieldTransformers, report, "field transformer");
+		
+		reportUnused(wildcardMethodTransformers, usedWildcardMethodTransformers, report, "wildcard method transformer");
+		reportUnused(methodTransformers, usedMethodTransformers, report, "method transformer");
+		
+		return report;
+	}
+	
+	private void reportUnused(Map<String, AccessTransformation> wholeSet, Set<String> usedSet, List<String> report, String reportPrefix) {
+		wholeSet.forEach((key, transformation) -> {
+			if(usedSet.contains(key)) return; //continue
+			
+			report.add(String.format("Unused %s: %s %s", reportPrefix, transformation.toString(), key));
+		});
 	}
 }

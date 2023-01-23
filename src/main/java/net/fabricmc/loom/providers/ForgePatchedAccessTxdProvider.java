@@ -21,6 +21,7 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 
 /**
  * Applies Forge's access transformers on top of the patched Minecraft + Forge jar.
@@ -59,12 +60,12 @@ public class ForgePatchedAccessTxdProvider extends DependencyProvider {
 				for(String atFileName : Arrays.asList("forge_at.cfg", "fml_at.cfg")) {
 					Path atFilePath = forgeFs.getPath(atFileName);
 					if(Files.exists(atFilePath)) {
-						project.getLogger().info("|-> Loading {}", atFileName);
+						project.getLogger().info("|-> Loading {}...", atFileName);
 						try(InputStream atIn = new BufferedInputStream(Files.newInputStream(atFilePath))) {
 							ats.load(atIn);
 						}
 					} else {
-						project.getLogger().info("|-> No {} in the Forge jar", atFileName);
+						project.getLogger().info("|-> No {} in the Forge jar.", atFileName);
 					}
 				}
 			}
@@ -98,6 +99,12 @@ public class ForgePatchedAccessTxdProvider extends DependencyProvider {
 			}
 			
 			project.getLogger().lifecycle("|-> Access transformation success! :)");
+			
+			List<String> unusedAtsReport = ats.reportUnusedTransformers();
+			if(unusedAtsReport.isEmpty()) {
+				project.getLogger().warn("|-> Found {} unused access transformers.", unusedAtsReport.size());
+				unusedAtsReport.forEach(project.getLogger()::warn);
+			}
 		}
 		
 		installed = true;

@@ -63,15 +63,13 @@ What doesn't work yet:
 
 To do list:
 
-* Root out "Intermediary" names from the experience where appropriate. Forge 1.4 doesn't use intermediary names except as a remapping implementation detail; unmapped methods are `a` in the live game, not `func_12345`.
-  * Haven't researched when intermediary names started being shipped in real mods though, so i can't delete them all
 * Write a jar remapper with a more basic "search and replace" name-finding algorithm for reobf, emulating what MCP's reobf script does (basically i want to make [this commit](https://github.com/unascribed/BuildCraft/commit/06dc8a89f4ea503eb7dc696395187344658cf9c1) not something you have to worry about)
+  * investigate: tiny-remapper has a mode to ignore field and method descriptors...
 * Investigate what's going on with the intellij run-config classpath that makes Forge try and load a bunch of java 8 jars
+* In the "have proguard names show through when there's no mcp name" mode, enums get proguarded.
 * You can depend on coremods with `coremodImplementation`, but you can't actually write your own, because it won't be in the coremods folder. Boo hiss.
   * Fixable with a task... possibly not fixable with a run config unless they let you run arbitrary gradle tasks
-* Consider patching Forge itself on its way in to the dev workspace.
-  * Upsides: Can fix the dependency downloader, can fix coremod-detection being very picky.
-  * Downsides: Will need to modify the patch for every version of Forge, it's "magic" hardcoded in the gradle plugin, and Idk I like working off the original assets
+* You can't add your own access transformers or customize the mappings (also everything is in the global gradle cache with no mechanism to make it per-project when appropriate) 
 * Rebrand:tm: the project tbh.. Lol there's still a lot of user-facing references to "fabric" even
 * I've refactored the "provider" system a couple times and still really, really dislike it. It's very ugly and inflexible and needs a rethinking.
 
