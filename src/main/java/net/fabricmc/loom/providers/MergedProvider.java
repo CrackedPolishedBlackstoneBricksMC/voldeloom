@@ -163,7 +163,7 @@ public class MergedProvider extends DependencyProvider {
 			
 			public AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
 				if(descriptor.equals(FABRIC_ENVIRONMENT)) {
-					return new EnvFixAnnotationVisitor(visitAnnotation(FORGE_SIDE, visible));
+					return new EnvFixAnnotationVisitor(visitAnnotation(FORGE_SIDEONLY, visible));
 				} else {
 					return super.visitAnnotation(descriptor, visible);
 				}
@@ -177,7 +177,7 @@ public class MergedProvider extends DependencyProvider {
 			
 			public AnnotationVisitor visitAnnotation(String descriptor, boolean visible) {
 				if(descriptor.equals(FABRIC_ENVIRONMENT)) {
-					return new EnvFixAnnotationVisitor(visitAnnotation(FORGE_SIDE, visible));
+					return new EnvFixAnnotationVisitor(visitAnnotation(FORGE_SIDEONLY, visible));
 				} else {
 					return super.visitAnnotation(descriptor, visible);
 				}
