@@ -180,8 +180,8 @@ public class ForgeAccessTransformerSet {
 				case "public-f": return PUBLIC_DEFINALIZE;
 				case "public+f": return PUBLIC_FINALIZE;
 				case "default": return PACKAGE_PRIVATE;
-				case "default+f": return PACKAGE_PRIVATE_FINALIZE;
 				case "default-f": return PACKAGE_PRIVATE_DEFINALIZE;
+				case "default+f": return PACKAGE_PRIVATE_FINALIZE;
 				case "protected": return PROTECTED;
 				case "protected-f": return PROTECTED_DEFINALIZE;
 				case "protected+f": return PROTECTED_FINALIZE;
