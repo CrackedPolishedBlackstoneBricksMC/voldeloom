@@ -27,18 +27,19 @@ package net.fabricmc.loom.providers;
 import net.fabricmc.loom.Constants;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.WellKnownLocations;
-import net.fabricmc.loom.util.mcp.AcceptorProvider;
-import net.fabricmc.loom.util.mcp.CsvApplierAcceptor;
-import net.fabricmc.loom.util.mcp.SrgMappingProvider;
-import net.fabricmc.loom.util.mcp.TinyWriter3Column;
+import net.fabricmc.loom.util.mcp.JarScanData;
+import net.fabricmc.loom.util.mcp.McpTinyv2Writer;
+import net.fabricmc.loom.util.mcp.Members;
+import net.fabricmc.loom.util.mcp.Packages;
+import net.fabricmc.loom.util.mcp.Srg;
 import net.fabricmc.mapping.tree.TinyMappingFactory;
 import net.fabricmc.mapping.tree.TinyTree;
-import net.fabricmc.tinyremapper.IMappingProvider.MappingAcceptor;
 import org.gradle.api.Project;
 
+import javax.annotation.Nullable;
 import java.io.BufferedReader;
-import java.io.OutputStream;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
@@ -46,6 +47,7 @@ import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 
 /**
  * Parses mappings. The parsed mappings are available in-memory with {@code getMappings()}, and the on-disk files are also available.
@@ -98,72 +100,64 @@ public class MappingsProvider extends DependencyProvider {
 					"If you obtained this from the Internet Archive, note that it likes to return 0-byte files instead of 404 errors.");
 			}
 			
-			try(FileSystem mcpZipFs = FileSystems.newFileSystem(URI.create("jar:" + mappingsJar.toUri()), Collections.singletonMap("create", "true"));
-			    OutputStream out = Files.newOutputStream(tinyMappings)) {
-				TinyWriter3Column writer = new TinyWriter3Column(
-					Constants.PROGUARDED_NAMING_SCHEME,
-					Constants.INTERMEDIATE_NAMING_SCHEME,
-					Constants.MAPPED_NAMING_SCHEME
-				);
-				
-				if(Files.exists(mcpZipFs.getPath("forge/fml/conf/joined.srg"))) {
-					project.getLogger().lifecycle("] joined.srg detected - looks like a forge sources zip");
-					Path conf = mcpZipFs.getPath("forge/fml/conf");
-					
-					//Scan JAR
-					SrgMappingProvider.JarScanData data = SrgMappingProvider.scan(forgePatched.getPatchedJar());
-					
-					//Read joined SRG (classes, newid fields, newid methods)
-					//Conveniently, Forge has pre-remapped this to newid SRGs instead of us having to use newids.csv.
-					SrgMappingProvider joined = new SrgMappingProvider(conf.resolve("joined.srg"), data);
-					
-					//Apply Forge's packaging data (MCP doesn't have packaging data yet)
-					AcceptorProvider packaged = new AcceptorProvider();
-					if(Files.exists(conf.resolve("packages.csv"))) { //TODO 1.3.2 packages didn't exist yet
-						joined.load(new CsvApplierAcceptor(packaged, conf.resolve("packages.csv"), CsvApplierAcceptor.PACKAGES_IN, CsvApplierAcceptor.PACKAGES_OUT));
-					}
-					
-					packaged.load(writer);
-					
-					writer.acceptSecond(); //toggle writer into accepting names for `named` classes
-					MappingAcceptor fieldMapper = new CsvApplierAcceptor(writer, conf.resolve("fields.csv"), CsvApplierAcceptor.GENERIC_IN, CsvApplierAcceptor.GENERIC_OUT);
-					MappingAcceptor methodMapper = new CsvApplierAcceptor(fieldMapper, conf.resolve("methods.csv"), CsvApplierAcceptor.GENERIC_IN, CsvApplierAcceptor.GENERIC_OUT);
-					packaged.load(methodMapper);
+			try(FileSystem mcpZipFs = FileSystems.newFileSystem(URI.create("jar:" + mappingsJar.toUri()), Collections.emptyMap())) {
+				Path conf;
+				if(Files.exists(mcpZipFs.getPath("forge/fml/conf"))) {
+					conf = mcpZipFs.getPath("forge/fml/conf"); //Forge 1.3 to Forge 1.7
+				} else if(Files.exists(mcpZipFs.getPath("forge/conf"))) {
+					conf = mcpZipFs.getPath("forge/conf"); //Forge 1.2
+				} else if(Files.exists(mcpZipFs.getPath("conf"))){
+					conf = mcpZipFs.getPath("conf"); //MCP
 				} else {
-					project.getLogger().lifecycle("] no joined.srg detected - looks like an MCP mappings zip");
-					project.getLogger().warn("] TODO i didn't retest this after implementing reading forge zips"); //TODO
-					Path conf = mcpZipFs.getPath("conf");
+					conf = mcpZipFs.getPath(""); //manually zipped mappings?
+				}
+				project.getLogger().info("] Mappings path detected to be " + conf);
+				
+				Srg joinedSrg;
+				if(Files.exists(conf.resolve("joined.srg"))) {
+					project.getLogger().info("--> Reading joined.srg...");
+					joinedSrg = new Srg().read(conf.resolve("joined.srg"));
+				} else {
+					//just assume we're manually merging a client and server srg
+					//TODO: newids?
+					project.getLogger().info("--> Reading client.srg...");
+					Srg client = new Srg().read(conf.resolve("client.srg"));
 					
-					//Scan JAR
-					SrgMappingProvider.JarScanData data = SrgMappingProvider.scan(forgePatched.getPatchedJar());
+					project.getLogger().info("--> Reading server.srg...");
+					Srg server = new Srg().read(conf.resolve("server.srg"));
 					
-					//Read client and server SRGs (classes, splitid fields, splitid methods)
-					SrgMappingProvider client = new SrgMappingProvider(conf.resolve("client.srg"), data);
-					SrgMappingProvider server = new SrgMappingProvider(conf.resolve("server.srg"), data);
-					
-					//Rename members from their client-only/server-only SRG splitids to their newids, which are shared across both sides
-					//TODO i don't think this is actually important lol - the mcp zip i have already has them in newids
-					// so i guess research if this is ever a thing i need to concern myself with
-					AcceptorProvider joined = new AcceptorProvider();
-					client.load(new CsvApplierAcceptor(joined, mcpZipFs.getPath("conf", "newids.csv"), CsvApplierAcceptor.NEWNAME_CLIENT_IN, CsvApplierAcceptor.NEWNAME_OUT));
-					server.load(new CsvApplierAcceptor(joined, mcpZipFs.getPath("conf", "newids.csv"), CsvApplierAcceptor.NEWNAME_SERVER_IN, CsvApplierAcceptor.NEWNAME_OUT));
-					
-					//This file only exists in Forge, but you might have it if you pasted forge sources over an MCP zip?
-					AcceptorProvider packaged = new AcceptorProvider();
-					if(Files.exists(conf.resolve("packages.csv"))) {
-						joined.load(new CsvApplierAcceptor(packaged, mcpZipFs.getPath("conf", "packages.csv"), CsvApplierAcceptor.PACKAGES_IN, CsvApplierAcceptor.PACKAGES_OUT));
-					} else {
-						joined.load(packaged);
-					}
-					packaged.load(writer);
-					
-					writer.acceptSecond(); //toggle writer into accepting names for `named` classes
-					MappingAcceptor fieldMapper = new CsvApplierAcceptor(writer, mcpZipFs.getPath("conf", "fields.csv"), CsvApplierAcceptor.GENERIC_IN, CsvApplierAcceptor.GENERIC_OUT);
-					MappingAcceptor methodMapper = new CsvApplierAcceptor(fieldMapper, mcpZipFs.getPath("conf", "methods.csv"), CsvApplierAcceptor.GENERIC_IN, CsvApplierAcceptor.GENERIC_OUT);
-					packaged.load(methodMapper);
+					project.getLogger().info("--> Joining srgs...");
+					joinedSrg = client.mergeWith(server);
 				}
 				
-				writer.write(out);
+				project.getLogger().info("--> Reading fields.csv...");
+				Members fields = new Members().read(conf.resolve("fields.csv"));
+				
+				project.getLogger().info("--> Reading methods.csv...");
+				Members methods = new Members().read(conf.resolve("methods.csv"));
+				
+				@Nullable Packages packages;
+				if(Files.exists(conf.resolve("packages.csv"))) {
+					project.getLogger().info("--> Reading packages.csv...");
+					packages = new Packages().read(conf.resolve("packages.csv"));
+				} else {
+					project.getLogger().info("--> No packages.csv exists.");
+					packages = null;
+				}
+				
+				project.getLogger().info("--> Scanning unmapped jar for field types...");
+				JarScanData scanData = new JarScanData().scan(forgePatched.getPatchedJar());
+				
+				List<String> tinyv2 = new McpTinyv2Writer()
+					.srg(joinedSrg)
+					.fields(fields)
+					.methods(methods)
+					.packages(packages)
+					.threeColumn(true)
+					.jarScanData(scanData)
+					.write();
+				
+				Files.write(tinyMappings, tinyv2, StandardCharsets.UTF_8);
 			}
 		}
 		
