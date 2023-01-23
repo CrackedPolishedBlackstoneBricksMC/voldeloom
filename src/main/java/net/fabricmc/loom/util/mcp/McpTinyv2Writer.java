@@ -6,6 +6,7 @@ import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Aggregates some information about MCP-format mappings (srgs, fields.csv, methods.csv, etc) and creates output in tinyv2 format.
@@ -17,7 +18,7 @@ public class McpTinyv2Writer {
 	private @Nullable Packages packages;
 	
 	private boolean srgsAsFallback = false;
-	private @Nullable JarScanData jarScanData;
+	private JarScanData jarScanData;
 	
 	public McpTinyv2Writer srg(Srg srg) {
 		this.srg = srg;
@@ -77,13 +78,11 @@ public class McpTinyv2Writer {
 			if(fieldMappings != null) fieldMappings.forEach((fieldProguard, fieldSrg) -> {
 				//try to guess the field type (because srgs don't natively include them!)
 				String fieldType = "Ljava/lang/Void;";
-				if(jarScanData != null) {
-					String knownFieldType = jarScanData.fieldDescs.get(fieldProguard.owningClass + "/" + fieldProguard.name);
-					if(knownFieldType == null) {
-						System.err.println("Field " + fieldProguard + " has a mapping to " + fieldSrg + ", but its type information was not found while scanning the unmapped JAR.");
-					} else {
-						fieldType = knownFieldType;
-					}
+				String knownFieldType = jarScanData.fieldDescs.get(fieldProguard.owningClass + "/" + fieldProguard.name);
+				if(knownFieldType == null) {
+					System.err.println("Mappings define '" + fieldProguard + " -> " + fieldSrg + "', but the type information of " + fieldProguard + "was not found while scanning the unmapped JAR.");
+				} else {
+					fieldType = knownFieldType;
 				}
 				
 				//find the remapped name of the field
@@ -118,6 +117,37 @@ public class McpTinyv2Writer {
 					lines.add("\t\tc\t" + sanitizeComment(methodNamed.comment));
 				}
 			});
+			
+			//for each inner class:
+			Set<String> childClassNames = jarScanData.innerClasses.get(classProguard);
+			int weirdInventedMapping = 1;
+			if(childClassNames != null) for(String childClassName : childClassNames) {
+				if(srg.classMappings.containsKey(childClassName)) continue;
+				
+				//If we reach this point, there's a class that jarScanData says is a real class, but we don't have any mappings for it.
+				//This happens a lot with switchmap classes added by a Forge patch.
+				//We're not on a source-based toolchain, though, so we need to invent a name for this class out of thin air.
+				
+				//For example, on 1.4.7 this happens with the class `amq$1`.
+				//`amq` is Block, and `amq$1` is the switchmap for a patch to canSustainPlant that Forge does.
+				//I want to put this class at "Block$1".
+				
+				//find the class suffix (the $ and beyond)
+				String inventedMapping;
+				int dollarIndex = childClassName.indexOf("$");
+				if(dollarIndex == -1) {
+					inventedMapping = classSrgRepackage + "$" + weirdInventedMapping++ + "_voldeloom_invented";
+					System.err.println("The class '" + childClassName + "' was found to be an inner class of " + classProguard + " (" + classSrgRepackage + ") through jar scanning,");
+					System.err.println("but there's no mapping defined for it, and it doesn't contain a dollar character.");
+					System.err.println("Inventing the name " + inventedMapping + " for it.");
+				} else {
+					//remap "amq$1" the same as how "amq" is mapped, but with a "$1"
+					inventedMapping = classSrgRepackage + childClassName.substring(dollarIndex);
+				}
+				
+				lines.add("c\t" + childClassName + "\t" + inventedMapping + "\t" + inventedMapping);
+				lines.add("\tc\t" + sanitizeComment("Voldeloom-invented class mapping ('" + childClassName + "' -> '" + inventedMapping + "')"));
+			}
 		});
 		
 		return lines;

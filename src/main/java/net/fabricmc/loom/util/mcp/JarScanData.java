@@ -18,13 +18,16 @@ import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Walks a jar and reads all the field types from it.
  */
 public class JarScanData {
 	public final Map<String, String> fieldDescs = new HashMap<>();
+	public final Map<String, Set<String>> innerClasses = new HashMap<>();
 	
 	public JarScanData scan(Path mc) throws IOException {
 		try(FileSystem mcFs = FileSystems.newFileSystem(URI.create("jar:" + mc.toUri()), Collections.emptyMap())) {
@@ -60,6 +63,11 @@ public class JarScanData {
 		public FieldVisitor visitField(int access, String name, String descriptor, String signature, Object value) {
 			fieldDescs.put(visiting + "/" + name, descriptor);
 			return null;
+		}
+		
+		@Override
+		public void visitInnerClass(String name, String outerName, String innerName, int access) {
+			innerClasses.computeIfAbsent(outerName, __ -> new LinkedHashSet<>()).add(name);
 		}
 	}
 }

@@ -57,8 +57,6 @@ public class TinyRemapperMappingsHelper {
 				//If I go ahead and forcibly unmap this class, the release Ears binary remapped to a named workspace does work.
 				//Need this hack because remapping can't see into string literals passed into Class.forName (and i dont think it's a good idea to let it)
 				if(className.equals("bas") || className.equals("bar")) continue;
-				
-				acceptor.acceptClass(className, classDef.getName(to).replace("net/minecraft/src/Block$1", "net/minecraft/block/Block$1")); //TODO(VOLDELOOM-DISASTER) HACK fix for some bug in the mcp mappings parser i think
 
 				for (FieldDef field : classDef.getFields()) {
 					acceptor.acceptField(memberOf(className, field.getName(from), field.getDescriptor(from)), field.getName(to));
