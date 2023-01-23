@@ -89,7 +89,7 @@ public class McpTinyv2Writer {
 				Members.Entry fieldNamed = fields.remapSrg(fieldSrg.name);
 				String fieldName;
 				if(fieldNamed != null) fieldName = fieldNamed.remappedName;
-				else fieldName = srgsAsFallback ? fieldSrg.name : fieldProguard.name;
+				else fieldName = chooseName(fieldProguard.name, fieldSrg.name);
 				
 				//write mapping
 				lines.add("\tf\t" + fieldType + "\t" + fieldProguard.name + "\t" + fieldSrg.name + "\t" + fieldName);
@@ -107,7 +107,7 @@ public class McpTinyv2Writer {
 				Members.Entry methodNamed = methods.remapSrg(methodSrg.name);
 				String methodName;
 				if(methodNamed != null) methodName = methodNamed.remappedName;
-				else methodName = srgsAsFallback ? methodSrg.name : methodProguard.name;
+				else methodName = chooseName(methodProguard.name, methodSrg.name);
 				
 				//write mapping
 				lines.add("\tm\t" + methodProguard.descriptor + "\t" + methodProguard.name + "\t" + methodSrg.name + "\t" + methodName);
@@ -166,5 +166,12 @@ public class McpTinyv2Writer {
 		return comment
 			.replace("[\\r\\n]", "") //it should be impossible for newlines to appear in the comment? but it will TURBO break the tiny parser if it happens
 			.replace("\\", "\\\\"); //Should hopefully correctly escape according to TinyV2Factory.unescape
+	}
+	
+	//TODO: Is this correct
+	// SRG files contain "srg names", but also sometimes "correct" non-srg names names for things like the Argo library and enum variants
+	private String chooseName(String proguardName, String srgName) {
+		if(srgsAsFallback) return srgName;
+		else return (srgName.startsWith("field_") || srgName.startsWith("func_")) ? proguardName : srgName;
 	}
 }

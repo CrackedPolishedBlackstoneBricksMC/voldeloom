@@ -48,6 +48,14 @@ public class Srg {
 				}
 				MethodEntry from = MethodEntry.parse(split[1], split[2]);
 				MethodEntry to = MethodEntry.parse(split[3], split[4]);
+				
+				//TODO: KLUDGE for 1.6.4, need to debug. Naming conflicts
+				if(to.name.equals("func_130000_a") && to.descriptor.equals("(Lof;DDDFF)V")) {
+					to = new MethodEntry(to.owningClass, "func_130000_a$voldeloom_hackfix", to.descriptor);
+				} else if(to.name.equals("func_82408_c") && to.descriptor.equals("(Lof;IF)V")) {
+					to = new MethodEntry(to.owningClass, "func_82408_c$voldeloom_hackfix", to.descriptor);
+				}
+				
 				methodMappingsByOwningClass.computeIfAbsent(from.owningClass, __ -> new LinkedHashMap<>())
 					.put(from, to);
 			} else if(!"PK:".equals(split[0])) { //We acknowledge PK lines but they're useless to us, more to do with the source-based toolchain i think
