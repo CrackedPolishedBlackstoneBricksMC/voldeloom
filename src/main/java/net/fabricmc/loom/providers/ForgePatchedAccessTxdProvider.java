@@ -61,16 +61,14 @@ public class ForgePatchedAccessTxdProvider extends DependencyProvider {
 					Path atFilePath = forgeFs.getPath(atFileName);
 					if(Files.exists(atFilePath)) {
 						project.getLogger().info("|-> Loading {}...", atFileName);
-						try(InputStream atIn = new BufferedInputStream(Files.newInputStream(atFilePath))) {
-							ats.load(atIn);
-						}
+						ats.load(atFilePath);
 					} else {
 						project.getLogger().info("|-> No {} in the Forge jar.", atFileName);
 					}
 				}
 			}
 			
-			project.getLogger().lifecycle("|-> Found {} access transformers. Performing transform...", ats.getCount());
+			project.getLogger().lifecycle("|-> Found {} access transformers affecting {} classes. Performing transform...", ats.getCount(), ats.getTouchedClassCount());
 			
 			try(
 				FileSystem unAccessTransformedFs = FileSystems.newFileSystem(URI.create("jar:" + unAccessTransformedMc.toUri()), Collections.emptyMap());
@@ -83,16 +81,31 @@ public class ForgePatchedAccessTxdProvider extends DependencyProvider {
 						Files.createDirectories(dstPath.getParent());
 						
 						if(srcPath.toString().endsWith(".class")) {
-							try(InputStream srcReader = new BufferedInputStream((Files.newInputStream(srcPath)))) {
-								ClassReader srcClassReader = new ClassReader(srcReader);
-								ClassWriter dstClassWriter = new ClassWriter(0);
-								srcClassReader.accept(ats.new AccessTransformingClassVisitor(dstClassWriter), 0);
-								Files.write(dstPath, dstClassWriter.toByteArray());
+							//Kludgey, but means we know the class data without reading the file
+							String className = srcPath.toString()
+								.replace("\\", "/")     //maybe windows does this idk?
+								.substring(1)           //leading slash
+								.replace(".class", ""); //funny extension
+							
+							project.getLogger().debug("Visiting class {}", className);
+							
+							if(ats.touchesClass(className)) {
+								project.getLogger().debug("There's an access transformer for {}", className);
+								
+								try(InputStream srcReader = new BufferedInputStream((Files.newInputStream(srcPath)))) {
+									ClassReader srcClassReader = new ClassReader(srcReader);
+									ClassWriter dstClassWriter = new ClassWriter(0);
+									srcClassReader.accept(ats.new AccessTransformingClassVisitor(dstClassWriter), 0);
+									Files.write(dstPath, dstClassWriter.toByteArray());
+								}
+								
+								return FileVisitResult.CONTINUE;
 							}
-						} else {
-							Files.copy(srcPath, dstPath);
 						}
 						
+						project.getLogger().debug("Copying {} without changing it (not a class/no AT for it)", srcPath);
+						
+						Files.copy(srcPath, dstPath);
 						return FileVisitResult.CONTINUE;
 					}
 				});

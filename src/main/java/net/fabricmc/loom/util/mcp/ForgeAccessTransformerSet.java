@@ -6,14 +6,15 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
 import javax.annotation.Nonnull;
-import java.io.InputStream;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Scanner;
 import java.util.Set;
 import java.util.function.IntUnaryOperator;
 
@@ -35,6 +36,8 @@ public class ForgeAccessTransformerSet {
 	private final Map<String, AccessTransformation> wildcardMethodTransformers = new HashMap<>();
 	//class + "." + method + descriptor
 	private final Map<String, AccessTransformation> methodTransformers = new HashMap<>();
+	
+	private final Set<String> touchedClasses = new HashSet<>();
 	
 	//and for debugging:
 	private int count = 0;
@@ -88,52 +91,66 @@ public class ForgeAccessTransformerSet {
 		return AccessTransformation.NO_CHANGE;
 	}
 	
-	public void load(InputStream from) {
-		try(Scanner scan = new Scanner(from)) {
-			while(scan.hasNextLine()) {
-				String line = scan.nextLine();
-				line = line.split("#", 2)[0].trim(); // strip comments, extraneous whitespace
-				if(line.length() == 0 || line.startsWith("#")) { // skip empty lines
-					continue;
-				}
-				
-				String[] split = line.split(" ", 2);
-				AccessTransformation transformationType = AccessTransformation.fromString(split[0]);
-				String target = split[1];
-				
-				if(target.contains(".")) { //field or method transformer (they both have dots)
-					if(target.contains("(")) { //method transformer
-						if(target.endsWith(".*()")) { //wildcard method transformer
-							wildcardMethodTransformers.put(target.split("\\.", 2)[0], transformationType);
-						} else { //non-wildcard method transformer
-							methodTransformers.put(target, transformationType);
-						}
-					} else { //field transformer
-						if(target.endsWith(".*")) { //wildcard field transformer
-							wildcardFieldTransformers.put(target.split("\\.", 2)[0], transformationType);
-						} else { //non-wildcard field transformer
-							fieldTransformers.put(target, transformationType);
-						}
+	public void load(Path path) throws IOException {
+		for(String line : Files.readAllLines(path)) {
+			line = line.split("#", 2)[0].trim(); // strip comments, extraneous whitespace
+			if(line.length() == 0 || line.startsWith("#")) { // skip empty lines
+				continue;
+			}
+			
+			String[] split = line.split(" ", 2);
+			AccessTransformation transformationType = AccessTransformation.fromString(split[0]);
+			String target = split[1];
+			
+			if(target.contains(".")) { //field or method transformer (they both have dots)
+				if(target.contains("(")) { //method transformer
+					if(target.endsWith(".*()")) { //wildcard method transformer
+						//TODO: splitting on `.` may only work because Minecraft obf classes are all unpackaged
+						// I don't know whether this format uses `/` to split packages, but if it doesn't, this is wrong
+						wildcardMethodTransformers.put(target.split("\\.", 2)[0], transformationType);
+					} else { //non-wildcard method transformer
+						methodTransformers.put(target, transformationType);
 					}
-				} else { //class transformer
-					classTransformers.put(target, transformationType);
+				} else { //field transformer
+					if(target.endsWith(".*")) { //wildcard field transformer
+						wildcardFieldTransformers.put(target.split("\\.", 2)[0], transformationType);
+					} else { //non-wildcard field transformer
+						fieldTransformers.put(target, transformationType);
+					}
 				}
+			} else { //class transformer
+				classTransformers.put(target, transformationType);
 			}
 		}
+		
+		touchedClasses.addAll(classTransformers.keySet());
+		touchedClasses.addAll(wildcardFieldTransformers.keySet());
+		touchedClasses.addAll(wildcardMethodTransformers.keySet());
+		fieldTransformers.keySet().stream().map(key -> key.split("\\.")[0]).forEach(touchedClasses::add); //sloppily extract class name from the at type
+		methodTransformers.keySet().stream().map(key -> key.split("\\.")[0]).forEach(touchedClasses::add); //TODO i probably should use a more rich key type, not strings
 		
 		count = classTransformers.size() + fieldTransformers.size() + methodTransformers.size() + wildcardFieldTransformers.size() + wildcardMethodTransformers.size();
 	}
 	
-	public class AccessTransformingClassVisitor extends ClassVisitor {
+	public boolean touchesClass(String className) {
+		return touchedClasses.contains(className);
+	}
+	
+	public class AccessTransformingClassVisitor extends ClassVisitor implements Opcodes {
 		public AccessTransformingClassVisitor(ClassVisitor classVisitor) {
 			super(Opcodes.ASM7, classVisitor);
 		}
 		
 		private String visitingClass = "";
+		private boolean visitingExtendableClass = false;
 		
 		public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
+			int newAccess = getClassTransformation(name).apply(access);
+			
 			visitingClass = name;
-			super.visit(version, getClassTransformation(name).apply(access), name, signature, superName, interfaces);
+			visitingExtendableClass = (newAccess & (ACC_PRIVATE | ACC_FINAL)) == 0;
+			
+			super.visit(version, newAccess, name, signature, superName, interfaces);
 		}
 		
 		public FieldVisitor visitField(int access, String name, String descriptor, String signature, Object value) {
@@ -141,13 +158,44 @@ public class ForgeAccessTransformerSet {
 		}
 		
 		public MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
-			return super.visitMethod(getMethodTransformation(visitingClass, name, descriptor).apply(access), name, descriptor, signature, exceptions);
+			MethodVisitor sup = super.visitMethod(getMethodTransformation(visitingClass, name, descriptor).apply(access), name, descriptor, signature, exceptions);
+			
+			if(visitingExtendableClass) return new InvokeSpecialToInvokeVirtualVisitor(sup);
+			else return sup;
+		}
+		
+		//When a class calls a private method on itself, Java compiles the call to the INVOKESPECIAL instruction.
+		//This instruction calls *exactly* the method named in its owner/name/desc arguments; no overriding is possible.
+		//And that makes sense; the method is private, so there's no need to check for any overrides in any subclasses.
+		//But since we're access transforming, it's possible that the method is now overridable when it wasn't before.
+		//If that's the case, we need to update the call to an INVOKEVIRTUAL, so that extending the class works as expected.
+		//
+		//Caveat: we're doing this in a single visiting pass.
+		//We've seen the owning class, so we know whether it's extendable, but since we might not have seen the access flags
+		//of the target method yet, we don't know whether it's actually overridable. However, it's safe to simply assume the
+		//worst and turn every intra-class INVOKESPECIAL call into an INVOKEVIRTUAL, because INVOKESPECIAL is not *required*
+		//to call a private method on the same class.
+		//
+		//TODO: This was only added in https://github.com/MinecraftForge/FML/commit/c828bb63c57cb10c23d9b1c3a6934e9f9ddba37b
+		// I think this is post-1.7.2 only?
+		public class InvokeSpecialToInvokeVirtualVisitor extends MethodVisitor {
+			public InvokeSpecialToInvokeVirtualVisitor(MethodVisitor parent) {
+				super(Opcodes.ASM7, parent);
+			}
+			
+			@Override
+			public void visitMethodInsn(int opcode, String owner, String name, String descriptor, boolean isInterface) {
+				if(opcode == Opcodes.INVOKESPECIAL && !name.equals("<init>") && owner.equals(visitingClass)) {
+					opcode = Opcodes.INVOKEVIRTUAL;
+				}
+				
+				super.visitMethodInsn(opcode, owner, name, descriptor, isInterface);
+			}
 		}
 	}
 	
 	private static final int ACCESS_MASK = (Opcodes.ACC_PUBLIC | Opcodes.ACC_PRIVATE | Opcodes.ACC_PROTECTED); // == 7
 	private static final int ACC_PACKAGE_PRIVATE = 0;
-	
 	public enum AccessTransformation implements Opcodes {
 		NO_CHANGE                  (acc -> acc),
 		PUBLIC                     (acc -> upgradePublicityModifier(acc,             ACC_PUBLIC)),
@@ -241,6 +289,10 @@ public class ForgeAccessTransformerSet {
 	
 	public int getCount() {
 		return count;
+	}
+	
+	public int getTouchedClassCount() {
+		return touchedClasses.size();
 	}
 	
 	public void resetUsageData() {
