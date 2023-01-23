@@ -51,7 +51,7 @@ Magical secret kludges that make the above work:
 
 What doesn't work yet:
 
-* Minecraft versions other than 1.4.7 don't work
+* Minecraft versions other than 1.4.7 and 1.5.2 don't work
   * The long-term goal is to merge the differences between the 1.2.5/1.5.2 branches into something runtime-configurable
 * Generated IDE run configs are broken.
   * The `runClient` task is more of a priority because it's much easier to work with and more flexible.
