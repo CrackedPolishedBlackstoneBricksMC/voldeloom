@@ -50,10 +50,11 @@ public class Srg {
 				MethodEntry to = MethodEntry.parse(split[3], split[4]);
 				
 				//TODO: KLUDGE for 1.6.4, need to debug. Naming conflicts
-				if(to.name.equals("func_130000_a") && to.descriptor.equals("(Lof;DDDFF)V")) {
-					to = new MethodEntry(to.owningClass, "func_130000_a$voldeloom_hackfix", to.descriptor);
-				} else if(to.name.equals("func_82408_c") && to.descriptor.equals("(Lof;IF)V")) {
-					to = new MethodEntry(to.owningClass, "func_82408_c$voldeloom_hackfix", to.descriptor);
+				// (This is accurate to the actual contents of the SRG, btw, there are duplicates)
+				if(to.name.equals("func_130000_a") && from.descriptor.equals("(Lof;DDDFF)V")) {
+					continue;
+				} else if(to.name.equals("func_82408_c") && from.descriptor.equals("(Lof;IF)V")) {
+					continue;
 				}
 				
 				methodMappingsByOwningClass.computeIfAbsent(from.owningClass, __ -> new LinkedHashMap<>())

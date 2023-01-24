@@ -6,13 +6,12 @@ import org.apache.commons.compress.compressors.lzma.LZMACompressorInputStream;
 import org.apache.commons.compress.compressors.pack200.Pack200CompressorInputStream;
 import org.gradle.api.Project;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
 public class BinpatchesPack {
-	public void read(Project p, Path binpatchesPackLzma) throws IOException {
+	public void read(Project p, Path binpatchesPackLzma) {
 		try(InputStream binpatchesPackLzmaIn = Files.newInputStream(binpatchesPackLzma);
 		    InputStream binpatchesPackIn = new LZMACompressorInputStream(binpatchesPackLzmaIn);
 		    InputStream binpatchesIn = new Pack200CompressorInputStream(binpatchesPackIn)) {
@@ -23,6 +22,10 @@ public class BinpatchesPack {
 			Files.write(WellKnownLocations.getUserCache(p).resolve("binpatches.jar"), extract);
 
 			throw new RuntimeException("TODO: Implement the rest of it lol");
+		} catch (Exception e) {
+			//throw new RuntimeException("Failed to read binpatches.pack.lzma: " + e.getMessage(), e); //TODO: Actually throw
+			p.getLogger().error("FAILED TO READ BINPATCHES", e);
+			p.getLogger().error("BINPATCHES ISNT FINISHED, LETS JUST PRETEND NOTHING HAPPENED");
 		}
 	}
 }

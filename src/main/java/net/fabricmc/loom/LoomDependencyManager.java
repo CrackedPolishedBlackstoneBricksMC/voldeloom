@@ -82,7 +82,7 @@ public class LoomDependencyManager {
 		try {
 			forgeProvider.decorateProject();
 		} catch (Exception e) {
-			throw new RuntimeException("Failed to provide ForgeProvider", e);
+			throw new RuntimeException("Failed to provide ForgeProvider: " + e.getMessage(), e);
 		}
 	}
 	
@@ -92,7 +92,7 @@ public class LoomDependencyManager {
 		try {
 			forgeDependenciesProvider.decorateProject(getForgeProvider());
 		} catch (Exception e) {
-			throw new RuntimeException("Failed to provide ForgeDependenciesProvider", e);
+			throw new RuntimeException("Failed to provide ForgeDependenciesProvider: " + e.getMessage(), e);
 		}
 	}
 	
@@ -102,7 +102,7 @@ public class LoomDependencyManager {
 		try {
 			minecraftProvider.decorateProject(getForgeProvider());
 		} catch (Exception e) {
-			throw new RuntimeException("Failed to provide MinecraftProvider", e);
+			throw new RuntimeException("Failed to provide MinecraftProvider: " + e.getMessage(), e);
 		}
 	}
 	
@@ -112,7 +112,7 @@ public class LoomDependencyManager {
 		try {
 			assetsProvider.decorateProject(getMinecraftProvider());
 		} catch (Exception e) {
-			throw new RuntimeException("Failed to provide AssetsProvider", e);
+			throw new RuntimeException("Failed to provide AssetsProvider: " + e.getMessage(), e);
 		}
 	}
 	
@@ -122,7 +122,7 @@ public class LoomDependencyManager {
 		try {
 			minecraftDependenciesProvider.decorateProject(getMinecraftProvider());
 		} catch (Exception e) {
-			throw new RuntimeException("Failed to provide MinecraftDependenciesProvider", e);
+			throw new RuntimeException("Failed to provide MinecraftDependenciesProvider: " + e.getMessage(), e);
 		}
 	}
 	
@@ -132,7 +132,7 @@ public class LoomDependencyManager {
 		try {
 			mergedProvider.decorateProject(getMinecraftProvider());
 		} catch (Exception e) {
-			throw new RuntimeException("Failed to provide MergedProvider", e);
+			throw new RuntimeException("Failed to provide MergedProvider: " + e.getMessage(), e);
 		}
 	}
 	
@@ -142,7 +142,7 @@ public class LoomDependencyManager {
 		try {
 			forgePatchedProvider.decorateProject(getMinecraftProvider(), getMergedProvider(), getForgeProvider());
 		} catch (Exception e) {
-			throw new RuntimeException("Failed to provide ForgePatchedProvider", e);
+			throw new RuntimeException("Failed to provide ForgePatchedProvider: " + e.getMessage(), e);
 		}
 	}
 	
@@ -152,7 +152,7 @@ public class LoomDependencyManager {
 		try {
 			forgePatchedAccessTxdProvider.decorateProject(getForgeProvider(), getForgePatchedProvider());
 		} catch (Exception e) {
-			throw new RuntimeException("Failed to provide ForgePatchedAccessTxdProvider", e);
+			throw new RuntimeException("Failed to provide ForgePatchedAccessTxdProvider: " + e.getMessage(), e);
 		}
 	}
 	
@@ -162,7 +162,7 @@ public class LoomDependencyManager {
 		try {
 			mappingsProvider.decorateProject(getForgePatchedProvider());
 		} catch (Exception e) {
-			throw new RuntimeException("Failed to provide MappingsProvider", e);
+			throw new RuntimeException("Failed to provide MappingsProvider: " + e.getMessage(), e);
 		}
 	}
 	
@@ -172,7 +172,7 @@ public class LoomDependencyManager {
 		try {
 			mappedProvider.decorateProject(getMinecraftDependenciesProvider(), getForgePatchedProvider(), getForgePatchedAccessTxdProvider(), getMappingsProvider());
 		} catch (Exception e) {
-			throw new RuntimeException("Failed to provide MappedProvider", e);
+			throw new RuntimeException("Failed to provide MappedProvider: " + e.getMessage(), e);
 		}
 	}
 	
@@ -182,7 +182,7 @@ public class LoomDependencyManager {
 		try {
 			remappedDependenciesProvider.decorateProject(getMinecraftDependenciesProvider(), getMappingsProvider(), getForgePatchedAccessTxdProvider());
 		} catch (Exception e) {
-			throw new RuntimeException("Failed to provide RemappedDependenciesProvider", e);
+			throw new RuntimeException("Failed to provide RemappedDependenciesProvider: " + e.getMessage(), e);
 		}
 	}
 	
