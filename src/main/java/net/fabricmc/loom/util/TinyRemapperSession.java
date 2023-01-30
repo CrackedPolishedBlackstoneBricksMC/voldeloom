@@ -120,6 +120,7 @@ public class TinyRemapperSession {
 				.withMappings(TinyRemapperMappingsHelper.create(mappings, inputNamingScheme, outputNamingScheme, remapLocalVariables))
 				.renameInvalidLocals(true)
 				.rebuildSourceFilenames(true)
+				.ignoreFieldDesc(true) //Kinda half-emulates MCP's behavior of textual remapping (and SRGs don't have field descs), TODO configurable maybe
 				.build();
 			
 			try(OutputConsumerPath oc = new OutputConsumerPath.Builder(outputJar).filter(outputFilter).build()) {
