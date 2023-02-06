@@ -64,14 +64,20 @@ What doesn't work yet:
 To do list:
 
 * Write a jar remapper with a more basic "search and replace" name-finding algorithm for reobf, emulating what MCP's reobf script does (basically i want to make [this commit](https://github.com/unascribed/BuildCraft/commit/06dc8a89f4ea503eb7dc696395187344658cf9c1) not something you have to worry about)
-  * investigate: tiny-remapper has a mode to ignore field and method descriptors...
+  * investigate: tiny-remapper has a mode to ignore field ~~and method~~ descriptors...
 * Investigate what's going on with the intellij run-config classpath that makes Forge try and load a bunch of java 8 jars
 * In the "have proguard names show through when there's no mcp name" mode, enums get proguarded.
 * You can depend on coremods with `coremodImplementation`, but you can't actually write your own, because it won't be in the coremods folder. Boo hiss.
   * Fixable with a task... possibly not fixable with a run config unless they let you run arbitrary gradle tasks
-* You can't add your own access transformers or customize the mappings (also everything is in the global gradle cache with no mechanism to make it per-project when appropriate) 
+    * They do (see: modern ForgeGradle)
+* You can't add your own access transformers or customize the mappings
+  * Needs projectmapping support which i've been working towards w/ the dependency provider changes
+  * Needs cute little dsl for merging mappings (maybe check out how loom.layered works)
+* ~~I've refactored the "provider" system a couple times and still really, really dislike it. It's very ugly and inflexible and needs a rethinking.~~
+  * It's a little bit less gross now and im working towards increased flexibility, at the cost of more complexity, because i have become the very thing i seek to destroy
+  * *quietly adds "wrote a DI framework" to resume*
 * Rebrand:tm: the project tbh.. Lol there's still a lot of user-facing references to "fabric" even
-* I've refactored the "provider" system a couple times and still really, really dislike it. It's very ugly and inflexible and needs a rethinking.
+* Slap a beta version on maven
 
 What I'd like to add:
 
@@ -85,6 +91,11 @@ What I'd like to add:
   * Wait ok, so why does loom use dli then
   * Depends how shitty various IDE's run config interfaces are though
 * (if i wanna get really silly) Use Forge's secret access transformer command-line program instead of maintaining an access transformer parser
+* Pack200 parser for 1.6/1.7 `binpatches.pack.lzma` support
+  * Why'd they use pack200 when there aren't even any *classes* in the pack? Anyone's guess!!!
+  * Yes i tried commons-compress, it's broken
+  * Tbh I think the best way is to write some glue that uses the java8 pack200 parser, then write more glue that uses the gradle toolchains feature to call it if we're too new, or call it directly if we're old enough
+  * weeee
 
 # Differences between this toolchain and period-accurate Forge
 
