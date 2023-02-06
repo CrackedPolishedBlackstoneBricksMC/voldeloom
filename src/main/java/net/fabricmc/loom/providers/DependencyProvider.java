@@ -30,6 +30,7 @@ import com.google.gson.JsonObject;
 import net.fabricmc.loom.Constants;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.LoomGradlePlugin;
+import net.fabricmc.loom.ProviderGraph;
 import net.fabricmc.loom.util.ZipUtil;
 import org.gradle.api.InvalidUserDataException;
 import org.gradle.api.Project;
@@ -54,7 +55,7 @@ import java.util.stream.Collectors;
 /**
  * Dependency providers are a Loom concept for "things that have to run in afterEvaluate".
  * 
- * @see net.fabricmc.loom.LoomDependencyManager
+ * @see ProviderGraph
  */
 public abstract class DependencyProvider {
 	public DependencyProvider(Project project, LoomGradleExtension extension) {

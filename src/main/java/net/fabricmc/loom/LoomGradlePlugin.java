@@ -27,6 +27,7 @@ package net.fabricmc.loom;
 import groovy.util.Node;
 import net.fabricmc.loom.providers.MappedProvider;
 import net.fabricmc.loom.providers.MinecraftDependenciesProvider;
+import net.fabricmc.loom.providers.RemappedDependenciesProvider;
 import net.fabricmc.loom.task.AbstractDecompileTask;
 import net.fabricmc.loom.task.ConfigurationDebugTask;
 import net.fabricmc.loom.task.MigrateMappingsTask;
@@ -359,7 +360,7 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		//This is where the Magic happens.
 		//These dependencies are dynamic; their content depends on the values of the stuff configured in LoomGradleExtension. They also form a task graph.
 		//Regrettably, we cannot use the real Gradle task graph to configure this stuff, because task execution time is too late to modify project dependencies.
-		LoomDependencyManager dmgr = extension.getDependencyManager();
+		ProviderGraph providers = extension.getProviderGraph();
 //		dmgr.getForgeProvider().install();
 //		dmgr.getForgeDependenciesProvider().install();
 //		dmgr.getMinecraftProvider().install();
@@ -369,15 +370,15 @@ public class LoomGradlePlugin implements Plugin<Project> {
 //		dmgr.getForgePatchedProvider().install();
 //		dmgr.getForgePatchedAccessTxdProvider().install();
 //		dmgr.getMappingsProvider().install();
-		dmgr.getMappedProvider().install();
-		dmgr.getRemappedDependenciesProvider().install();
+		providers.getProviderOfType(MappedProvider.class).install();
+		providers.getProviderOfType(RemappedDependenciesProvider.class).install();
 		
 		//Misc wiring-up of genSources-related tasks.
 		AbstractDecompileTask genSourcesDecompileTask = (AbstractDecompileTask) project.getTasks().getByName("genSourcesDecompile");
 		RemapLineNumbersTask genSourcesRemapLineNumbersTask = (RemapLineNumbersTask) project.getTasks().getByName("genSourcesRemapLineNumbers");
 		Task genSourcesTask = project.getTasks().getByName("genSources");
 		
-		MappedProvider mappedProvider = dmgr.getMappedProvider();
+		MappedProvider mappedProvider = providers.getProviderOfType(MappedProvider.class);
 		mappedProvider.assertInstalled();
 		Path mappedJar = mappedProvider.getMappedJar();
 		Path linemappedJar = getMappedByproduct(extension, "-linemapped.jar");
@@ -388,7 +389,7 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		genSourcesDecompileTask.setOutput(sourcesJar);
 		genSourcesDecompileTask.setLineMapFile(linemapFile);
 		
-		MinecraftDependenciesProvider libs = dmgr.getMinecraftDependenciesProvider();
+		MinecraftDependenciesProvider libs = providers.getProviderOfType(MinecraftDependenciesProvider.class);
 		libs.assertInstalled();
 		genSourcesDecompileTask.setLibraries(libs.getNonNativeLibraries());
 		
@@ -488,7 +489,7 @@ public class LoomGradlePlugin implements Plugin<Project> {
 	}
 	
 	public static Path getMappedByproduct(LoomGradleExtension extension, String suffix) {
-		MappedProvider mappedProvider = extension.getDependencyManager().getMappedProvider();
+		MappedProvider mappedProvider = extension.getProviderGraph().getProviderOfType(MappedProvider.class);
 		mappedProvider.assertInstalled();
 		String pathStringified = mappedProvider.getMappedJar().toAbsolutePath().toString();
 		if (!pathStringified.toLowerCase(Locale.ROOT).endsWith(".jar")) throw new RuntimeException("Invalid mapped JAR path: " + pathStringified);

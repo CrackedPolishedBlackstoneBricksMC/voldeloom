@@ -89,7 +89,7 @@ public class FernFlowerTask extends AbstractDecompileTask implements ForkingJava
 		}
 
 		args.add("-t=" + getNumThreads());
-		MappingsProvider mappingsProvider = getLoomGradleExtension().getDependencyManager().getMappingsProvider();
+		MappingsProvider mappingsProvider = getLoomGradleExtension().getProviderGraph().getProviderOfType(MappingsProvider.class);
 		mappingsProvider.assertInstalled();
 		args.add("-m=" + mappingsProvider.getTinyMappings().toAbsolutePath());
 

@@ -58,7 +58,7 @@ public class SourceRemapper {
 
 	private static void remapSourcesInner(Project project, File source, File destination, boolean toNamed) throws Exception {
 		LoomGradleExtension extension = project.getExtensions().getByType(LoomGradleExtension.class);
-		MappingsProvider mappingsProvider = extension.getDependencyManager().getMappingsProvider();
+		MappingsProvider mappingsProvider = extension.getProviderGraph().getProviderOfType(MappingsProvider.class);
 		mappingsProvider.assertInstalled();
 
 		MappingSet mappings = extension.getOrCreateSrcMappingCache(toNamed ? 1 : 0, () -> {
@@ -87,7 +87,7 @@ public class SourceRemapper {
 				}
 			}
 			
-			MappedProvider mappedProvider = extension.getDependencyManager().getMappedProvider();
+			MappedProvider mappedProvider = extension.getProviderGraph().getProviderOfType(MappedProvider.class);
 			mappedProvider.assertInstalled();
 			m.getClassPath().add(mappedProvider.getMappedJar());
 			m.getClassPath().add(mappedProvider.getIntermediaryJar());

@@ -121,7 +121,7 @@ public class RunConfig implements Named {
 		if(getEnvironment().equals("client")) {
 			copy.property("minecraft.applet.TargetDirectory", resolveRunDir().toAbsolutePath().toString());
 			
-			MinecraftDependenciesProvider libs = ext.getDependencyManager().getMinecraftDependenciesProvider();
+			MinecraftDependenciesProvider libs = ext.getProviderGraph().getProviderOfType(MinecraftDependenciesProvider.class);
 			libs.assertInstalled();
 			String nativeLibsDir = libs.getNativesDir().toAbsolutePath().toString();
 			copy.property("java.library.path", nativeLibsDir);

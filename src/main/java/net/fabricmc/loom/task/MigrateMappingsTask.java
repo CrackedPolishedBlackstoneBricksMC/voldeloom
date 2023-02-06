@@ -102,13 +102,13 @@ public class MigrateMappingsTask extends DefaultTask implements LoomTaskExt {
 		Files.createDirectories(outputDir);
 
 		File mappings = loadMappings();
-		MappingsProvider mappingsProvider = extension.getDependencyManager().getMappingsProvider();
+		MappingsProvider mappingsProvider = extension.getProviderGraph().getProviderOfType(MappingsProvider.class);
 		mappingsProvider.assertInstalled();
 
 		try {
 			TinyTree currentMappings = mappingsProvider.getMappings();
 			TinyTree targetMappings = getMappings(mappings);
-			MappedProvider mappedProvider = extension.getDependencyManager().getMappedProvider();
+			MappedProvider mappedProvider = extension.getProviderGraph().getProviderOfType(MappedProvider.class);
 			mappedProvider.assertInstalled();
 			migrateMappings(project, mappedProvider, inputDir, outputDir, currentMappings, targetMappings);
 			project.getLogger().lifecycle(":remapped project written to " + outputDir.toAbsolutePath());

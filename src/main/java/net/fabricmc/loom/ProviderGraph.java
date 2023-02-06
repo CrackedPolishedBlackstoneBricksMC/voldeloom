@@ -1,6 +1,6 @@
-package net.fabricmc.loom.providers;
+package net.fabricmc.loom;
 
-import net.fabricmc.loom.LoomGradleExtension;
+import net.fabricmc.loom.providers.DependencyProvider;
 import org.gradle.api.Project;
 
 import javax.inject.Inject;
@@ -11,7 +11,12 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Dependency-injection management for the Providers. Sounds a bit scarier than it is?
+ * Dependency-injection management for DependencyProviders. Sounds a bit scarier than it is?
+ * <p>
+ * The "dependency provider" stuff is a form of task graph,
+ * so it helps to have something that can take care of all the annoying interrelations.
+ * 
+ * @see DependencyProvider
  */
 public class ProviderGraph {
 	public ProviderGraph(Project project, LoomGradleExtension extension) {

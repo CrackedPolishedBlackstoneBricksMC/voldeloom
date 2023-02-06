@@ -51,7 +51,7 @@ public class LoomGradleExtension {
 	public LoomGradleExtension(@SuppressWarnings("unused") Project project) { //Gradle reflectively finds this ctor
 		runConfigs = project.container(RunConfig.class, name -> new RunConfig(project, name));
 		remappedConfigurationEntries = project.container(RemappedConfigurationEntry.class, inputName -> new RemappedConfigurationEntry(project, inputName));
-		dependencyManager = new LoomDependencyManager(project, this);
+		providers = new ProviderGraph(project, this);
 	}
 	
 	/**
@@ -129,7 +129,7 @@ public class LoomGradleExtension {
 	 */
 	public String defaultRunToolchainVendor = "ADOPTIUM";
 	
-	private final LoomDependencyManager dependencyManager;
+	private final ProviderGraph providers;
 	private final List<Path> unmappedModsBuilt = new ArrayList<>();
 	private final MappingSet[] srcMappingCache = new MappingSet[2];
 	private final Mercury[] srcMercuryCache = new Mercury[2];
@@ -154,6 +154,10 @@ public class LoomGradleExtension {
 		return Collections.unmodifiableList(unmappedModsBuilt);
 	}
 	
+	public ProviderGraph getProviderGraph() {
+		return providers;
+	}
+	
 	@SuppressWarnings("unused") //Gradle api
 	public void runs(Action<NamedDomainObjectContainer<RunConfig>> action) {
 		action.execute(runConfigs);
@@ -169,19 +173,18 @@ public class LoomGradleExtension {
 		warnOnProbablyWrongConfigurationNames = last;
 	}
 	
-	public LoomDependencyManager getDependencyManager() {
-		return dependencyManager;
-	}
-	
 	//Toolchain support, awkwardly at arm's length because of the Gradle 4 source-compatibility restriction
+	@SuppressWarnings("unused") //Gradle api
 	public void setDefaultRunToolchainVersion(Object version) {
 		this.defaultRunToolchainVersion = GradleSupport.convertToJavaVersion(version);
 	}
 	
+	@SuppressWarnings("unused") //Gradle api
 	public void setDefaultRunToolchainVendor(Object vendor) {
 		this.defaultRunToolchainVendor = GradleSupport.convertToVendorString(vendor);
 	}
 	
+	@SuppressWarnings("unused") //Gradle api
 	public void setToolchain(Object toolchain) {
 		Pair<JavaVersion, String> parsedToolchain = GradleSupport.readToolchainSpec(toolchain);
 		this.defaultRunToolchainVersion = parsedToolchain.left;

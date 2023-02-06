@@ -41,10 +41,10 @@ public class GenDevLaunchInjectorConfigsTask extends DefaultTask implements Loom
 	
 	@TaskAction
 	public void doIt() throws IOException {
-		MinecraftProvider mc = getLoomGradleExtension().getDependencyManager().getMinecraftProvider();
+		MinecraftProvider mc = getLoomGradleExtension().getProviderGraph().getProviderOfType(MinecraftProvider.class);
 		mc.assertInstalled();
 		
-		MinecraftDependenciesProvider libs = getLoomGradleExtension().getDependencyManager().getMinecraftDependenciesProvider();
+		MinecraftDependenciesProvider libs = getLoomGradleExtension().getProviderGraph().getProviderOfType(MinecraftDependenciesProvider.class);
 		libs.assertInstalled();
 		
 		LaunchConfig launchConfig = new LaunchConfig();
