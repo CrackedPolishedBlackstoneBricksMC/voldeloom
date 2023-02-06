@@ -5,6 +5,7 @@ import net.fabricmc.loom.WellKnownLocations;
 import net.fabricmc.loom.util.mcp.BinpatchesPack;
 import org.gradle.api.Project;
 
+import javax.inject.Inject;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.file.FileSystem;
@@ -27,14 +28,22 @@ import java.util.Collections;
  * During this period, Forge was installable as a jarmod. This class is simply a programattic version of "deleting META-INF". 
  */
 public class ForgePatchedProvider extends DependencyProvider {
-	public ForgePatchedProvider(Project project, LoomGradleExtension extension) {
+	@Inject
+	public ForgePatchedProvider(Project project, LoomGradleExtension extension, MinecraftProvider mc, MergedProvider merged, ForgeProvider forge) {
 		super(project, extension);
+		this.mc = mc;
+		this.merged = merged;
+		this.forge = forge;
 	}
+	
+	private final MinecraftProvider mc;
+	private final MergedProvider merged;
+	private final ForgeProvider forge;
 	
 	private String patchedVersionTag;
 	private Path patched;
 	
-	public void decorateProject(MinecraftProvider mc, MergedProvider merged, ForgeProvider forge) throws Exception {
+	public void decorateProject() throws Exception {
 		//inputs
 		Path mergedJar = merged.getMergedJar();
 		Path forgeJar = forge.getJar();
@@ -93,6 +102,8 @@ public class ForgePatchedProvider extends DependencyProvider {
 	}
 	
 	private void performBinpatchesPatch(FileSystem mergedFs, FileSystem forgeFs, FileSystem patchedFs, Path binpatchesPackLzma) throws IOException {
+		//TODO: This is the wrong place to do binpatches, they're client-only or server-only, not merged, I don't think
+		// Need to study them more lol
 		new BinpatchesPack().read(project, binpatchesPackLzma);
 	}
 	

@@ -12,6 +12,7 @@ import org.objectweb.asm.FieldVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
+import javax.inject.Inject;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -37,14 +38,18 @@ import java.util.Collections;
  * The merged (and postprocessed) jar is available with {@code getMergedJar()}.
  */
 public class MergedProvider extends DependencyProvider {
-	public MergedProvider(Project project, LoomGradleExtension extension) {
+	@Inject
+	public MergedProvider(Project project, LoomGradleExtension extension, MinecraftProvider mc) {
 		super(project, extension);
+		this.mc = mc;
 	}
+	
+	private final MinecraftProvider mc;
 	
 	private Path mergedUnfixed;
 	private Path merged;
 	
-	public void decorateProject(MinecraftProvider mc) throws Exception {
+	public void decorateProject() throws Exception {
 		//inputs
 		Path client = mc.getClientJar();
 		Path server = mc.getServerJar();

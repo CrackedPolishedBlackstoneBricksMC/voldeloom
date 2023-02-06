@@ -9,6 +9,7 @@ import org.gradle.api.Project;
 import org.gradle.api.artifacts.Configuration;
 import org.gradle.api.artifacts.ResolvedArtifact;
 
+import javax.inject.Inject;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -23,11 +24,19 @@ import java.util.Set;
  * <h2>TODO: Clusterfuck</h2>
  */
 public class RemappedDependenciesProvider extends DependencyProvider {
-	public RemappedDependenciesProvider(Project project, LoomGradleExtension extension) {
+	@Inject
+	public RemappedDependenciesProvider(Project project, LoomGradleExtension extension, MinecraftDependenciesProvider minecraftDependenciesProvider, MappingsProvider mappingsProvider, ForgePatchedAccessTxdProvider patchedAccessTxdProvider) {
 		super(project, extension);
+		this.minecraftDependenciesProvider = minecraftDependenciesProvider;
+		this.mappingsProvider = mappingsProvider;
+		this.patchedAccessTxdProvider = patchedAccessTxdProvider;
 	}
 	
-	public void decorateProject(MinecraftDependenciesProvider minecraftDependenciesProvider, MappingsProvider mappingsProvider, ForgePatchedAccessTxdProvider patchedAccessTxdProvider) throws Exception {
+	private final MinecraftDependenciesProvider minecraftDependenciesProvider;
+	private final MappingsProvider mappingsProvider;
+	private final ForgePatchedAccessTxdProvider patchedAccessTxdProvider;
+	
+	public void decorateProject() throws Exception {
 		String mappingsSuffix = mappingsProvider.getMappingsName() + "-" + mappingsProvider.getMappingsVersion();
 		
 		//MERGED from ModCompileRemapper in old tools

@@ -10,6 +10,7 @@ import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
+import javax.inject.Inject;
 import java.io.InputStream;
 import java.net.URI;
 import java.nio.file.FileSystem;
@@ -39,13 +40,17 @@ import java.util.List;
  * The "putting them where Forge expects to find them" step is handled by ShimForgeLibrariesTask.
  */
 public class ForgeDependenciesProvider extends DependencyProvider {
-	public ForgeDependenciesProvider(Project project, LoomGradleExtension extension) {
+	@Inject
+	public ForgeDependenciesProvider(Project project, LoomGradleExtension extension, ForgeProvider forge) {
 		super(project, extension);
+		this.forge = forge;
 	}
+	
+	private final ForgeProvider forge;
 	
 	private Path forgeLibsFolder;
 	
-	public void decorateProject(ForgeProvider forge) throws Exception {
+	public void decorateProject() throws Exception {
 		//inputs
 		String forgeVersion = forge.getVersion();
 		Path forgeJar = forge.getJar();

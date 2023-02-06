@@ -33,6 +33,7 @@ import net.fabricmc.loom.util.MinecraftVersionInfo;
 import org.gradle.api.GradleException;
 import org.gradle.api.Project;
 
+import javax.inject.Inject;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -48,6 +49,7 @@ import java.util.Optional;
  * Parses the custom non-Maven version manifest used by Minecraft. Also, downloads the split minecraft client and server jars.
  */
 public class MinecraftProvider extends DependencyProvider {
+	@Inject
 	public MinecraftProvider(Project project, LoomGradleExtension extension) {
 		super(project, extension);
 	}
@@ -60,7 +62,7 @@ public class MinecraftProvider extends DependencyProvider {
 	private Path minecraftClientJar;
 	private Path minecraftServerJar;
 	
-	public void decorateProject(ForgeProvider forge) throws Exception {
+	public void decorateProject() throws Exception {
 		//deps
 		DependencyInfo minecraftDependency = getSingleDependency(Constants.MINECRAFT);
 		minecraftVersion = minecraftDependency.getDependency().getVersion();

@@ -37,6 +37,7 @@ import net.fabricmc.mapping.tree.TinyTree;
 import org.gradle.api.Project;
 
 import javax.annotation.Nullable;
+import javax.inject.Inject;
 import java.io.BufferedReader;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
@@ -59,9 +60,13 @@ import java.util.List;
  * </ul>
  */
 public class MappingsProvider extends DependencyProvider {
-	public MappingsProvider(Project project, LoomGradleExtension extension) {
+	@Inject
+	public MappingsProvider(Project project, LoomGradleExtension extension, ForgePatchedProvider forgePatched) {
 		super(project, extension);
+		this.forgePatched = forgePatched;
 	}
+	
+	private final ForgePatchedProvider forgePatched;
 	
 	private final Path mappingsDir = WellKnownLocations.getUserCache(project).resolve("mappings");
 	
@@ -72,7 +77,7 @@ public class MappingsProvider extends DependencyProvider {
 	private Path tinyMappings;
 	private Path tinyMappingsJar;
 	
-	public void decorateProject(ForgePatchedProvider forgePatched) throws Exception {
+	public void decorateProject() throws Exception {
 		//inputs
 		DependencyInfo mappingsDependency = getSingleDependency(Constants.MAPPINGS);
 		Path mappingsJar = mappingsDependency.resolveSinglePath();

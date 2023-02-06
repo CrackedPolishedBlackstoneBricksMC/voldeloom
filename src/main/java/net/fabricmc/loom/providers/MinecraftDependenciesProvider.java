@@ -32,6 +32,7 @@ import net.fabricmc.loom.util.ZipUtil;
 import net.fabricmc.loom.util.MinecraftVersionInfo;
 import org.gradle.api.Project;
 
+import javax.inject.Inject;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
@@ -49,14 +50,18 @@ import java.util.HashSet;
  * It also downloads native libraries and extracts their contents.
  */
 public class MinecraftDependenciesProvider extends DependencyProvider {
-	public MinecraftDependenciesProvider(Project project, LoomGradleExtension extension) {
+	@Inject
+	public MinecraftDependenciesProvider(Project project, LoomGradleExtension extension, MinecraftProvider mc) {
 		super(project, extension);
+		this.mc = mc;
 	}
+	
+	private final MinecraftProvider mc;
 	
 	private final Collection<Path> nonNativeLibs = new HashSet<>();
 	private Path nativesDir;
 	
-	public void decorateProject(MinecraftProvider mc) throws Exception {
+	public void decorateProject() throws Exception {
 		//inputs
 		MinecraftVersionInfo versionInfo = mc.getVersionManifest();
 		

@@ -4,6 +4,7 @@ import net.fabricmc.loom.Constants;
 import net.fabricmc.loom.LoomGradleExtension;
 import org.gradle.api.Project;
 
+import javax.inject.Inject;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Collections;
@@ -12,6 +13,7 @@ import java.util.Collections;
  * Just wraps the Forge dependency.
  */
 public class ForgeProvider extends DependencyProvider {
+	@Inject
 	public ForgeProvider(Project project, LoomGradleExtension extension) {
 		super(project, extension);
 	}

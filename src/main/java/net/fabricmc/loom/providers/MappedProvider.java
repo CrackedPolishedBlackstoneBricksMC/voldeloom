@@ -31,6 +31,7 @@ import net.fabricmc.loom.util.TinyRemapperSession;
 import net.fabricmc.mapping.tree.TinyTree;
 import org.gradle.api.Project;
 
+import javax.inject.Inject;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -45,14 +46,24 @@ import java.util.function.Predicate;
  * The named jar is available with {@code getMappedJar()}, and the intermediary (srg) jar is also available.
  */
 public class MappedProvider extends DependencyProvider {
-	public MappedProvider(Project project, LoomGradleExtension extension) {
+	@Inject
+	public MappedProvider(Project project, LoomGradleExtension extension, MinecraftDependenciesProvider libs, ForgePatchedProvider forgePatched, ForgePatchedAccessTxdProvider patchedTxd, MappingsProvider mappings) {
 		super(project, extension);
+		this.libs = libs;
+		this.forgePatched = forgePatched;
+		this.patchedTxd = patchedTxd;
+		this.mappings = mappings;
 	}
+	
+	private final MinecraftDependenciesProvider libs;
+	private final ForgePatchedProvider forgePatched;
+	private final ForgePatchedAccessTxdProvider patchedTxd;
+	private final MappingsProvider mappings;
 	
 	private Path minecraftMappedJar;
 	private Path minecraftIntermediaryJar;
 
-	public void decorateProject(MinecraftDependenciesProvider libs, ForgePatchedProvider forgePatched, ForgePatchedAccessTxdProvider patchedTxd, MappingsProvider mappings) throws Exception {
+	public void decorateProject() throws Exception {
 		//inputs
 		List<Path> libPaths = new ArrayList<>(libs.getNonNativeLibraries());
 		Path forgePatchedJar = patchedTxd.getTransformedJar();

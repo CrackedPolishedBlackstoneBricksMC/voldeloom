@@ -34,6 +34,7 @@ import net.fabricmc.loom.util.MinecraftVersionInfo;
 import org.gradle.api.GradleException;
 import org.gradle.api.Project;
 
+import javax.inject.Inject;
 import java.io.BufferedReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -47,15 +48,19 @@ import java.util.Collection;
  * This class resolves assets using the "legacy" file layout only (real filenames, not hashes with the `objects` folder).
  */
 public class AssetsProvider extends DependencyProvider {
-	public AssetsProvider(Project project, LoomGradleExtension extension) {
+	@Inject
+	public AssetsProvider(Project project, LoomGradleExtension extension, MinecraftProvider mc) {
 		super(project, extension);
+		this.mc = mc;
 	}
+	
+	private final MinecraftProvider mc;
 	
 	private Path assetIndexFile;
 	private Path thisVersionAssetsDir;
 	private final Path globalAssetsCache = WellKnownLocations.getUserCache(project).resolve("assets");
 	
-	public void decorateProject(MinecraftProvider mc) throws Exception {
+	public void decorateProject() throws Exception {
 		//inputs
 		MinecraftVersionInfo versionInfo = mc.getVersionManifest();
 		MinecraftVersionInfo.AssetIndex assetIndexInfo = versionInfo.assetIndex;

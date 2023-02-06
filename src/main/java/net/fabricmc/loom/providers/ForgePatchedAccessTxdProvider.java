@@ -7,6 +7,7 @@ import org.gradle.api.Project;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
 
+import javax.inject.Inject;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -30,13 +31,19 @@ import java.util.List;
  * Outside of development, this is normally done by Forge as it classloads Minecraft.
  */
 public class ForgePatchedAccessTxdProvider extends DependencyProvider {
-	public ForgePatchedAccessTxdProvider(Project project, LoomGradleExtension extension) {
+	@Inject
+	public ForgePatchedAccessTxdProvider(Project project, LoomGradleExtension extension, ForgeProvider forge, ForgePatchedProvider forgePatched) {
 		super(project, extension);
+		this.forge = forge;
+		this.forgePatched = forgePatched;
 	}
+	
+	private final ForgeProvider forge;
+	private final ForgePatchedProvider forgePatched;
 	
 	private Path accessTransformedMc;
 	
-	public void decorateProject(ForgeProvider forge, ForgePatchedProvider forgePatched) throws Exception {
+	public void decorateProject() throws Exception {
 		//inputs
 		Path forgeJar = forge.getJar();
 		Path unAccessTransformedMc = forgePatched.getPatchedJar();

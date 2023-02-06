@@ -34,6 +34,7 @@ import net.fabricmc.loom.providers.MappingsProvider;
 import net.fabricmc.loom.providers.MergedProvider;
 import net.fabricmc.loom.providers.MinecraftDependenciesProvider;
 import net.fabricmc.loom.providers.MinecraftProvider;
+import net.fabricmc.loom.providers.ProviderGraph;
 import net.fabricmc.loom.providers.RemappedDependenciesProvider;
 import org.gradle.api.Project;
 import org.gradle.api.tasks.TaskProvider;
@@ -49,20 +50,23 @@ import java.util.List;
 public class LoomDependencyManager {
 	public LoomDependencyManager(Project project, LoomGradleExtension extension) {
 		this.project = project;
-		this.forgeProvider = new ForgeProvider(project, extension);
-		this.forgeDependenciesProvider = new ForgeDependenciesProvider(project, extension);
-		this.minecraftProvider = new MinecraftProvider(project, extension);
-		this.assetsProvider = new AssetsProvider(project, extension);
-		this.minecraftDependenciesProvider = new MinecraftDependenciesProvider(project, extension);
-		this.mergedProvider = new MergedProvider(project, extension);
-		this.forgePatchedProvider = new ForgePatchedProvider(project, extension);
-		this.forgePatchedAccessTxdProvider = new ForgePatchedAccessTxdProvider(project, extension);
-		this.mappingsProvider = new MappingsProvider(project, extension);
-		this.mappedProvider = new MappedProvider(project, extension);
-		this.remappedDependenciesProvider = new RemappedDependenciesProvider(project, extension);
+		this.graph = new ProviderGraph(project, extension);
+		
+		this.forgeProvider = graph.getProviderOfType(ForgeProvider.class);
+		this.forgeDependenciesProvider = graph.getProviderOfType(ForgeDependenciesProvider.class);
+		this.minecraftProvider = graph.getProviderOfType(MinecraftProvider.class);
+		this.assetsProvider = graph.getProviderOfType(AssetsProvider.class);
+		this.minecraftDependenciesProvider = graph.getProviderOfType(MinecraftDependenciesProvider.class);
+		this.mergedProvider = graph.getProviderOfType(MergedProvider.class);
+		this.forgePatchedProvider = graph.getProviderOfType(ForgePatchedProvider.class);
+		this.forgePatchedAccessTxdProvider = graph.getProviderOfType(ForgePatchedAccessTxdProvider.class);
+		this.mappingsProvider = graph.getProviderOfType(MappingsProvider.class);
+		this.mappedProvider = graph.getProviderOfType(MappedProvider.class);
+		this.remappedDependenciesProvider = graph.getProviderOfType(RemappedDependenciesProvider.class);
 	}
 	
 	private final Project project;
+	private final ProviderGraph graph;
 	
 	private final ForgeProvider forgeProvider;
 	private final ForgeDependenciesProvider forgeDependenciesProvider;
@@ -90,7 +94,7 @@ public class LoomDependencyManager {
 		project.getLogger().lifecycle(":running dep provider 'ForgeDependenciesProvider'");
 		
 		try {
-			forgeDependenciesProvider.decorateProject(getForgeProvider());
+			forgeDependenciesProvider.decorateProject();
 		} catch (Exception e) {
 			throw new RuntimeException("Failed to provide ForgeDependenciesProvider: " + e.getMessage(), e);
 		}
@@ -100,7 +104,7 @@ public class LoomDependencyManager {
 		project.getLogger().lifecycle(":running dep provider 'MinecraftProvider'");
 		
 		try {
-			minecraftProvider.decorateProject(getForgeProvider());
+			minecraftProvider.decorateProject();
 		} catch (Exception e) {
 			throw new RuntimeException("Failed to provide MinecraftProvider: " + e.getMessage(), e);
 		}
@@ -110,7 +114,7 @@ public class LoomDependencyManager {
 		project.getLogger().lifecycle(":running dep provider 'AssetsProvider'");
 		
 		try {
-			assetsProvider.decorateProject(getMinecraftProvider());
+			assetsProvider.decorateProject();
 		} catch (Exception e) {
 			throw new RuntimeException("Failed to provide AssetsProvider: " + e.getMessage(), e);
 		}
@@ -120,7 +124,7 @@ public class LoomDependencyManager {
 		project.getLogger().lifecycle(":running dep provider 'MinecraftDependenciesProvider'");
 		
 		try {
-			minecraftDependenciesProvider.decorateProject(getMinecraftProvider());
+			minecraftDependenciesProvider.decorateProject();
 		} catch (Exception e) {
 			throw new RuntimeException("Failed to provide MinecraftDependenciesProvider: " + e.getMessage(), e);
 		}
@@ -130,7 +134,7 @@ public class LoomDependencyManager {
 		project.getLogger().lifecycle(":running dep provider 'MergedProvider'");
 		
 		try {
-			mergedProvider.decorateProject(getMinecraftProvider());
+			mergedProvider.decorateProject();
 		} catch (Exception e) {
 			throw new RuntimeException("Failed to provide MergedProvider: " + e.getMessage(), e);
 		}
@@ -140,7 +144,7 @@ public class LoomDependencyManager {
 		project.getLogger().lifecycle(":running dep provider 'ForgePatchedProvider'");
 		
 		try {
-			forgePatchedProvider.decorateProject(getMinecraftProvider(), getMergedProvider(), getForgeProvider());
+			forgePatchedProvider.decorateProject();
 		} catch (Exception e) {
 			throw new RuntimeException("Failed to provide ForgePatchedProvider: " + e.getMessage(), e);
 		}
@@ -150,7 +154,7 @@ public class LoomDependencyManager {
 		project.getLogger().lifecycle(":running dep provider 'ForgePatchedAccessTxdProvider'");
 		
 		try {
-			forgePatchedAccessTxdProvider.decorateProject(getForgeProvider(), getForgePatchedProvider());
+			forgePatchedAccessTxdProvider.decorateProject();
 		} catch (Exception e) {
 			throw new RuntimeException("Failed to provide ForgePatchedAccessTxdProvider: " + e.getMessage(), e);
 		}
@@ -160,7 +164,7 @@ public class LoomDependencyManager {
 		project.getLogger().lifecycle(":running dep provider 'MappingsProvider'");
 		
 		try {
-			mappingsProvider.decorateProject(getForgePatchedProvider());
+			mappingsProvider.decorateProject();
 		} catch (Exception e) {
 			throw new RuntimeException("Failed to provide MappingsProvider: " + e.getMessage(), e);
 		}
@@ -170,7 +174,7 @@ public class LoomDependencyManager {
 		project.getLogger().lifecycle(":running dep provider 'MappedProvider'");
 		
 		try {
-			mappedProvider.decorateProject(getMinecraftDependenciesProvider(), getForgePatchedProvider(), getForgePatchedAccessTxdProvider(), getMappingsProvider());
+			mappedProvider.decorateProject();
 		} catch (Exception e) {
 			throw new RuntimeException("Failed to provide MappedProvider: " + e.getMessage(), e);
 		}
@@ -180,7 +184,7 @@ public class LoomDependencyManager {
 		project.getLogger().lifecycle(":running dep provider 'RemappedDependenciesProvider'");
 		
 		try {
-			remappedDependenciesProvider.decorateProject(getMinecraftDependenciesProvider(), getMappingsProvider(), getForgePatchedAccessTxdProvider());
+			remappedDependenciesProvider.decorateProject();
 		} catch (Exception e) {
 			throw new RuntimeException("Failed to provide RemappedDependenciesProvider: " + e.getMessage(), e);
 		}
@@ -236,7 +240,7 @@ public class LoomDependencyManager {
 		return remappedDependenciesProvider;
 	}
 	
-	public List<TaskProvider<?>> installCleaningTasks() {
+	public List<TaskProvider<?>> getCleaningTasks() {
 		return new ArrayList<>(Arrays.asList(
 			forgeProvider.addCleaningTask(),
 			minecraftProvider.addCleaningTask(),

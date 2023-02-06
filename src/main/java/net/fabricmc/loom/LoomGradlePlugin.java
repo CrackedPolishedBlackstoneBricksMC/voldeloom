@@ -322,7 +322,7 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		tasks.named("eclipse").configure(t -> t.finalizedBy(tasks.named("genEclipseRuns")));
 		
 		//Cleaning
-		List<TaskProvider<?>> cleaningTasks = extensionUnconfigured.getDependencyManager().installCleaningTasks();
+		List<TaskProvider<?>> cleaningTasks = extensionUnconfigured.getDependencyManager().getCleaningTasks();
 		tasks.register("cleanEverything").configure(task -> {
 			task.setGroup(Constants.TASK_GROUP_CLEANING);
 			task.setDescription("Try to remove all files relating to the currently selected Minecraft version, Forge version, and mappings.\n" +
