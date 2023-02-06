@@ -44,8 +44,8 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * A nexus for derived depenencies (like "minecraft, but merged and remapped").
- * Anything that accesses this class is signaling that it has to run <i>after</i> said dependency is derived (an ordering relationship).
+ * A nexus for derived depenencies (like "minecraft, but merged and remapped").<br>
+ * TODO: replace with ProviderGraph
  */
 public class LoomDependencyManager {
 	public LoomDependencyManager(Project project, LoomGradleExtension extension) {

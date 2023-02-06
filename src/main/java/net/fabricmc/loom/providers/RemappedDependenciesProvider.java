@@ -25,21 +25,25 @@ import java.util.Set;
  */
 public class RemappedDependenciesProvider extends DependencyProvider {
 	@Inject
-	public RemappedDependenciesProvider(Project project, LoomGradleExtension extension, MinecraftDependenciesProvider minecraftDependenciesProvider, MappingsProvider mappingsProvider, ForgePatchedAccessTxdProvider patchedAccessTxdProvider) {
+	public RemappedDependenciesProvider(Project project, LoomGradleExtension extension, MinecraftDependenciesProvider mc, MappingsProvider mappings, ForgePatchedAccessTxdProvider patchedTxd) {
 		super(project, extension);
-		this.minecraftDependenciesProvider = minecraftDependenciesProvider;
-		this.mappingsProvider = mappingsProvider;
-		this.patchedAccessTxdProvider = patchedAccessTxdProvider;
+		this.mc = mc;
+		this.mappings = mappings;
+		this.patchedTxd = patchedTxd;
 	}
 	
-	private final MinecraftDependenciesProvider minecraftDependenciesProvider;
-	private final MappingsProvider mappingsProvider;
-	private final ForgePatchedAccessTxdProvider patchedAccessTxdProvider;
+	private final MinecraftDependenciesProvider mc;
+	private final MappingsProvider mappings;
+	private final ForgePatchedAccessTxdProvider patchedTxd;
 	
 	public void performInstall() throws Exception {
-		String mappingsSuffix = mappingsProvider.getMappingsName() + "-" + mappingsProvider.getMappingsVersion();
+		//dependencies
+		mc.install();
+		mappings.install();
+		patchedTxd.install();
 		
 		//MERGED from ModCompileRemapper in old tools
+		String mappingsSuffix = mappings.getMappingsName() + "-" + mappings.getMappingsVersion();
 		
 		for(RemappedConfigurationEntry entry : extension.remappedConfigurationEntries) {
 			Path modStore = WellKnownLocations.getRemappedModCache(project);
@@ -53,7 +57,7 @@ public class RemappedDependenciesProvider extends DependencyProvider {
 					Path mappedPath = modStore.resolve(unmappedPath.getFileName().toString() + "-mapped-" + mappingsSuffix + ".jar");
 					
 					if(Files.notExists(mappedPath) || Constants.refreshDependencies) {
-						processMod(unmappedPath, mappedPath, null, null, minecraftDependenciesProvider, mappingsProvider, patchedAccessTxdProvider);
+						processMod(unmappedPath, mappedPath, null, null, mc, mappings, patchedTxd);
 					}
 					
 					project.getDependencies().add(outputConfig.getName(), project.files(mappedPath));
@@ -99,8 +103,6 @@ public class RemappedDependenciesProvider extends DependencyProvider {
 //	//			}
 //			}
 		}
-		
-		installed = true;
 	}
 	
 	private void processMod(Path input, Path output, Configuration config, /* TODO */ ResolvedArtifact artifact, MinecraftDependenciesProvider minecraftDependenciesProvider, MappingsProvider mappingsProvider, ForgePatchedAccessTxdProvider patchedAccessTxdProvider) throws IOException {

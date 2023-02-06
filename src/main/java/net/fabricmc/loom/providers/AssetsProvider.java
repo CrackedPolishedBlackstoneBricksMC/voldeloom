@@ -61,6 +61,9 @@ public class AssetsProvider extends DependencyProvider {
 	private final Path globalAssetsCache = WellKnownLocations.getUserCache(project).resolve("assets");
 	
 	public void performInstall() throws Exception {
+		//dependencies
+		mc.install();
+		
 		//inputs
 		MinecraftVersionInfo versionInfo = mc.getVersionManifest();
 		MinecraftVersionInfo.AssetIndex assetIndexInfo = versionInfo.assetIndex;
@@ -134,8 +137,6 @@ public class AssetsProvider extends DependencyProvider {
 			}
 			project.getLogger().lifecycle("|-> Done!");
 		}
-		
-		installed = true;
 	}
 	
 	public Path getAssetIndexFile() {

@@ -62,6 +62,9 @@ public class MinecraftDependenciesProvider extends DependencyProvider {
 	private Path nativesDir;
 	
 	public void performInstall() throws Exception {
+		//dependencies
+		mc.install();
+		
 		//inputs
 		MinecraftVersionInfo versionInfo = mc.getVersionManifest();
 		
@@ -129,8 +132,6 @@ public class MinecraftDependenciesProvider extends DependencyProvider {
 				project.getDependencies().add(Constants.MINECRAFT_DEPENDENCIES, depToAdd);
 			}
 		}
-		
-		installed = true;
 	}
 
 	//TODO: Voldeloom had a bug where it didn't actually write anything to this collection lol

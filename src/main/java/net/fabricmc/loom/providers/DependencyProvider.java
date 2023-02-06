@@ -75,21 +75,25 @@ public abstract class DependencyProvider {
 	//TODO: only guaranteed to be populated inside/after decorateProject
 	protected abstract Collection<Path> pathsToClean();
 	
-	public boolean installed = false;
+	private boolean installed = false;
 	
 	public void install() {
-		project.getLogger().lifecycle(":running dep provider '{}'", getClass().getSimpleName());
+		if(installed) return;
 		
+		project.getLogger().lifecycle(":installing dep provider '{}'", getClass().getSimpleName());
 		try {
 			performInstall();
 		} catch (Exception e) {
-			throw new RuntimeException("Failed to provide " + getClass().getSimpleName() + ": " + e.getMessage(), e);
+			throw new RuntimeException("Failed to install " + getClass().getSimpleName() + ": " + e.getMessage(), e);
 		}
-		
 		installed = true;
 	}
 	
 	public void assertInstalled() {
+		//but what if i were to install it now, and disguise it as my own assertion?
+		//delightfully devilish, seymour
+		install();
+		
 		if(!installed) throw new IllegalStateException(getClass().getSimpleName() + " hasn't been installed yet!");
 	}
 	

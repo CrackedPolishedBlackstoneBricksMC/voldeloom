@@ -67,7 +67,7 @@ public class MinecraftProvider extends DependencyProvider {
 		DependencyInfo minecraftDependency = getSingleDependency(Constants.MINECRAFT);
 		minecraftVersion = minecraftDependency.getDependency().getVersion();
 		
-		//outputs (+versionInfo)
+		//outputs
 		Path userCache = WellKnownLocations.getUserCache(project);
 		minecraftJson = userCache.resolve("minecraft-" + minecraftVersion + "-info.json");
 		minecraftClientJar = userCache.resolve("minecraft-" + minecraftVersion + "-client.jar");
@@ -92,8 +92,6 @@ public class MinecraftProvider extends DependencyProvider {
 		} else {
 			downloadJars();
 		}
-		
-		installed = true;
 	}
 	
 	private void downloadMcJson(boolean offline) throws IOException {

@@ -50,6 +50,9 @@ public class MergedProvider extends DependencyProvider {
 	private Path merged;
 	
 	public void performInstall() throws Exception {
+		//dependencies
+		mc.install();
+		
 		//inputs
 		Path client = mc.getClientJar();
 		Path server = mc.getServerJar();
@@ -110,8 +113,6 @@ public class MergedProvider extends DependencyProvider {
 			
 			project.getLogger().lifecycle("|-> Annotation remap success! :)");
 		}
-		
-		installed = true;
 	}
 	
 	public Path getMergedJar() {

@@ -44,6 +44,10 @@ public class ForgePatchedAccessTxdProvider extends DependencyProvider {
 	private Path accessTransformedMc;
 	
 	public void performInstall() throws Exception {
+		//dependencies
+		forge.install();
+		forgePatched.install();
+		
 		//inputs
 		Path forgeJar = forge.getJar();
 		Path unAccessTransformedMc = forgePatched.getPatchedJar();
@@ -79,8 +83,7 @@ public class ForgePatchedAccessTxdProvider extends DependencyProvider {
 			
 			try(
 				FileSystem unAccessTransformedFs = FileSystems.newFileSystem(URI.create("jar:" + unAccessTransformedMc.toUri()), Collections.emptyMap());
-				FileSystem accessTransformedFs = FileSystems.newFileSystem(URI.create("jar:" + accessTransformedMc.toUri()), Collections.singletonMap("create", "true")))
-			{
+				FileSystem accessTransformedFs = FileSystems.newFileSystem(URI.create("jar:" + accessTransformedMc.toUri()), Collections.singletonMap("create", "true"))) {
 				Files.walkFileTree(unAccessTransformedFs.getPath("/"), new SimpleFileVisitor<Path>() {
 					@Override
 					public FileVisitResult visitFile(Path srcPath, BasicFileAttributes attrs) throws IOException {
@@ -126,8 +129,6 @@ public class ForgePatchedAccessTxdProvider extends DependencyProvider {
 				unusedAtsReport.forEach(project.getLogger()::warn);
 			}
 		}
-		
-		installed = true;
 	}
 	
 	public Path getTransformedJar() {

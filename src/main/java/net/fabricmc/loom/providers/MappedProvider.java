@@ -64,6 +64,12 @@ public class MappedProvider extends DependencyProvider {
 	private Path minecraftIntermediaryJar;
 
 	public void performInstall() throws Exception {
+		//dependencies
+		libs.install();
+		forgePatched.install();
+		patchedTxd.install();
+		mappings.install();
+		
 		//inputs
 		List<Path> libPaths = new ArrayList<>(libs.getNonNativeLibraries());
 		Path forgePatchedJar = patchedTxd.getTransformedJar();
@@ -127,8 +133,6 @@ public class MappedProvider extends DependencyProvider {
 		//TODO: move this out?
 		project.getRepositories().flatDir(repository -> repository.dir(mappedDestDir));
 		project.getDependencies().add(Constants.MINECRAFT_NAMED, project.getDependencies().module("net.minecraft:minecraft:" + mappedJarNameKinda));
-		
-		installed = true;
 	}
 	
 	public Path getMappedJar() {

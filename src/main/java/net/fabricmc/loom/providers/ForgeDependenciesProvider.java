@@ -51,6 +51,9 @@ public class ForgeDependenciesProvider extends DependencyProvider {
 	private Path forgeLibsFolder;
 	
 	public void performInstall() throws Exception {
+		//dependencies
+		forge.install();
+		
 		//inputs
 		String forgeVersion = forge.getVersion();
 		Path forgeJar = forge.getJar();
@@ -94,8 +97,6 @@ public class ForgeDependenciesProvider extends DependencyProvider {
 			//cause it can be hard to get the actual file listing out of a `files` dependency sometimes, in my experience
 			project.getDependencies().add(Constants.FORGE_DEPENDENCIES, project.files(dest));
 		}
-		
-		installed = true;
 	}
 	
 	private static class LibrarySniffingClassVisitor extends ClassVisitor {

@@ -27,8 +27,6 @@ public class ForgeProvider extends DependencyProvider {
 		forgeVersion = forgeDependency.getDependency().getVersion();
 		
 		project.getLogger().lifecycle("] forge jar is at: " + forge);
-		
-		installed = true;
 	}
 	
 	public Path getJar() {

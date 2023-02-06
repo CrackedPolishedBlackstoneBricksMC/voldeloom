@@ -44,6 +44,11 @@ public class ForgePatchedProvider extends DependencyProvider {
 	private Path patched;
 	
 	public void performInstall() throws Exception {
+		//dependencies
+		mc.install();
+		merged.install();
+		forge.install();
+		
 		//inputs
 		Path mergedJar = merged.getMergedJar();
 		Path forgeJar = forge.getJar();
@@ -97,8 +102,6 @@ public class ForgePatchedProvider extends DependencyProvider {
 			
 			project.getLogger().lifecycle("|-> Patch success!");
 		}
-		
-		installed = true;
 	}
 	
 	private void performBinpatchesPatch(FileSystem mergedFs, FileSystem forgeFs, FileSystem patchedFs, Path binpatchesPackLzma) throws IOException {

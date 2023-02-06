@@ -78,6 +78,9 @@ public class MappingsProvider extends DependencyProvider {
 	private Path tinyMappingsJar;
 	
 	public void performInstall() throws Exception {
+		//dependencies
+		forgePatched.install();
+		
 		//inputs
 		DependencyInfo mappingsDependency = getSingleDependency(Constants.MAPPINGS);
 		Path mappingsJar = mappingsDependency.resolveSinglePath();
@@ -186,8 +189,6 @@ public class MappingsProvider extends DependencyProvider {
 		
 		//add it as a project dependency TODO move
 		project.getDependencies().add(Constants.MAPPINGS_FINAL, project.files(tinyMappingsJar));
-		
-		installed = true;
 	}
 	
 	public TinyTree getMappings() {

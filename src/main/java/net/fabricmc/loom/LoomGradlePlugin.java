@@ -354,19 +354,18 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		LoomGradleExtension extension = project.getExtensions().getByType(LoomGradleExtension.class);
 		
 		//This is where the Magic happens.
-		//These dependencies are dynamic; their content depends on the values of the stuff configured in LoomGradleExtension.
-		//They form a task graph. Content of later providers depends on the stuff provided by earlier providers.
+		//These dependencies are dynamic; their content depends on the values of the stuff configured in LoomGradleExtension. They also form a task graph.
 		//Regrettably, we cannot use the real Gradle task graph to configure this stuff, because task execution time is too late to modify project dependencies.
 		LoomDependencyManager dmgr = extension.getDependencyManager();
-		dmgr.getForgeProvider().install();
-		dmgr.getForgeDependenciesProvider().install();
-		dmgr.getMinecraftProvider().install();
-		dmgr.getAssetsProvider().install();
-		dmgr.getMinecraftDependenciesProvider().install();
-		dmgr.getMergedProvider().install();
-		dmgr.getForgePatchedProvider().install();
-		dmgr.getForgePatchedAccessTxdProvider().install();
-		dmgr.getMappingsProvider().install();
+//		dmgr.getForgeProvider().install();
+//		dmgr.getForgeDependenciesProvider().install();
+//		dmgr.getMinecraftProvider().install();
+//		dmgr.getAssetsProvider().install();
+//		dmgr.getMinecraftDependenciesProvider().install();
+//		dmgr.getMergedProvider().install();
+//		dmgr.getForgePatchedProvider().install();
+//		dmgr.getForgePatchedAccessTxdProvider().install();
+//		dmgr.getMappingsProvider().install();
 		dmgr.getMappedProvider().install();
 		dmgr.getRemappedDependenciesProvider().install();
 		
