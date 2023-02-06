@@ -109,15 +109,15 @@ public class DownloadSession {
 		//More fine-grained up-to-dateness checks that we skip in refreshDependencies mode.
 		if(destExists && !Constants.refreshDependencies) {
 			if(skipIfExists) {
-				info("Not connecting to {} because {} exists", url, dest);
+				info("Not connecting to {} because {} exists.", url, dest);
 				return;
 			}
 			if(skipIfSha1 != null && Checksum.compareSha1(dest, skipIfSha1)) {
-				info("Not connecting to {} because {} exists and has correct SHA-1 hash ({})", url, dest, skipIfSha1);
+				info("Not connecting to {} because {} exists and has correct SHA-1 hash ({}).", url, dest, skipIfSha1);
 				return;
 			}
 			if(skipIfNewerThan != null && Files.getLastModifiedTime(dest).toInstant().isAfter(Instant.now().minus(skipIfNewerThan))) {
-				info("Not connecting to {} because {} exists and was downloaded within {}", url, dest, skipIfNewerThan);
+				info("Not connecting to {} because {} exists and was downloaded within {}.", url, dest, skipIfNewerThan);
 				return;
 			}
 		}

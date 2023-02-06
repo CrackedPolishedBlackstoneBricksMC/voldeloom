@@ -30,12 +30,10 @@ import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.WellKnownLocations;
 import net.fabricmc.loom.util.DownloadSession;
 import net.fabricmc.loom.util.MinecraftVersionInfo;
-import org.gradle.api.GradleException;
 import org.gradle.api.Project;
 
 import javax.inject.Inject;
 import java.io.BufferedReader;
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Period;
@@ -43,12 +41,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
-import java.util.Optional;
 
 /**
- * Parses the custom non-Maven version manifest used by Minecraft. Also, downloads the split minecraft client and server jars.
- * 
- * TODO: give this a touch-up.
+ * Parses the custom non-Maven version manifest used by Minecraft. Downloads the split minecraft client and server jars.
  */
 public class MinecraftProvider extends DependencyProvider {
 	@Inject
@@ -57,151 +52,128 @@ public class MinecraftProvider extends DependencyProvider {
 	}
 	
 	private String minecraftVersion;
-	private Path manifests;
-	private Path minecraftJson;
-	private Path minecraftClientJar;
-	private Path minecraftServerJar;
+	private Path versionManifestIndexJson;
+	private Path thisVersionManifestJson;
 	
-	private MinecraftVersionInfo versionInfo;
+	private Path clientJar;
+	private Path serverJar;
+	private MinecraftVersionInfo thisVersionManifest;
 	
 	@Override
 	protected void performSetup() throws Exception {
 		minecraftVersion = getSingleDependency(Constants.MINECRAFT).getDependency().getVersion();
 		
 		Path userCache = WellKnownLocations.getUserCache(project);
-		minecraftJson = userCache.resolve("minecraft-" + minecraftVersion + "-info.json");
-		minecraftClientJar = userCache.resolve("minecraft-" + minecraftVersion + "-client.jar");
-		minecraftServerJar = userCache.resolve("minecraft-" + minecraftVersion + "-server.jar");
-		manifests = WellKnownLocations.getUserCache(project).resolve("version_manifest.json");
+		versionManifestIndexJson = WellKnownLocations.getUserCache(project).resolve("version_manifest.json");
+		thisVersionManifestJson = userCache.resolve("minecraft-" + minecraftVersion + "-info.json");
+		clientJar = userCache.resolve("minecraft-" + minecraftVersion + "-client.jar");
+		serverJar = userCache.resolve("minecraft-" + minecraftVersion + "-server.jar");
 		
 		cleanIfRefreshDependencies();
 		
-		boolean offline = project.getGradle().getStartParameter().isOffline();
-		downloadMcJson(offline);
+		//We're gonna keep going, actually - `thisVersionManifest` is our goal, and it's nice to get this done by the end of setup()
+		//because other setup functions can make use of it.
+		//All these downloaders no-op if the file exists and we're offline btw, and the happy path makes 0 http connections
 		
-		try(BufferedReader reader = Files.newBufferedReader(minecraftJson)) {
-			versionInfo = new Gson().fromJson(reader, MinecraftVersionInfo.class);
+		project.getLogger().info("|-> Downloading manifest index...");
+		new DownloadSession("https://launchermeta.mojang.com/mc/game/version_manifest.json", project)
+			.dest(versionManifestIndexJson)
+			.etag(true)
+			.gzip(true)
+			.skipIfNewerThan(Period.ofDays(14))
+			.download();
+		
+		project.getLogger().info("|-> Parsing manifest index...");
+		ManifestVersion versionManifestIndex;
+		try(BufferedReader reader1 = Files.newBufferedReader(versionManifestIndexJson)) {
+			versionManifestIndex = new Gson().fromJson(reader1, ManifestVersion.class);
 		}
 		
-		if(offline) {
-			if(Files.exists(minecraftClientJar) && Files.exists(minecraftServerJar)) {
-				project.getLogger().debug("Found client and server jars, presuming up-to-date");
-			} else {
-				throw new GradleException("Missing jar(s); Client: " + Files.exists(minecraftClientJar) + ", Server: " + Files.exists(minecraftServerJar));
-			}
+		ManifestVersion.VersionData selectedVersion = null;
+		if(extension.customManifestUrl != null) {
+			project.getLogger().lifecycle("!! Using custom Minecraft per-version manifest at URL: {}", extension.customManifestUrl);
+			selectedVersion = new ManifestVersion.VersionData();
+			selectedVersion.id = minecraftVersion;
+			selectedVersion.url = extension.customManifestUrl;
 		} else {
-			downloadJars();
+			project.getLogger().info("|-> Browsing manifest index, looking for per-version manifest for {}...", minecraftVersion);
+			for(ManifestVersion.VersionData indexedVersion : versionManifestIndex.versions) { //what's a little O(N) lookup between friends
+				if(indexedVersion.id.equalsIgnoreCase(minecraftVersion)) {
+					selectedVersion = indexedVersion;
+					break;
+				}
+			}
+			
+			if(selectedVersion == null || selectedVersion.url == null) {
+				throw new IllegalStateException("Could not find a per-version manifest corresponding to Minecraft version '" + minecraftVersion + "' in version_manifest.json ('" + versionManifestIndexJson +"').");
+			}
+		}
+		
+		project.getLogger().info("|-> Found URL for Minecraft {} per-version manifest, downloading...", minecraftVersion);
+		new DownloadSession(selectedVersion.url, project)
+			.dest(thisVersionManifestJson)
+			.gzip(true)
+			.etag(true)
+			.skipIfExists()
+			.download();
+		
+		//Parse the per-version manifest.
+		//-- Ultimately, this is why we do all the previous downloading in setup().
+		//This json file contains a lot of information that is useful to have early-on.
+		project.getLogger().info("|-> Parsing per-version manifest...");
+		try(BufferedReader reader = Files.newBufferedReader(thisVersionManifestJson)) {
+			thisVersionManifest = new Gson().fromJson(reader, MinecraftVersionInfo.class);
 		}
 	}
 	
 	public void performInstall() throws Exception {
-		//No processing to do
-	}
-	
-	private void downloadMcJson(boolean offline) throws IOException {
-		if (offline) {
-			if (Files.exists(manifests)) {
-				//If there is the manifests already we'll presume that's good enough
-				project.getLogger().debug("Found version manifests, presuming up-to-date");
-			} else {
-				//If we don't have the manifests then there's nothing more we can do
-				throw new GradleException("Version manifests not found at " + manifests.toAbsolutePath());
-			}
-		} else {
-			project.getLogger().debug("Downloading version manifests");
-			new DownloadSession("https://launchermeta.mojang.com/mc/game/version_manifest.json", project)
-				.dest(manifests)
-				.etag(true)
-				.gzip(true)
-				.skipIfNewerThan(Period.ofDays(14))
-				.download();
-		}
-
-		ManifestVersion mcManifest;
-		try(BufferedReader reader = Files.newBufferedReader(manifests)) {
-			mcManifest = new Gson().fromJson(reader, ManifestVersion.class);
-		}
-
-		Optional<ManifestVersion.Versions> optionalVersion = Optional.empty();
-		
-		if (extension.customManifestUrl != null) {
-			ManifestVersion.Versions customVersion = new ManifestVersion.Versions();
-			customVersion.id = minecraftVersion;
-			customVersion.url = extension.customManifestUrl;
-			optionalVersion = Optional.of(customVersion);
-			project.getLogger().lifecycle("Using custom minecraft manifest");
-		}
-
-		if (!optionalVersion.isPresent()) {
-			optionalVersion = mcManifest.versions.stream().filter(versions -> versions.id.equalsIgnoreCase(minecraftVersion)).findFirst();
-		}
-
-		if (optionalVersion.isPresent()) {
-			if (offline) {
-				if (Files.exists(minecraftJson)) {
-					//If there is the manifest already we'll presume that's good enough
-					project.getLogger().debug("Found Minecraft {} manifest, presuming up-to-date", minecraftVersion);
-				} else {
-					//If we don't have the manifests then there's nothing more we can do
-					throw new GradleException("Minecraft " + minecraftVersion + " manifest not found at " + minecraftJson.toAbsolutePath());
-				}
-			} else {
-				new DownloadSession(optionalVersion.get().url, project)
-					.dest(minecraftJson)
-					.gzip(true)
-					.etag(true)
-					.skipIfExists()
-					.download();
-			}
-		} else {
-			throw new RuntimeException("Failed to find minecraft version: " + minecraftVersion);
-		}
-	}
-
-	private void downloadJars() throws IOException {
-		new DownloadSession(versionInfo.downloads.get("client").url, project)
-			.dest(minecraftClientJar)
+		project.getLogger().info("|-> Downloading Minecraft {} client jar...", minecraftVersion);
+		new DownloadSession(thisVersionManifest.downloads.get("client").url, project)
+			.dest(clientJar)
 			.etag(true)
 			.gzip(false)
 			.skipIfExists()
-			.skipIfSha1Equals(versionInfo.downloads.get("client").sha1)
+			.skipIfSha1Equals(thisVersionManifest.downloads.get("client").sha1) //TODO: kinda subsumed by skipIfExists lol
 			.download();
 		
-		new DownloadSession(versionInfo.downloads.get("server").url, project)
-			.dest(minecraftServerJar)
+		project.getLogger().info("|-> Downloading Minecraft {} server jar...", minecraftVersion);
+		new DownloadSession(thisVersionManifest.downloads.get("server").url, project)
+			.dest(serverJar)
 			.etag(true)
 			.gzip(false)
 			.skipIfExists()
-			.skipIfSha1Equals(versionInfo.downloads.get("server").sha1)
+			.skipIfSha1Equals(thisVersionManifest.downloads.get("server").sha1)
 			.download();
 	}
 	
 	public Path getClientJar() {
-		return minecraftClientJar;
+		return clientJar;
 	}
 	
 	public Path getServerJar() {
-		return minecraftServerJar;
+		return serverJar;
 	}
 
 	public String getVersion() {
 		return minecraftVersion;
 	}
 	
+	//Resolved in setup()
 	public MinecraftVersionInfo getVersionManifest() {
-		return versionInfo;
+		return thisVersionManifest;
 	}
 	
+	//designed to be parsed with google gson
 	public static class ManifestVersion {
-		public List<Versions> versions = new ArrayList<>();
+		public List<VersionData> versions = new ArrayList<>();
 	
-		public static class Versions {
+		public static class VersionData {
 			public String id, url;
 		}
 	}
 	
 	@Override
 	protected Collection<Path> pathsToClean() {
-		return andEtags(Arrays.asList(minecraftClientJar, minecraftServerJar, minecraftJson, manifests));
+		return andEtags(Arrays.asList(clientJar, serverJar, thisVersionManifestJson, versionManifestIndexJson));
 	}
 }
