@@ -45,8 +45,6 @@ import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
@@ -94,12 +92,13 @@ public class MappingsProvider extends DependencyProvider {
 		tinyMappings = mappingsDir.resolve(rawMappingsJar.getFileName() + ".tiny");
 		tinyMappingsJar = mappingsDir.resolve(rawMappingsJar.getFileName() + ".tiny.jar");
 		
-		cleanIfRefreshDependencies();
-		Files.createDirectories(mappingsDir);
+		cleanOnRefreshDependencies(tinyMappings, tinyMappingsJar);
 	}
 	
 	public void performInstall() throws Exception {
 		forgePatched.tryReach(Stage.INSTALLED);
+		
+		Files.createDirectories(mappingsDir);
 		
 		if(Files.notExists(tinyMappings)) {
 			long filesize;
@@ -214,10 +213,5 @@ public class MappingsProvider extends DependencyProvider {
 	
 	public Path getTinyMappingsJar() {
 		return tinyMappingsJar;
-	}
-	
-	@Override
-	protected Collection<Path> pathsToClean() {
-		return Arrays.asList(tinyMappings, tinyMappingsJar);
 	}
 }

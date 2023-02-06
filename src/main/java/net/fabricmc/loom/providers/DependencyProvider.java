@@ -44,6 +44,7 @@ import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -86,13 +87,14 @@ public abstract class DependencyProvider {
 	 */
 	protected void performInstall() throws Exception { }
 	
-	//TODO: only guaranteed to be populated inside/after performSetup
-	protected abstract Collection<Path> pathsToClean();
+	public void cleanOnRefreshDependencies(Path... paths) {
+		cleanOnRefreshDependencies(Arrays.asList(paths));
+	}
 	
-	public void cleanIfRefreshDependencies() {
+	public void cleanOnRefreshDependencies(Collection<Path> paths) {
 		if(Constants.refreshDependencies) {
 			project.getLogger().lifecycle("|-> Deleting outputs of " + getClass().getSimpleName() + " because --refresh-dependencies was passed");
-			LoomGradlePlugin.delete(project, pathsToClean());
+			LoomGradlePlugin.delete(project, paths);
 		}
 	}
 	

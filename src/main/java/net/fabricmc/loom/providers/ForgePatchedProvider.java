@@ -16,7 +16,6 @@ import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.Collection;
 import java.util.Collections;
 
 /**
@@ -52,7 +51,7 @@ public class ForgePatchedProvider extends DependencyProvider {
 		patchedVersionTag = mc.getVersion() + "-forge-" + forge.getVersion();
 		patched = WellKnownLocations.getUserCache(project).resolve("minecraft-" + patchedVersionTag + "-merged.jar");
 		
-		cleanIfRefreshDependencies();
+		cleanOnRefreshDependencies(patched);
 	}
 	
 	public void performInstall() throws Exception {
@@ -141,10 +140,5 @@ public class ForgePatchedProvider extends DependencyProvider {
 	
 	public Path getPatchedJar() {
 		return patched;
-	}
-	
-	@Override
-	protected Collection<Path> pathsToClean() {
-		return Collections.singleton(patched);
 	}
 }

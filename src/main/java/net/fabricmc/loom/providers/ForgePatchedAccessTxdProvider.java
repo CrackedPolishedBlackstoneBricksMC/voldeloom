@@ -20,7 +20,6 @@ import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
@@ -51,7 +50,7 @@ public class ForgePatchedAccessTxdProvider extends DependencyProvider {
 		
 		accessTransformedMc = WellKnownLocations.getUserCache(project).resolve("minecraft-" + forgePatched.getPatchedVersionTag() + "-atd.jar");
 		
-		cleanIfRefreshDependencies();
+		cleanOnRefreshDependencies(accessTransformedMc);
 	}
 	
 	public void performInstall() throws Exception {
@@ -132,10 +131,5 @@ public class ForgePatchedAccessTxdProvider extends DependencyProvider {
 	
 	public Path getTransformedJar() {
 		return accessTransformedMc;
-	}
-	
-	@Override
-	protected Collection<Path> pathsToClean() {
-		return Collections.singleton(accessTransformedMc);
 	}
 }

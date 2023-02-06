@@ -24,8 +24,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 
 /**
@@ -56,7 +54,7 @@ public class MergedProvider extends DependencyProvider {
 		merged = WellKnownLocations.getUserCache(project).resolve("minecraft-" + mc.getVersion() + "-merged.jar");
 		mergedUnfixed = WellKnownLocations.getUserCache(project).resolve("minecraft-" + mc.getVersion() + "-merged-unfixed.jar");
 		
-		cleanIfRefreshDependencies();
+		cleanOnRefreshDependencies(merged, mergedUnfixed);
 	}
 	
 	public void performInstall() throws Exception {
@@ -186,10 +184,5 @@ public class MergedProvider extends DependencyProvider {
 				}
 			}
 		}
-	}
-	
-	@Override
-	protected Collection<Path> pathsToClean() {
-		return Arrays.asList(merged, mergedUnfixed);
 	}
 }

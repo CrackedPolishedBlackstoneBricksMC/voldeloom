@@ -48,25 +48,21 @@ public class ForgeDependenciesProvider extends DependencyProvider {
 	
 	private final ForgeProvider forge;
 	
-	private Path forgeJar; //in
-	private Path forgeLibsFolder; //out
+	private Path forgeLibsFolder;
 	
 	@Override
 	protected void performSetup() throws Exception {
 		forge.tryReach(Stage.SETUP);
 		
-		forgeJar = forge.getJar();
 		forgeLibsFolder = WellKnownLocations.getUserCache(project).resolve("forgeLibs").resolve(forge.getVersion());
-		Files.createDirectories(forgeLibsFolder);
-		
-		cleanIfRefreshDependencies();
+		cleanOnRefreshDependencies(forgeLibsFolder);
 	}
 	
 	public void performInstall() throws Exception {
 		forge.tryReach(Stage.INSTALLED);
 		
 		List<String> sniffedLibraries = new ArrayList<>();
-		try(FileSystem forgeFs = FileSystems.newFileSystem(URI.create("jar:" + forgeJar.toUri()), Collections.emptyMap())) {
+		try(FileSystem forgeFs = FileSystems.newFileSystem(URI.create("jar:" + forge.getJar().toUri()), Collections.emptyMap())) {
 			//read from magical hardcoded path inside the forge jar; this is where the auto-downloaded library paths are stored
 			//TODO: applies from forge 1.3 through forge 1.5, dropped in 1.6
 			//TODO: at least 1.5 includes additional "deobfuscation data" zip dep, but also contains a sys property to change download mirror
@@ -82,6 +78,7 @@ public class ForgeDependenciesProvider extends DependencyProvider {
 		}
 		
 		//download each library
+		Files.createDirectories(forgeLibsFolder);
 		for(String lib : sniffedLibraries) {
 			Path dest = forgeLibsFolder.resolve(lib);
 			
@@ -93,8 +90,8 @@ public class ForgeDependenciesProvider extends DependencyProvider {
 				.download();
 			
 			//dep on each one individually instead of using project.files(forgeLibsFolder)
-			//this is mainly to prevent the .etag files from being included, but also simplifies the file dependency
-			//cause it can be hard to get the actual file listing out of a `files` dependency sometimes, in my experience
+			//this is mainly to prevent the .etag files from being included, but file collection deps != file deps in gradle
+			//not that they're impossible to use. idk. just reducing the number of different kinds of dependency throughout the project
 			project.getDependencies().add(Constants.FORGE_DEPENDENCIES, project.files(dest));
 		}
 	}
@@ -128,10 +125,5 @@ public class ForgeDependenciesProvider extends DependencyProvider {
 	
 	public Path getForgeLibsFolder() {
 		return forgeLibsFolder;
-	}
-	
-	@Override
-	protected Collection<Path> pathsToClean() {
-		return Collections.singleton(forgeLibsFolder);
 	}
 }

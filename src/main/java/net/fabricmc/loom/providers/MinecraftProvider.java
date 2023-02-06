@@ -39,7 +39,6 @@ import java.nio.file.Path;
 import java.time.Period;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.List;
 
 /**
@@ -52,8 +51,6 @@ public class MinecraftProvider extends DependencyProvider {
 	}
 	
 	private String minecraftVersion;
-	private Path versionManifestIndexJson;
-	private Path thisVersionManifestJson;
 	
 	private Path clientJar;
 	private Path serverJar;
@@ -64,12 +61,13 @@ public class MinecraftProvider extends DependencyProvider {
 		minecraftVersion = getSingleDependency(Constants.MINECRAFT).getDependency().getVersion();
 		
 		Path userCache = WellKnownLocations.getUserCache(project);
-		versionManifestIndexJson = WellKnownLocations.getUserCache(project).resolve("version_manifest.json");
-		thisVersionManifestJson = userCache.resolve("minecraft-" + minecraftVersion + "-info.json");
+		Path versionManifestIndexJson = WellKnownLocations.getUserCache(project).resolve("version_manifest.json");
+		Path thisVersionManifestJson = userCache.resolve("minecraft-" + minecraftVersion + "-info.json");
+		
 		clientJar = userCache.resolve("minecraft-" + minecraftVersion + "-client.jar");
 		serverJar = userCache.resolve("minecraft-" + minecraftVersion + "-server.jar");
 		
-		cleanIfRefreshDependencies();
+		cleanOnRefreshDependencies(andEtags(Arrays.asList(clientJar, serverJar, thisVersionManifestJson, versionManifestIndexJson)));
 		
 		//We're gonna keep going, actually - `thisVersionManifest` is our goal, and it's nice to get this done by the end of setup()
 		//because other setup functions can make use of it.
@@ -170,10 +168,5 @@ public class MinecraftProvider extends DependencyProvider {
 		public static class VersionData {
 			public String id, url;
 		}
-	}
-	
-	@Override
-	protected Collection<Path> pathsToClean() {
-		return andEtags(Arrays.asList(clientJar, serverJar, thisVersionManifestJson, versionManifestIndexJson));
 	}
 }

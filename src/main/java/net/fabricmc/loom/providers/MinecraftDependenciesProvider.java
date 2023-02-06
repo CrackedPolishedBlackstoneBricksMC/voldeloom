@@ -28,8 +28,8 @@ import net.fabricmc.loom.Constants;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.WellKnownLocations;
 import net.fabricmc.loom.util.DownloadSession;
-import net.fabricmc.loom.util.ZipUtil;
 import net.fabricmc.loom.util.MinecraftVersionInfo;
+import net.fabricmc.loom.util.ZipUtil;
 import org.gradle.api.Project;
 
 import javax.inject.Inject;
@@ -39,7 +39,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -70,12 +69,14 @@ public class MinecraftDependenciesProvider extends DependencyProvider {
 		nativesDir = WellKnownLocations.getUserCache(project).resolve("natives").resolve(mc.getVersion());
 		nativesJarStore = nativesDir.resolve("jars");
 		
-		cleanIfRefreshDependencies();
-		Files.createDirectories(nativesJarStore);
+		cleanOnRefreshDependencies(nonNativeLibs);
+		cleanOnRefreshDependencies(nativesDir);
 	}
 	
 	public void performInstall() throws Exception {
 		mc.tryReach(Stage.INSTALLED);
+		
+		Files.createDirectories(nativesJarStore);
 		
 		for(MinecraftVersionInfo.Library library : mc.getVersionManifest().libraries) {
 			if(!library.allowed()) continue;
@@ -144,12 +145,5 @@ public class MinecraftDependenciesProvider extends DependencyProvider {
 	
 	public Path getNativesDir() {
 		return nativesDir;
-	}
-	
-	@Override
-	protected Collection<Path> pathsToClean() {
-		ArrayList<Path> funny = new ArrayList<>(nonNativeLibs);
-		funny.add(nativesDir);
-		return funny;
 	}
 }

@@ -37,8 +37,6 @@ import javax.inject.Inject;
 import java.io.BufferedReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Arrays;
-import java.util.Collection;
 
 /**
  * Downloads Minecraft's global asset index, the asset index for the selected version, and downloads all assets inside that index.
@@ -67,7 +65,10 @@ public class AssetsProvider extends DependencyProvider {
 		assetIndexFile = globalAssetsCache.resolve("indexes").resolve(mc.getVersionManifest().assetIndex.getFabricId(mc.getVersion()) + ".json");
 		thisVersionAssetsDir = globalAssetsCache.resolve("legacy").resolve(mc.getVersion());
 		//Btw, using this `legacy` folder just to get out of regular Loom's way.
-		//(We don't clean these on refreshDependencies just beacuse they take a long time to download.)
+		
+		//Let's not delete the assets themselves on refreshDependencies.
+		//They're rarely the problem, and take a long time to download.
+		cleanOnRefreshDependencies(assetIndexFile/*, thisVersionAssetsDir*/);
 	}
 	
 	public void performInstall() throws Exception {
@@ -145,10 +146,5 @@ public class AssetsProvider extends DependencyProvider {
 	
 	public Path getAssetsDir() {
 		return thisVersionAssetsDir;
-	}
-	
-	@Override
-	protected Collection<Path> pathsToClean() {
-		return Arrays.asList(assetIndexFile, thisVersionAssetsDir);
 	}
 }

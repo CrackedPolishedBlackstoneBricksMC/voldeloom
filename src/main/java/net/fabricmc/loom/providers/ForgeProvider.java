@@ -6,8 +6,6 @@ import org.gradle.api.Project;
 
 import javax.inject.Inject;
 import java.nio.file.Path;
-import java.util.Collection;
-import java.util.Collections;
 
 /**
  * Just wraps the Forge dependency.
@@ -28,6 +26,8 @@ public class ForgeProvider extends DependencyProvider {
 		forgeVersion = forgeDependency.getDependency().getVersion();
 		
 		project.getLogger().lifecycle("] forge jar is at: " + forge);
+		
+		//No need to clean it manually on refreshDependencies, it's a normal gradle dependency, gradle will refresh it on its own
 	}
 	
 	public void performInstall() throws Exception {
@@ -40,10 +40,5 @@ public class ForgeProvider extends DependencyProvider {
 	
 	public String getVersion() {
 		return forgeVersion;
-	}
-	
-	@Override
-	protected Collection<Path> pathsToClean() {
-		return Collections.emptyList(); //It's a normal gradle dependency so gradle will refresh it on its own
 	}
 }

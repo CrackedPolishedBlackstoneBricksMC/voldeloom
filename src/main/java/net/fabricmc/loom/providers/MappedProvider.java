@@ -33,8 +33,6 @@ import org.gradle.api.Project;
 import javax.inject.Inject;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.function.Predicate;
 
 /**
@@ -83,6 +81,8 @@ public class MappedProvider extends DependencyProvider {
 		);
 		String intermediaryJarName = "minecraft-" + intermediaryJarNameKinda + ".jar";
 		
+		//We put the mapped jar in its own directory so that we can add the directory as a flatDir, where it will live all by itself.
+		//no need to risk something like, a naming collision with other versions that happen to be lying around.
 		mappedJarNameKinda = String.format("%s-%s-%s-%s",
 			forgePatched.getPatchedVersionTag(),
 			Constants.MAPPED_NAMING_SCHEME,
@@ -91,11 +91,11 @@ public class MappedProvider extends DependencyProvider {
 		);
 		String mappedJarName = "minecraft-" + mappedJarNameKinda + ".jar";
 		mappedDestDir = userCache.resolve(mappedJarNameKinda);
-		Files.createDirectories(mappedDestDir);
 		
 		intermediaryJar = userCache.resolve(intermediaryJarName);
 		mappedJar = mappedDestDir.resolve(mappedJarName);
-		cleanIfRefreshDependencies();
+		
+		cleanOnRefreshDependencies(mappedJar, mappedDestDir, intermediaryJar);
 	}
 	
 	public void performInstall() throws Exception {
@@ -117,6 +117,8 @@ public class MappedProvider extends DependencyProvider {
 			//They're obfuscated and mcp maps them back to reality. The forge Ant script had a task to delete them lol.
 			//https://github.com/MinecraftForge/FML/blob/8e7956397dd80902f7ca69c466e833047dfa5010/build.xml#L295-L298
 			Predicate<String> classFilter = s -> !s.startsWith("argo") && !s.startsWith("org");
+			
+			Files.createDirectories(mappedDestDir);
 			
 			new TinyRemapperSession()
 				.setMappings(mappings.getMappings())
@@ -142,10 +144,5 @@ public class MappedProvider extends DependencyProvider {
 	
 	public Path getIntermediaryJar() {
 		return intermediaryJar;
-	}
-	
-	@Override
-	protected Collection<Path> pathsToClean() {
-		return Arrays.asList(mappedJar, intermediaryJar);
 	}
 }

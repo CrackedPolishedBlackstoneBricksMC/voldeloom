@@ -14,8 +14,6 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -36,6 +34,7 @@ public class RemappedDependenciesProvider extends DependencyProvider {
 	private final MappingsProvider mappings;
 	private final ForgePatchedAccessTxdProvider patchedTxd;
 	
+	private Path remappedModCache;
 	private String mappingsSuffix;
 	
 	@Override
@@ -45,6 +44,9 @@ public class RemappedDependenciesProvider extends DependencyProvider {
 		patchedTxd.tryReach(Stage.SETUP);
 		
 		mappingsSuffix = mappings.getMappingsName() + "-" + mappings.getMappingsVersion();
+		remappedModCache = WellKnownLocations.getRemappedModCache(project);
+		
+		cleanOnRefreshDependencies(remappedModCache);
 	}
 	
 	public void performInstall() throws Exception {
@@ -62,7 +64,7 @@ public class RemappedDependenciesProvider extends DependencyProvider {
 			for(File unmappedFile : inputConfig.getResolvedConfiguration().getFiles()) {
 				try {
 					Path unmappedPath = unmappedFile.toPath();
-					Path mappedPath = WellKnownLocations.getRemappedModCache(project).resolve(unmappedPath.getFileName().toString() + "-mapped-" + mappingsSuffix + ".jar");
+					Path mappedPath = remappedModCache.resolve(unmappedPath.getFileName().toString() + "-mapped-" + mappingsSuffix + ".jar");
 					
 					if(Files.notExists(mappedPath) || Constants.refreshDependencies) {
 						processMod(unmappedPath, mappedPath, null, null, mc, mappings, patchedTxd);
@@ -144,11 +146,6 @@ public class RemappedDependenciesProvider extends DependencyProvider {
 		if (Files.notExists(output)) {
 			throw new RuntimeException("Failed to remap JAR to 'named' - file not found: " + output.toAbsolutePath());
 		}
-	}
-	
-	@Override
-	protected Collection<Path> pathsToClean() {
-		return Collections.singleton(WellKnownLocations.getRemappedModCache(project));
 	}
 	
 //	private void remapArtifact(Configuration config, ResolvedArtifact artifact, String remappedFilename, Path modStore) throws IOException {
