@@ -361,7 +361,7 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		
 		//This is where the Magic happens.
 		//"Dependency providers" are dynamic; their content depends on the values of the stuff configured in LoomGradleExtension.
-		//We do them in afterEvaluate because the Gradle extension must be configured first, but task execution is too late for it.
+		//We do them in afterEvaluate because the Gradle extension must be configured first, but task execution is too late to mutate the project's dependencies.
 		//I've built a crude task graph system.
 		ProviderGraph providers = extension.getProviderGraph();
 		//We need at least Forge's external libraries,
