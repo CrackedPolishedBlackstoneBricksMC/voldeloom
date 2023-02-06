@@ -37,11 +37,6 @@ import net.fabricmc.loom.providers.MinecraftProvider;
 import net.fabricmc.loom.providers.ProviderGraph;
 import net.fabricmc.loom.providers.RemappedDependenciesProvider;
 import org.gradle.api.Project;
-import org.gradle.api.tasks.TaskProvider;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 
 /**
  * A nexus for derived depenencies (like "minecraft, but merged and remapped").<br>
@@ -96,21 +91,5 @@ public class LoomDependencyManager {
 	
 	public RemappedDependenciesProvider getRemappedDependenciesProvider() {
 		return graph.getProviderOfType(RemappedDependenciesProvider.class);
-	}
-	
-	public List<TaskProvider<?>> getCleaningTasks() {
-		return new ArrayList<>(Arrays.asList(
-			getForgeProvider().addCleaningTask(),
-			getForgeDependenciesProvider().addCleaningTask(),
-			getMinecraftProvider().addCleaningTask(),
-			getAssetsProvider().addCleaningTask(),
-			getMinecraftDependenciesProvider().addCleaningTask(),
-			getMergedProvider().addCleaningTask(),
-			getForgePatchedProvider().addCleaningTask(),
-			getForgePatchedAccessTxdProvider().addCleaningTask(),
-			getMappingsProvider().addCleaningTask(),
-			getMappedProvider().addCleaningTask(),
-			getRemappedDependenciesProvider().addCleaningTask()
-		));
 	}
 }

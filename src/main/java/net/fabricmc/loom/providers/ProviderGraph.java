@@ -24,9 +24,16 @@ public class ProviderGraph {
 	
 	private final Map<Class<? extends DependencyProvider>, DependencyProvider> constructedProviders = new HashMap<>();
 	
+	//No computeIfAbsent because of ConcurrentModificationException, constructProviderOfType can set entries in the map too
 	@SuppressWarnings("unchecked")
 	public <T extends DependencyProvider> T getProviderOfType(Class<T> type) {
-		return (T) constructedProviders.computeIfAbsent(type, this::constructProviderOfType);
+		if(constructedProviders.containsKey(type)) {
+			return (T) constructedProviders.get(type);
+		} else {
+			DependencyProvider newlyConstructed = constructProviderOfType(type);
+			constructedProviders.put(type, newlyConstructed);
+			return (T) newlyConstructed;
+		}
 	}
 	
 	private DependencyProvider constructProviderOfType(Class<? extends DependencyProvider> type) {

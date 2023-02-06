@@ -30,9 +30,7 @@ import com.google.gson.JsonObject;
 import net.fabricmc.loom.Constants;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.LoomGradlePlugin;
-import net.fabricmc.loom.util.LoomTaskExt;
 import net.fabricmc.loom.util.ZipUtil;
-import org.gradle.api.DefaultTask;
 import org.gradle.api.InvalidUserDataException;
 import org.gradle.api.Project;
 import org.gradle.api.artifacts.Configuration;
@@ -40,10 +38,7 @@ import org.gradle.api.artifacts.Dependency;
 import org.gradle.api.artifacts.DependencySet;
 import org.gradle.api.artifacts.ResolvedDependency;
 import org.gradle.api.artifacts.SelfResolvingDependency;
-import org.gradle.api.tasks.TaskAction;
-import org.gradle.api.tasks.TaskProvider;
 
-import javax.inject.Inject;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
@@ -52,7 +47,6 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -86,6 +80,7 @@ public abstract class DependencyProvider {
 		} catch (Exception e) {
 			throw new RuntimeException("Failed to install " + getClass().getSimpleName() + ": " + e.getMessage(), e);
 		}
+		project.getLogger().lifecycle(":finished installing dep provider '{}'!", getClass().getSimpleName());
 		installed = true;
 	}
 	
@@ -95,12 +90,6 @@ public abstract class DependencyProvider {
 		install();
 		
 		if(!installed) throw new IllegalStateException(getClass().getSimpleName() + " hasn't been installed yet!");
-	}
-	
-	public final TaskProvider<CleaningTask> addCleaningTask() {
-		String nameFunny = getClass().getSimpleName();
-		nameFunny = nameFunny.substring(0, 1).toUpperCase(Locale.ROOT) + nameFunny.substring(1);
-		return project.getTasks().register("clean" + nameFunny, CleaningTask.class, this);
 	}
 	
 	public void cleanIfRefreshDependencies() {
@@ -327,20 +316,5 @@ public abstract class DependencyProvider {
 			out.add(i.resolveSibling(i.getFileName().toString() + ".etag"));
 		}
 		return out;
-	}
-	
-	public static class CleaningTask extends DefaultTask implements LoomTaskExt {
-		@Inject
-		public CleaningTask(DependencyProvider prov) {
-			setGroup(Constants.TASK_GROUP_CLEANING);
-			this.prov = prov;
-		}
-		
-		private final DependencyProvider prov;
-		
-		@TaskAction
-		public void delete() {
-			LoomGradlePlugin.delete(getProject(), (Object[]) prov.pathsToClean().toArray(new Path[0]));
-		}
 	}
 }

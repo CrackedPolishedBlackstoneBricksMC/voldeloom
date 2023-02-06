@@ -324,20 +324,21 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		tasks.named("eclipse").configure(t -> t.finalizedBy(tasks.named("genEclipseRuns")));
 		
 		//Cleaning
-		List<TaskProvider<?>> cleaningTasks = extensionUnconfigured.getDependencyManager().getCleaningTasks();
-		tasks.register("cleanEverything").configure(task -> {
-			task.setGroup(Constants.TASK_GROUP_CLEANING);
-			task.setDescription("Try to remove all files relating to the currently selected Minecraft version, Forge version, and mappings.\n" +
-				"Caveat creare: this clumsily runs after all the DependencyProviders do, so it will clean things *after* computing them.");
-			for(TaskProvider<?> t : cleaningTasks) task.dependsOn(t);
-		});
-		tasks.register("cleanEverythingNotAssets").configure(task -> {
-			task.setGroup(Constants.TASK_GROUP_CLEANING);
-			task.setDescription("Try to remove all files relating to the currently selected Minecraft version, Forge version, and mappings...\n" +
-				"except for the asset index, because that takes forever to redownload and is rarely a problem.\n" +
-				"Caveat creare: this clumsily runs after all the DependencyProviders do, so it will clean things *after* computing them.");
-			for(TaskProvider<?> t : cleaningTasks) if(!t.getName().equals("cleanAssetsProvider")) task.dependsOn(t);
-		});
+		//TODO: restore (I'm redoing the provider system)
+//		List<TaskProvider<?>> cleaningTasks = extensionUnconfigured.getDependencyManager().getCleaningTasks();
+//		tasks.register("cleanEverything").configure(task -> {
+//			task.setGroup(Constants.TASK_GROUP_CLEANING);
+//			task.setDescription("Try to remove all files relating to the currently selected Minecraft version, Forge version, and mappings.\n" +
+//				"Caveat creare: this clumsily runs after all the DependencyProviders do, so it will clean things *after* computing them.");
+//			for(TaskProvider<?> t : cleaningTasks) task.dependsOn(t);
+//		});
+//		tasks.register("cleanEverythingNotAssets").configure(task -> {
+//			task.setGroup(Constants.TASK_GROUP_CLEANING);
+//			task.setDescription("Try to remove all files relating to the currently selected Minecraft version, Forge version, and mappings...\n" +
+//				"except for the asset index, because that takes forever to redownload and is rarely a problem.\n" +
+//				"Caveat creare: this clumsily runs after all the DependencyProviders do, so it will clean things *after* computing them.");
+//			for(TaskProvider<?> t : cleaningTasks) if(!t.getName().equals("cleanAssetsProvider")) task.dependsOn(t);
+//		});
 
 		//So. build.gradle files *look* declarative, but recall that they are imperative programs, executed top-to-bottom.
 		//All of the above happens immediately upon encountering the `apply plugin` line. The rest of the script hasn't executed yet.
@@ -349,6 +350,8 @@ public class LoomGradlePlugin implements Plugin<Project> {
 	private void afterEvaluate(Project project) {
 		//"For some crazy reason afterEvaluate is still invoked when the configuration fails" - modmuss in loom 1. I agree with this adjective
 		if(project.getState().getFailure() != null) return;
+		
+		project.getLogger().lifecycle(":Beginning Voldeloom afterEvaluate sauce");
 		
 		//The extension's been configured, grab it.
 		LoomGradleExtension extension = project.getExtensions().getByType(LoomGradleExtension.class);
