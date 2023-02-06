@@ -21,12 +21,17 @@ public class ForgeProvider extends DependencyProvider {
 	private Path forge;
 	private String forgeVersion;
 	
-	public void performInstall() throws Exception {
+	@Override
+	protected void performSetup() throws Exception {
 		DependencyInfo forgeDependency = getSingleDependency(Constants.FORGE);
 		forge = forgeDependency.resolveSinglePath();
 		forgeVersion = forgeDependency.getDependency().getVersion();
 		
 		project.getLogger().lifecycle("] forge jar is at: " + forge);
+	}
+	
+	public void performInstall() throws Exception {
+		//No processing to do
 	}
 	
 	public Path getJar() {

@@ -70,45 +70,50 @@ public class MappingsProvider extends DependencyProvider {
 	
 	private final Path mappingsDir = WellKnownLocations.getUserCache(project).resolve("mappings");
 	
+	private Path rawMappingsJar;
 	private String mappingsName;
 	private String mappingsVersion;
 	private TinyTree parsedMappings;
 	
+	//outputs created by the install task:
 	private Path tinyMappings;
 	private Path tinyMappingsJar;
 	
-	public void performInstall() throws Exception {
-		//dependencies
-		forgePatched.install();
+	@Override
+	protected void performSetup() throws Exception {
+		forgePatched.tryReach(Stage.SETUP);
 		
-		//inputs
 		DependencyInfo mappingsDependency = getSingleDependency(Constants.MAPPINGS);
-		Path mappingsJar = mappingsDependency.resolveSinglePath();
-		project.getLogger().lifecycle("] mappings name: " + mappingsDependency.getDependency().getName() + ", version: " + mappingsDependency.getResolvedVersion());
-
+		rawMappingsJar = mappingsDependency.resolveSinglePath();
+		
 		//outputs
 		mappingsName = mappingsDependency.getDependency().getGroup() + "." + mappingsDependency.getDependency().getName();
 		mappingsVersion = mappingsDependency.getResolvedVersion();
-		tinyMappings = mappingsDir.resolve(mappingsJar.getFileName() + ".tiny");
-		tinyMappingsJar = mappingsDir.resolve(mappingsJar.getFileName() + ".tiny.jar");
+		project.getLogger().lifecycle("] mappings name: {}, version: {}", mappingsName, mappingsVersion);
+		
+		tinyMappings = mappingsDir.resolve(rawMappingsJar.getFileName() + ".tiny");
+		tinyMappingsJar = mappingsDir.resolve(rawMappingsJar.getFileName() + ".tiny.jar");
 		
 		cleanIfRefreshDependencies();
 		Files.createDirectories(mappingsDir);
+	}
+	
+	public void performInstall() throws Exception {
+		forgePatched.tryReach(Stage.INSTALLED);
 		
-		//task
 		if(Files.notExists(tinyMappings)) {
 			long filesize;
 			try {
-				filesize = Files.size(mappingsJar);
+				filesize = Files.size(rawMappingsJar);
 			} catch (Exception e) {
 				throw new RuntimeException("Problem statting mappings zip", e);
 			}
 			if(filesize == 0) {
-				throw new RuntimeException("The mappings zip at " + mappingsJar + " is a 0-byte file. Please double-check the URL and redownload. " +
+				throw new RuntimeException("The mappings zip at " + rawMappingsJar + " is a 0-byte file. Please double-check the URL and redownload. " +
 					"If you obtained this from the Internet Archive, note that it likes to return 0-byte files instead of 404 errors.");
 			}
 			
-			try(FileSystem mcpZipFs = FileSystems.newFileSystem(URI.create("jar:" + mappingsJar.toUri()), Collections.emptyMap())) {
+			try(FileSystem mcpZipFs = FileSystems.newFileSystem(URI.create("jar:" + rawMappingsJar.toUri()), Collections.emptyMap())) {
 				Path conf;
 				if(Files.exists(mcpZipFs.getPath("forge/fml/conf"))) {
 					conf = mcpZipFs.getPath("forge/fml/conf"); //Forge 1.3 to Forge 1.7

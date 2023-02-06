@@ -41,31 +41,30 @@ public class ForgePatchedAccessTxdProvider extends DependencyProvider {
 	private final ForgeProvider forge;
 	private final ForgePatchedProvider forgePatched;
 	
+	//setup
 	private Path accessTransformedMc;
 	
-	public void performInstall() throws Exception {
-		//dependencies
-		forge.install();
-		forgePatched.install();
+	@Override
+	protected void performSetup() throws Exception {
+		forge.tryReach(Stage.SETUP);
+		forgePatched.tryReach(Stage.SETUP);
 		
-		//inputs
-		Path forgeJar = forge.getJar();
-		Path unAccessTransformedMc = forgePatched.getPatchedJar();
-		String patchedVersionTag = forgePatched.getPatchedVersionTag();
+		accessTransformedMc = WellKnownLocations.getUserCache(project).resolve("minecraft-" + forgePatched.getPatchedVersionTag() + "-atd.jar");
 		
-		//outputs
-		Path userCache = WellKnownLocations.getUserCache(project);
-		accessTransformedMc = userCache.resolve("minecraft-" + patchedVersionTag + "-atd.jar");
 		cleanIfRefreshDependencies();
+	}
+	
+	public void performInstall() throws Exception {
+		forge.tryReach(Stage.INSTALLED);
+		forgePatched.tryReach(Stage.INSTALLED);
 		
-		//task
 		project.getLogger().lifecycle("] access-transformed jar is at: {}", accessTransformedMc);
 		if(Files.notExists(accessTransformedMc)) {
 			project.getLogger().lifecycle("|-> Does not exist, parsing Forge's access transformers...");
 			
 			//Read forge ats
 			ForgeAccessTransformerSet ats = new ForgeAccessTransformerSet();
-			try(FileSystem forgeFs = FileSystems.newFileSystem(URI.create("jar:" + forgeJar.toUri()), Collections.emptyMap())) {
+			try(FileSystem forgeFs = FileSystems.newFileSystem(URI.create("jar:" + forge.getJar().toUri()), Collections.emptyMap())) {
 				//TODO: where do these names come from, can they be read from the jar?
 				// 1.2.5 does not have these files
 				for(String atFileName : Arrays.asList("forge_at.cfg", "fml_at.cfg")) {
@@ -82,7 +81,7 @@ public class ForgePatchedAccessTxdProvider extends DependencyProvider {
 			project.getLogger().lifecycle("|-> Found {} access transformers affecting {} classes. Performing transform...", ats.getCount(), ats.getTouchedClassCount());
 			
 			try(
-				FileSystem unAccessTransformedFs = FileSystems.newFileSystem(URI.create("jar:" + unAccessTransformedMc.toUri()), Collections.emptyMap());
+				FileSystem unAccessTransformedFs = FileSystems.newFileSystem(URI.create("jar:" + forgePatched.getPatchedJar().toUri()), Collections.emptyMap());
 				FileSystem accessTransformedFs = FileSystems.newFileSystem(URI.create("jar:" + accessTransformedMc.toUri()), Collections.singletonMap("create", "true"))) {
 				Files.walkFileTree(unAccessTransformedFs.getPath("/"), new SimpleFileVisitor<Path>() {
 					@Override

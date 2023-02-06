@@ -25,6 +25,8 @@
 package net.fabricmc.loom;
 
 import groovy.util.Node;
+import net.fabricmc.loom.providers.DependencyProvider;
+import net.fabricmc.loom.providers.ForgeDependenciesProvider;
 import net.fabricmc.loom.providers.MappedProvider;
 import net.fabricmc.loom.providers.MinecraftDependenciesProvider;
 import net.fabricmc.loom.providers.RemappedDependenciesProvider;
@@ -358,20 +360,16 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		LoomGradleExtension extension = project.getExtensions().getByType(LoomGradleExtension.class);
 		
 		//This is where the Magic happens.
-		//These dependencies are dynamic; their content depends on the values of the stuff configured in LoomGradleExtension. They also form a task graph.
-		//Regrettably, we cannot use the real Gradle task graph to configure this stuff, because task execution time is too late to modify project dependencies.
+		//"Dependency providers" are dynamic; their content depends on the values of the stuff configured in LoomGradleExtension.
+		//We do them in afterEvaluate because the Gradle extension must be configured first, but task execution is too late for it.
+		//I've built a crude task graph system.
 		ProviderGraph providers = extension.getProviderGraph();
-//		dmgr.getForgeProvider().install();
-//		dmgr.getForgeDependenciesProvider().install();
-//		dmgr.getMinecraftProvider().install();
-//		dmgr.getAssetsProvider().install();
-//		dmgr.getMinecraftDependenciesProvider().install();
-//		dmgr.getMergedProvider().install();
-//		dmgr.getForgePatchedProvider().install();
-//		dmgr.getForgePatchedAccessTxdProvider().install();
-//		dmgr.getMappingsProvider().install();
-		providers.getProviderOfType(MappedProvider.class).install();
-		providers.getProviderOfType(RemappedDependenciesProvider.class).install();
+		//We need at least Forge's external libraries,
+		providers.getProviderOfType(ForgeDependenciesProvider.class).tryReach(DependencyProvider.Stage.INSTALLED);
+		//Minecraft with all the patches and user-specified remapping applied,
+		providers.getProviderOfType(MappedProvider.class).tryReach(DependencyProvider.Stage.INSTALLED);
+		//and remapped versions of user-supplied dependencies. The dependency-provider task-graph stuff will take care of the rest.
+		providers.getProviderOfType(RemappedDependenciesProvider.class).tryReach(DependencyProvider.Stage.INSTALLED);
 		
 		//Misc wiring-up of genSources-related tasks.
 		AbstractDecompileTask genSourcesDecompileTask = (AbstractDecompileTask) project.getTasks().getByName("genSourcesDecompile");

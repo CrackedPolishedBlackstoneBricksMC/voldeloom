@@ -28,16 +28,13 @@ import net.fabricmc.loom.Constants;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.WellKnownLocations;
 import net.fabricmc.loom.util.TinyRemapperSession;
-import net.fabricmc.mapping.tree.TinyTree;
 import org.gradle.api.Project;
 
 import javax.inject.Inject;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.List;
 import java.util.function.Predicate;
 
 /**
@@ -60,22 +57,21 @@ public class MappedProvider extends DependencyProvider {
 	private final ForgePatchedAccessTxdProvider patchedTxd;
 	private final MappingsProvider mappings;
 	
-	private Path minecraftMappedJar;
-	private Path minecraftIntermediaryJar;
-
-	public void performInstall() throws Exception {
-		//dependencies
-		libs.install();
-		forgePatched.install();
-		patchedTxd.install();
-		mappings.install();
+	//jars (to be created by performInstall)
+	private Path mappedJar;
+	private Path intermediaryJar;
+	
+	//some weirdness related to adding the gradle dependency (flatdir moment)
+	private Path mappedDestDir;
+	private String mappedJarNameKinda;
+	
+	@Override
+	protected void performSetup() throws Exception {
+		libs.tryReach(Stage.SETUP);
+		forgePatched.tryReach(Stage.SETUP);
+		patchedTxd.tryReach(Stage.SETUP);
+		mappings.tryReach(Stage.SETUP);
 		
-		//inputs
-		List<Path> libPaths = new ArrayList<>(libs.getNonNativeLibraries());
-		Path forgePatchedJar = patchedTxd.getTransformedJar();
-		TinyTree mappingsTree = mappings.getMappings();
-		
-		//outputs
 		Path userCache = WellKnownLocations.getUserCache(project);
 		
 		//TODO kludgy? yeah
@@ -87,29 +83,35 @@ public class MappedProvider extends DependencyProvider {
 		);
 		String intermediaryJarName = "minecraft-" + intermediaryJarNameKinda + ".jar";
 		
-		String mappedJarNameKinda = String.format("%s-%s-%s-%s",
+		mappedJarNameKinda = String.format("%s-%s-%s-%s",
 			forgePatched.getPatchedVersionTag(),
 			Constants.MAPPED_NAMING_SCHEME,
 			mappings.getMappingsName(),
 			mappings.getMappingsVersion()
 		);
 		String mappedJarName = "minecraft-" + mappedJarNameKinda + ".jar";
-		Path mappedDestDir = userCache.resolve(mappedJarNameKinda);
+		mappedDestDir = userCache.resolve(mappedJarNameKinda);
 		Files.createDirectories(mappedDestDir);
 		
-		minecraftIntermediaryJar = userCache.resolve(intermediaryJarName);
-		minecraftMappedJar = mappedDestDir.resolve(mappedJarName);
+		intermediaryJar = userCache.resolve(intermediaryJarName);
+		mappedJar = mappedDestDir.resolve(mappedJarName);
 		cleanIfRefreshDependencies();
+	}
+	
+	public void performInstall() throws Exception {
+		libs.tryReach(Stage.INSTALLED);
+		forgePatched.tryReach(Stage.INSTALLED);
+		patchedTxd.tryReach(Stage.INSTALLED);
+		mappings.tryReach(Stage.INSTALLED);
 		
-		//task
-		project.getLogger().lifecycle("] {} jar is at: {}", Constants.INTERMEDIATE_NAMING_SCHEME, minecraftIntermediaryJar);
-		project.getLogger().lifecycle("] {} jar is at: {}", Constants.MAPPED_NAMING_SCHEME, minecraftMappedJar);
-		if (Files.notExists(minecraftIntermediaryJar) || Files.notExists(minecraftMappedJar)) {
+		project.getLogger().lifecycle("] {} jar is at: {}", Constants.INTERMEDIATE_NAMING_SCHEME, intermediaryJar);
+		project.getLogger().lifecycle("] {} jar is at: {}", Constants.MAPPED_NAMING_SCHEME, mappedJar);
+		if (Files.notExists(intermediaryJar) || Files.notExists(mappedJar)) {
 			project.getLogger().lifecycle("|-> At least one didn't exist, performing remap...");
 			
 			//ensure both are actually gone
-			Files.deleteIfExists(minecraftMappedJar);
-			Files.deleteIfExists(minecraftIntermediaryJar);
+			Files.deleteIfExists(mappedJar);
+			Files.deleteIfExists(intermediaryJar);
 			
 			//These are minecraft libraries that conflict with the ones forge wants
 			//They're obfuscated and mcp maps them back to reality. The forge Ant script had a task to delete them lol.
@@ -117,12 +119,12 @@ public class MappedProvider extends DependencyProvider {
 			Predicate<String> classFilter = s -> !s.startsWith("argo") && !s.startsWith("org");
 			
 			new TinyRemapperSession()
-				.setMappings(mappingsTree)
-				.setInputJar(forgePatchedJar)
+				.setMappings(mappings.getMappings())
+				.setInputJar(patchedTxd.getTransformedJar())
 				.setInputNamingScheme(Constants.PROGUARDED_NAMING_SCHEME)
-				.setInputClasspath(libPaths)
-				.addOutputJar(Constants.INTERMEDIATE_NAMING_SCHEME, this.minecraftIntermediaryJar)
-				.addOutputJar(Constants.MAPPED_NAMING_SCHEME, this.minecraftMappedJar)
+				.setInputClasspath(libs.getNonNativeLibraries())
+				.addOutputJar(Constants.INTERMEDIATE_NAMING_SCHEME, this.intermediaryJar)
+				.addOutputJar(Constants.MAPPED_NAMING_SCHEME, this.mappedJar)
 				.setClassFilter(classFilter)
 				.setLogger(project.getLogger()::lifecycle)
 				.run();
@@ -130,21 +132,20 @@ public class MappedProvider extends DependencyProvider {
 			project.getLogger().lifecycle("|-> Remap success! :)");
 		}
 		
-		//TODO: move this out?
 		project.getRepositories().flatDir(repository -> repository.dir(mappedDestDir));
 		project.getDependencies().add(Constants.MINECRAFT_NAMED, project.getDependencies().module("net.minecraft:minecraft:" + mappedJarNameKinda));
 	}
 	
 	public Path getMappedJar() {
-		return minecraftMappedJar;
+		return mappedJar;
 	}
 	
 	public Path getIntermediaryJar() {
-		return minecraftIntermediaryJar;
+		return intermediaryJar;
 	}
 	
 	@Override
 	protected Collection<Path> pathsToClean() {
-		return Arrays.asList(minecraftMappedJar, minecraftIntermediaryJar);
+		return Arrays.asList(mappedJar, intermediaryJar);
 	}
 }

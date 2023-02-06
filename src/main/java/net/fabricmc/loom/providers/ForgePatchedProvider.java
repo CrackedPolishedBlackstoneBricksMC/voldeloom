@@ -43,30 +43,30 @@ public class ForgePatchedProvider extends DependencyProvider {
 	private String patchedVersionTag;
 	private Path patched;
 	
-	public void performInstall() throws Exception {
-		//dependencies
-		mc.install();
-		merged.install();
-		forge.install();
+	@Override
+	protected void performSetup() throws Exception {
+		mc.tryReach(Stage.SETUP);
+		merged.tryReach(Stage.SETUP);
+		forge.tryReach(Stage.SETUP);
 		
-		//inputs
-		Path mergedJar = merged.getMergedJar();
-		Path forgeJar = forge.getJar();
-		
-		//outputs
-		Path userCache = WellKnownLocations.getUserCache(project);
 		patchedVersionTag = mc.getVersion() + "-forge-" + forge.getVersion();
-		patched = userCache.resolve("minecraft-" + patchedVersionTag + "-merged.jar");
-		cleanIfRefreshDependencies();
+		patched = WellKnownLocations.getUserCache(project).resolve("minecraft-" + patchedVersionTag + "-merged.jar");
 		
-		//execution
+		cleanIfRefreshDependencies();
+	}
+	
+	public void performInstall() throws Exception {
+		mc.tryReach(Stage.INSTALLED);
+		merged.tryReach(Stage.INSTALLED);
+		forge.tryReach(Stage.INSTALLED);
+		
 		project.getLogger().lifecycle("] patched jar is at: " + patched);
 		if(Files.notExists(patched)) {
 			project.getLogger().lifecycle("|-> Does not exist, performing patch...");
 			
 			try(
-				FileSystem mergedFs = FileSystems.newFileSystem(URI.create("jar:" + mergedJar.toUri()), Collections.emptyMap());
-				FileSystem forgeFs = FileSystems.newFileSystem(URI.create("jar:" + forgeJar.toUri()), Collections.emptyMap());
+				FileSystem mergedFs = FileSystems.newFileSystem(URI.create("jar:" + merged.getMergedJar().toUri()), Collections.emptyMap());
+				FileSystem forgeFs = FileSystems.newFileSystem(URI.create("jar:" + forge.getJar().toUri()), Collections.emptyMap());
 				FileSystem patchedFs = FileSystems.newFileSystem(URI.create("jar:" + patched.toUri()), Collections.singletonMap("create", "true")))
 			{
 				project.getLogger().lifecycle("|-> Copying vanilla into patched jar...");

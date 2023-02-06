@@ -48,24 +48,24 @@ public class ForgeDependenciesProvider extends DependencyProvider {
 	
 	private final ForgeProvider forge;
 	
-	private Path forgeLibsFolder;
+	private Path forgeJar; //in
+	private Path forgeLibsFolder; //out
+	
+	@Override
+	protected void performSetup() throws Exception {
+		forge.tryReach(Stage.SETUP);
+		
+		forgeJar = forge.getJar();
+		forgeLibsFolder = WellKnownLocations.getUserCache(project).resolve("forgeLibs").resolve(forge.getVersion());
+		Files.createDirectories(forgeLibsFolder);
+		
+		cleanIfRefreshDependencies();
+	}
 	
 	public void performInstall() throws Exception {
-		//dependencies
-		forge.install();
+		forge.tryReach(Stage.INSTALLED);
 		
-		//inputs
-		String forgeVersion = forge.getVersion();
-		Path forgeJar = forge.getJar();
-		
-		//outputs
-		forgeLibsFolder = WellKnownLocations.getUserCache(project).resolve("forgeLibs").resolve(forgeVersion);
-		Files.createDirectories(forgeLibsFolder);
-		cleanIfRefreshDependencies();
-		
-		//outputs and task
 		List<String> sniffedLibraries = new ArrayList<>();
-		
 		try(FileSystem forgeFs = FileSystems.newFileSystem(URI.create("jar:" + forgeJar.toUri()), Collections.emptyMap())) {
 			//read from magical hardcoded path inside the forge jar; this is where the auto-downloaded library paths are stored
 			//TODO: applies from forge 1.3 through forge 1.5, dropped in 1.6

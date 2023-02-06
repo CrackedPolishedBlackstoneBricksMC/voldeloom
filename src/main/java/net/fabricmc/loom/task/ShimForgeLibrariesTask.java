@@ -39,6 +39,7 @@ public class ShimForgeLibrariesTask extends DefaultTask implements LoomTaskExt {
 	}
 	
 	private Set<File> getLibs() {
+		//Requires ForgeDependenciesProvider to run
 		return getProject().getConfigurations().getByName(Constants.FORGE_DEPENDENCIES).getFiles();
 	}
 	

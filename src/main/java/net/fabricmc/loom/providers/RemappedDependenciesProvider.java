@@ -36,17 +36,25 @@ public class RemappedDependenciesProvider extends DependencyProvider {
 	private final MappingsProvider mappings;
 	private final ForgePatchedAccessTxdProvider patchedTxd;
 	
+	private String mappingsSuffix;
+	
+	@Override
+	protected void performSetup() throws Exception {
+		mc.tryReach(Stage.SETUP);
+		mappings.tryReach(Stage.SETUP);
+		patchedTxd.tryReach(Stage.SETUP);
+		
+		mappingsSuffix = mappings.getMappingsName() + "-" + mappings.getMappingsVersion();
+	}
+	
 	public void performInstall() throws Exception {
-		//dependencies
-		mc.install();
-		mappings.install();
-		patchedTxd.install();
+		mc.tryReach(Stage.INSTALLED);
+		mappings.tryReach(Stage.INSTALLED);
+		patchedTxd.tryReach(Stage.INSTALLED);
 		
 		//MERGED from ModCompileRemapper in old tools
-		String mappingsSuffix = mappings.getMappingsName() + "-" + mappings.getMappingsVersion();
 		
 		for(RemappedConfigurationEntry entry : extension.remappedConfigurationEntries) {
-			Path modStore = WellKnownLocations.getRemappedModCache(project);
 			
 			Configuration inputConfig = entry.getInputConfig();
 			Configuration outputConfig = entry.getOutputConfig();
@@ -54,7 +62,7 @@ public class RemappedDependenciesProvider extends DependencyProvider {
 			for(File unmappedFile : inputConfig.getResolvedConfiguration().getFiles()) {
 				try {
 					Path unmappedPath = unmappedFile.toPath();
-					Path mappedPath = modStore.resolve(unmappedPath.getFileName().toString() + "-mapped-" + mappingsSuffix + ".jar");
+					Path mappedPath = WellKnownLocations.getRemappedModCache(project).resolve(unmappedPath.getFileName().toString() + "-mapped-" + mappingsSuffix + ".jar");
 					
 					if(Files.notExists(mappedPath) || Constants.refreshDependencies) {
 						processMod(unmappedPath, mappedPath, null, null, mc, mappings, patchedTxd);

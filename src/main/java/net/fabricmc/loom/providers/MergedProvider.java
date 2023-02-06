@@ -49,27 +49,24 @@ public class MergedProvider extends DependencyProvider {
 	private Path mergedUnfixed;
 	private Path merged;
 	
-	public void performInstall() throws Exception {
-		//dependencies
-		mc.install();
+	@Override
+	protected void performSetup() throws Exception {
+		mc.tryReach(Stage.SETUP);
 		
-		//inputs
-		Path client = mc.getClientJar();
-		Path server = mc.getServerJar();
-		String version = mc.getVersion();
+		merged = WellKnownLocations.getUserCache(project).resolve("minecraft-" + mc.getVersion() + "-merged.jar");
+		mergedUnfixed = WellKnownLocations.getUserCache(project).resolve("minecraft-" + mc.getVersion() + "-merged-unfixed.jar");
 		
-		//outputs
-		Path userCache = WellKnownLocations.getUserCache(project);
-		merged = userCache.resolve("minecraft-" + version + "-merged.jar");
-		mergedUnfixed = userCache.resolve("minecraft-" + version + "-merged-unfixed.jar");
 		cleanIfRefreshDependencies();
+	}
+	
+	public void performInstall() throws Exception {
+		mc.tryReach(Stage.INSTALLED);
 		
-		//execution
 		project.getLogger().lifecycle("] merged-unfixed jar is at: " + mergedUnfixed);
 		if(Files.notExists(mergedUnfixed)) {
 			project.getLogger().lifecycle("|-> Does not exist, performing merge...");
 			
-			try(JarMerger jm = new JarMerger(client.toFile(), server.toFile(), mergedUnfixed.toFile())) {
+			try(JarMerger jm = new JarMerger(mc.getClientJar().toFile(), mc.getServerJar().toFile(), mergedUnfixed.toFile())) {
 				jm.enableSyntheticParamsOffset();
 				jm.merge();
 			}

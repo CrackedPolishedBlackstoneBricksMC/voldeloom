@@ -30,7 +30,6 @@ import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.WellKnownLocations;
 import net.fabricmc.loom.util.Checksum;
 import net.fabricmc.loom.util.DownloadSession;
-import net.fabricmc.loom.util.MinecraftVersionInfo;
 import org.gradle.api.GradleException;
 import org.gradle.api.Project;
 
@@ -56,27 +55,28 @@ public class AssetsProvider extends DependencyProvider {
 	
 	private final MinecraftProvider mc;
 	
+	private Path globalAssetsCache;
 	private Path assetIndexFile;
 	private Path thisVersionAssetsDir;
-	private final Path globalAssetsCache = WellKnownLocations.getUserCache(project).resolve("assets");
 	
-	public void performInstall() throws Exception {
-		//dependencies
-		mc.install();
+	@Override
+	protected void performSetup() throws Exception {
+		mc.tryReach(Stage.SETUP);
 		
-		//inputs
-		MinecraftVersionInfo versionInfo = mc.getVersionManifest();
-		MinecraftVersionInfo.AssetIndex assetIndexInfo = versionInfo.assetIndex;
-		
-		//outputs
-		assetIndexFile = globalAssetsCache.resolve("indexes").resolve(assetIndexInfo.getFabricId(mc.getVersion()) + ".json");
+		globalAssetsCache = WellKnownLocations.getUserCache(project).resolve("assets");
+		assetIndexFile = globalAssetsCache.resolve("indexes").resolve(mc.getVersionManifest().assetIndex.getFabricId(mc.getVersion()) + ".json");
 		thisVersionAssetsDir = globalAssetsCache.resolve("legacy").resolve(mc.getVersion());
 		//Btw, using this `legacy` folder just to get out of regular Loom's way.
 		//(We don't clean these on refreshDependencies just beacuse they take a long time to download.)
+	}
+	
+	public void performInstall() throws Exception {
+		//dependencies
+		mc.tryReach(Stage.INSTALLED);
 		
 		//task
 		boolean offline = project.getGradle().getStartParameter().isOffline();
-		if (Files.notExists(assetIndexFile) || !Checksum.compareSha1(assetIndexFile, assetIndexInfo.sha1)) {
+		if (Files.notExists(assetIndexFile) || !Checksum.compareSha1(assetIndexFile, mc.getVersionManifest().assetIndex.sha1)) {
 			project.getLogger().lifecycle(":downloading asset index");
 
 			if (offline) {
@@ -89,7 +89,7 @@ public class AssetsProvider extends DependencyProvider {
 				}
 			} else {
 				Files.createDirectories(globalAssetsCache);
-				new DownloadSession(assetIndexInfo.url, project)
+				new DownloadSession(mc.getVersionManifest().assetIndex.url, project)
 					.dest(assetIndexFile)
 					.etag(true)
 					.gzip(true)

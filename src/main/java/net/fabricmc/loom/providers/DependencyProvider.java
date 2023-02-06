@@ -66,38 +66,69 @@ public abstract class DependencyProvider {
 	protected final Project project;
 	protected final LoomGradleExtension extension;
 	
-	protected abstract void performInstall() throws Exception;
-	//TODO: only guaranteed to be populated inside/after decorateProject
+	private Stage stage = Stage.EARLY;
+	
+	/**
+	 * Initialize the provider.
+	 * <p>
+	 * This is for "light weight" tasks, like picking a Path that task output should go into.
+	 * Sometimes work is done in {@code performSetup}; downloading the MC version manifest provides version data that can be used other setup functions, for example.
+	 * But in general we are just planning. It's possible that the Paths don't correspond to any files on-disk yet - that's {@code performInstall}'s job.
+	 */
+	protected void performSetup() throws Exception { }
+	
+	/**
+	 * Install the provider.
+	 * <p>
+	 * This is for "heavy duty" tasks, like running a remapper or jar merger.
+	 * <p>
+	 * TODO: The "heavy duty" tasks should be split into their own stage, reserving this one only for project mutations...?
+	 */
+	protected void performInstall() throws Exception { }
+	
+	//TODO: only guaranteed to be populated inside/after performSetup
 	protected abstract Collection<Path> pathsToClean();
-	
-	private boolean installed = false;
-	
-	public void install() {
-		if(installed) return;
-		
-		project.getLogger().lifecycle(":installing dep provider '{}'", getClass().getSimpleName());
-		try {
-			performInstall();
-		} catch (Exception e) {
-			throw new RuntimeException("Failed to install " + getClass().getSimpleName() + ": " + e.getMessage(), e);
-		}
-		project.getLogger().lifecycle(":finished installing dep provider '{}'!", getClass().getSimpleName());
-		installed = true;
-	}
-	
-	public void assertInstalled() {
-		//but what if i were to install it now, and disguise it as my own assertion?
-		//delightfully devilish, seymour
-		install();
-		
-		if(!installed) throw new IllegalStateException(getClass().getSimpleName() + " hasn't been installed yet!");
-	}
 	
 	public void cleanIfRefreshDependencies() {
 		if(Constants.refreshDependencies) {
 			project.getLogger().lifecycle("|-> Deleting outputs of " + getClass().getSimpleName() + " because --refresh-dependencies was passed");
 			LoomGradlePlugin.delete(project, pathsToClean());
 		}
+	}
+	
+	public void reach(Stage newStage) throws Exception {
+		if(stage == Stage.EARLY && newStage.ordinal() >= Stage.SETUP.ordinal()) {
+			project.getLogger().lifecycle(":bringing {} to stage {}...", getClass().getSimpleName(), Stage.SETUP);
+			
+			performSetup();
+			stage = Stage.SETUP;
+			
+			project.getLogger().lifecycle(":brought {} to stage {}!", getClass().getSimpleName(), Stage.SETUP);
+		}
+		
+		if(stage == Stage.SETUP && newStage.ordinal() >= Stage.INSTALLED.ordinal()) {
+			project.getLogger().lifecycle(":bringing {} to stage {}...", getClass().getSimpleName(), Stage.INSTALLED);
+			
+			performInstall();
+			stage = Stage.INSTALLED;
+			
+			project.getLogger().lifecycle(":brought {} to stage {}!", getClass().getSimpleName(), Stage.INSTALLED);
+		}
+	}
+	
+	public void tryReach(Stage newStage) {
+		try {
+			reach(newStage);
+		} catch (Exception e) {
+			throw new RuntimeException("Failed to bring " + getClass().getSimpleName() + " to stage " + newStage + ": " + e.getMessage(), e);
+		}
+	}
+	
+	public void assertInstalled() {
+		//but what if i were to install it now, and disguise it as my own assertion?
+		//delightfully devilish, seymour
+		tryReach(Stage.INSTALLED);
+		if(stage.ordinal() < Stage.INSTALLED.ordinal()) throw new IllegalStateException(getClass().getSimpleName() + " hasn't been installed yet!");
 	}
 	
 	///
@@ -311,11 +342,19 @@ public abstract class DependencyProvider {
 		}
 	}
 	
+	///...///
+	
 	protected Collection<Path> andEtags(Collection<Path> in) {
 		ArrayList<Path> out = new ArrayList<>(in);
 		for(Path i : in) {
 			out.add(i.resolveSibling(i.getFileName().toString() + ".etag"));
 		}
 		return out;
+	}
+	
+	public enum Stage {
+		EARLY,
+		SETUP,
+		INSTALLED
 	}
 }

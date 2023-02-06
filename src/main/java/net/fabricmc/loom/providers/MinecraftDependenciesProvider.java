@@ -58,25 +58,26 @@ public class MinecraftDependenciesProvider extends DependencyProvider {
 	
 	private final MinecraftProvider mc;
 	
-	private final Collection<Path> nonNativeLibs = new HashSet<>();
 	private Path nativesDir;
+	private Path nativesJarStore;
+	
+	private final Collection<Path> nonNativeLibs = new HashSet<>();
+	
+	@Override
+	protected void performSetup() throws Exception {
+		mc.tryReach(Stage.SETUP);
+		
+		nativesDir = WellKnownLocations.getUserCache(project).resolve("natives").resolve(mc.getVersion());
+		nativesJarStore = nativesDir.resolve("jars");
+		
+		cleanIfRefreshDependencies();
+		Files.createDirectories(nativesJarStore);
+	}
 	
 	public void performInstall() throws Exception {
-		//dependencies
-		mc.install();
+		mc.tryReach(Stage.INSTALLED);
 		
-		//inputs
-		MinecraftVersionInfo versionInfo = mc.getVersionManifest();
-		
-		//outputs
-		nativesDir = WellKnownLocations.getUserCache(project).resolve("natives").resolve(mc.getVersion());
-		Path nativesJarStore = nativesDir.resolve("jars");
-		cleanIfRefreshDependencies();
-		
-		Files.createDirectories(nativesJarStore);
-		
-		//task
-		for(MinecraftVersionInfo.Library library : versionInfo.libraries) {
+		for(MinecraftVersionInfo.Library library : mc.getVersionManifest().libraries) {
 			if(!library.allowed()) continue;
 			
 			if(library.isNative()) {

@@ -47,6 +47,8 @@ import java.util.Optional;
 
 /**
  * Parses the custom non-Maven version manifest used by Minecraft. Also, downloads the split minecraft client and server jars.
+ * 
+ * TODO: give this a touch-up.
  */
 public class MinecraftProvider extends DependencyProvider {
 	@Inject
@@ -55,34 +57,32 @@ public class MinecraftProvider extends DependencyProvider {
 	}
 	
 	private String minecraftVersion;
-	private MinecraftVersionInfo versionInfo;
-	
-	private final Path manifests = WellKnownLocations.getUserCache(project).resolve("version_manifest.json");
+	private Path manifests;
 	private Path minecraftJson;
 	private Path minecraftClientJar;
 	private Path minecraftServerJar;
 	
-	public void performInstall() throws Exception {
-		//deps
-		DependencyInfo minecraftDependency = getSingleDependency(Constants.MINECRAFT);
-		minecraftVersion = minecraftDependency.getDependency().getVersion();
+	private MinecraftVersionInfo versionInfo;
+	
+	@Override
+	protected void performSetup() throws Exception {
+		minecraftVersion = getSingleDependency(Constants.MINECRAFT).getDependency().getVersion();
 		
-		//outputs
 		Path userCache = WellKnownLocations.getUserCache(project);
 		minecraftJson = userCache.resolve("minecraft-" + minecraftVersion + "-info.json");
 		minecraftClientJar = userCache.resolve("minecraft-" + minecraftVersion + "-client.jar");
 		minecraftServerJar = userCache.resolve("minecraft-" + minecraftVersion + "-server.jar");
+		manifests = WellKnownLocations.getUserCache(project).resolve("version_manifest.json");
 		
 		cleanIfRefreshDependencies();
 		
-		//execution
 		boolean offline = project.getGradle().getStartParameter().isOffline();
 		downloadMcJson(offline);
-
+		
 		try(BufferedReader reader = Files.newBufferedReader(minecraftJson)) {
 			versionInfo = new Gson().fromJson(reader, MinecraftVersionInfo.class);
 		}
-
+		
 		if(offline) {
 			if(Files.exists(minecraftClientJar) && Files.exists(minecraftServerJar)) {
 				project.getLogger().debug("Found client and server jars, presuming up-to-date");
@@ -92,6 +92,10 @@ public class MinecraftProvider extends DependencyProvider {
 		} else {
 			downloadJars();
 		}
+	}
+	
+	public void performInstall() throws Exception {
+		//No processing to do
 	}
 	
 	private void downloadMcJson(boolean offline) throws IOException {
