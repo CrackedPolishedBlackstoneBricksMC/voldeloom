@@ -26,6 +26,7 @@ package net.fabricmc.loom;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.ByteStreams;
+import net.fabricmc.loom.providers.MinecraftDependenciesProvider;
 import net.fabricmc.loom.util.GradleSupport;
 import net.fabricmc.loom.util.OperatingSystem;
 import org.gradle.api.JavaVersion;
@@ -119,7 +120,10 @@ public class RunConfig implements Named {
 		RunConfig copy = copy();
 		if(getEnvironment().equals("client")) {
 			copy.property("minecraft.applet.TargetDirectory", resolveRunDir().toAbsolutePath().toString());
-			String nativeLibsDir = ext.getDependencyManager().getMinecraftDependenciesProvider().getNativesDir().toAbsolutePath().toString();
+			
+			MinecraftDependenciesProvider libs = ext.getDependencyManager().getMinecraftDependenciesProvider();
+			libs.assertInstalled();
+			String nativeLibsDir = libs.getNativesDir().toAbsolutePath().toString();
 			copy.property("java.library.path", nativeLibsDir);
 			copy.property("org.lwjgl.librarypath", nativeLibsDir);
 		}

@@ -61,7 +61,7 @@ public class MinecraftDependenciesProvider extends DependencyProvider {
 	private final Collection<Path> nonNativeLibs = new HashSet<>();
 	private Path nativesDir;
 	
-	public void decorateProject() throws Exception {
+	public void performInstall() throws Exception {
 		//inputs
 		MinecraftVersionInfo versionInfo = mc.getVersionManifest();
 		

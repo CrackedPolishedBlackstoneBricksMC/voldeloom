@@ -63,6 +63,7 @@ public class RemapJarTask extends Jar {
 		Path output = this.getArchivePath().toPath();
 		
 		MappingsProvider mappingsProvider = extension.getDependencyManager().getMappingsProvider();
+		mappingsProvider.assertInstalled();
 		
 		Set<Path> remapClasspath = project.getConfigurations()
 			.getByName(JavaPlugin.COMPILE_CLASSPATH_CONFIGURATION_NAME)

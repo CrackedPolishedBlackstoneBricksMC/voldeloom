@@ -21,7 +21,7 @@ public class ForgeProvider extends DependencyProvider {
 	private Path forge;
 	private String forgeVersion;
 	
-	public void decorateProject() throws Exception {
+	public void performInstall() throws Exception {
 		DependencyInfo forgeDependency = getSingleDependency(Constants.FORGE);
 		forge = forgeDependency.resolveSinglePath();
 		forgeVersion = forgeDependency.getDependency().getVersion();

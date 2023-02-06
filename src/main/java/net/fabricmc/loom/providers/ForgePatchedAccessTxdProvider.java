@@ -43,7 +43,7 @@ public class ForgePatchedAccessTxdProvider extends DependencyProvider {
 	
 	private Path accessTransformedMc;
 	
-	public void decorateProject() throws Exception {
+	public void performInstall() throws Exception {
 		//inputs
 		Path forgeJar = forge.getJar();
 		Path unAccessTransformedMc = forgePatched.getPatchedJar();

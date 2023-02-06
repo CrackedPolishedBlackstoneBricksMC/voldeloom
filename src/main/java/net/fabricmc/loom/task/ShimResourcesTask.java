@@ -40,7 +40,9 @@ public class ShimResourcesTask extends DefaultTask implements LoomTaskExt {
 	@TaskAction
 	public void doIt() throws Exception {
 		LoomGradleExtension ext = getLoomGradleExtension();
+		
 		AssetsProvider assets = ext.getDependencyManager().getAssetsProvider();
+		assets.assertInstalled();
 		
 		Path resourceSourceDirectory = assets.getAssetsDir();
 		

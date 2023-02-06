@@ -60,7 +60,7 @@ public class AssetsProvider extends DependencyProvider {
 	private Path thisVersionAssetsDir;
 	private final Path globalAssetsCache = WellKnownLocations.getUserCache(project).resolve("assets");
 	
-	public void decorateProject() throws Exception {
+	public void performInstall() throws Exception {
 		//inputs
 		MinecraftVersionInfo versionInfo = mc.getVersionManifest();
 		MinecraftVersionInfo.AssetIndex assetIndexInfo = versionInfo.assetIndex;

@@ -50,7 +50,7 @@ public class ForgeDependenciesProvider extends DependencyProvider {
 	
 	private Path forgeLibsFolder;
 	
-	public void decorateProject() throws Exception {
+	public void performInstall() throws Exception {
 		//inputs
 		String forgeVersion = forge.getVersion();
 		Path forgeJar = forge.getJar();

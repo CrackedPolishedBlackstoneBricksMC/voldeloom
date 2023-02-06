@@ -27,6 +27,7 @@ package net.fabricmc.loom.util;
 import net.fabricmc.loom.Constants;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.LoomGradlePlugin;
+import net.fabricmc.loom.providers.MappedProvider;
 import net.fabricmc.loom.providers.MappingsProvider;
 import net.fabricmc.mapping.tree.ClassDef;
 import net.fabricmc.mapping.tree.FieldDef;
@@ -58,6 +59,7 @@ public class SourceRemapper {
 	private static void remapSourcesInner(Project project, File source, File destination, boolean toNamed) throws Exception {
 		LoomGradleExtension extension = project.getExtensions().getByType(LoomGradleExtension.class);
 		MappingsProvider mappingsProvider = extension.getDependencyManager().getMappingsProvider();
+		mappingsProvider.assertInstalled();
 
 		MappingSet mappings = extension.getOrCreateSrcMappingCache(toNamed ? 1 : 0, () -> {
 			try {
@@ -85,8 +87,10 @@ public class SourceRemapper {
 				}
 			}
 			
-			m.getClassPath().add(extension.getDependencyManager().getMappedProvider().getMappedJar());
-			m.getClassPath().add(extension.getDependencyManager().getMappedProvider().getIntermediaryJar());
+			MappedProvider mappedProvider = extension.getDependencyManager().getMappedProvider();
+			mappedProvider.assertInstalled();
+			m.getClassPath().add(mappedProvider.getMappedJar());
+			m.getClassPath().add(mappedProvider.getIntermediaryJar());
 
 			m.getProcessors().add(MercuryRemapper.create(mappings));
 

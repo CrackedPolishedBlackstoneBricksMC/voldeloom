@@ -49,7 +49,7 @@ public class MergedProvider extends DependencyProvider {
 	private Path mergedUnfixed;
 	private Path merged;
 	
-	public void decorateProject() throws Exception {
+	public void performInstall() throws Exception {
 		//inputs
 		Path client = mc.getClientJar();
 		Path server = mc.getServerJar();

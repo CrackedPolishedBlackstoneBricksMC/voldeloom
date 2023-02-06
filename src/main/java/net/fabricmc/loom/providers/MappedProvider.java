@@ -63,7 +63,7 @@ public class MappedProvider extends DependencyProvider {
 	private Path minecraftMappedJar;
 	private Path minecraftIntermediaryJar;
 
-	public void decorateProject() throws Exception {
+	public void performInstall() throws Exception {
 		//inputs
 		List<Path> libPaths = new ArrayList<>(libs.getNonNativeLibraries());
 		Path forgePatchedJar = patchedTxd.getTransformedJar();

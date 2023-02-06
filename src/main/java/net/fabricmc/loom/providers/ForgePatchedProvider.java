@@ -43,7 +43,7 @@ public class ForgePatchedProvider extends DependencyProvider {
 	private String patchedVersionTag;
 	private Path patched;
 	
-	public void decorateProject() throws Exception {
+	public void performInstall() throws Exception {
 		//inputs
 		Path mergedJar = merged.getMergedJar();
 		Path forgeJar = forge.getJar();

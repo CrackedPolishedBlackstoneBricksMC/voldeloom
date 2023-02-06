@@ -30,6 +30,8 @@ public class ProviderGraph {
 	}
 	
 	private DependencyProvider constructProviderOfType(Class<? extends DependencyProvider> type) {
+		project.getLogger().info("|-> Constructing " + type.getSimpleName() + "...");
+		
 		//"Note that while this method returns an array of Constructor<T> objects [...],
 		//the return type of this method is Constructor<?>. [...] This less informative
 		//return type is necessary since after being returned from this method, the

@@ -71,11 +71,27 @@ public abstract class DependencyProvider {
 	protected final Project project;
 	protected final LoomGradleExtension extension;
 	
-	//set this to `true` after running the provide method
-	//(which is no longer in this class as `abstract`, because it takes a per-provider argument list)
+	protected abstract void performInstall() throws Exception;
+	//TODO: only guaranteed to be populated inside/after decorateProject
+	protected abstract Collection<Path> pathsToClean();
+	
 	public boolean installed = false;
 	
-	protected abstract Collection<Path> pathsToClean();
+	public void install() {
+		project.getLogger().lifecycle(":running dep provider '{}'", getClass().getSimpleName());
+		
+		try {
+			performInstall();
+		} catch (Exception e) {
+			throw new RuntimeException("Failed to provide " + getClass().getSimpleName() + ": " + e.getMessage(), e);
+		}
+		
+		installed = true;
+	}
+	
+	public void assertInstalled() {
+		if(!installed) throw new IllegalStateException(getClass().getSimpleName() + " hasn't been installed yet!");
+	}
 	
 	public final TaskProvider<CleaningTask> addCleaningTask() {
 		String nameFunny = getClass().getSimpleName();

@@ -36,7 +36,7 @@ public class RemappedDependenciesProvider extends DependencyProvider {
 	private final MappingsProvider mappingsProvider;
 	private final ForgePatchedAccessTxdProvider patchedAccessTxdProvider;
 	
-	public void decorateProject() throws Exception {
+	public void performInstall() throws Exception {
 		String mappingsSuffix = mappingsProvider.getMappingsName() + "-" + mappingsProvider.getMappingsVersion();
 		
 		//MERGED from ModCompileRemapper in old tools

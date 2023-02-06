@@ -77,7 +77,7 @@ public class MappingsProvider extends DependencyProvider {
 	private Path tinyMappings;
 	private Path tinyMappingsJar;
 	
-	public void decorateProject() throws Exception {
+	public void performInstall() throws Exception {
 		//inputs
 		DependencyInfo mappingsDependency = getSingleDependency(Constants.MAPPINGS);
 		Path mappingsJar = mappingsDependency.resolveSinglePath();

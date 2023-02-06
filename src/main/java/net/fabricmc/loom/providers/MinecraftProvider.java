@@ -62,7 +62,7 @@ public class MinecraftProvider extends DependencyProvider {
 	private Path minecraftClientJar;
 	private Path minecraftServerJar;
 	
-	public void decorateProject() throws Exception {
+	public void performInstall() throws Exception {
 		//deps
 		DependencyInfo minecraftDependency = getSingleDependency(Constants.MINECRAFT);
 		minecraftVersion = minecraftDependency.getDependency().getVersion();
