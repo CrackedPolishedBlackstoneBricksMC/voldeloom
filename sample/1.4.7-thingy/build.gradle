@@ -1,0 +1,53 @@
+buildscript {
+	repositories {
+		mavenCentral()
+		maven { url "https://maven.fabricmc.net" }
+		//maven { url "https://repo.sleeping.town" } //Commented out to use the version of voldeloom in the settings.gradle includeBuild (hopefully??)
+	}
+	dependencies {
+		classpath "agency.highlysuspect:voldeloom:2.0+SNAPSHOT"
+	}
+}
+
+apply plugin: "agency.highlysuspect.voldeloom"
+
+java {
+	toolchain {
+		//Last version able to set a --release as low as 6.
+		languageVersion = JavaLanguageVersion.of(11)
+	}
+}
+
+compileJava {
+	//Forge doesn't understand classes compiled to versions of the class-file format newer than Java 6's.
+	options.release.set(6)
+}
+
+String minecraftVersion = "1.4.7"
+String forgeVersion = "1.4.7-6.6.2.534"
+
+minecraft {
+	runs {
+		client {
+			programArg "quaternary"
+		}
+	}
+}
+
+repositories {
+	maven {
+		url "https://repo.sleeping.town"
+		mavenContent {
+			includeGroup "com.unascribed"
+		}
+	}
+}
+
+dependencies {
+	minecraft "com.mojang:minecraft:${minecraftVersion}"
+	forge "net.minecraftforge:forge:${forgeVersion}:universal@zip"
+	mappings "com.unascribed:unknownthingy:1.19:v2"
+	
+	coremodImplementation files("../dep_testin/ears-forge-1.4-1.4.5_01.jar")
+	modImplementation files("../dep_testin/buildcraft-A-1.4.7-3.4.4.jar")
+}

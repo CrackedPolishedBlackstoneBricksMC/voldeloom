@@ -113,6 +113,14 @@ public class MappingsProvider extends DependencyProvider {
 			}
 			
 			try(FileSystem mcpZipFs = FileSystems.newFileSystem(URI.create("jar:" + rawMappingsJar.toUri()), Collections.emptyMap())) {
+				//TODO: Remove this crap when i do the good mappings system
+				Path tinyv2FunnyMoments = mcpZipFs.getPath("mappings/mappings.tiny"); 
+				if(Files.exists(tinyv2FunnyMoments)) {
+					//WOW its already in tinyv2 format how neat!!!
+					project.getLogger().warn("MAPPINGS ALREADY TINYv2 I THINK!!!!!");
+					Files.copy(tinyv2FunnyMoments, tinyMappings);
+				} else {
+				
 				Path conf;
 				if(Files.exists(mcpZipFs.getPath("forge/fml/conf"))) {
 					conf = mcpZipFs.getPath("forge/fml/conf"); //Forge 1.3 to Forge 1.7
@@ -174,7 +182,7 @@ public class MappingsProvider extends DependencyProvider {
 				Files.write(tinyMappings, tinyv2, StandardCharsets.UTF_8);
 				
 				project.getLogger().info("|-> Done!");
-			}
+			}}
 		}
 		
 		//Package them up for tiny-remapper, which expects to find the mappings in a specific spot in a jar
