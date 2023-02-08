@@ -8,93 +8,108 @@ If you're interested in the history:
 * Forked by [TwilightFlower](https://github.com/TwilightFlower/) May 2020 for the release of [Retro Tater](https://github.com/TwilightFlower/retro-tater); she did lots of the initial architecture work.
 * Tweaked, maintained, and additional version support by [unascribed](https://github.com/unascribed/) May 2021 - May 2022 for the release of [Ears](https://git.sleeping.town/unascribed/Ears/src/branch/trunk/platform-forge-1.4) and other Forge mods.
 * Minor tweak by [quaternary](https://github.com/quat1024) Jul 2022 for the release of [Hopper](https://github.com/quat1024/hoppers).
-* Rewritten by quaternary Dec 2022 - Jan 2023.
 
-This is the `disaster-time` branch, aka "quat's playground". Here be dragons. It's me. I'm the dragon.
+And because you're on the `disaster-time` branch:
+
+* Rewritten by quaternary Dec 2022 - Feb 2023.
+
+# Usage
+
+Start with this `build.gradle`:
+
+```groovy
+buildscript {
+	repositories {
+		mavenCentral()
+		maven { url "https://maven.fabricmc.net" }
+		maven { url "https://repo.sleeping.town" }
+	}
+	dependencies {
+		classpath "agency.highlysuspect:voldeloom:2.0-SNAPSHOT"
+	}
+}
+
+apply plugin: "agency.highlysuspect.voldeloom"
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(11) //Last version able to set a --release as low as 6
+compileJava.options.release.set(6) //Forge doesn't understand classes compiled to versions of the class-file format newer than Java 6's
+
+String minecraftVersion = "1.4.7"
+String forgeVersion = "1.4.7-6.6.2.534"
+
+dependencies {
+	minecraft "com.mojang:minecraft:${minecraftVersion}"
+	forge "net.minecraftforge:forge:${forgeVersion}:universal@zip"
+	mappings "net.minecraftforge:forge:${forgeVersion}:src@zip"
+}
+```
+
+(Infinite thanks to unascribed for hosting the maven.)
+
+I would *strongly* suggest using modern tech (Java 17 and Gradle 7.6), but if you require legacy tech for some reason I won't judge, it should work on versions as old as Gradle 4 provided that you use Java 8.
+
+Now `./gradlew runClient --info --stacktrace` should perform a bunch of magic culminating in a Minecraft Forge 1.4.7 client window. (Modern Gradle users shan't worry about Java versions when invoking this task, as the toolchains feature will be leveraged to provision a Java 8 environment.) As an optional next step, `genSources` will churn out a nice sources jar (with javadoc!) for you to attach in your IDE, just like Loom. Then, just start modding.
+
+# Documentation / help
+
+Well I've gotta finish it first! Even this `README` gets outdated worryingly quickly.
+
+* Look in `sample` for some sample projects. These are compiled in CI, so it should at least get that far.
+  * note the caveat about the weird gradle setup though, you can't just copy all files in the sample project and start working
+* See the `LoomGradleExtension` class for a full list of things you can configure from `minecraft { }`.
+* I'm trying to write lots of javadoc?
+* [Ask me](https://highlysuspect.agency/discord).
+
+If you're looking for general 1.4 Forge development advice, try [here](https://github.com/quat1024/hoppers/blob/trunk/NOTES.md).
 
 # current status
 
 What works:
 
-* Forge's Maven is configured for you, replete with the `metadataSources` forward-compat hack for gradle 5+
-* `genSources` decompiles the whole game, apart from ~5 methods due to MCP errata (moved switchmap classes)
-  * Attaching and browsing sources works in IDEA
-  * "Find usages" works too
-* Asset downloading uses the old, flatter format 
-* `runClient` will successfully start a copy of Minecraft Forge 1.4.7
-  * Getting in-world works. It works due to a kludge, but it does work
-  * Breakpoints and debugging seem to work (line #s are off in `Minecraft` due to decompiler crap but yeah)
-  * The `shimForgeLibraries` task predownloads Forge's runtime-downloaded deps and places them in the location Forge expects, because the URLs hardcoded in forge are long dead
-  * The `shimResources` task will copy assets from your local assets cache into the run directory (because you can't configure `--assetsDir` in this version of the game)
-* Parse MCP mappings directly out of a Forge `-src` zip! No need to download MCP separately, and definitely no need to manually paste the Forge zip on top
-  * See sample mod for how to do this.
-  * If you still choose to download an mcp zip, when the internet archive inevitably gives you a zero-byte, there's a nicer error now lol
-* Partial backport of the "extendable run configs" thing from newer Fabric Loom versions
+* Forge's Maven is configured for you with free bonus `metadataSources` forward-compat magic for gradle 5+
+* `genSources` (sans ~5 methods with MCP messed-up switchmaps), attaching sources in intellij, browsing and find usages, MCP comments propagating through
+* Asset downloading, in the old file layout that legacy versions use
+* `runClient` gets in-game (on at least 1.4.7 and 1.5.2)
+  * `shimForgeLibraries` task predownloads Forge's runtime-downloaded deps and places them in the location Forge expects, because the URLs hardcoded in forge are long dead
+  * `shimResources` task will copy assets from your local assets cache into the run directory (because you can't configure `--assetsDir` in this version of the game)
+* Recognized mapping sources: a Forge `-src` zip, an MCP download, tinyv2 archives
+* Mostly-complete backport of the "extendable run configs" thing from newer Fabric Loom versions
   * Define your own run configs, with per-config vm args and system properties and stuff
   * 1.4 doesn't parse any program arguments apart from the username (arg 0) and session token (arg 1)
-* `modImplementation`/etc works!
-  * `coremodImplementation`/etc exists for coremods (they will be moved to the `coremods` folder, where Forge wants to find them) 
-* Gradle 4 works
-  * Maybe even Gradles 5 and 6, too, although they're not a priority 
-  * Use `modCompile` instead of `modImplementation`, and drop the `only` from `modRuntimeOnly` (`implementation`/`runtimeOnly` are a gradle 7 convention)
-* On Gradle 6+, a Java 8 toolchain is provisioned for you for run configs. You can configure the version and vendor.
+* `modImplementation`/etc works
+  * `coremodImplementation`/etc exists for coremods that exist at runtime, which need special handling (`remappedConfigEntryFolderCopy` task handles it) 
+* Gradle 4 and 7 work 
+  * On Gradle 7-, use `modCompile` instead of `modImplementation`, and drop the `only` from `modRuntimeOnly` (`implementation`/`runtimeOnly` are a gradle 7 convention)
+* On Gradle 6+, a Temurin 8 toolchain is provisioned for run configs. You can configure the version and vendor
   * Done without breaking Gradle 4 source compatibilty in the plugin btw... so its kinda jank
 
-Magical secret kludges that make the above work:
-
-* One mapping cheat to fix `Block$1` showing up in the wrong spot
-  * Needs a fix in the mappings parser or processor or something
-* Two mapping cheats to get Ears running
-  * The mod remaps fine, but the release binary looks up classes by their proguarded names with `Class.forName`.
-  * (Working 1.4 dev environments were a thing of the past when Ears was written, so it just doesn't expect to be ran in deobf lol.)
-  * Ideally I should backport customizable per-project mappings, so you can fix stuff like this yourself.
+(There are 2 magical secret mapping kludges that make Ears work, because it wasn't expected to run in a dev environment, that i will remove after adding user-configurable mappings)
 
 What doesn't work yet:
 
 * Minecraft versions other than 1.4.7 and 1.5.2 don't work
   * The long-term goal is to merge the differences between the 1.2.5/1.5.2 branches into something runtime-configurable
 * Generated IDE run configs are broken.
-  * The `runClient` task is more of a priority because it's much easier to work with and more flexible.
+  * The `runClient` task works, and is more of a priority because I get much more direct control over the startup process
   * (I don't think many modders know what the actual difference between `runClient` and ide runs are, maybe i should write something up)
+  * Something is putting a million java 8 jars on the runtime classpath
 * I don't know how broken Eclipse/VSCode are
-* Source remapping tasks don't work (but who cares cause you're stuck with MCP)
-* `migrateMappings` doesn't work (but who cares cause you're stuck with MCP)
-* Probably a lot of other things don't work
-
-To do list:
-
-* Write a jar remapper with a more basic "search and replace" name-finding algorithm for reobf, emulating what MCP's reobf script does (basically i want to make [this commit](https://github.com/unascribed/BuildCraft/commit/06dc8a89f4ea503eb7dc696395187344658cf9c1) not something you have to worry about)
-  * investigate: tiny-remapper has a mode to ignore field ~~and method~~ descriptors...
-* Investigate what's going on with the intellij run-config classpath that makes Forge try and load a bunch of java 8 jars
-* In the "have proguard names show through when there's no mcp name" mode, enums get proguarded.
-* You can depend on coremods with `coremodImplementation`, but you can't actually write your own, because it won't be in the coremods folder. Boo hiss.
-  * Fixable with a task... possibly not fixable with a run config unless they let you run arbitrary gradle tasks
-    * They do (see: modern ForgeGradle)
-* You can't add your own access transformers or customize the mappings
-  * Needs projectmapping support which i've been working towards w/ the dependency provider changes
-  * Needs cute little dsl for merging mappings (maybe check out how loom.layered works)
-* ~~I've refactored the "provider" system a couple times and still really, really dislike it. It's very ugly and inflexible and needs a rethinking.~~
-  * It's a little bit less gross now and im working towards increased flexibility, at the cost of more complexity, because i have become the very thing i seek to destroy
-  * *quietly adds "wrote a DI framework" to resume*
-* Rebrand:tm: the project tbh.. Lol there's still a lot of user-facing references to "fabric" even
-* Slap a beta version on maven
+* Dependency source-remapping is broken, and `migrateMappings` is broken. If you're using retro mapping projects other than MCP....... have Fun
+* You can depend on other people's coremods, but you can't develop them (they don't end up in the `coremods` folder where Forge wants to find them)
+* You can't depend on mods that require access transformers, and you can't write your own access transformers
+* (both of the above require "projectmapping", the ability for the plugin to recognize that a configuration is per-project and shouldn't be shared into the global gradle cache)
+* The jar remapper (tiny-remapper) is "too smart" - MCP used a much simpler namefinding algorithm (you might need to worry about [this sort of thing](https://github.com/unascribed/BuildCraft/commit/06dc8a89f4ea503eb7dc696395187344658cf9c1))
 
 What I'd like to add:
 
-* Propagate MCP comments into the remapped jars (I think it's possible)
-* Quiltflower lol. This isn't "using shiny new tech for the sake of it", it does successfully grab some methods that Fernflower fails to decompile due to switchmap comedy. Quiltflower only runs on java 11 though
-* Launchwrapper support.
-  * For flexibility's sake.
-  * It starts coming into the picture later in the timeline of minecraft though. Currently the game is directly launched through `net.minecraft.client.MinecraftClient#main`, which this version of Forge patches
-* DevLaunchInjector????
-  * I feel like it's not much of a value-add, given that all it can do is set system properties and program arguments, which i have to be able to do anyway to configure devlaunchinjector in the first place...?
-  * Wait ok, so why does loom use dli then
-  * Depends how shitty various IDE's run config interfaces are though
-* (if i wanna get really silly) Use Forge's secret access transformer command-line program instead of maintaining an access transformer parser
-* Pack200 parser for 1.6/1.7 `binpatches.pack.lzma` support
+* the aforementioned projectmapping
+* Quiltflower lol
+  * This isn't "using shiny new tech for the sake of it", it does successfully do some methods that Fernflower fails to decompile due to the switchmap comedy funny
+  * Quiltflower only runs on java 11 though
+* Launchwrapper? DevLaunchInjector?
+* 1.6/1.7 support is blocked on needing a working Pack200 parser to read `binpatches.pack.lzma`, yes i tried commons-compress it's broken 
   * Why'd they use pack200 when there aren't even any *classes* in the pack? Anyone's guess!!!
-  * Yes i tried commons-compress, it's broken
-  * Tbh I think the best way is to write some glue that uses the java8 pack200 parser, then write more glue that uses the gradle toolchains feature to call it if we're too new, or call it directly if we're old enough
+  * Tbh I think the best way is to write some glue that uses the java8 pack200 parser, then either be on or provision a java8 toolchain, and call it
   * weeee
 
 # Differences between this toolchain and period-accurate Forge
@@ -106,7 +121,7 @@ Basically this uses a more Fabricy "do as much as possible with binaries" approa
 * Only *then* do we even *think* about touching Fernflower.
   * It's even optional; running `genSources` is not required to compile a mod.
 
-We do miss out on the occasional line-comment that Forge's source patches add, but skipping Fernflower makes everything nice and quick.
+We do miss out on the occasional line-comment that Forge's source patches add, but skipping Fernflower makes everything complete very fast.
 
 One exception to this hierarchy is that we merge the client and server jars first (using FabricMC's JarMerger) and paste Forge's files on top of the merged jar, when the period-accurate installation process would probably paste Forge on top of merely a client jar or server jar. This is seamless because Forge's class-overwrites were evidently computed against a merged jar in the first place (see `in.class`, which ships a `SideOnly` annotation on a vanilla method).
 
@@ -140,7 +155,7 @@ General debugging stuff:
 * You must fill one dependency for *each* of the `minecraft`, `forge` and `mappings` configurations, things will explode otherwise.
 * When in doubt, poke around in your Gradle cache (`~/.gradle/caches/fabric-loom`). If there are any obviously messed-up files like zero-byte files, corrupt/incomplete jars or zips, delete them and try again.
   * many of the "minecraft setup" processes are not actual Gradle tasks, so they don't benefit from gradle's correct computations ot task-uptodateness
-* Run your Gradle task with `--info --stacktrace`. I tried to make the `--info`-level logging friendly.
+* Run your Gradle task with `--info --stacktrace`. The plugin does spam `--info` with quite a bit of useful stuff.
 
 I agree! There *should* be better error messages!
 
@@ -150,21 +165,15 @@ The `shimForgeLibraries` task is intended to download the libraries Forge wants 
 
 Either that task didn't run and the libraries aren't there (examine the Gradle log to see if it ran), or the `minecraft.applet.TargetDirectory` system property did not get set on the client and it's trying to read libraries out of your real `.minecraft` folder - if it's doing that, the rest of the game will also try to run out of that folder.
 
-### Ctrl-sprint doesn't work
-
-That's just vanilla babey!! Wasn't invented yet.
-
 ### Forge NPEing about something in `FMLRelaunchLog`
 
-Forge assumes the `.minecraft` directory exists without checking or creating it, and if an exception is thrown when making the log file it will swallow the exception, leading to nullpointers shortly after. On the client, the directory defaults to your actual `.minecraft` directory (eg, `%APPDATA%\.minecraft` on windows), but its value can be set using the `minecraft.applet.TargetDirectory` system property. On the server the directory is the pwd. So generally this comes up if you have a run config that isn't correctly shunting the `TargetDirectory` property to the game.
+Forge assumes the `.minecraft` directory exists without checking or creating it. If it doesn't exist, an exception will be thrown when it creates its log file, but it swallows the exception, so you get an NPE shortly after when it tries to use the log.
 
-"`.minecraft` directory" is sort of a misnomer because the .minecraft part is just the default value tbh, it can be named whatever you want. Eg in this project it's named `run`
+So this is another "the game is probably not using the correct working directory" bug. Check that the `minecraft.applet.TargetDirectory` system property is set.
 
 ### Buuuunch of logspam about "Unable to read a class file correctly" or "probably a corrupt zip"
 
-This tends to happen if anything compiled with the Java 8 class file format is on the classpath. Forge scans the entire classpath to look for mods, and uses ObjectWeb ASM 4 to do so, which fails to parse classes newer than the ones used in Java 6.
-
-It wasn't going to find any Forge mods inside `rt.jar` anyway, so that part's harmless, but if you are intentionally putting something on the classpath, it will not be visible to mods **even if it's not itself a mod**.
+Something compiled to Java 8's classfile format is on the classpath. Forge only works with classes compiled for Java 6.
 
 (Not sure why this happens when using generated run configs, instead of the gradle runClient task, probably a classpath difference)
 
@@ -173,6 +182,8 @@ It wasn't going to find any Forge mods inside `rt.jar` anyway, so that part's ha
 See `quat_notes/old notes.md` for stuff that used to be on this page but got outdated.
 
 ## Architecture (new updated early jan 2023) (working) (free download)(no virus)
+
+**feb2023 oops might be outdated again**
 
 The entrypoint is `LoomGradlePlugin`, which gets called upon writing the `apply plugin` line.
 

@@ -42,6 +42,12 @@ Forge 1.4.7-6.6.2.534 using Gradle **4.10.3**.
 
 **Works great.** This must be executed on a Java 8 JVM, because gradle 4 is not compatible with newer jvms, and the `toolchains` feature doesn't exist yet to select the correct compiler.
 
+### 1.4.7-thingy
+
+Forge 1.4.7-6.6.2.534 using Gradle 7.6 and [unascribed's UnknownThingy mapping set](https://git.sleeping.town/unascribed/UnknownThingy) instead of MCP.
+
+Currently **broken**, likely due to the mappings not playing well with tiny-remapper and Voldeloom not being equipped to handle intermediaryless mappings. At least it is broken in a way that indicates it's trying to load the mappings!!!
+
 ### 1.5.2
 
 Forge 1.5.2-7.8.1.738 using Gradle 7.6.

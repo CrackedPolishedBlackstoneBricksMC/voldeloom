@@ -5,23 +5,14 @@ buildscript {
 		//maven { url "https://repo.sleeping.town" } //Commented out to use the version of voldeloom in the settings.gradle includeBuild (hopefully??)
 	}
 	dependencies {
-		classpath "agency.highlysuspect:voldeloom:1.0+1.4.7disaster"
+		classpath "agency.highlysuspect:voldeloom:2.0-SNAPSHOT"
 	}
 }
 
 apply plugin: "agency.highlysuspect.voldeloom"
 
-java {
-	toolchain {
-		//Last version able to set a --release as low as 6.
-		languageVersion = JavaLanguageVersion.of(11)
-	}
-}
-
-compileJava {
-	//Forge doesn't understand classes compiled to versions of the class-file format newer than Java 6's.
-	options.release.set(6)
-}
+java.toolchain.languageVersion = JavaLanguageVersion.of(11) //Last version able to set a --release as low as 6
+compileJava.options.release.set(6) //Forge doesn't understand classes compiled to versions of the class-file format newer than Java 6's
 
 String minecraftVersion = "1.4.7"
 String forgeVersion = "1.4.7-6.6.2.534"

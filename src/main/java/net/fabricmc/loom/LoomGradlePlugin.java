@@ -168,11 +168,9 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		compileOrImplementation.extendsFrom(minecraftNamed);
 		minecraftNamed.extendsFrom(minecraftDependencies);
 		
-		//Mappings. This one's the raw MCP artifact,
+		//Mappings. This is the raw MCP artifact, and the processed mapping jar is located elsewhere (using provider system).
 		project.getConfigurations().maybeCreate(Constants.MAPPINGS).setTransitive(true);
-		//and this one's the mappings in a format tiny-remapper can understand. Kinda a hack.
-		Configuration mappingsFinal = project.getConfigurations().maybeCreate(Constants.MAPPINGS_FINAL).setTransitive(true);
-		compileOrImplementation.extendsFrom(mappingsFinal);
+		//compileOrImplementation.extendsFrom(mappings);
 		
 		//Forge!
 		project.getConfigurations().maybeCreate(Constants.FORGE).setTransitive(false); //disable transitive to be safe -- forge will load its deps at runtime. (original comment)

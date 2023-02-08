@@ -81,15 +81,6 @@ public class Constants {
 	public static final String MAPPINGS = "mappings";
 	
 	/**
-	 * The Gradle configuration containing the user's mappings, formatted in a jar in a really specific way
-	 * 
-	 * TODO: Does this have any reason to exist anymore lol, I don't know if it's used.
-	 * 
-	 * @see net.fabricmc.loom.providers.MappingsProvider
-	 */
-	public static final String MAPPINGS_FINAL = "mappingsFinal";
-	
-	/**
 	 * The Gradle configuration containing the Minecraft Forge artifact.
 	 * 
 	 * @see net.fabricmc.loom.providers.ForgeProvider

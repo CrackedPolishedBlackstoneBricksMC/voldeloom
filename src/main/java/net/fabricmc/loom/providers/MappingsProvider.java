@@ -73,9 +73,8 @@ public class MappingsProvider extends DependencyProvider {
 	private String mappingsVersion;
 	private TinyTree parsedMappings;
 	
-	//outputs created by the install task:
+	//output created by performInstall():
 	private Path tinyMappings;
-	private Path tinyMappingsJar;
 	
 	@Override
 	protected void performSetup() throws Exception {
@@ -95,9 +94,8 @@ public class MappingsProvider extends DependencyProvider {
 		project.getLogger().lifecycle("] mappings name: {}, version: {}", mappingsName, mappingsVersion);
 		
 		tinyMappings = mappingsDir.resolve(rawMappingsJar.getFileName() + mappingDiscriminant + ".tiny");
-		tinyMappingsJar = mappingsDir.resolve(rawMappingsJar.getFileName() + mappingDiscriminant + ".tiny.jar");
 		
-		cleanOnRefreshDependencies(tinyMappings, tinyMappingsJar);
+		cleanOnRefreshDependencies(tinyMappings);
 	}
 	
 	public void performInstall() throws Exception {
@@ -122,7 +120,7 @@ public class MappingsProvider extends DependencyProvider {
 				Path tinyv2FunnyMoments = mcpZipFs.getPath("mappings/mappings.tiny"); 
 				if(Files.exists(tinyv2FunnyMoments)) {
 					//WOW its already in tinyv2 format how neat!!!
-					project.getLogger().warn("MAPPINGS ALREADY TINYv2 I THINK!!!!!");
+					project.getLogger().warn("MAPPINGS ALREADY TINYv2 I THINK!!!!! Fyi it should probably contain {} {} {} headers", Constants.PROGUARDED_NAMING_SCHEME, Constants.INTERMEDIATE_NAMING_SCHEME, Constants.MAPPED_NAMING_SCHEME);
 					Files.copy(tinyv2FunnyMoments, tinyMappings);
 				} else {
 				
@@ -190,22 +188,10 @@ public class MappingsProvider extends DependencyProvider {
 			}}
 		}
 		
-		//Package them up for tiny-remapper, which expects to find the mappings in a specific spot in a jar
-		if(Files.notExists(tinyMappingsJar)) {
-			try(FileSystem mappingsJarFs = FileSystems.newFileSystem(URI.create("jar:" + tinyMappingsJar.toUri()), Collections.singletonMap("create", "true"))) {
-				Path target = mappingsJarFs.getPath("mappings/mappings.tiny");
-				Files.createDirectories(target.getParent());
-				Files.copy(tinyMappings, target);
-			}
-		}
-		
-		//make them available for other tasks TODO make it not roundtrip through a file lol
+		//make them available for other tasks TODO maybe it shouldn't roundtrip through a file
 		try(BufferedReader lol = Files.newBufferedReader(tinyMappings)) {
 			parsedMappings = TinyMappingFactory.loadWithDetection(lol);
 		}
-		
-		//add it as a project dependency TODO move
-		project.getDependencies().add(Constants.MAPPINGS_FINAL, project.files(tinyMappingsJar));
 	}
 	
 	public TinyTree getMappings() {
@@ -222,9 +208,5 @@ public class MappingsProvider extends DependencyProvider {
 	
 	public Path getTinyMappings() {
 		return tinyMappings;
-	}
-	
-	public Path getTinyMappingsJar() {
-		return tinyMappingsJar;
 	}
 }
