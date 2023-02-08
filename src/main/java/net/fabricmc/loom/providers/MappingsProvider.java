@@ -84,13 +84,18 @@ public class MappingsProvider extends DependencyProvider {
 		DependencyInfo mappingsDependency = getSingleDependency(Constants.MAPPINGS);
 		rawMappingsJar = mappingsDependency.resolveSinglePath();
 		
+		//TODO: REMOVE this hack
+		String mappingDiscriminant = "";
+		if(extension.srgsAsFallback) mappingDiscriminant += "-srgfallback";
+		
 		//outputs
 		mappingsName = mappingsDependency.getDependency().getGroup() + "." + mappingsDependency.getDependency().getName();
-		mappingsVersion = mappingsDependency.getResolvedVersion();
+		mappingsVersion = mappingsDependency.getResolvedVersion() + mappingDiscriminant;
+		
 		project.getLogger().lifecycle("] mappings name: {}, version: {}", mappingsName, mappingsVersion);
 		
-		tinyMappings = mappingsDir.resolve(rawMappingsJar.getFileName() + ".tiny");
-		tinyMappingsJar = mappingsDir.resolve(rawMappingsJar.getFileName() + ".tiny.jar");
+		tinyMappings = mappingsDir.resolve(rawMappingsJar.getFileName() + mappingDiscriminant + ".tiny");
+		tinyMappingsJar = mappingsDir.resolve(rawMappingsJar.getFileName() + mappingDiscriminant + ".tiny.jar");
 		
 		cleanOnRefreshDependencies(tinyMappings, tinyMappingsJar);
 	}
@@ -174,7 +179,7 @@ public class MappingsProvider extends DependencyProvider {
 					.fields(fields)
 					.methods(methods)
 					.packages(packages)
-					.srgsAsFallback(false) //TODO select from forge version/make configurable
+					.srgsAsFallback(extension.srgsAsFallback) //TODO select from forge version
 					.jarScanData(scanData)
 					.write();
 				

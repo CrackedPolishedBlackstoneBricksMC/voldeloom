@@ -129,6 +129,13 @@ public class LoomGradleExtension {
 	 */
 	public String defaultRunToolchainVendor = "ADOPTIUM";
 	
+	/**
+	 * If a field/method is missing a mapping, if 'true' the proguarded name will show through, and if 'false' the MCP name will.
+	 * TODO: Autodetect this from the Forge version (SRGs at runtime were added in Forge 1.5)
+	 *  Also, is this even a good idea?
+	 */
+	public boolean srgsAsFallback = false;
+	
 	private final ProviderGraph providers;
 	private final List<Path> unmappedModsBuilt = new ArrayList<>();
 	private final MappingSet[] srcMappingCache = new MappingSet[2];
