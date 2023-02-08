@@ -27,36 +27,119 @@ package net.fabricmc.loom;
 import org.gradle.api.invocation.Gradle;
 
 /**
- * Values that do not change across an invocation of the plugin.
+ * Values that do not change across an invocation of the plugin, such as the names of Gradle configurations.
+ * <p>
+ * There are more Gradle configurations than what are defined in this class, btw.
+ * 
+ * @see LoomGradlePlugin for where more Gradle configs are defined (like {@code modRuntime})
  */
 public class Constants {
-	//Task groups
+	/// Task groups ///
 	public static final String TASK_GROUP_CLEANING = "fabric.clean";
 	public static final String TASK_GROUP_IDE = "fabric.ide";
 	public static final String TASK_GROUP_PLUMBING = "fabric.plumbing";
 	public static final String TASK_GROUP_RUNNING = "fabric.run";
 	public static final String TASK_GROUP_TOOLS = "fabric.tools";
 
-	//Configuration names
+	/// Configuration names ///
+	
+	/**
+	 * The Gradle configuration containing all <i>incoming</i> mod dependencies, e.g. {@code modCompileOnly},
+	 * which are mods that haven't been remapped to the user's current working mappings yet.
+	 * 
+	 * @see net.fabricmc.loom.providers.RemappedDependenciesProvider
+	 */
 	public static final String EVERY_UNMAPPED_MOD = "everyUnmappedMod";
 	
+	/**
+	 * The Gradle configuration containing the vanilla Minecraft artifact.<br>
+	 * Owing to Minecraft not being on a real Maven server, only the version of the artifact is used. It doesn't resolve to anything.
+	 * 
+	 * @see net.fabricmc.loom.providers.MinecraftProvider
+	 */
 	public static final String MINECRAFT = "minecraft";
+	
+	/**
+	 * The Gradle configuration containing all of Minecraft's own dependencies, such as LWJGL.
+	 * 
+	 * @see net.fabricmc.loom.providers.MinecraftDependenciesProvider
+	 */
 	public static final String MINECRAFT_DEPENDENCIES = "minecraftLibraries";
+	
+	/**
+	 * The Gradle configuration containing Minecraft, patched with Forge's patches, remapped to the user's current working mappings set.
+	 * 
+	 * @see net.fabricmc.loom.providers.MappedProvider
+	 */
 	public static final String MINECRAFT_NAMED = "minecraftNamed";
 	
+	/**
+	 * The Gradle configuration containing the user's specified mappings input file.
+	 * 
+	 * @see net.fabricmc.loom.providers.MappingsProvider
+	 */
 	public static final String MAPPINGS = "mappings";
+	
+	/**
+	 * The Gradle configuration containing the user's mappings, formatted in a jar in a really specific way
+	 * 
+	 * TODO: Does this have any reason to exist anymore lol, I don't know if it's used.
+	 * 
+	 * @see net.fabricmc.loom.providers.MappingsProvider
+	 */
 	public static final String MAPPINGS_FINAL = "mappingsFinal";
 	
+	/**
+	 * The Gradle configuration containing the Minecraft Forge artifact.
+	 * 
+	 * @see net.fabricmc.loom.providers.ForgeProvider
+	 */
 	public static final String FORGE = "forge";
+	
+	/**
+	 * The Gradle configuration containing all of Forge's own dependencies, such as Guava.<br>
+	 * These were formerly downloaded automatically when Forge started up, but the server is dead.
+	 * 
+	 * @see net.fabricmc.loom.providers.ForgeDependenciesProvider for what detects these dependencies
+	 */
 	public static final String FORGE_DEPENDENCIES = "forgeLibraries";
 	
-	//Mapping names
+	/// Mapping scheme names ///
+	
+	/**
+	 * The name used to refer to "off-the-shelf Minecraft".
+	 */
 	public static final String PROGUARDED_NAMING_SCHEME = "official";
+	
+	/**
+	 * The name used to refer to a typical abstraction used in mapping ecosystems, where names are first moved to an intermediate naming scheme.<br>
+	 * Sometimes mods are released in this naming scheme too.
+	 */
 	public static final String INTERMEDIATE_NAMING_SCHEME = "intermediary";
+	
+	/**
+	 * The name used to refer to Minecraft with developer-friendly names.
+	 */
 	public static final String MAPPED_NAMING_SCHEME = "named";
 	
-	//Gradle settings
+	/// Gradle settings but they're static so they can be accessed from anywhere (yeah it interacts badly with the daemon) ///
+	
+	/**
+	 * If {@code true}, all intermediate products (like "Minecraft, but remapped") will be recreated by Voldeloom.
+	 * <p>
+	 * This can be enabled in two ways:
+	 * <ul>
+	 *   <li>starting Gradle with {@code --refresh-dependencies}</li>
+	 *   <li>setting the system property {@code voldeloom.refreshDependencies} to {@code true}, such as by passing {@code -Dvoldeloom.refreshDependencies=true} to Gradle</li>
+	 * </ul>
+	 */
 	public static boolean refreshDependencies = false;
+	
+	/**
+	 * If {@code true}, no HTTP connections will be made. Requests to download a file will fail unless the file is already cached.
+	 * <p>
+	 * This can be enabled by passing {@code --offline} to Gradle, and mirrors Gradle's own offline mode setting.
+	 */
 	public static boolean offline = false;
 	
 	public static void init(Gradle gradle) {

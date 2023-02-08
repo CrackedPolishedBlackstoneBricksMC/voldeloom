@@ -18,7 +18,16 @@ import java.util.HashSet;
 import java.util.Set;
 
 /**
- * Minecraft mods are re-proguarded at distribution time. This is in charge of remapping them to the chosen mapping set.
+ * Minecraft mods are re-proguarded at distribution time. This provider is in charge of reversing that process,
+ * so ready-for-distribution mods can be imported into the development workspace, instead of requiring a "dev jar".
+ * <p>
+ * This provider looks for deps in the {@code modImplementation} configuration, remaps them, and puts the remapped
+ * result in the {@code modImplementationNamed} configuration, which is the configuration actually exposed to the workspace.
+ * Ditto for the other {@code modBlah} configs.
+ * 
+ * @see net.fabricmc.loom.LoomGradlePlugin for where these configurations are created and set up
+ * @see RemappedConfigurationEntry for what defines the relations between these named configurations
+ * 
  * <h2>TODO: Clusterfuck</h2>
  */
 public class RemappedDependenciesProvider extends DependencyProvider {
