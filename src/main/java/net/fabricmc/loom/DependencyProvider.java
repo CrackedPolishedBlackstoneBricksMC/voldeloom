@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package net.fabricmc.loom.providers;
+package net.fabricmc.loom;
 
 import com.google.common.collect.Iterables;
 import com.google.gson.Gson;

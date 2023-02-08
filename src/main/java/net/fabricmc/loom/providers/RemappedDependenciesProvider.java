@@ -1,6 +1,7 @@
 package net.fabricmc.loom.providers;
 
 import net.fabricmc.loom.Constants;
+import net.fabricmc.loom.DependencyProvider;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.RemappedConfigurationEntry;
 import net.fabricmc.loom.WellKnownLocations;

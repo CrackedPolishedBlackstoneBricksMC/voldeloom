@@ -1,5 +1,6 @@
 package net.fabricmc.loom.providers;
 
+import net.fabricmc.loom.DependencyProvider;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.WellKnownLocations;
 import net.fabricmc.stitch.merge.JarMerger;

@@ -1,6 +1,5 @@
 package net.fabricmc.loom;
 
-import net.fabricmc.loom.providers.DependencyProvider;
 import org.gradle.api.Project;
 
 import javax.inject.Inject;

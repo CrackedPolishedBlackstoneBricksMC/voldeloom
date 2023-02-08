@@ -26,6 +26,7 @@ package net.fabricmc.loom.providers;
 
 import com.google.gson.Gson;
 import net.fabricmc.loom.Constants;
+import net.fabricmc.loom.DependencyProvider;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.WellKnownLocations;
 import net.fabricmc.loom.util.DownloadSession;

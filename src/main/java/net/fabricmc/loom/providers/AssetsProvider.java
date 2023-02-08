@@ -26,6 +26,7 @@ package net.fabricmc.loom.providers;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
+import net.fabricmc.loom.DependencyProvider;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.WellKnownLocations;
 import net.fabricmc.loom.util.Checksum;

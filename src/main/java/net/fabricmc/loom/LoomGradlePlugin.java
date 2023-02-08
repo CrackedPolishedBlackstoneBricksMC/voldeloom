@@ -25,7 +25,6 @@
 package net.fabricmc.loom;
 
 import groovy.util.Node;
-import net.fabricmc.loom.providers.DependencyProvider;
 import net.fabricmc.loom.providers.ForgeDependenciesProvider;
 import net.fabricmc.loom.providers.MappedProvider;
 import net.fabricmc.loom.providers.MinecraftDependenciesProvider;
