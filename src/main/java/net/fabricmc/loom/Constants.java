@@ -60,7 +60,7 @@ public class Constants {
 	public static boolean offline = false;
 	
 	public static void init(Gradle gradle) {
-		refreshDependencies = gradle.getStartParameter().isRefreshDependencies();
+		refreshDependencies = gradle.getStartParameter().isRefreshDependencies() || "true".equals(System.getProperty("voldeloom.refreshDependencies"));
 		offline = gradle.getStartParameter().isOffline();
 	}
 }
