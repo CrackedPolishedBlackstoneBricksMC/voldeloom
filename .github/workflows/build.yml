@@ -59,7 +59,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: compile_samples
 #security is my passion (ideally pull_request actions won't fire this?? reh)
-    if: (github.event_name == "push" && github.ref_name == "disaster-time")
+    if: (github.event_name == 'push' && github.ref_name == 'disaster-time')
     environment: publishing
     steps:
       - name: git checkout
