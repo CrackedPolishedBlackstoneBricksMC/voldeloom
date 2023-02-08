@@ -4,7 +4,7 @@ In IntelliJ, right click on a sample project's build.gradle and press "Link Grad
 
 Also, note the little hack in each project's `settings.gradle`; this just makes them work from a subfolder.
 
-Github Actions currently builds `1.3.2`, `1.4.7`, `1.4.7-gradle4`, and `1.5.2` on Java 8 and Java 17 (except for the `-gradle4` one). It merely tests that the projects compile, doesn't attempt to run them. (a little `runServer` wouldn't be a bad idea)
+Github Actions currently builds `1.3.2`, `1.4.7`, `1.4.7-gradle4`, and `1.5.2` on Java 8, and Java 17 except for the `-gradle4` one. It merely tests that the projects compile, doesn't attempt to run them (a little `runServer` wouldn't be a bad idea)
 
 ### `dep_testin`
 
