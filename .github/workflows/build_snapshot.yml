@@ -18,7 +18,7 @@ jobs:
       - name: Build with Gradle
         uses: gradle/gradle-build-action@v2.3.3
         with:
-          arguments: clean build
+          arguments: clean build --info --stacktrace
 
       - name: Upload artifacts to Actions
         uses: actions/upload-artifact@v3

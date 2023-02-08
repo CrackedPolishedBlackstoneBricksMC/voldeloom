@@ -25,5 +25,5 @@ jobs:
       - name: Build sample ${{matrix.sample}} with Gradle
         uses: gradle/gradle-build-action@v2.3.3
         with:
-          arguments: clean build
+          arguments: clean build --info --stacktrace
           build-root-directory: "./sample/${{matrix.sample}}"
