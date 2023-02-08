@@ -22,7 +22,7 @@ jobs:
           distribution: "temurin"
           java-version: "${{matrix.java_version}}"
 
-      - name: Build sample $${matrix.sample}} with Gradle
+      - name: Build sample ${{matrix.sample}} with Gradle
         uses: gradle/gradle-build-action@v2.3.3
         with:
           arguments: clean build
