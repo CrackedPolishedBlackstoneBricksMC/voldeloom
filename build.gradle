@@ -6,8 +6,32 @@ plugins {
 	id "eclipse"
 }
 
+//Heads up: This buildscript is a bit weird, because some of the "sample" projects compile it against Gradle 4,
+//but others compile it against Gradle 7. The sample projects retrieve the plugin as an included build, not as
+//a separate artifact (mainly to avoid a roundtrip through mavenLocal), which causes all sorts of fun problems
+//in practice. I probably shouldn't do that.
+
+// CI nonsense //
+
+String buildContext = "Local"
+
+if(System.getenv("GITHUB_SHA") != null) {
+	String hash = System.getenv("GITHUB_SHA"); if(hash.length > 8) hash = hash.substring(0, 8)
+	buildContext = "Github Actions CI, commit " + hash
+	
+	if(System.getenv("VOLDE_RELEASE_VERSION")) {
+		version = System.getenv("VOLDE_RELEASE_VERSION")
+	} else {
+		version += "-SNAPSHOT"
+	}
+}
+
+// Potentially load-bearing... idk if this works when it's put here //
+
 sourceCompatibility = "1.8"
 targetCompatibility = "1.8"
+
+// Dependencies //
 
 repositories {
 	maven {
@@ -27,7 +51,7 @@ repositories {
 }
 
 dependencies {
-	implementation gradleApi()
+	implementation gradleApi() //for the currently-running version of Gradle
 	implementation "com.google.code.gson:gson:2.8.5"
 	implementation "com.google.guava:guava:28.0-jre"
 	
@@ -46,27 +70,14 @@ dependencies {
 	implementation "org.cadixdev:mercury:0.1.0.fabric-SNAPSHOT" //source remapper
 }
 
+// Properties of the artifact //
+
 jar {
 	manifest {
-		String build = "local"
-		if(System.getenv().BUILD_NUMBER) {
-			build = "jenkins #${System.getenv().BUILD_NUMBER}"
-		}
-		
 		//Reading from project.version is deprecated in Gradle 7 lol
 		String ver = project.respondsTo("archivesVersion") ? project.archivesVersion : project.version
-		attributes 'Implementation-Version': ver + " Build(" + build + ")"
+		attributes "Implementation-Version": "${ver} (build ctx: ${buildContext})"
 	}
-}
-
-task sourcesJar(type: Jar, dependsOn: classes) {
-	classifier = "sources"
-	from sourceSets.main.allSource
-}
-
-task javadocJar(type: Jar, dependsOn: javadoc) {
-	classifier = "javadoc"
-	from javadoc.destinationDir
 }
 
 gradlePlugin {
@@ -76,6 +87,18 @@ gradlePlugin {
 			implementationClass = "net.fabricmc.loom.LoomGradlePlugin"
 		}
 	}
+}
+
+// Publishing //
+
+task sourcesJar(type: Jar, dependsOn: classes) {
+	classifier = "sources"
+	from sourceSets.main.allSource
+}
+
+task javadocJar(type: Jar, dependsOn: javadoc) {
+	classifier = "javadoc"
+	from javadoc.destinationDir
 }
 
 publishing {
@@ -106,6 +129,8 @@ publishing {
 		}
 	}
 }
+
+// Javadoc settings //
 
 javadoc {
 	options {

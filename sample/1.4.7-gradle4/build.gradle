@@ -5,11 +5,11 @@ buildscript {
 		//maven { url "https://repo.sleeping.town" } //Commented out to use the version of voldeloom in the settings.gradle includeBuild (hopefully??)
 	}
 	dependencies {
-		classpath "com.unascribed:voldeloom:1.0+1.4.7disaster"
+		classpath "agency.highlysuspect:voldeloom:1.0+1.4.7disaster"
 	}
 }
 
-apply plugin: "com.unascribed.voldeloom"
+apply plugin: "agency.highlysuspect.voldeloom"
 
 //Gradle 4 does not support the "toolchains" feature.
 //You must run Gradle through a Java 8 JVM.

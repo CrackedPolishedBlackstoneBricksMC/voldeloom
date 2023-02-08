@@ -1,10 +1,13 @@
-name: Build snapshot version
+name: Publish snapshot to Maven
 
-on: [push, pull_request, workflow_dispatch]
+on:
+  push:
+    branches: "disaster-time"
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    environment: publishing
     steps:
       - name: git checkout
         uses: actions/checkout@v3
@@ -15,13 +18,7 @@ jobs:
           distribution: "temurin"
           java-version: "17"
 
-      - name: Build with Gradle
+      - name: Publish with Gradle
         uses: gradle/gradle-build-action@v2.3.3
         with:
-          arguments: clean build --info --stacktrace
-
-      - name: Upload artifacts to Actions
-        uses: actions/upload-artifact@v3
-        with:
-          name: Artifacts
-          path: build/libs
+          arguments: publish --info --stacktrace -Dpublish-username=${{secrets.PUBLISH_USERNAME}} -Dpublish-password=${{secrets.PUBLISH_PASSWORD}}

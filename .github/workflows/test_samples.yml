@@ -1,4 +1,4 @@
-name: Test that sample projects compile
+name: Test compile sample projects
 
 on: [push, pull_request, workflow_dispatch]
 
