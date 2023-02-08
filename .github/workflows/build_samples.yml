@@ -25,7 +25,5 @@ jobs:
       - name: cd into sample directory
         run: cd "./sample/${{matrix.sample}}"
 
-      - name: Build with Gradle
-        uses: gradle/gradle-build-action@v2.3.3
-        with:
-          arguments: clean build
+      - name: Build with Gradle (no fancy plugin)
+        run: ./gradlew clean build
