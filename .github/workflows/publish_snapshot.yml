@@ -21,4 +21,4 @@ jobs:
       - name: Publish with Gradle
         uses: gradle/gradle-build-action@v2.3.3
         with:
-          arguments: publish --info --stacktrace -Dpublish-username=${{secrets.PUBLISH_USERNAME}} -Dpublish-password=${{secrets.PUBLISH_PASSWORD}}
+          arguments: publish --info --stacktrace -Ppublish-username=${{secrets.PUBLISH_USERNAME}} -Ppublish-password=${{secrets.PUBLISH_PASSWORD}}
