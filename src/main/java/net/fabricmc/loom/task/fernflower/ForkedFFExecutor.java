@@ -111,6 +111,8 @@ public class ForkedFFExecutor {
 	}
 
 	public static void runFF(Map<String, Object> options, List<File> libraries, File input, File output, File lineMap) {
+		System.out.println("Fernflower is starting!");
+
 		IResultSaver saver = new ThreadSafeResultSaver(() -> output, () -> lineMap);
 		IFernflowerLogger logger = new ThreadIDFFLogger();
 		Fernflower ff = new Fernflower(FernFlowerUtils::getBytecode, saver, options, logger);
