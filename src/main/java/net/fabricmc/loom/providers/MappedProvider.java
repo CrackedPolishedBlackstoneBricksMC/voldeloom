@@ -27,7 +27,6 @@ package net.fabricmc.loom.providers;
 import net.fabricmc.loom.Constants;
 import net.fabricmc.loom.DependencyProvider;
 import net.fabricmc.loom.LoomGradleExtension;
-import net.fabricmc.loom.WellKnownLocations;
 import net.fabricmc.loom.util.TinyRemapperSession;
 import org.gradle.api.Project;
 
@@ -68,8 +67,6 @@ public class MappedProvider extends DependencyProvider {
 	
 	@Override
 	protected void performSetup() throws Exception {
-		Path userCache = WellKnownLocations.getUserCache(project);
-		
 		//TODO kludgy? yeah
 		String intermediaryJarNameKinda = String.format("%s-%s-%s",
 			forgePatched.getPatchedVersionTag(),
@@ -86,9 +83,9 @@ public class MappedProvider extends DependencyProvider {
 			mappings.getMappingsDepString().replaceAll("[^A-Za-z0-9.-]", "_")
 		);
 		String mappedJarName = "minecraft-" + mappedJarNameKinda + ".jar";
-		mappedDestDir = userCache.resolve(mappedJarNameKinda);
+		mappedDestDir = getCacheDir().resolve(mappedJarNameKinda);
 		
-		intermediaryJar = userCache.resolve(intermediaryJarName);
+		intermediaryJar = getCacheDir().resolve(intermediaryJarName);
 		mappedJar = mappedDestDir.resolve(mappedJarName);
 		
 		project.getLogger().lifecycle("] intermediary jar: {}", intermediaryJar);

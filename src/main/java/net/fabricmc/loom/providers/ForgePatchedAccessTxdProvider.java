@@ -2,7 +2,6 @@ package net.fabricmc.loom.providers;
 
 import net.fabricmc.loom.DependencyProvider;
 import net.fabricmc.loom.LoomGradleExtension;
-import net.fabricmc.loom.WellKnownLocations;
 import net.fabricmc.loom.util.mcp.ForgeAccessTransformerSet;
 import org.gradle.api.Project;
 import org.objectweb.asm.ClassReader;
@@ -48,7 +47,7 @@ public class ForgePatchedAccessTxdProvider extends DependencyProvider {
 	
 	@Override
 	protected void performSetup() throws Exception {
-		accessTransformedMc = WellKnownLocations.getUserCache(project).resolve("minecraft-" + forgePatched.getPatchedVersionTag() + "-atd.jar");
+		accessTransformedMc = getCacheDir().resolve("minecraft-" + forgePatched.getPatchedVersionTag() + "-atd.jar");
 		
 		project.getLogger().lifecycle("] access-transformed jar: {}", accessTransformedMc);
 		

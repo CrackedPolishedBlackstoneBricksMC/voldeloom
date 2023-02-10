@@ -2,7 +2,6 @@ package net.fabricmc.loom.providers;
 
 import net.fabricmc.loom.DependencyProvider;
 import net.fabricmc.loom.LoomGradleExtension;
-import net.fabricmc.loom.WellKnownLocations;
 import net.fabricmc.stitch.merge.JarMerger;
 import org.gradle.api.Project;
 import org.objectweb.asm.AnnotationVisitor;
@@ -52,8 +51,8 @@ public class MergedProvider extends DependencyProvider {
 	
 	@Override
 	protected void performSetup() throws Exception {
-		merged = WellKnownLocations.getUserCache(project).resolve("minecraft-" + mc.getVersion() + "-merged.jar");
-		mergedUnfixed = WellKnownLocations.getUserCache(project).resolve("minecraft-" + mc.getVersion() + "-merged-unfixed.jar");
+		merged = getCacheDir().resolve("minecraft-" + mc.getVersion() + "-merged.jar");
+		mergedUnfixed = getCacheDir().resolve("minecraft-" + mc.getVersion() + "-merged-unfixed.jar");
 		
 		project.getLogger().lifecycle("] merged-unfixed jar: {}", mergedUnfixed);
 		project.getLogger().lifecycle("] merged-fixed jar: {}", merged);

@@ -27,7 +27,6 @@ package net.fabricmc.loom.providers;
 import net.fabricmc.loom.Constants;
 import net.fabricmc.loom.DependencyProvider;
 import net.fabricmc.loom.LoomGradleExtension;
-import net.fabricmc.loom.WellKnownLocations;
 import net.fabricmc.loom.util.mcp.JarScanData;
 import net.fabricmc.loom.util.mcp.McpTinyv2Writer;
 import net.fabricmc.loom.util.mcp.Members;
@@ -69,14 +68,13 @@ public class MappingsProvider extends DependencyProvider {
 	
 	private final ForgePatchedProvider forgePatched;
 	
-	private final Path mappingsDir = WellKnownLocations.getUserCache(project).resolve("mappings");
-	
+	private Path mappingsDir;
 	private Path rawMappingsJar;
 	private String mappingsDepString;
-	private TinyTree parsedMappings;
 	
 	//output created by performInstall():
 	private Path tinyMappings;
+	private TinyTree parsedMappings;
 	
 	@Override
 	protected void performSetup() throws Exception {
@@ -88,6 +86,7 @@ public class MappingsProvider extends DependencyProvider {
 		if(extension.srgsAsFallback) mappingDiscriminant += "-srgfallback";
 		
 		//outputs
+		mappingsDir = getCacheDir().resolve("mappings");
 		mappingsDepString = mappingsDependency.getDepString() + mappingDiscriminant;
 		tinyMappings = mappingsDir.resolve(rawMappingsJar.getFileName() + mappingDiscriminant + ".tiny");
 		

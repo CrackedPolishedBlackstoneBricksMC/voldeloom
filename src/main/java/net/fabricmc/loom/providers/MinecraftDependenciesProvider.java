@@ -27,7 +27,6 @@ package net.fabricmc.loom.providers;
 import net.fabricmc.loom.Constants;
 import net.fabricmc.loom.DependencyProvider;
 import net.fabricmc.loom.LoomGradleExtension;
-import net.fabricmc.loom.WellKnownLocations;
 import net.fabricmc.loom.util.DownloadSession;
 import net.fabricmc.loom.util.MinecraftVersionInfo;
 import net.fabricmc.loom.util.ZipUtil;
@@ -67,7 +66,7 @@ public class MinecraftDependenciesProvider extends DependencyProvider {
 	
 	@Override
 	protected void performSetup() throws Exception {
-		nativesDir = WellKnownLocations.getUserCache(project).resolve("natives").resolve(mc.getVersion());
+		nativesDir = getCacheDir().resolve("natives").resolve(mc.getVersion());
 		nativesJarStore = nativesDir.resolve("jars");
 		
 		project.getLogger().lifecycle("] native libraries: {}", nativesJarStore);

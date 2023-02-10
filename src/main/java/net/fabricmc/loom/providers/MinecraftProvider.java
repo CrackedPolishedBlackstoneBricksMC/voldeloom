@@ -28,7 +28,6 @@ import com.google.gson.Gson;
 import net.fabricmc.loom.Constants;
 import net.fabricmc.loom.DependencyProvider;
 import net.fabricmc.loom.LoomGradleExtension;
-import net.fabricmc.loom.WellKnownLocations;
 import net.fabricmc.loom.util.DownloadSession;
 import net.fabricmc.loom.util.MinecraftVersionInfo;
 import org.gradle.api.Project;
@@ -58,17 +57,21 @@ public class MinecraftProvider extends DependencyProvider {
 	private MinecraftVersionInfo thisVersionManifest;
 	
 	@Override
+	public boolean projectmapSelf() {
+		return extension.customManifestUrl != null;
+	}
+	
+	@Override
 	protected void performSetup() throws Exception {
 		minecraftVersion = getSingleDependency(Constants.MINECRAFT).getDependency().getVersion();
 		
 		project.getLogger().lifecycle("] Minecraft {}", minecraftVersion);
 		
-		Path userCache = WellKnownLocations.getUserCache(project);
-		Path versionManifestIndexJson = WellKnownLocations.getUserCache(project).resolve("version_manifest.json");
-		Path thisVersionManifestJson = userCache.resolve("minecraft-" + minecraftVersion + "-info.json");
+		Path versionManifestIndexJson = getCacheDir().resolve("version_manifest.json");
+		Path thisVersionManifestJson = getCacheDir().resolve("minecraft-" + minecraftVersion + "-info.json");
 		
-		clientJar = userCache.resolve("minecraft-" + minecraftVersion + "-client.jar");
-		serverJar = userCache.resolve("minecraft-" + minecraftVersion + "-server.jar");
+		clientJar = getCacheDir().resolve("minecraft-" + minecraftVersion + "-client.jar");
+		serverJar = getCacheDir().resolve("minecraft-" + minecraftVersion + "-server.jar");
 		
 		cleanOnRefreshDependencies(andEtags(Arrays.asList(clientJar, serverJar, thisVersionManifestJson, versionManifestIndexJson)));
 		

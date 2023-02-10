@@ -3,7 +3,6 @@ package net.fabricmc.loom.providers;
 import net.fabricmc.loom.Constants;
 import net.fabricmc.loom.DependencyProvider;
 import net.fabricmc.loom.LoomGradleExtension;
-import net.fabricmc.loom.WellKnownLocations;
 import net.fabricmc.loom.util.DownloadSession;
 import org.gradle.api.Project;
 import org.objectweb.asm.ClassReader;
@@ -55,7 +54,7 @@ public class ForgeDependenciesProvider extends DependencyProvider {
 	
 	@Override
 	protected void performSetup() throws Exception {
-		forgeLibsFolder = WellKnownLocations.getUserCache(project)
+		forgeLibsFolder = getCacheDir()
 			.resolve("forgeLibs")
 			.resolve(forge.getDepString().replaceAll("[^A-Za-z0-9.-]", "_"));
 		

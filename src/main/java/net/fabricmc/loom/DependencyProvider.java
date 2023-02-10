@@ -64,10 +64,11 @@ public abstract class DependencyProvider {
 	protected final LoomGradleExtension extension;
 	protected List<DependencyProvider> deps = new ArrayList<>(4);
 	
+	private Boolean projectmappedFlag = null;
 	private Stage stage = Stage.EARLY;
 	
 	/**
-	 * Initialize the provider.
+	 * Initialize the provider. This is the setup stage.
 	 * <p>
 	 * This is for "light weight" tasks, like picking a Path that task output should go into.
 	 * Sometimes work is done in {@code performSetup}; downloading the MC version manifest provides version data that can be used other setup functions, for example.
@@ -76,7 +77,7 @@ public abstract class DependencyProvider {
 	protected void performSetup() throws Exception { }
 	
 	/**
-	 * Install the provider.
+	 * Install the provider. This is the installation stage.
 	 * <p>
 	 * This is for "heavy duty" tasks, like running a remapper or jar merger.
 	 * <p>
@@ -84,22 +85,55 @@ public abstract class DependencyProvider {
 	 */
 	protected void performInstall() throws Exception { }
 	
-	protected void dependsOn(DependencyProvider... deps) {
+	/**
+	 * @return 'true' if there's some project-specific configuration for this provider that should prevent
+	 * the intermediate products from being stored in the global Gradle cache, and move them into the user-local
+	 * Gradle cache instead.
+	 * <p>
+	 * Don't worry about dependencies, {@code projectmapped} will recurse into dependencies.
+	 */
+	protected boolean projectmapSelf() throws Exception { return false; }
+	
+	/**
+	 * Adds a dependency on the specified providers. Before a provider can reach a stage, its dependencies must reach the same stage.
+	 */
+	protected final void dependsOn(DependencyProvider... deps) {
 		this.deps.addAll(Arrays.asList(deps));
 	}
 	
-	public void cleanOnRefreshDependencies(Path... paths) {
+	/**
+	 * Returns a cache directory that files can be placed in. This can be the user-global cache directory,
+	 * or the per-project cache directory if projectmapping is required for this provider or one of its dependencies.
+	 */
+	protected final Path getCacheDir() {
+		if(isProjectmapped()) return WellKnownLocations.getProjectCache(project);
+		else return WellKnownLocations.getUserCache(project);
+	}
+	
+	/**
+	 * Delete these paths if the refresh-dependency mode is enabled.
+	 * @param paths varargs list of paths
+	 */
+	public final void cleanOnRefreshDependencies(Path... paths) {
 		cleanOnRefreshDependencies(Arrays.asList(paths));
 	}
 	
-	public void cleanOnRefreshDependencies(Collection<Path> paths) {
+	/**
+	 * Delete these paths if the refresh-dependency mode is enabled.
+	 * @param paths collection of paths
+	 */
+	public final void cleanOnRefreshDependencies(Collection<Path> paths) {
 		if(extension.refreshDependencies) {
 			project.getLogger().lifecycle("|-> Deleting outputs of " + getClass().getSimpleName() + " because of refreshDependencies mode");
 			LoomGradlePlugin.delete(project, paths);
 		}
 	}
 	
-	public void reach(Stage newStage) throws Exception {
+	/**
+	 * Raise the provider to the specified stage.
+	 * Has no effect if the provider is already at this stage or a higher one.
+	 */
+	public final void reach(Stage newStage) throws Exception {
 		//First, ensure all of this task's dependencies are brought to the desired stage
 		for(DependencyProvider dep : deps) {
 			dep.reach(newStage);
@@ -121,7 +155,11 @@ public abstract class DependencyProvider {
 		}
 	}
 	
-	public void tryReach(Stage newStage) {
+	/**
+	 * Raise the provider to the specified stage, throwing a runtime exception if something goes wrong.
+	 * Has no effect if the provider is already at this stage or a higher one.
+	 */
+	public final void tryReach(Stage newStage) {
 		try {
 			reach(newStage);
 		} catch (Exception e) {
@@ -129,14 +167,29 @@ public abstract class DependencyProvider {
 		}
 	}
 	
-	public void assertInstalled() {
+	public final void assertInstalled() {
 		//but what if i were to install it now, and disguise it as my own assertion?
 		//delightfully devilish, seymour
 		tryReach(Stage.INSTALLED);
 		if(stage.ordinal() < Stage.INSTALLED.ordinal()) throw new IllegalStateException(getClass().getSimpleName() + " hasn't been installed yet!");
 	}
 	
-	///
+	/**
+	 * @return 'true' if this dep provider contains a dependency on something highly project-specific, like a custom set of access transformers
+	 */
+	public final boolean isProjectmapped() {
+		if(projectmappedFlag == null) {
+			try {
+				projectmappedFlag = projectmapSelf();
+			} catch (Exception e) {
+				throw new RuntimeException("Failed to compute whether " + getClass().getSimpleName() + " requires projectmapping: " + e.getMessage(), e);
+			}
+		}
+		
+		return projectmappedFlag || deps.stream().anyMatch(DependencyProvider::isProjectmapped);
+	}
+	
+	/// Dependency wrapping, this was all mostly in the original Loom as well ///
 	
 	protected DependencyInfo getSingleDependency(String targetConfig) {
 		Configuration config = project.getConfigurations().getByName(targetConfig);

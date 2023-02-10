@@ -28,7 +28,6 @@ import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import net.fabricmc.loom.DependencyProvider;
 import net.fabricmc.loom.LoomGradleExtension;
-import net.fabricmc.loom.WellKnownLocations;
 import net.fabricmc.loom.util.Checksum;
 import net.fabricmc.loom.util.DownloadSession;
 import org.gradle.api.GradleException;
@@ -56,15 +55,15 @@ public class AssetsProvider extends DependencyProvider {
 	
 	private final MinecraftProvider mc;
 	
-	private Path globalAssetsCache;
+	private Path assetsCache;
 	private Path assetIndexFile;
 	private Path thisVersionAssetsDir;
 	
 	@Override
 	protected void performSetup() throws Exception {
-		globalAssetsCache = WellKnownLocations.getUserCache(project).resolve("assets");
-		assetIndexFile = globalAssetsCache.resolve("indexes").resolve(mc.getVersionManifest().assetIndex.getFabricId(mc.getVersion()) + ".json");
-		thisVersionAssetsDir = globalAssetsCache.resolve("legacy").resolve(mc.getVersion());
+		assetsCache = getCacheDir().resolve("assets");
+		assetIndexFile = assetsCache.resolve("indexes").resolve(mc.getVersionManifest().assetIndex.getFabricId(mc.getVersion()) + ".json");
+		thisVersionAssetsDir = assetsCache.resolve("legacy").resolve(mc.getVersion());
 		//Btw, using this `legacy` folder just to get out of regular Loom's way.
 		
 		project.getLogger().lifecycle("] asset index: {}", assetIndexFile);
@@ -88,7 +87,7 @@ public class AssetsProvider extends DependencyProvider {
 					throw new GradleException("Asset index not found at " + assetIndexFile.toAbsolutePath());
 				}
 			} else {
-				Files.createDirectories(globalAssetsCache);
+				Files.createDirectories(assetsCache);
 				new DownloadSession(mc.getVersionManifest().assetIndex.url, project)
 					.dest(assetIndexFile)
 					.etag(true)

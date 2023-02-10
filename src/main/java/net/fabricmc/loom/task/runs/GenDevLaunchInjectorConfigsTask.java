@@ -36,7 +36,7 @@ public class GenDevLaunchInjectorConfigsTask extends DefaultTask implements Loom
 	
 	@OutputFile
 	public Path getDliConfigPath() {
-		return WellKnownLocations.getRootProjectPersistentCache(getProject()).resolve("dli-launch.cfg");
+		return WellKnownLocations.getRootProjectCache(getProject()).resolve("dli-launch.cfg");
 	}
 	
 	@TaskAction

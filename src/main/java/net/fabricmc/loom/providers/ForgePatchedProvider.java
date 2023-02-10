@@ -2,7 +2,6 @@ package net.fabricmc.loom.providers;
 
 import net.fabricmc.loom.DependencyProvider;
 import net.fabricmc.loom.LoomGradleExtension;
-import net.fabricmc.loom.WellKnownLocations;
 import net.fabricmc.loom.util.mcp.BinpatchesPack;
 import org.gradle.api.Project;
 
@@ -48,7 +47,7 @@ public class ForgePatchedProvider extends DependencyProvider {
 	@Override
 	protected void performSetup() throws Exception {
 		patchedVersionTag = mc.getVersion() + "-forge-" + forge.getVersion();
-		patched = WellKnownLocations.getUserCache(project).resolve("minecraft-" + patchedVersionTag + "-merged.jar");
+		patched = getCacheDir().resolve("minecraft-" + patchedVersionTag + "-merged.jar");
 		
 		project.getLogger().lifecycle("] patched jar: {}", patched);
 		
