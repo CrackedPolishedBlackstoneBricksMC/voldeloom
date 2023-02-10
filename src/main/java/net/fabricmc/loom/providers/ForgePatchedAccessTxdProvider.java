@@ -70,7 +70,7 @@ public class ForgePatchedAccessTxdProvider extends DependencyProvider {
 		if(customAccessTransformers.isEmpty()) {
 			discriminator = "";
 		} else {
-			project.getLogger().lifecycle("] Found {} custom access transformers.", customAccessTransformers.size());
+			project.getLogger().lifecycle("] Found {} custom access transformer files.", customAccessTransformers.size());
 			discriminator = "-" + customAccessTransformerHash();
 		}
 		

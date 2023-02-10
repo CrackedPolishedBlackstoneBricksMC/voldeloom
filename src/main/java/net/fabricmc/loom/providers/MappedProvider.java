@@ -61,37 +61,20 @@ public class MappedProvider extends DependencyProvider {
 	private Path mappedJar;
 	private Path intermediaryJar;
 	
-	//some weirdness related to adding the gradle dependency (flatdir moment)
-	private Path mappedDestDir;
-	private String mappedJarNameKinda;
-	
 	@Override
 	protected void performSetup() throws Exception {
-		//TODO kludgy? yeah
-		String intermediaryJarNameKinda = String.format("%s-%s-%s",
-			forgePatched.getPatchedVersionTag(),
-			Constants.INTERMEDIATE_NAMING_SCHEME,
-			mappings.getMappingsDepString().replaceAll("[^A-Za-z0-9.-]", "_")
-		);
-		String intermediaryJarName = "minecraft-" + intermediaryJarNameKinda + ".jar";
+		String mappingsName = mappings.getMappingsDepString().replaceAll("[^A-Za-z0-9.-]", "_");
+		Path mappedDestDir = getCacheDir().resolve("mapped").resolve(mappingsName);
 		
-		//We put the mapped jar in its own directory so that we can add the directory as a flatDir, where it will live all by itself.
-		//no need to risk something like, a naming collision with other versions that happen to be lying around.
-		mappedJarNameKinda = String.format("%s-%s-%s",
-			forgePatched.getPatchedVersionTag(),
-			Constants.MAPPED_NAMING_SCHEME,
-			mappings.getMappingsDepString().replaceAll("[^A-Za-z0-9.-]", "_")
-		);
-		String mappedJarName = "minecraft-" + mappedJarNameKinda + ".jar";
-		mappedDestDir = getCacheDir().resolve(mappedJarNameKinda);
-		
-		intermediaryJar = getCacheDir().resolve(intermediaryJarName);
-		mappedJar = mappedDestDir.resolve(mappedJarName);
+		//TODO improve how the filename is handled (why do i need to put minecraft- again)
+		// Also TODO, do I need an intermediary jar?
+		intermediaryJar = mappedDestDir.resolve(String.format("minecraft-%s-%s.jar", forgePatched.getPatchedVersionTag(), Constants.INTERMEDIATE_NAMING_SCHEME));
+		mappedJar = mappedDestDir.resolve(String.format("minecraft-%s-%s.jar", forgePatched.getPatchedVersionTag(), Constants.MAPPED_NAMING_SCHEME));
 		
 		project.getLogger().lifecycle("] intermediary jar: {}", intermediaryJar);
 		project.getLogger().lifecycle("] mapped jar: {}", mappedJar);
 		
-		cleanOnRefreshDependencies(mappedJar, mappedDestDir, intermediaryJar);
+		cleanOnRefreshDependencies(intermediaryJar, mappedJar);
 	}
 	
 	public void performInstall() throws Exception {
@@ -107,7 +90,8 @@ public class MappedProvider extends DependencyProvider {
 			//https://github.com/MinecraftForge/FML/blob/8e7956397dd80902f7ca69c466e833047dfa5010/build.xml#L295-L298
 			Predicate<String> classFilter = s -> !s.startsWith("argo") && !s.startsWith("org");
 			
-			Files.createDirectories(mappedDestDir);
+			Files.createDirectories(mappedJar.getParent());
+			Files.createDirectories(intermediaryJar.getParent());
 			
 			new TinyRemapperSession()
 				.setMappings(mappings.getMappings())
@@ -123,12 +107,8 @@ public class MappedProvider extends DependencyProvider {
 			project.getLogger().lifecycle("\\-> Remap success! :)");
 		}
 		
-		project.getLogger().info("|-> Adding flatDir repo at {} to project", mappedDestDir);
-		project.getRepositories().flatDir(repository -> repository.dir(mappedDestDir));
-		
-		String depStr = "net.minecraft:minecraft:" + mappedJarNameKinda;
-		project.getLogger().info("|-> Adding dependency {} to the '{}' configuration", depStr, Constants.MINECRAFT_NAMED);
-		project.getDependencies().add(Constants.MINECRAFT_NAMED, project.getDependencies().module(depStr));
+		project.getLogger().info("|-> Adding file at {} to the '{}' configuration", mappedJar, Constants.MINECRAFT_NAMED);
+		project.getDependencies().add(Constants.MINECRAFT_NAMED, project.files(mappedJar));
 	}
 	
 	public Path getMappedJar() {
