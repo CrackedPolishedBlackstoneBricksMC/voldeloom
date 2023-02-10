@@ -50,7 +50,7 @@ public class WellKnownLocations {
 	
 	//TODO: Should this use getProjectCache instead of getRootProjectCache
 	public static Path getRemappedModCache(Project project) {
-		Path remappedModCache = getRootProjectCache(project).resolve("voldeloom-remapped-mods");
+		Path remappedModCache = getRootProjectCache(project).resolve("remapped-mods");
 		
 		try {
 			Files.createDirectories(remappedModCache);

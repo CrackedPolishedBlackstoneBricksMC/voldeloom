@@ -58,6 +58,27 @@ public class Constants {
 	public static final String MINECRAFT = "minecraft";
 	
 	/**
+	 * The Gradle configuration containing the user's specified mappings input file.
+	 *
+	 * @see net.fabricmc.loom.providers.MappingsProvider
+	 */
+	public static final String MAPPINGS = "mappings";
+	
+	/**
+	 * The Gradle configuration containing the Minecraft Forge artifact.
+	 *
+	 * @see net.fabricmc.loom.providers.ForgeProvider
+	 */
+	public static final String FORGE = "forge";
+	
+	/**
+	 * The Gradle configuration containing any custom access-transformer files.
+	 * 
+	 * @see net.fabricmc.loom.providers.ForgePatchedAccessTxdProvider
+	 */
+	public static final String CUSTOM_ACCESS_TRANSFORMERS = "accessTransformers";
+	
+	/**
 	 * The Gradle configuration containing all of Minecraft's own dependencies, such as LWJGL.
 	 * 
 	 * @see net.fabricmc.loom.providers.MinecraftDependenciesProvider
@@ -70,20 +91,6 @@ public class Constants {
 	 * @see net.fabricmc.loom.providers.MappedProvider
 	 */
 	public static final String MINECRAFT_NAMED = "minecraftNamed";
-	
-	/**
-	 * The Gradle configuration containing the user's specified mappings input file.
-	 * 
-	 * @see net.fabricmc.loom.providers.MappingsProvider
-	 */
-	public static final String MAPPINGS = "mappings";
-	
-	/**
-	 * The Gradle configuration containing the Minecraft Forge artifact.
-	 * 
-	 * @see net.fabricmc.loom.providers.ForgeProvider
-	 */
-	public static final String FORGE = "forge";
 	
 	/**
 	 * The Gradle configuration containing all of Forge's own dependencies, such as Guava.<br>

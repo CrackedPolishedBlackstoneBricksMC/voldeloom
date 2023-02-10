@@ -184,6 +184,10 @@ public abstract class DependencyProvider {
 			} catch (Exception e) {
 				throw new RuntimeException("Failed to compute whether " + getClass().getSimpleName() + " requires projectmapping: " + e.getMessage(), e);
 			}
+			
+			if(projectmappedFlag) {
+				project.getLogger().lifecycle(":{} requires projectmapping!", getClass().getSimpleName());
+			}
 		}
 		
 		return projectmappedFlag || deps.stream().anyMatch(DependencyProvider::isProjectmapped);

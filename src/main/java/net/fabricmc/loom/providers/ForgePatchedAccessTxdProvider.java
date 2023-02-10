@@ -1,5 +1,8 @@
 package net.fabricmc.loom.providers;
 
+import com.google.common.hash.Hasher;
+import com.google.common.hash.Hashing;
+import net.fabricmc.loom.Constants;
 import net.fabricmc.loom.DependencyProvider;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.util.mcp.ForgeAccessTransformerSet;
@@ -9,8 +12,10 @@ import org.objectweb.asm.ClassWriter;
 
 import javax.inject.Inject;
 import java.io.BufferedInputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.math.BigInteger;
 import java.net.URI;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
@@ -21,7 +26,10 @@ import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Applies Forge's access transformers on top of the patched Minecraft + Forge jar.
@@ -42,15 +50,32 @@ public class ForgePatchedAccessTxdProvider extends DependencyProvider {
 	private final ForgeProvider forge;
 	private final ForgePatchedProvider forgePatched;
 	
-	//setup
+	private Set<Path> customAccessTransformers = new HashSet<>();
 	private Path accessTransformedMc;
 	
 	@Override
+	protected boolean projectmapSelf() throws Exception {
+		return !project.getConfigurations().getByName(Constants.CUSTOM_ACCESS_TRANSFORMERS).resolve().isEmpty();
+	}
+	
+	@Override
 	protected void performSetup() throws Exception {
-		accessTransformedMc = getCacheDir().resolve("minecraft-" + forgePatched.getPatchedVersionTag() + "-atd.jar");
+		customAccessTransformers = project.getConfigurations().getByName(Constants.CUSTOM_ACCESS_TRANSFORMERS)
+			.resolve()
+			.stream()
+			.map(File::toPath)
+			.collect(Collectors.toSet());
 		
+		String discriminator;
+		if(customAccessTransformers.isEmpty()) {
+			discriminator = "";
+		} else {
+			project.getLogger().lifecycle("] Found {} custom access transformers.", customAccessTransformers.size());
+			discriminator = "-" + customAccessTransformerHash();
+		}
+		
+		accessTransformedMc = getCacheDir().resolve("minecraft-" + forgePatched.getPatchedVersionTag() + "-atd" + discriminator + ".jar");
 		project.getLogger().lifecycle("] access-transformed jar: {}", accessTransformedMc);
-		
 		cleanOnRefreshDependencies(accessTransformedMc);
 	}
 	
@@ -66,15 +91,35 @@ public class ForgePatchedAccessTxdProvider extends DependencyProvider {
 				for(String atFileName : Arrays.asList("forge_at.cfg", "fml_at.cfg")) {
 					Path atFilePath = forgeFs.getPath(atFileName);
 					if(Files.exists(atFilePath)) {
-						project.getLogger().info("|-> Loading {}...", atFileName);
+						project.getLogger().info("\\-> Loading {}...", atFileName);
 						ats.load(atFilePath);
 					} else {
-						project.getLogger().info("|-> No {} in the Forge jar.", atFileName);
+						project.getLogger().info("\\-> No {} in the Forge jar.", atFileName);
 					}
 				}
 			}
 			
-			project.getLogger().lifecycle("|-> Found {} access transformers affecting {} classes. Performing transform...", ats.getCount(), ats.getTouchedClassCount());
+			project.getLogger().lifecycle("\\-> Found {} access transformers affecting {} classes inside Forge.", ats.getCount(), ats.getTouchedClassCount());
+			
+			Set<File> customAtFiles = project.getConfigurations().getByName(Constants.CUSTOM_ACCESS_TRANSFORMERS).getFiles();
+			if(!customAtFiles.isEmpty()) {
+				project.getLogger().lifecycle("|-> Loading custom access transformer files...", customAtFiles.size());
+				
+				for(File customAtFile : customAtFiles) {
+					Path customAtPath = customAtFile.toPath();
+					
+					if(Files.exists(customAtPath)) {
+						project.getLogger().info("\\-> Loading {}...", customAtPath);
+						ats.load(customAtPath);
+					} else {
+						project.getLogger().warn("\\-> Custom AT at {} doesn't exist!", customAtPath);
+					}
+				}
+				
+				project.getLogger().lifecycle("\\-> After incorporationg custom ATs, there are {} access transformers affecting {} classes.", ats.getCount(), ats.getTouchedClassCount());
+			}
+			
+			project.getLogger().lifecycle("|-> Performing transform...", ats.getCount(), ats.getTouchedClassCount());
 			
 			try(
 				FileSystem unAccessTransformedFs = FileSystems.newFileSystem(URI.create("jar:" + forgePatched.getPatchedJar().toUri()), Collections.emptyMap());
@@ -128,5 +173,17 @@ public class ForgePatchedAccessTxdProvider extends DependencyProvider {
 	
 	public Path getTransformedJar() {
 		return accessTransformedMc;
+	}
+	
+	@SuppressWarnings("UnstableApiUsage")
+	private String customAccessTransformerHash() throws Exception {
+		Hasher digest = Hashing.sha256().newHasher();
+		for(Path path : customAccessTransformers) {
+			digest.putBytes(Files.readAllBytes(path));
+			digest.putByte((byte) 0);
+		}
+		
+		String digestString = String.format("%040x", new BigInteger(1, digest.hash().asBytes()));
+		return digestString.substring(0, 8);
 	}
 }

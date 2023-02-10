@@ -150,24 +150,25 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		
 		//Vanilla Minecraft, straight off Mojang's server.
 		project.getConfigurations().maybeCreate(Constants.MINECRAFT).setTransitive(false);
-		
 		//The dependencies for Minecraft itself, such as LWJGL.
 		Configuration minecraftDependencies = project.getConfigurations().maybeCreate(Constants.MINECRAFT_DEPENDENCIES).setTransitive(false);
 		
-		//Vanilla Minecraft, remapped to the mappings chosen by the modder.
-		Configuration minecraftNamed = project.getConfigurations().maybeCreate(Constants.MINECRAFT_NAMED).setTransitive(false);
-		compileOrImplementation.extendsFrom(minecraftNamed);
-		minecraftNamed.extendsFrom(minecraftDependencies);
+		//Forge!
+		project.getConfigurations().maybeCreate(Constants.FORGE).setTransitive(false);
+		//The dependencies for Forge itself.
+		Configuration forgeDependencies = project.getConfigurations().maybeCreate(Constants.FORGE_DEPENDENCIES).setTransitive(false);
 		
 		//Mappings. This is the raw MCP artifact, and the processed mapping jar is located elsewhere (using provider system).
 		project.getConfigurations().maybeCreate(Constants.MAPPINGS).setTransitive(true);
-		//compileOrImplementation.extendsFrom(mappings);
+		//compileOrImplementation.extendsFrom(mappings); //Not needed I don't think
 		
-		//Forge!
-		project.getConfigurations().maybeCreate(Constants.FORGE).setTransitive(false); //disable transitive to be safe -- forge will load its deps at runtime. (original comment)
+		//Custom access transformers.
+		project.getConfigurations().maybeCreate(Constants.CUSTOM_ACCESS_TRANSFORMERS).setTransitive(false);
 		
-		//The dependencies for Forge itself.
-		Configuration forgeDependencies = project.getConfigurations().maybeCreate(Constants.FORGE_DEPENDENCIES).setTransitive(false);
+		//Vanilla Minecraft + Forge, remapped to the mappings chosen by the modder.
+		Configuration minecraftNamed = project.getConfigurations().maybeCreate(Constants.MINECRAFT_NAMED).setTransitive(false);
+		compileOrImplementation.extendsFrom(minecraftNamed);
+		minecraftNamed.extendsFrom(minecraftDependencies);
 		minecraftNamed.extendsFrom(forgeDependencies);
 		
 		//Mod dependency types!
