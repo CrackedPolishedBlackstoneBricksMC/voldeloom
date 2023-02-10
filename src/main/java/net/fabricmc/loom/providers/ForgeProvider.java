@@ -26,7 +26,7 @@ public class ForgeProvider extends DependencyProvider {
 		forge = forgeDependency.resolveSinglePath();
 		forgeVersion = forgeDependency.getDependency().getVersion();
 		
-		project.getLogger().lifecycle("] forge jar is at: " + forge);
+		project.getLogger().lifecycle("] forge jar: {}", forge);
 		
 		//No need to clean it manually on refreshDependencies, it's a normal gradle dependency, gradle will refresh it on its own
 	}

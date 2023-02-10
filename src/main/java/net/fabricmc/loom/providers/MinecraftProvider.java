@@ -61,6 +61,8 @@ public class MinecraftProvider extends DependencyProvider {
 	protected void performSetup() throws Exception {
 		minecraftVersion = getSingleDependency(Constants.MINECRAFT).getDependency().getVersion();
 		
+		project.getLogger().lifecycle("] Minecraft {}", minecraftVersion);
+		
 		Path userCache = WellKnownLocations.getUserCache(project);
 		Path versionManifestIndexJson = WellKnownLocations.getUserCache(project).resolve("version_manifest.json");
 		Path thisVersionManifestJson = userCache.resolve("minecraft-" + minecraftVersion + "-info.json");

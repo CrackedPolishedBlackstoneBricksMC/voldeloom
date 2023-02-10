@@ -50,6 +50,8 @@ public class AssetsProvider extends DependencyProvider {
 	public AssetsProvider(Project project, LoomGradleExtension extension, MinecraftProvider mc) {
 		super(project, extension);
 		this.mc = mc;
+		
+		dependsOn(mc);
 	}
 	
 	private final MinecraftProvider mc;
@@ -60,12 +62,12 @@ public class AssetsProvider extends DependencyProvider {
 	
 	@Override
 	protected void performSetup() throws Exception {
-		mc.tryReach(Stage.SETUP);
-		
 		globalAssetsCache = WellKnownLocations.getUserCache(project).resolve("assets");
 		assetIndexFile = globalAssetsCache.resolve("indexes").resolve(mc.getVersionManifest().assetIndex.getFabricId(mc.getVersion()) + ".json");
 		thisVersionAssetsDir = globalAssetsCache.resolve("legacy").resolve(mc.getVersion());
 		//Btw, using this `legacy` folder just to get out of regular Loom's way.
+		
+		project.getLogger().lifecycle("] asset index: {}", assetIndexFile);
 		
 		//Let's not delete the assets themselves on refreshDependencies.
 		//They're rarely the problem, and take a long time to download.
@@ -73,10 +75,6 @@ public class AssetsProvider extends DependencyProvider {
 	}
 	
 	public void performInstall() throws Exception {
-		//dependencies
-		mc.tryReach(Stage.INSTALLED);
-		
-		//task
 		boolean offline = project.getGradle().getStartParameter().isOffline();
 		if (Files.notExists(assetIndexFile) || !Checksum.compareSha1(assetIndexFile, mc.getVersionManifest().assetIndex.sha1)) {
 			project.getLogger().lifecycle(":downloading asset index");

@@ -63,6 +63,8 @@ public class MappingsProvider extends DependencyProvider {
 	public MappingsProvider(Project project, LoomGradleExtension extension, ForgePatchedProvider forgePatched) {
 		super(project, extension);
 		this.forgePatched = forgePatched;
+		
+		dependsOn(forgePatched);
 	}
 	
 	private final ForgePatchedProvider forgePatched;
@@ -79,8 +81,6 @@ public class MappingsProvider extends DependencyProvider {
 	
 	@Override
 	protected void performSetup() throws Exception {
-		forgePatched.tryReach(Stage.SETUP);
-		
 		DependencyInfo mappingsDependency = getSingleDependency(Constants.MAPPINGS);
 		rawMappingsJar = mappingsDependency.resolveSinglePath();
 		
@@ -92,19 +92,21 @@ public class MappingsProvider extends DependencyProvider {
 		mappingsName = mappingsDependency.getDependency().getGroup() + "." + mappingsDependency.getDependency().getName();
 		mappingsVersion = mappingsDependency.getResolvedVersion() + mappingDiscriminant;
 		
-		project.getLogger().lifecycle("] mappings name: {}, version: {}", mappingsName, mappingsVersion);
-		
 		tinyMappings = mappingsDir.resolve(rawMappingsJar.getFileName() + mappingDiscriminant + ".tiny");
+		
+		project.getLogger().lifecycle("] mappings name: {}, version: {}", mappingsName, mappingsVersion);
+		project.getLogger().lifecycle("] mappings source: {}", rawMappingsJar);
+		project.getLogger().lifecycle("] mappings destination: {}", tinyMappings);
 		
 		cleanOnRefreshDependencies(tinyMappings);
 	}
 	
 	public void performInstall() throws Exception {
-		forgePatched.tryReach(Stage.INSTALLED);
-		
 		Files.createDirectories(mappingsDir);
 		
 		if(Files.notExists(tinyMappings)) {
+			project.getLogger().lifecycle("|-> Mappings file does not exist, parsing...");
+			
 			long filesize;
 			try {
 				filesize = Files.size(rawMappingsJar);
@@ -135,44 +137,45 @@ public class MappingsProvider extends DependencyProvider {
 				} else {
 					conf = mcpZipFs.getPath(""); //manually zipped mappings?
 				}
-				project.getLogger().info("] Mappings root detected to be '{}'", conf);
+				project.getLogger().lifecycle("] Mappings root detected to be '{}'", conf);
 				
-				project.getLogger().info("|-> Reading joined.srg...");
+				project.getLogger().lifecycle("|-> Reading joined.srg...");
 				Srg joinedSrg;
 				if(Files.exists(conf.resolve("joined.srg"))) {
 					joinedSrg = new Srg().read(conf.resolve("joined.srg"));
 				} else {
 					//just assume we're manually merging a client and server srg
 					//TODO: newids?
-					project.getLogger().info("\\-> No joined.srg exists. Reading client.srg...");
+					project.getLogger().lifecycle("\\-> No joined.srg exists. Reading client.srg...");
 					Srg client = new Srg().read(conf.resolve("client.srg"));
 					
-					project.getLogger().info("\\-> Reading server.srg...");
+					project.getLogger().lifecycle("\\-> Reading server.srg...");
 					Srg server = new Srg().read(conf.resolve("server.srg"));
 					
-					project.getLogger().info("\\-> Manually joining srgs...");
+					project.getLogger().lifecycle("\\-> Manually joining srgs...");
 					joinedSrg = client.mergeWith(server);
 				}
 				
-				project.getLogger().info("|-> Reading fields.csv...");
+				project.getLogger().lifecycle("|-> Reading fields.csv...");
 				Members fields = new Members().read(conf.resolve("fields.csv"));
 				
-				project.getLogger().info("|-> Reading methods.csv...");
+				project.getLogger().lifecycle("|-> Reading methods.csv...");
 				Members methods = new Members().read(conf.resolve("methods.csv"));
 				
-				project.getLogger().info("|-> Reading packages.csv...");
+				project.getLogger().lifecycle("|-> Reading packages.csv...");
 				@Nullable Packages packages;
 				if(Files.exists(conf.resolve("packages.csv"))) {
 					packages = new Packages().read(conf.resolve("packages.csv"));
 				} else {
-					project.getLogger().info("\\-> No packages.csv exists.");
+					project.getLogger().lifecycle("\\-> No packages.csv exists.");
 					packages = null;
 				}
 				
-				project.getLogger().info("|-> Scanning unmapped jar for field types...");
+				//TODO: Only usage of ForgePatched, and I think putting tiny-remapper in "ignore field descs" mode helps
+				project.getLogger().lifecycle("|-> Scanning unmapped jar for field types...");
 				JarScanData scanData = new JarScanData().scan(forgePatched.getPatchedJar());
 				
-				project.getLogger().info("|-> Computing tinyv2 mappings...");
+				project.getLogger().lifecycle("|-> Computing tinyv2 mappings...");
 				List<String> tinyv2 = new McpTinyv2Writer()
 					.srg(joinedSrg)
 					.fields(fields)
@@ -182,10 +185,10 @@ public class MappingsProvider extends DependencyProvider {
 					.jarScanData(scanData)
 					.write();
 				
-				project.getLogger().info("|-> Saving...");
+				project.getLogger().lifecycle("|-> Saving...");
 				Files.write(tinyMappings, tinyv2, StandardCharsets.UTF_8);
 				
-				project.getLogger().info("|-> Done!");
+				project.getLogger().lifecycle("|-> Done!");
 			}}
 		}
 		

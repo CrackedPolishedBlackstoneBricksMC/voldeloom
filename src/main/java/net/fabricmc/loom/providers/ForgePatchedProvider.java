@@ -34,6 +34,8 @@ public class ForgePatchedProvider extends DependencyProvider {
 		this.mc = mc;
 		this.merged = merged;
 		this.forge = forge;
+		
+		dependsOn(mc, merged, forge);
 	}
 	
 	private final MinecraftProvider mc;
@@ -45,24 +47,17 @@ public class ForgePatchedProvider extends DependencyProvider {
 	
 	@Override
 	protected void performSetup() throws Exception {
-		mc.tryReach(Stage.SETUP);
-		merged.tryReach(Stage.SETUP);
-		forge.tryReach(Stage.SETUP);
-		
 		patchedVersionTag = mc.getVersion() + "-forge-" + forge.getVersion();
 		patched = WellKnownLocations.getUserCache(project).resolve("minecraft-" + patchedVersionTag + "-merged.jar");
+		
+		project.getLogger().lifecycle("] patched jar: {}", patched);
 		
 		cleanOnRefreshDependencies(patched);
 	}
 	
 	public void performInstall() throws Exception {
-		mc.tryReach(Stage.INSTALLED);
-		merged.tryReach(Stage.INSTALLED);
-		forge.tryReach(Stage.INSTALLED);
-		
-		project.getLogger().lifecycle("] patched jar is at: " + patched);
 		if(Files.notExists(patched)) {
-			project.getLogger().lifecycle("|-> Does not exist, performing patch...");
+			project.getLogger().lifecycle("|-> Patched jar does not exist, performing patch...");
 			
 			try(
 				FileSystem mergedFs = FileSystems.newFileSystem(URI.create("jar:" + merged.getMergedJar().toUri()), Collections.emptyMap());

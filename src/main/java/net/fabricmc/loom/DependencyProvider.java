@@ -27,10 +27,6 @@ package net.fabricmc.loom;
 import com.google.common.collect.Iterables;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
-import net.fabricmc.loom.Constants;
-import net.fabricmc.loom.LoomGradleExtension;
-import net.fabricmc.loom.LoomGradlePlugin;
-import net.fabricmc.loom.ProviderGraph;
 import net.fabricmc.loom.util.ZipUtil;
 import org.gradle.api.InvalidUserDataException;
 import org.gradle.api.Project;
@@ -66,6 +62,7 @@ public abstract class DependencyProvider {
 	
 	protected final Project project;
 	protected final LoomGradleExtension extension;
+	protected List<DependencyProvider> deps = new ArrayList<>(4);
 	
 	private Stage stage = Stage.EARLY;
 	
@@ -87,6 +84,10 @@ public abstract class DependencyProvider {
 	 */
 	protected void performInstall() throws Exception { }
 	
+	protected void dependsOn(DependencyProvider... deps) {
+		this.deps.addAll(Arrays.asList(deps));
+	}
+	
 	public void cleanOnRefreshDependencies(Path... paths) {
 		cleanOnRefreshDependencies(Arrays.asList(paths));
 	}
@@ -99,22 +100,24 @@ public abstract class DependencyProvider {
 	}
 	
 	public void reach(Stage newStage) throws Exception {
+		//First, ensure all of this task's dependencies are brought to the desired stage
+		for(DependencyProvider dep : deps) {
+			dep.reach(newStage);
+		}
+		
+		//Then, bring myself to the desired stage
 		if(stage == Stage.EARLY && newStage.ordinal() >= Stage.SETUP.ordinal()) {
-			project.getLogger().lifecycle(":bringing {} to stage {}...", getClass().getSimpleName(), Stage.SETUP);
+			project.getLogger().lifecycle(":setting up {}", getClass().getSimpleName());
 			
 			performSetup();
 			stage = Stage.SETUP;
-			
-			project.getLogger().lifecycle(":brought {} to stage {}!", getClass().getSimpleName(), Stage.SETUP);
 		}
 		
 		if(stage == Stage.SETUP && newStage.ordinal() >= Stage.INSTALLED.ordinal()) {
-			project.getLogger().lifecycle(":bringing {} to stage {}...", getClass().getSimpleName(), Stage.INSTALLED);
+			project.getLogger().lifecycle(":installing {}", getClass().getSimpleName());
 			
 			performInstall();
 			stage = Stage.INSTALLED;
-			
-			project.getLogger().lifecycle(":brought {} to stage {}!", getClass().getSimpleName(), Stage.INSTALLED);
 		}
 	}
 	

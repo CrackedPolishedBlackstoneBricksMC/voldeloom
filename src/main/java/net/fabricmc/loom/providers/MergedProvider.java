@@ -41,6 +41,8 @@ public class MergedProvider extends DependencyProvider {
 	public MergedProvider(Project project, LoomGradleExtension extension, MinecraftProvider mc) {
 		super(project, extension);
 		this.mc = mc;
+		
+		dependsOn(mc);
 	}
 	
 	private final MinecraftProvider mc;
@@ -50,20 +52,18 @@ public class MergedProvider extends DependencyProvider {
 	
 	@Override
 	protected void performSetup() throws Exception {
-		mc.tryReach(Stage.SETUP);
-		
 		merged = WellKnownLocations.getUserCache(project).resolve("minecraft-" + mc.getVersion() + "-merged.jar");
 		mergedUnfixed = WellKnownLocations.getUserCache(project).resolve("minecraft-" + mc.getVersion() + "-merged-unfixed.jar");
+		
+		project.getLogger().lifecycle("] merged-unfixed jar: {}", mergedUnfixed);
+		project.getLogger().lifecycle("] merged-fixed jar: {}", merged);
 		
 		cleanOnRefreshDependencies(merged, mergedUnfixed);
 	}
 	
 	public void performInstall() throws Exception {
-		mc.tryReach(Stage.INSTALLED);
-		
-		project.getLogger().lifecycle("] merged-unfixed jar is at: " + mergedUnfixed);
 		if(Files.notExists(mergedUnfixed)) {
-			project.getLogger().lifecycle("|-> Does not exist, performing merge...");
+			project.getLogger().lifecycle("|-> merged-unfixed does not exist, performing merge...");
 			
 			try(JarMerger jm = new JarMerger(mc.getClientJar().toFile(), mc.getServerJar().toFile(), mergedUnfixed.toFile())) {
 				jm.enableSyntheticParamsOffset();
@@ -73,9 +73,8 @@ public class MergedProvider extends DependencyProvider {
 			project.getLogger().lifecycle("|-> Merge success! :)");
 		}
 		
-		project.getLogger().lifecycle("] merged-fixed jar is at: " + merged);
 		if(Files.notExists(merged)) {
-			project.getLogger().lifecycle("|-> Does not exist, performing annotation remap...");
+			project.getLogger().lifecycle("|-> merged-fixed does not exist, performing annotation remap...");
 			
 			try(FileSystem unfixedFs = FileSystems.newFileSystem(URI.create("jar:" + mergedUnfixed.toUri()), Collections.emptyMap());
 			    FileSystem fixedFs = FileSystems.newFileSystem(URI.create("jar:" + merged.toUri()), Collections.singletonMap("create", "true")))

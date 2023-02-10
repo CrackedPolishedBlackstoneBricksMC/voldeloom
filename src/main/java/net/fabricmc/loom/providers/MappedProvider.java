@@ -49,6 +49,8 @@ public class MappedProvider extends DependencyProvider {
 		this.forgePatched = forgePatched;
 		this.patchedTxd = patchedTxd;
 		this.mappings = mappings;
+		
+		dependsOn(libs, forgePatched, patchedTxd, mappings);
 	}
 	
 	private final MinecraftDependenciesProvider libs;
@@ -66,11 +68,6 @@ public class MappedProvider extends DependencyProvider {
 	
 	@Override
 	protected void performSetup() throws Exception {
-		libs.tryReach(Stage.SETUP);
-		forgePatched.tryReach(Stage.SETUP);
-		patchedTxd.tryReach(Stage.SETUP);
-		mappings.tryReach(Stage.SETUP);
-		
 		Path userCache = WellKnownLocations.getUserCache(project);
 		
 		//TODO kludgy? yeah
@@ -96,19 +93,15 @@ public class MappedProvider extends DependencyProvider {
 		intermediaryJar = userCache.resolve(intermediaryJarName);
 		mappedJar = mappedDestDir.resolve(mappedJarName);
 		
+		project.getLogger().lifecycle("] intermediary jar: {}", intermediaryJar);
+		project.getLogger().lifecycle("] mapped jar: {}", mappedJar);
+		
 		cleanOnRefreshDependencies(mappedJar, mappedDestDir, intermediaryJar);
 	}
 	
 	public void performInstall() throws Exception {
-		libs.tryReach(Stage.INSTALLED);
-		forgePatched.tryReach(Stage.INSTALLED);
-		patchedTxd.tryReach(Stage.INSTALLED);
-		mappings.tryReach(Stage.INSTALLED);
-		
-		project.getLogger().lifecycle("] {} jar is at: {}", Constants.INTERMEDIATE_NAMING_SCHEME, intermediaryJar);
-		project.getLogger().lifecycle("] {} jar is at: {}", Constants.MAPPED_NAMING_SCHEME, mappedJar);
 		if (Files.notExists(intermediaryJar) || Files.notExists(mappedJar)) {
-			project.getLogger().lifecycle("|-> At least one didn't exist, performing remap...");
+			project.getLogger().lifecycle("|-> At least one mapped jar didn't exist, performing remap...");
 			
 			//ensure both are actually gone
 			Files.deleteIfExists(mappedJar);

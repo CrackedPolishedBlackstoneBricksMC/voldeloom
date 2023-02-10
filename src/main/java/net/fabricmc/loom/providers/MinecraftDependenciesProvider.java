@@ -54,6 +54,8 @@ public class MinecraftDependenciesProvider extends DependencyProvider {
 	public MinecraftDependenciesProvider(Project project, LoomGradleExtension extension, MinecraftProvider mc) {
 		super(project, extension);
 		this.mc = mc;
+		
+		dependsOn(mc);
 	}
 	
 	private final MinecraftProvider mc;
@@ -65,18 +67,16 @@ public class MinecraftDependenciesProvider extends DependencyProvider {
 	
 	@Override
 	protected void performSetup() throws Exception {
-		mc.tryReach(Stage.SETUP);
-		
 		nativesDir = WellKnownLocations.getUserCache(project).resolve("natives").resolve(mc.getVersion());
 		nativesJarStore = nativesDir.resolve("jars");
+		
+		project.getLogger().lifecycle("] native libraries: {}", nativesJarStore);
 		
 		cleanOnRefreshDependencies(nonNativeLibs);
 		cleanOnRefreshDependencies(nativesDir);
 	}
 	
 	public void performInstall() throws Exception {
-		mc.tryReach(Stage.INSTALLED);
-		
 		Files.createDirectories(nativesJarStore);
 		
 		for(MinecraftVersionInfo.Library library : mc.getVersionManifest().libraries) {
@@ -132,6 +132,7 @@ public class MinecraftDependenciesProvider extends DependencyProvider {
 				//gives maven coordinates which Gradle can resolve the usual way off of mojang's maven
 				
 				//TODO move "physically depending on things" out
+				project.getLogger().info("|-> Adding Minecraft dependency {} to the '{}' configuration", depToAdd, Constants.MINECRAFT_DEPENDENCIES);
 				project.getDependencies().add(Constants.MINECRAFT_DEPENDENCIES, depToAdd);
 			}
 		}

@@ -36,6 +36,8 @@ public class ForgePatchedAccessTxdProvider extends DependencyProvider {
 		super(project, extension);
 		this.forge = forge;
 		this.forgePatched = forgePatched;
+		
+		dependsOn(forge, forgePatched);
 	}
 	
 	private final ForgeProvider forge;
@@ -46,21 +48,16 @@ public class ForgePatchedAccessTxdProvider extends DependencyProvider {
 	
 	@Override
 	protected void performSetup() throws Exception {
-		forge.tryReach(Stage.SETUP);
-		forgePatched.tryReach(Stage.SETUP);
-		
 		accessTransformedMc = WellKnownLocations.getUserCache(project).resolve("minecraft-" + forgePatched.getPatchedVersionTag() + "-atd.jar");
+		
+		project.getLogger().lifecycle("] access-transformed jar: {}", accessTransformedMc);
 		
 		cleanOnRefreshDependencies(accessTransformedMc);
 	}
 	
 	public void performInstall() throws Exception {
-		forge.tryReach(Stage.INSTALLED);
-		forgePatched.tryReach(Stage.INSTALLED);
-		
-		project.getLogger().lifecycle("] access-transformed jar is at: {}", accessTransformedMc);
 		if(Files.notExists(accessTransformedMc)) {
-			project.getLogger().lifecycle("|-> Does not exist, parsing Forge's access transformers...");
+			project.getLogger().lifecycle("|-> Access-transformed jar does not exist, parsing Forge's access transformers...");
 			
 			//Read forge ats
 			ForgeAccessTransformerSet ats = new ForgeAccessTransformerSet();

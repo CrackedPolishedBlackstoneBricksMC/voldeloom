@@ -45,6 +45,8 @@ public class ForgeDependenciesProvider extends DependencyProvider {
 	public ForgeDependenciesProvider(Project project, LoomGradleExtension extension, ForgeProvider forge) {
 		super(project, extension);
 		this.forge = forge;
+		
+		dependsOn(forge);
 	}
 	
 	private final ForgeProvider forge;
@@ -53,15 +55,14 @@ public class ForgeDependenciesProvider extends DependencyProvider {
 	
 	@Override
 	protected void performSetup() throws Exception {
-		forge.tryReach(Stage.SETUP);
-		
 		forgeLibsFolder = WellKnownLocations.getUserCache(project).resolve("forgeLibs").resolve(forge.getVersion());
+		
+		project.getLogger().lifecycle("] forge libraries folder: {}", forgeLibsFolder);
+		
 		cleanOnRefreshDependencies(forgeLibsFolder);
 	}
 	
 	public void performInstall() throws Exception {
-		forge.tryReach(Stage.INSTALLED);
-		
 		List<String> sniffedLibraries = new ArrayList<>();
 		try(FileSystem forgeFs = FileSystems.newFileSystem(URI.create("jar:" + forge.getJar().toUri()), Collections.emptyMap())) {
 			//read from magical hardcoded path inside the forge jar; this is where the auto-downloaded library paths are stored
@@ -93,6 +94,7 @@ public class ForgeDependenciesProvider extends DependencyProvider {
 			//dep on each one individually instead of using project.files(forgeLibsFolder)
 			//this is mainly to prevent the .etag files from being included, but file collection deps != file deps in gradle
 			//not that they're impossible to use. idk. just reducing the number of different kinds of dependency throughout the project
+			project.getLogger().info("|-> Adding Forge dependency at {} to the '{}' configuration", dest, Constants.FORGE_DEPENDENCIES);
 			project.getDependencies().add(Constants.FORGE_DEPENDENCIES, project.files(dest));
 		}
 	}

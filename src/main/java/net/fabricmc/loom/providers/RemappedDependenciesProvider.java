@@ -38,6 +38,8 @@ public class RemappedDependenciesProvider extends DependencyProvider {
 		this.mc = mc;
 		this.mappings = mappings;
 		this.patchedTxd = patchedTxd;
+		
+		dependsOn(mc, mappings, patchedTxd);
 	}
 	
 	private final MinecraftDependenciesProvider mc;
@@ -49,10 +51,6 @@ public class RemappedDependenciesProvider extends DependencyProvider {
 	
 	@Override
 	protected void performSetup() throws Exception {
-		mc.tryReach(Stage.SETUP);
-		mappings.tryReach(Stage.SETUP);
-		patchedTxd.tryReach(Stage.SETUP);
-		
 		mappingsSuffix = mappings.getMappingsName() + "-" + mappings.getMappingsVersion();
 		remappedModCache = WellKnownLocations.getRemappedModCache(project);
 		
@@ -60,18 +58,15 @@ public class RemappedDependenciesProvider extends DependencyProvider {
 	}
 	
 	public void performInstall() throws Exception {
-		mc.tryReach(Stage.INSTALLED);
-		mappings.tryReach(Stage.INSTALLED);
-		patchedTxd.tryReach(Stage.INSTALLED);
-		
 		//MERGED from ModCompileRemapper in old tools
 		
+		int count = 0;
 		for(RemappedConfigurationEntry entry : extension.remappedConfigurationEntries) {
-			
 			Configuration inputConfig = entry.getInputConfig();
 			Configuration outputConfig = entry.getOutputConfig();
 			
 			for(File unmappedFile : inputConfig.getResolvedConfiguration().getFiles()) {
+				count++;
 				try {
 					Path unmappedPath = unmappedFile.toPath();
 					Path mappedPath = remappedModCache.resolve(unmappedPath.getFileName().toString() + "-mapped-" + mappingsSuffix + ".jar");
@@ -122,6 +117,10 @@ public class RemappedDependenciesProvider extends DependencyProvider {
 //	//				scheduleSourcesRemapping(project, postPopulationScheduler, sources, remappedLog, remappedFilename, modStore);
 //	//			}
 //			}
+		}
+		
+		if(count != 0) {
+			project.getLogger().lifecycle("] {} remappable dependenc{}, remapped to {}", count, count == 1 ? "y" : "ies", remappedModCache);
 		}
 	}
 	
