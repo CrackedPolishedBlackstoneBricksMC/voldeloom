@@ -55,7 +55,9 @@ public class ForgeDependenciesProvider extends DependencyProvider {
 	
 	@Override
 	protected void performSetup() throws Exception {
-		forgeLibsFolder = WellKnownLocations.getUserCache(project).resolve("forgeLibs").resolve(forge.getVersion());
+		forgeLibsFolder = WellKnownLocations.getUserCache(project)
+			.resolve("forgeLibs")
+			.resolve(forge.getDepString().replaceAll("[^A-Za-z0-9.-]", "_"));
 		
 		project.getLogger().lifecycle("] forge libraries folder: {}", forgeLibsFolder);
 		
@@ -99,7 +101,7 @@ public class ForgeDependenciesProvider extends DependencyProvider {
 		}
 	}
 	
-	private static class LibrarySniffingClassVisitor extends ClassVisitor {
+	private class LibrarySniffingClassVisitor extends ClassVisitor {
 		public LibrarySniffingClassVisitor(ClassVisitor classVisitor, Collection<String> sniffedLibraries) {
 			super(Opcodes.ASM4, classVisitor);
 			this.sniffedLibraries = sniffedLibraries;
@@ -117,6 +119,7 @@ public class ForgeDependenciesProvider extends DependencyProvider {
 					//I differentiate between them by just looking for the .jar suffix, but I guess another way could be doing more thorough static analysis,
 					//and seeing which array the string constants end up being written to.
 					if(value instanceof String && ((String) value).endsWith(".jar")) {
+						project.getLogger().info("|-> Found Forge library: {}", value);
 						sniffedLibraries.add((String) value);
 					}
 				}

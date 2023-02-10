@@ -18,13 +18,15 @@ public class ForgeProvider extends DependencyProvider {
 	}
 	
 	private Path forge;
-	private String forgeVersion;
+	private String version; //like "1.4.7-6.6.2.534"
+	private String depString; //like "net.minecraftforge.forge:forge:1.4.7-6.6.2.534"
 	
 	@Override
 	protected void performSetup() throws Exception {
 		DependencyInfo forgeDependency = getSingleDependency(Constants.FORGE);
 		forge = forgeDependency.resolveSinglePath();
-		forgeVersion = forgeDependency.getDependency().getVersion();
+		version = forgeDependency.getDependency().getVersion();
+		depString = forgeDependency.getDepString();
 		
 		project.getLogger().lifecycle("] forge jar: {}", forge);
 		
@@ -40,6 +42,10 @@ public class ForgeProvider extends DependencyProvider {
 	}
 	
 	public String getVersion() {
-		return forgeVersion;
+		return version;
+	}
+	
+	public String getDepString() {
+		return depString;
 	}
 }

@@ -71,21 +71,19 @@ public class MappedProvider extends DependencyProvider {
 		Path userCache = WellKnownLocations.getUserCache(project);
 		
 		//TODO kludgy? yeah
-		String intermediaryJarNameKinda = String.format("%s-%s-%s-%s",
+		String intermediaryJarNameKinda = String.format("%s-%s-%s",
 			forgePatched.getPatchedVersionTag(),
 			Constants.INTERMEDIATE_NAMING_SCHEME,
-			mappings.getMappingsName(),
-			mappings.getMappingsVersion()
+			mappings.getMappingsDepString().replaceAll("[^A-Za-z0-9.-]", "_")
 		);
 		String intermediaryJarName = "minecraft-" + intermediaryJarNameKinda + ".jar";
 		
 		//We put the mapped jar in its own directory so that we can add the directory as a flatDir, where it will live all by itself.
 		//no need to risk something like, a naming collision with other versions that happen to be lying around.
-		mappedJarNameKinda = String.format("%s-%s-%s-%s",
+		mappedJarNameKinda = String.format("%s-%s-%s",
 			forgePatched.getPatchedVersionTag(),
 			Constants.MAPPED_NAMING_SCHEME,
-			mappings.getMappingsName(),
-			mappings.getMappingsVersion()
+			mappings.getMappingsDepString().replaceAll("[^A-Za-z0-9.-]", "_")
 		);
 		String mappedJarName = "minecraft-" + mappedJarNameKinda + ".jar";
 		mappedDestDir = userCache.resolve(mappedJarNameKinda);

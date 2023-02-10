@@ -64,7 +64,7 @@ public class RemappedDependenciesProvider extends DependencyProvider {
 	
 	@Override
 	protected void performSetup() throws Exception {
-		String mappingsSuffix = mappings.getMappingsName() + "-" + mappings.getMappingsVersion();
+		String mappingsSuffix = mappings.getMappingsDepString().replaceAll("[^A-Za-z0-9.-]", "_");
 		Path remappedModCache = WellKnownLocations.getRemappedModCache(project);
 		
 		for(RemappedConfigurationEntry entry : extension.remappedConfigurationEntries) {

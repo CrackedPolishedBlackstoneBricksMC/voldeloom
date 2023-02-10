@@ -72,8 +72,7 @@ public class MappingsProvider extends DependencyProvider {
 	private final Path mappingsDir = WellKnownLocations.getUserCache(project).resolve("mappings");
 	
 	private Path rawMappingsJar;
-	private String mappingsName;
-	private String mappingsVersion;
+	private String mappingsDepString;
 	private TinyTree parsedMappings;
 	
 	//output created by performInstall():
@@ -89,12 +88,10 @@ public class MappingsProvider extends DependencyProvider {
 		if(extension.srgsAsFallback) mappingDiscriminant += "-srgfallback";
 		
 		//outputs
-		mappingsName = mappingsDependency.getDependency().getGroup() + "." + mappingsDependency.getDependency().getName();
-		mappingsVersion = mappingsDependency.getResolvedVersion() + mappingDiscriminant;
-		
+		mappingsDepString = mappingsDependency.getDepString() + mappingDiscriminant;
 		tinyMappings = mappingsDir.resolve(rawMappingsJar.getFileName() + mappingDiscriminant + ".tiny");
 		
-		project.getLogger().lifecycle("] mappings name: {}, version: {}", mappingsName, mappingsVersion);
+		project.getLogger().lifecycle("] mappings dep: {}", mappingsDepString);
 		project.getLogger().lifecycle("] mappings source: {}", rawMappingsJar);
 		project.getLogger().lifecycle("] mappings destination: {}", tinyMappings);
 		
@@ -202,12 +199,8 @@ public class MappingsProvider extends DependencyProvider {
 		return parsedMappings;
 	}
 	
-	public String getMappingsName() {
-		return mappingsName;
-	}
-	
-	public String getMappingsVersion() {
-		return mappingsVersion;
+	public String getMappingsDepString() {
+		return mappingsDepString;
 	}
 	
 	public Path getTinyMappings() {

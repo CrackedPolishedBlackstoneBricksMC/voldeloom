@@ -10,6 +10,10 @@ Running changelog document, will be added to as I commit things.
   * Set the `voldeloom.offline` system property, project property, pass `--offline` to Gradle, or configure `offline` in the extension to configure offline mode
   * Set the `voldeloom.refreshDependencies` system property, project property, pass `--refresh-dependencies` to Gradle, or configure `refreshDependencies` in the extension to configure refreshDependencies mode
   * These are different from the global Gradle flags so that you can force Voldeloom to re-remap its derived artifacts, but not cause Gradle to do a bunch of redownloading too
+* Adjusted filenames of some intermediate products to be more consistent:
+  * Forge libraries are downloaded to a folder containing the complete Forge artifact name, not just the version
+  * Mappings have one canonical name, which also contains the complete mappings artifact name (instead of ad-hoc gluing the artifact id and version together in a slightly different way every time)
+  * **(workspace-breaking)** - You may need to delete files using the old naming convention from `./run/coremods`
 
 # 2.0 (`agency.highlysuspect:voldeloom:2.0`)
 
