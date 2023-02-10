@@ -132,7 +132,7 @@ public class MinecraftDependenciesProvider extends DependencyProvider {
 				//gives maven coordinates which Gradle can resolve the usual way off of mojang's maven
 				
 				//TODO move "physically depending on things" out
-				project.getLogger().info("|-> Adding Minecraft dependency {} to the '{}' configuration", depToAdd, Constants.MINECRAFT_DEPENDENCIES);
+				project.getLogger().info("|-> Found Minecraft dependency {}, adding to the '{}' configuration", depToAdd, Constants.MINECRAFT_DEPENDENCIES);
 				project.getDependencies().add(Constants.MINECRAFT_DEPENDENCIES, depToAdd);
 			}
 		}

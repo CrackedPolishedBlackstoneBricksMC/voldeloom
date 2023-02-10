@@ -15,7 +15,9 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -25,6 +27,8 @@ import java.util.Set;
  * This provider looks for deps in the {@code modImplementation} configuration, remaps them, and puts the remapped
  * result in the {@code modImplementationNamed} configuration, which is the configuration actually exposed to the workspace.
  * Ditto for the other {@code modBlah} configs.
+ * <p>
+ * Very derivative of ModCompileRemapper in old tools
  * 
  * @see net.fabricmc.loom.LoomGradlePlugin for where these configurations are created and set up
  * @see RemappedConfigurationEntry for what defines the relations between these named configurations
@@ -46,40 +50,65 @@ public class RemappedDependenciesProvider extends DependencyProvider {
 	private final MappingsProvider mappings;
 	private final ForgePatchedAccessTxdProvider patchedTxd;
 	
-	private Path remappedModCache;
-	private String mappingsSuffix;
+	private static class RemappingJob {
+		public RemappingJob(Path unmappedPath, Path mappedPath, Configuration outConfig) {
+			this.unmappedPath = unmappedPath;
+			this.mappedPath = mappedPath;
+			this.outConfig = outConfig;
+		}
+		
+		Path unmappedPath, mappedPath;
+		Configuration outConfig;
+	}
+	private final List<RemappingJob> jobs = new ArrayList<>();
 	
 	@Override
 	protected void performSetup() throws Exception {
-		mappingsSuffix = mappings.getMappingsName() + "-" + mappings.getMappingsVersion();
-		remappedModCache = WellKnownLocations.getRemappedModCache(project);
+		String mappingsSuffix = mappings.getMappingsName() + "-" + mappings.getMappingsVersion();
+		Path remappedModCache = WellKnownLocations.getRemappedModCache(project);
 		
-		cleanOnRefreshDependencies(remappedModCache);
-	}
-	
-	public void performInstall() throws Exception {
-		//MERGED from ModCompileRemapper in old tools
-		
-		int count = 0;
 		for(RemappedConfigurationEntry entry : extension.remappedConfigurationEntries) {
 			Configuration inputConfig = entry.getInputConfig();
 			Configuration outputConfig = entry.getOutputConfig();
 			
 			for(File unmappedFile : inputConfig.getResolvedConfiguration().getFiles()) {
-				count++;
-				try {
-					Path unmappedPath = unmappedFile.toPath();
-					Path mappedPath = remappedModCache.resolve(unmappedPath.getFileName().toString() + "-mapped-" + mappingsSuffix + ".jar");
-					
-					if(Files.notExists(mappedPath) || Constants.refreshDependencies) {
-						processMod(unmappedPath, mappedPath, null, null, mc, mappings, patchedTxd);
-					}
-					
-					project.getDependencies().add(outputConfig.getName(), project.files(mappedPath));
-				} catch (Exception e) {
-					throw new RuntimeException("phooey", e);
-				}
+				Path unmappedPath = unmappedFile.toPath();
+				Path mappedPath = remappedModCache.resolve(unmappedPath.getFileName().toString() + "-mapped-" + mappingsSuffix + ".jar");
+				
+				jobs.add(new RemappingJob(unmappedPath, mappedPath, outputConfig));
 			}
+		}
+		
+		int count = jobs.size();
+		if(count > 0) project.getLogger().lifecycle("] {} remappable dependenc{}, dest {}", count, count == 1 ? "y" : "ies", remappedModCache);
+		
+		cleanOnRefreshDependencies(remappedModCache);
+	}
+	
+	public void performInstall() throws Exception {
+		for(RemappingJob job : jobs) {
+			project.getLogger().info("|-> Found a mod dependency at {}", job.unmappedPath);
+			project.getLogger().info("\\-> Need to remap to {}", job.mappedPath);
+			
+			//perform remap, if the output file does not exist
+			if(Constants.refreshDependencies || Files.notExists(job.mappedPath)) {
+				project.getLogger().info("\\-> Remapped file doesn't exist, running remapper...");
+				
+				try {
+					processMod(job.unmappedPath, job.mappedPath, null, null, mc, mappings, patchedTxd);
+				} catch (Exception e) {
+					throw new RuntimeException("Failed to remap dependency at " + job.unmappedPath + " to " + job.mappedPath, e);
+				}
+				
+				project.getLogger().info("\\-> Done! :)");
+			} else {
+				project.getLogger().info("\\-> Already remapped.");
+			}
+			
+			//add it as a dependency to the project
+			project.getLogger().info("\\-> Adding remapped result to the '{}' configuration", job.outConfig.getName());
+			project.getDependencies().add(job.outConfig.getName(), project.files(job.mappedPath));
+		}
 			
 			//TODO old code is below (that more-or-less correctly handles artifacts instead of using `files`, but also doesn't work with `files` input artifacts...)
 			
@@ -117,11 +146,6 @@ public class RemappedDependenciesProvider extends DependencyProvider {
 //	//				scheduleSourcesRemapping(project, postPopulationScheduler, sources, remappedLog, remappedFilename, modStore);
 //	//			}
 //			}
-		}
-		
-		if(count != 0) {
-			project.getLogger().lifecycle("] {} remappable dependenc{}, remapped to {}", count, count == 1 ? "y" : "ies", remappedModCache);
-		}
 	}
 	
 	private void processMod(Path input, Path output, Configuration config, /* TODO */ ResolvedArtifact artifact, MinecraftDependenciesProvider minecraftDependenciesProvider, MappingsProvider mappingsProvider, ForgePatchedAccessTxdProvider patchedAccessTxdProvider) throws IOException {

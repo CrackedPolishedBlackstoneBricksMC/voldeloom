@@ -125,11 +125,15 @@ public class MappedProvider extends DependencyProvider {
 				.setLogger(project.getLogger()::lifecycle)
 				.run();
 			
-			project.getLogger().lifecycle("|-> Remap success! :)");
+			project.getLogger().lifecycle("\\-> Remap success! :)");
 		}
 		
+		project.getLogger().info("|-> Adding flatDir repo at {} to project", mappedDestDir);
 		project.getRepositories().flatDir(repository -> repository.dir(mappedDestDir));
-		project.getDependencies().add(Constants.MINECRAFT_NAMED, project.getDependencies().module("net.minecraft:minecraft:" + mappedJarNameKinda));
+		
+		String depStr = "net.minecraft:minecraft:" + mappedJarNameKinda;
+		project.getLogger().info("|-> Adding dependency {} to the '{}' configuration", depStr, Constants.MINECRAFT_NAMED);
+		project.getDependencies().add(Constants.MINECRAFT_NAMED, project.getDependencies().module(depStr));
 	}
 	
 	public Path getMappedJar() {
