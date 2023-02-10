@@ -5,7 +5,7 @@ buildscript {
 		//maven { url "https://repo.sleeping.town" } //Commented out to use the version of voldeloom in the settings.gradle includeBuild (hopefully??)
 	}
 	dependencies {
-		classpath "agency.highlysuspect:voldeloom:2.0-SNAPSHOT"
+		classpath "agency.highlysuspect:voldeloom:2.1-SNAPSHOT"
 	}
 }
 
@@ -17,7 +17,7 @@ compileJava.options.release.set(6) //Forge doesn't understand classes compiled t
 String minecraftVersion = "1.4.7"
 String forgeVersion = "1.4.7-6.6.2.534"
 
-minecraft {
+volde {
 	srgsAsFallback = true
 	
 	runs {

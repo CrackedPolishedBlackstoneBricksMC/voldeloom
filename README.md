@@ -25,7 +25,7 @@ buildscript {
 		maven { url "https://repo.sleeping.town" }
 	}
 	dependencies {
-		classpath "agency.highlysuspect:voldeloom:2.0-SNAPSHOT"
+		classpath "agency.highlysuspect:voldeloom:2.1-SNAPSHOT"
 	}
 }
 
@@ -42,6 +42,10 @@ dependencies {
 	forge "net.minecraftforge:forge:${forgeVersion}:universal@zip"
 	mappings "net.minecraftforge:forge:${forgeVersion}:src@zip"
 }
+
+volde {
+	//more configuration goes here...
+}
 ```
 
 (Infinite thanks to unascribed for hosting the maven.)
@@ -56,7 +60,7 @@ Well I've gotta finish it first! Even this `README` gets outdated worryingly qui
 
 * Look in `sample` for some sample projects. These are compiled in CI, so it should at least get that far.
   * note the caveat about the weird gradle setup though, you can't just copy all files in the sample project and start working
-* See the `LoomGradleExtension` class for a full list of things you can configure from `minecraft { }`.
+* See the `LoomGradleExtension` class for a full list of things you can configure from `volde { }`.
 * I'm trying to write lots of javadoc?
 * [Ask me](https://highlysuspect.agency/discord).
 
@@ -190,7 +194,7 @@ The entrypoint is `LoomGradlePlugin`, which gets called upon writing the `apply 
 1. Hello log message is printed
 2. `java`, `eclipse`, and `idea` plugins are applied, as if you typed `apply plugin: "eclipse"`
 3. `GradleSupport.detectConfigurationNames` determines if you're on a `compile` or `implementation`-flavored version of Gradle
-4. An *extension* is created, LoomGradleExtension; this is what defines the `minecraft {` block you can type some settings into. I think more recent versions call this `loom`
+4. An *extension* is created, LoomGradleExtension; this is what defines the `volde {` block you can type some settings into. I think more recent versions call this `loom`
     * The settings are not available right away (remember, we're still on the "apply plugin" line when evaluating the script)
     * They will be available in `project.afterEvaluate` blocks, and since tasks are executed after those, in task configuration and execution
 5. A couple maven repos are added, as if you typed them in to a `repositories {` block:
@@ -241,7 +245,7 @@ The entrypoint is `LoomGradlePlugin`, which gets called upon writing the `apply 
     * debugging task printConfigurationsPlease
 9. The `idea` task is set to be `finalizedBy` the `genIdeaWorkspace` task. Similarly for `eclipse` and `genEclipseRuns`.
 
-Then we ask for an `afterEvaluate` callback, so the following is able to access the settings configured in the `minecraft { }` block:
+Then we ask for an `afterEvaluate` callback, so the following is able to access the settings configured in the `volde { }` block:
 
 1. Run all the *dep providers*. These are a little system for "things that must run before task execution/dependency resolution, but depend on the values set in the `minecraft` block, so they can't run too early either" as you can see... very elegant and beautiful, not at all a kludge. All these are ran one-after-the-other unconditionally
     * Download Forge.

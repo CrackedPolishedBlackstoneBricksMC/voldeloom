@@ -5,7 +5,7 @@ buildscript {
 		//maven { url "https://repo.sleeping.town" } //Commented out to use the version of voldeloom in the settings.gradle includeBuild (hopefully??)
 	}
 	dependencies {
-		classpath "agency.highlysuspect:voldeloom:1.0+1.4.7disaster"
+		classpath "agency.highlysuspect:voldeloom:2.1-SNAPSHOT"
 	}
 }
 
@@ -26,7 +26,7 @@ compileJava {
 String minecraftVersion = "1.6.4"
 String forgeVersion = "1.6.4-9.11.1.1345"
 
-minecraft {
+volde {
 	runs {
 		client {
 			programArg "--version=1.6 deobf (Voldeloom)" //TODO 1.6 crashes if --version is not set (only used for Snooper)

@@ -117,10 +117,10 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		project.getPlugins().apply("idea");
 		GradleSupport.init(project); //has to be done after `java` is applied i think
 		
-		//Create a DSL extension. This defines a `minecraft { }` block in the buildscript, that you may configure settings with.
+		//Create a DSL extension. This defines a `volde { }` block in the buildscript, that you may configure settings with.
 		//The user's configuration is not available yet, because we're still executing the "apply plugin" line at this point.
 		//It will be ready inside `project.afterEvaluate` blocks and during task execution.
-		LoomGradleExtension extensionUnconfigured = project.getExtensions().create("minecraft", LoomGradleExtension.class, project);
+		LoomGradleExtension extensionUnconfigured = project.getExtensions().create("volde", LoomGradleExtension.class, project);
 		
 		//Configure a few bonus Maven repositories. This acts the same as entering them in a `repositories { }` block in the buildscript.
 		project.getRepositories().maven(repo -> {

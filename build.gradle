@@ -24,7 +24,8 @@ if(System.getenv("GITHUB_SHA") != null) {
 	}
 }
 
-// Potentially load-bearing... idk if this works when it's put here //
+// Pre-toolchains: the canonical way to set source compatibility?     //
+// Post-toolchains: used as a default when no toolchain is configured //
 
 sourceCompatibility = "1.8"
 targetCompatibility = "1.8"
