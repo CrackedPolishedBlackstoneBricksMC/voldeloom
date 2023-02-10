@@ -1,20 +1,13 @@
 name: Publish full release to Maven
 
 on:
-  push:
-    branches:
-      - 'disaster-time'
-    tags:
-#This isn't a conventional regular expression, it's some weird custom github pattern-match thing
-#https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#filter-pattern-cheat-sheet 
-      - 'v[0-9.]*'
-
+  release:
+    types: [created]
 
 jobs:
   publish-full:
     name: Publish ${{github.ref_name}} artifact to Sleeping Town maven
     runs-on: ubuntu-latest
-    needs: compile_samples
     environment: publishing
     steps:
       - name: git checkout
@@ -29,4 +22,6 @@ jobs:
       - name: Publish with Gradle
         uses: gradle/gradle-build-action@v2.3.3
         with:
-          arguments: publish --info --stacktrace -DVOLDE_RELEASE_VERSION=${{github.ref_name}} -Pdrypublish-username=${{secrets.PUBLISH_USERNAME}} -Pdrypublish-password=${{secrets.PUBLISH_PASSWORD}}
+          arguments: publish --info --stacktrace -Ppublish-username=${{secrets.PUBLISH_USERNAME}} -Ppublish-password=${{secrets.PUBLISH_PASSWORD}}
+        env:
+          VOLDE_RELEASE_MODE: 1

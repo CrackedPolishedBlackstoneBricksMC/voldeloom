@@ -19,10 +19,7 @@ if(System.getenv("GITHUB_SHA") != null) {
 	String hash = System.getenv("GITHUB_SHA"); if(hash.length() > 8) hash = hash.substring(0, 8)
 	buildContext = "Github Actions CI, commit " + hash
 	
-	if(System.getenv("VOLDE_RELEASE_VERSION")) {
-		version = System.getenv("VOLDE_RELEASE_VERSION")
-			.replaceAll("^v", "") //the Actions script is triggered when pushing a tag that matches 'v[0-9.]*' (like v2.0). strip the 'v' prefix
-	} else {
+	if(System.getenv("VOLDE_RELEASE_MODE") == null) {
 		version += "-SNAPSHOT"
 	}
 }
