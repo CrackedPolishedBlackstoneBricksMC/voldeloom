@@ -29,6 +29,8 @@ volde {
 			programArg "quaternary"
 		}
 	}
+	
+	hackHackHackDontMapTheseClasses += ["bar", "bas"] //for Ears
 }
 
 dependencies {

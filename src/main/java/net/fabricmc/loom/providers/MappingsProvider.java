@@ -152,6 +152,11 @@ public class MappingsProvider extends DependencyProvider {
 					joinedSrg = client.mergeWith(server);
 				}
 				
+				//TODO YEET this into the stratosphere
+				for(String deleteThis : extension.hackHackHackDontMapTheseClasses) {
+					joinedSrg.unmapClass(deleteThis);
+				}
+				
 				project.getLogger().lifecycle("|-> Reading fields.csv...");
 				Members fields = new Members().read(conf.resolve("fields.csv"));
 				

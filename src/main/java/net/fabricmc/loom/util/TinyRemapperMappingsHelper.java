@@ -48,16 +48,7 @@ public class TinyRemapperMappingsHelper {
 		return (acceptor) -> {
 			for (ClassDef classDef : mappings.getClasses()) {
 				String className = classDef.getName(from);
-				
-				//ThreadDownloadResources, ThreadDownloadImageData TODO HACK for Ears
-				//Basically ThreadDownloadResources is actually an anonymous class in minecraft proper. Proguard stripped the inner class part,
-				//so it's private in remapped mc jars. Ears uses `Class.forName("bas")` instead of a class literal because of the privateness.
-				//This worked during Ears dev, because at the time 1.4 dev environments didn't exist, and the mod was tested by always compiling and remapping to proguard
-				//But oops, some nutjob is coming along and inventing 1.4 dev environments. What an idiot
-				//If I go ahead and forcibly unmap this class, the release Ears binary remapped to a named workspace does work.
-				//Need this hack because remapping can't see into string literals passed into Class.forName (and i dont think it's a good idea to let it)
-				if(className.equals("bas") || className.equals("bar")) continue;
-				
+
 				acceptor.acceptClass(className, classDef.getName(to));
 
 				for (FieldDef field : classDef.getFields()) {

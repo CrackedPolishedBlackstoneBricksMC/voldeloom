@@ -30,6 +30,8 @@ volde {
 	
 	//Fake custom manifest url for testing projectmapping minecraft
 	//customManifestUrl = "https://launchermeta.mojang.com/v1/packages/7aa8e9aeacf4e1076bfd81c096f78de9b883ebe6/1.4.7.json"
+	
+	hackHackHackDontMapTheseClasses += ["bar", "bas"] //for Ears
 }
 
 dependencies {

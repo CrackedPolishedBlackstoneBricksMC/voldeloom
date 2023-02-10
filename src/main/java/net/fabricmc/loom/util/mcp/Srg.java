@@ -81,6 +81,12 @@ public class Srg {
 		return this;
 	}
 	
+	public void unmapClass(String classs) {
+		classMappings.remove(classs);
+		fieldMappingsByOwningClass.remove(classs);
+		methodMappingsByOwningClass.remove(classs);
+	}
+	
 	public static class FieldEntry {
 		public FieldEntry(String owningClass, String name) {
 			this.owningClass = owningClass;

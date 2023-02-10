@@ -16,6 +16,9 @@ Running changelog document, will be added to as I commit things.
   * Mapped Minecrafts, as well as -sources and the like, are in `(cache dir)/mapped/(mappings name)/(...).jar`.
   * **(idk if this is breaking)** - Mapped Minecraft is added to the project using a file dependency instead of a `flatDir` dependency.
   * **(workspace-breaking)** - You may need to delete files using the old naming convention from `./run/coremods`.
+ The hack that erased some classes from the mappings so Ears 1.4.7 would work in deobf is removed
+  * Replaced with `hackHackHackDontMapTheseClasses` property inside `volde`
+  * As the name suggests :tm: i will remove it later when i gt the good mappings system up
 
 ## New
 

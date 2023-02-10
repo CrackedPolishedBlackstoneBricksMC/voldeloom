@@ -36,7 +36,9 @@ import org.gradle.internal.Pair;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Supplier;
 
 /**
@@ -184,6 +186,15 @@ public class LoomGradleExtension {
 	 * </ul>
 	 */
 	public boolean refreshDependencies;
+	
+	//TODO: Yeet this into stratosphere
+	//Basically ThreadDownloadResources is actually an anonymous class in minecraft proper. Proguard stripped the inner class part,
+	//so it's private in remapped mc jars. Ears uses `Class.forName("bas")` instead of a class literal because of the privateness.
+	//This worked during Ears dev, because at the time 1.4 dev environments didn't exist, and the mod was tested by always compiling and remapping to proguard
+	//But oops, some nutjob is coming along and inventing 1.4 dev environments. What an idiot.
+	//If I go ahead and forcibly unmap this class, the release Ears binary remapped to a named workspace does work.
+	//Need this hack because remapping can't see into string literals passed into Class.forName
+	public Set<String> hackHackHackDontMapTheseClasses = new HashSet<>();
 	
 	private final ProviderGraph providers;
 	private final List<Path> unmappedModsBuilt = new ArrayList<>();
