@@ -110,11 +110,11 @@ public class TinyRemapperSession {
 		
 		if (Files.notExists(inputJar)) throw new FileNotFoundException("Missing input jar " + inputJar + ", can't remap");
 		
-		logger.accept("\\-> beginning remap of '" + inputNamingScheme + "'-named jar at " + inputJar);
+		logger.accept("  \\-> beginning remap of '" + inputNamingScheme + "'-named jar at " + inputJar);
 		for(String outputNamingScheme : outputJarsByNamingScheme.keySet()) {
 			Path outputJar = outputJarsByNamingScheme.get(outputNamingScheme);
 			
-			logger.accept("  \\-> remapping to '" + outputNamingScheme + "' names, and saving to " + outputJar);
+			logger.accept("    \\-> remapping to '" + outputNamingScheme + "' names, and saving to " + outputJar);
 			
 			TinyRemapper remapper = TinyRemapper.newRemapper()
 				.withMappings(TinyRemapperMappingsHelper.create(mappings, inputNamingScheme, outputNamingScheme, remapLocalVariables))
@@ -142,7 +142,7 @@ public class TinyRemapperSession {
 				phooey.getPath("/");
 			}
 				
-			logger.accept("\\-> done :)");
+			logger.accept("  \\-> done :)");
 		}
 	}
 	

@@ -220,7 +220,6 @@ public class GradleSupport {
 	public static JavaVersion convertToJavaVersion(Object o) {
 		//This will handle integers, strings, JavaVersions, and (through an accident of
 		//how toString is implemented on it) the Gradle 6 JavaLanguageVersion object too.
-		//The method is mostly here in GradleSupport for consistency with convertToVendorString.
 		return JavaVersion.toVersion(o);
 	}
 	
@@ -252,7 +251,7 @@ public class GradleSupport {
 			
 			return Pair.of(javaVersion, vendorString);
 		} catch (ReflectiveOperationException e) {
-			throw new RuntimeException("[Voldeloom GradleSupport] Unable to readToolchainSpec this " + javaToolchainSpec.getClass());
+			throw new RuntimeException("[Voldeloom GradleSupport] Unable to readToolchainSpec this " + javaToolchainSpec.getClass(), e);
 		}
 	}
 	

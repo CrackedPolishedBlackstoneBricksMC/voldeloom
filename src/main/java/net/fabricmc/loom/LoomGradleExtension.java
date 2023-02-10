@@ -52,6 +52,7 @@ public class LoomGradleExtension {
 		runConfigs = project.container(RunConfig.class, name -> new RunConfig(project, name));
 		remappedConfigurationEntries = project.container(RemappedConfigurationEntry.class, inputName -> new RemappedConfigurationEntry(project, inputName));
 		providers = new ProviderGraph(project, this);
+		forgeCapabilities = new ForgeCapabilities(project, this);
 		
 		if(project.getGradle().getStartParameter().isOffline()) {
 			offline = true;
@@ -152,11 +153,9 @@ public class LoomGradleExtension {
 	public String defaultRunToolchainVendor = "ADOPTIUM";
 	
 	/**
-	 * If a field/method is missing a mapping, if 'true' the proguarded name will show through, and if 'false' the MCP name will.
-	 * TODO: Autodetect this from the Forge version (SRGs at runtime were added in Forge 1.5)
-	 *  Also, is this even a good idea?
+	 * Metadata about what this version of Forge can do, and what this era of the mod ecosystem expects.
 	 */
-	public boolean srgsAsFallback = false;
+	public final ForgeCapabilities forgeCapabilities;
 	
 	/**
 	 * If 'true', Voldeloom will not download anything from the internet. When a download is required, the plugin will throw
@@ -221,7 +220,13 @@ public class LoomGradleExtension {
 	}
 	
 	@SuppressWarnings("unused") //Gradle api
+	public void forgeCapabilities(Action<ForgeCapabilities> action) {
+		action.execute(forgeCapabilities);
+	}
+	
+	@SuppressWarnings("unused") //Gradle api
 	public void remappedConfigs(Action<NamedDomainObjectContainer<RemappedConfigurationEntry>> action) {
+		//if you're manually adding a configuration with a "wrong" name I'll assume you're doing it on purpose
 		boolean last = warnOnProbablyWrongConfigurationNames;
 		warnOnProbablyWrongConfigurationNames = false;
 		

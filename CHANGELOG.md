@@ -8,8 +8,10 @@ Running changelog document, will be added to as I commit things.
   * Preparation for adding some more free-functions to the extension (it'd be weird if you referred to them with `minecraft`)
   * Possibly preparation for "getting out of the way of other extensions", so you can use it and another Minecraft plugin in the same project? Maybe?
   * Echoes what Loom did - the name is more accurate
-* Adjusted filenames of some intermediate products to be more consistent:
-  * Forge libraries are downloaded to a folder containing the complete Forge artifact name, not just the version
+* Moved `srgsAsFallback`.
+  * Replace it with `forgeCapabilities { srgsAsFallback = true }`.
+* Adjusted file paths to some intermediate products, to be more consistent:
+  * Forge's libraries are downloaded to a folder containing the complete Forge artifact name, not just the version
   * Mappings have one canonical name, which also contains the complete mappings artifact name (instead of ad-hoc gluing the artifact id and version together in a slightly different way every time)
   * Mapped Minecrafts, as well as -sources and the like, are in `(cache dir)/mapped/(mappings name)/(...).jar`.
   * **(idk if this is breaking)** - Mapped Minecraft is added to the project using a file dependency instead of a `flatDir` dependency.
@@ -17,6 +19,13 @@ Running changelog document, will be added to as I commit things.
 
 ## New
 
+* Small system for "changing behavior of the plugin based on what era of Forge you're using".
+  * Configure this with `volde { forgeCapabilities { /* ... */ } }`.
+  * Set `distributionNamingScheme` to pick which naming scheme your mods are remapped to.
+  * Set `srgsAsFallback` to assert that this Forge version maps everything to SRG names; don't set it to assert that unmapped names show through as proguarded names.
+  * If you don't set them, they will be guessed from the Minecraft version and Forge version:
+    * `distributionNamingScheme` is `intermediary` since 1.5 and `official` before it
+    * `srgsAsFallback` is `false` since 1.5 and `true` before it
 * Rudimentary custom access transformers.
   * Specify dependencies in the `accessTransformers` configuration, e.g. `accessTransformers files("./src/main/resources/my_ats.cfg")`.
   * **(currently you will need to refresh dependencies to force-update artifacts derived from it... sorry)**

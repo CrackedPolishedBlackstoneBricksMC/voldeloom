@@ -168,7 +168,7 @@ public class RemappedDependenciesProvider extends DependencyProvider {
 		
 		new TinyRemapperSession()
 			.setMappings(mappingsProvider.getMappings())
-			.setInputNamingScheme(Constants.PROGUARDED_NAMING_SCHEME) //TODO: distribution naming scheme
+			.setInputNamingScheme(extension.forgeCapabilities.computeDistributionNamingScheme())
 			.setInputJar(input)
 			.setInputClasspath(remapClasspath)
 			.addOutputJar(Constants.MAPPED_NAMING_SCHEME, output)

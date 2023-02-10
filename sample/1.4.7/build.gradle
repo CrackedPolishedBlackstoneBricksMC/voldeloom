@@ -18,7 +18,9 @@ String minecraftVersion = "1.4.7"
 String forgeVersion = "1.4.7-6.6.2.534"
 
 volde {
-	srgsAsFallback = true
+	forgeCapabilities {
+		srgsAsFallback = true
+	}
 	
 	runs {
 		client {

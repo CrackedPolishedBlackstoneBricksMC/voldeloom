@@ -78,7 +78,7 @@ public class RemapJarTask extends Jar {
 			.setInputJar(input)
 			.setInputNamingScheme(Constants.MAPPED_NAMING_SCHEME)
 			.setInputClasspath(remapClasspath)
-			.addOutputJar(Constants.PROGUARDED_NAMING_SCHEME, output) //TODO: distribution scheme
+			.addOutputJar(extension.forgeCapabilities.computeDistributionNamingScheme(), output)
 			.setLogger(getLogger()::lifecycle)
 			.run();
 

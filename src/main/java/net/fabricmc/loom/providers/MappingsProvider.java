@@ -83,7 +83,7 @@ public class MappingsProvider extends DependencyProvider {
 		
 		//TODO: REMOVE this hack
 		String mappingDiscriminant = "";
-		if(extension.srgsAsFallback) mappingDiscriminant += "-srgfallback";
+		if(extension.forgeCapabilities.useSrgsAsFallback()) mappingDiscriminant += "-srgfallback";
 		
 		//outputs
 		mappingsDir = getCacheDir().resolve("mappings");
@@ -177,7 +177,7 @@ public class MappingsProvider extends DependencyProvider {
 					.fields(fields)
 					.methods(methods)
 					.packages(packages)
-					.srgsAsFallback(extension.srgsAsFallback) //TODO select from forge version
+					.srgsAsFallback(extension.forgeCapabilities.useSrgsAsFallback()) //TODO select from forge version
 					.jarScanData(scanData)
 					.write();
 				
