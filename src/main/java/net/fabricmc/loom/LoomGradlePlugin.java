@@ -103,12 +103,6 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		project.getLogger().lifecycle("=====");
 		project.getLogger().lifecycle("Applying Voldeloom {} to {}.", getClass().getPackage().getImplementationVersion(), project.getDisplayName());
 		project.getLogger().lifecycle("Java version is '{}', Gradle version is '{}'. I hope it works :)", System.getProperty("java.version"), project.getGradle().getGradleVersion());
-		
-		//Initialize some global variables.
-		Constants.init(project.getGradle());
-		if(Constants.offline) project.getLogger().warn("!! We're in offline mode - downloads will abort");
-		if(Constants.refreshDependencies) project.getLogger().warn("!! We're in refresh-dependencies mode - intermediate products will be recomputed");
-		
 		project.getLogger().lifecycle("=====");
 		
 		//Apply a handful of bonus plugins. This acts the same as writing `apply plugin: 'java'` in the buildscript.
@@ -119,7 +113,8 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		
 		//Create a DSL extension. This defines a `volde { }` block in the buildscript, that you may configure settings with.
 		//The user's configuration is not available yet, because we're still executing the "apply plugin" line at this point.
-		//It will be ready inside `project.afterEvaluate` blocks and during task execution.
+		//Executing the rest of the buildscript will configure it, and it will be ready inside `project.afterEvaluate`
+		//blocks and during task execution.
 		LoomGradleExtension extensionUnconfigured = project.getExtensions().create("volde", LoomGradleExtension.class, project);
 		
 		//Configure a few bonus Maven repositories. This acts the same as entering them in a `repositories { }` block in the buildscript.
@@ -128,7 +123,6 @@ public class LoomGradlePlugin implements Plugin<Project> {
 			repo.setUrl("https://libraries.minecraft.net/");
 		});
 		project.getRepositories().maven(repo -> {
-			//(VOLDELOOM-DISASTER) Add Forge's repository as well, set up the incantations required to make it work
 			repo.setName("Minecraft Forge");
 			repo.setUrl("https://maven.minecraftforge.net/");
 			GradleSupport.maybeSetIncludeGroup(repo, "net.minecraftforge");
@@ -137,7 +131,6 @@ public class LoomGradlePlugin implements Plugin<Project> {
 			//I don't believe this breaks Gradle 4.
 			repo.metadataSources(MavenArtifactRepository.MetadataSources::artifact);
 		});
-		//Remapped mods
 		project.getRepositories().flatDir(repo -> {
 			repo.dir(WellKnownLocations.getRemappedModCache(project));
 			repo.setName("UserLocalRemappedMods");
@@ -157,7 +150,7 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		Configuration compileOrImplementation = GradleSupport.getCompileOrImplementationConfiguration(project.getConfigurations());
 		
 		//Vanilla Minecraft, straight off Mojang's server.
-		Configuration minecraft = project.getConfigurations().maybeCreate(Constants.MINECRAFT).setTransitive(false);
+		project.getConfigurations().maybeCreate(Constants.MINECRAFT).setTransitive(false);
 		
 		//The dependencies for Minecraft itself, such as LWJGL.
 		Configuration minecraftDependencies = project.getConfigurations().maybeCreate(Constants.MINECRAFT_DEPENDENCIES).setTransitive(false);
@@ -246,9 +239,7 @@ public class LoomGradlePlugin implements Plugin<Project> {
 			//No maven scope
 			project.getConfigurations().getByName(JavaPlugin.RUNTIME_CLASSPATH_CONFIGURATION_NAME).extendsFrom(mod.outputConfig);
 		});
-		
 		//and some for coremods
-		
 		extensionUnconfigured.remappedConfigurationEntries.create("core" + modImplementationName, mod -> {
 			mod.mavenScope("compile").copyToFolder("coremods");
 			project.getConfigurations().getByName(JavaPlugin.COMPILE_ONLY_CONFIGURATION_NAME).extendsFrom(mod.outputConfig); //coremods do not go on runtime the usual way
@@ -296,19 +287,19 @@ public class LoomGradlePlugin implements Plugin<Project> {
 			task.dependsOn("genSourcesRemapLineNumbers");
 		});
 		
-		//IDE integration and run configs:
+		//IDE integration:
 		tasks.register("genEclipseRuns", GenEclipseRunsTask.class);
 		tasks.register("genIdeaRuns", GenIdeaRunConfigsTask.class, t -> t.dependsOn("idea"));
 		tasks.register("genIdeaWorkspace", GenIdeaProjectTask.class, t -> t.dependsOn("idea"));
 		tasks.register("vscode", GenVsCodeProjectTask.class);
 		tasks.register("genDevLaunchInjectorConfigs", GenDevLaunchInjectorConfigsTask.class);
 		
+		//Support for run configs:
 		tasks.register("shimForgeLibraries", ShimForgeLibrariesTask.class);
 		tasks.register("remappedConfigEntryFolderCopy", RemappedConfigEntryFolderCopyTask.class);
 		tasks.register("shimResources", ShimResourcesTask.class);
 		
-		tasks.register("printConfigurationsPlease", ConfigurationDebugTask.class);
-		
+		//Run configs:
 		extensionUnconfigured.runConfigs.whenObjectAdded(cfg -> {
 			TaskProvider<RunTask> runTask = tasks.register("run" + cfg.getBaseName().substring(0, 1).toUpperCase(Locale.ROOT) + cfg.getBaseName().substring(1), RunTask.class, cfg);
 			runTask.configure(t -> {
@@ -319,12 +310,16 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		extensionUnconfigured.runConfigs.add(RunConfig.defaultClientRunConfig(project));
 		extensionUnconfigured.runConfigs.add(RunConfig.defaultServerRunConfig(project));
 		
+		//Debug Funny
+		tasks.register("printConfigurationsPlease", ConfigurationDebugTask.class);
+		
 		//TODO is it safe to configure this now? I ask because upstream did it in afterEvaluate
 		tasks.named("idea").configure(t -> t.finalizedBy(tasks.named("genIdeaWorkspace"), tasks.named("genIdeaRuns")));
 		tasks.named("eclipse").configure(t -> t.finalizedBy(tasks.named("genEclipseRuns")));
 		
 		//Cleaning
 		//TODO: restore (I'm redoing the provider system)
+		// In the mean time use refresh-dependencies mode (there's a plugin-specific variant too, check LoomGradleExtension)
 //		List<TaskProvider<?>> cleaningTasks = extensionUnconfigured.getDependencyManager().getCleaningTasks();
 //		tasks.register("cleanEverything").configure(task -> {
 //			task.setGroup(Constants.TASK_GROUP_CLEANING);
@@ -355,6 +350,8 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		
 		//The extension's been configured, grab it.
 		LoomGradleExtension extension = project.getExtensions().getByType(LoomGradleExtension.class);
+		if(extension.offline) project.getLogger().warn("!! We're in offline mode - downloads will abort");
+		if(extension.refreshDependencies) project.getLogger().warn("!! We're in refresh-dependencies mode - intermediate products will be recomputed");
 		
 		//This is where the Magic happens.
 		//"Dependency providers" are dynamic; their content depends on the values of the stuff configured in LoomGradleExtension.

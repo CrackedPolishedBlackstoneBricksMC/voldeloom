@@ -1,7 +1,7 @@
 package net.fabricmc.loom.util;
 
 import com.google.common.base.Preconditions;
-import net.fabricmc.loom.Constants;
+import net.fabricmc.loom.LoomGradleExtension;
 import org.gradle.api.Project;
 
 import javax.annotation.Nullable;
@@ -27,12 +27,16 @@ import java.util.zip.GZIPInputStream;
 public class DownloadSession {
 	public DownloadSession(Project project) {
 		this.project = project;
+		this.extension = project.getExtensions().getByType(LoomGradleExtension.class);
 	}
 	
 	public DownloadSession(String url, Project project) {
 		this(project);
 		url(url);
 	}
+	
+	private final Project project;
+	private final LoomGradleExtension extension;
 	
 	private URL url;
 	private Path dest;
@@ -45,7 +49,6 @@ public class DownloadSession {
 	private @Nullable String skipIfSha1 = null;
 	private @Nullable TemporalAmount skipIfNewerThan = null;
 	
-	private final Project project;
 	private boolean quiet;
 	
 	public DownloadSession url(String url) {
@@ -99,7 +102,7 @@ public class DownloadSession {
 		boolean destExists = Files.exists(dest);
 		
 		//If we're offline, assume the file is up-to-date enough; and if we don't have the file, there's no way to get it.
-		if(Constants.offline) {
+		if(extension.offline) {
 			if(destExists) {
 				info("Not connecting to {} because {} exists and we're in offline mode.", url, dest);
 				return;
@@ -107,7 +110,7 @@ public class DownloadSession {
 		}
 		
 		//More fine-grained up-to-dateness checks that we skip in refreshDependencies mode.
-		if(destExists && !Constants.refreshDependencies) {
+		if(destExists && !extension.refreshDependencies) {
 			if(skipIfExists) {
 				info("Not connecting to {} because {} exists.", url, dest);
 				return;
@@ -127,7 +130,7 @@ public class DownloadSession {
 		//Read the locally known etag, if one exists, and set the etag header.
 		String knownEtag = null;
 		Path etagFile = dest.resolveSibling(dest.getFileName().toString() + ".etag");
-		if(useEtag && destExists && Files.exists(etagFile) && !Constants.refreshDependencies) {
+		if(useEtag && destExists && Files.exists(etagFile) && !extension.refreshDependencies) {
 			knownEtag = new String(Files.readAllBytes(etagFile), StandardCharsets.UTF_8);
 			conn.setRequestProperty("If-None-Match", knownEtag);
 			conn.setIfModifiedSince(Files.getLastModifiedTime(dest).toMillis());

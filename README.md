@@ -64,6 +64,12 @@ Well I've gotta finish it first! Even this `README` gets outdated worryingly qui
 * I'm trying to write lots of javadoc?
 * [Ask me](https://highlysuspect.agency/discord).
 
+If stuff isn't working:
+
+* Run with `--info --stacktrace` for much more detailed log output
+* Try dumping the cache: run with `--refresh-dependencies` (to enable the global refresh-dependencies mode) or `-Pvoldeloom.refreshDependencies` (to refresh only Voldeloom artifacts)
+* Investigate some of the file paths written to the log; see if there's any weird things like corrupt or empty files.
+
 If you're looking for general 1.4 Forge development advice, try [here](https://github.com/quat1024/hoppers/blob/trunk/NOTES.md).
 
 # current status

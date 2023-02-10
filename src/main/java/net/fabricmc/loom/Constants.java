@@ -24,8 +24,6 @@
 
 package net.fabricmc.loom;
 
-import org.gradle.api.invocation.Gradle;
-
 /**
  * Values that do not change across an invocation of the plugin, such as the names of Gradle configurations.
  * <p>
@@ -112,29 +110,4 @@ public class Constants {
 	 * The name used to refer to Minecraft with developer-friendly names.
 	 */
 	public static final String MAPPED_NAMING_SCHEME = "named";
-	
-	/// Gradle settings but they're static so they can be accessed from anywhere (yeah it interacts badly with the daemon) ///
-	
-	/**
-	 * If {@code true}, all intermediate products (like "Minecraft, but remapped") will be recreated by Voldeloom.
-	 * <p>
-	 * This can be enabled in two ways:
-	 * <ul>
-	 *   <li>starting Gradle with {@code --refresh-dependencies}</li>
-	 *   <li>setting the system property {@code voldeloom.refreshDependencies} to {@code true}, such as by passing {@code -Dvoldeloom.refreshDependencies=true} to Gradle</li>
-	 * </ul>
-	 */
-	public static boolean refreshDependencies = false;
-	
-	/**
-	 * If {@code true}, no HTTP connections will be made. Requests to download a file will fail unless the file is already cached.
-	 * <p>
-	 * This can be enabled by passing {@code --offline} to Gradle, and mirrors Gradle's own offline mode setting.
-	 */
-	public static boolean offline = false;
-	
-	public static void init(Gradle gradle) {
-		refreshDependencies = gradle.getStartParameter().isRefreshDependencies() || "true".equals(System.getProperty("voldeloom.refreshDependencies"));
-		offline = gradle.getStartParameter().isOffline();
-	}
 }

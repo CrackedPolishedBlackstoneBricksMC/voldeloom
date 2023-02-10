@@ -93,8 +93,8 @@ public abstract class DependencyProvider {
 	}
 	
 	public void cleanOnRefreshDependencies(Collection<Path> paths) {
-		if(Constants.refreshDependencies) {
-			project.getLogger().lifecycle("|-> Deleting outputs of " + getClass().getSimpleName() + " because --refresh-dependencies was passed");
+		if(extension.refreshDependencies) {
+			project.getLogger().lifecycle("|-> Deleting outputs of " + getClass().getSimpleName() + " because of refreshDependencies mode");
 			LoomGradlePlugin.delete(project, paths);
 		}
 	}

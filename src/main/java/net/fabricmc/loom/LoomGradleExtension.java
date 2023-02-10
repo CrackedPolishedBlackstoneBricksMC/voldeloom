@@ -48,10 +48,32 @@ import java.util.function.Supplier;
  * Obvious exception is anything relating to getDependencyManager.
  */
 public class LoomGradleExtension {
-	public LoomGradleExtension(@SuppressWarnings("unused") Project project) { //Gradle reflectively finds this ctor
+	public LoomGradleExtension(Project project) { //Gradle reflectively finds this ctor
 		runConfigs = project.container(RunConfig.class, name -> new RunConfig(project, name));
 		remappedConfigurationEntries = project.container(RemappedConfigurationEntry.class, inputName -> new RemappedConfigurationEntry(project, inputName));
 		providers = new ProviderGraph(project, this);
+		
+		if(project.getGradle().getStartParameter().isOffline()) {
+			offline = true;
+			project.getLogger().lifecycle("!! Enabling Voldeloom's offline mode because Gradle was started with --offline");
+		} else if(System.getProperty("voldeloom.offline") != null) {
+			offline = true;
+			project.getLogger().lifecycle("!! Enabling Voldeloom's offline mode because a `voldeloom.offline` system property exists");
+		} else if(project.hasProperty("voldeloom.offline")) {
+			offline = true;
+			project.getLogger().lifecycle("!! Enabling Voldeloom's offline mode because a `voldeloom.offline` project property exists");
+		} else offline = false;
+		
+		if(project.getGradle().getStartParameter().isRefreshDependencies()) {
+			refreshDependencies = true;
+			project.getLogger().lifecycle("!! Enabling Voldeloom's refreshDependencies mode because Gradle was started with --refresh-dependencies");
+		} else if(System.getProperty("voldeloom.refreshDependencies") != null) {
+			refreshDependencies = true;
+			project.getLogger().lifecycle("!! Enabling Voldeloom's refreshDependencies mode because a `voldeloom.refreshDependencies` system property exists");
+		} else if(project.hasProperty("voldeloom.refreshDependencies")) {
+			refreshDependencies = true;
+			project.getLogger().lifecycle("!! Enabling Voldeloom's refreshDependencies mode because a `voldeloom.refreshDependencies` project property exists");
+		} else refreshDependencies = false;
 	}
 	
 	/**
@@ -135,6 +157,34 @@ public class LoomGradleExtension {
 	 *  Also, is this even a good idea?
 	 */
 	public boolean srgsAsFallback = false;
+	
+	/**
+	 * If 'true', Voldeloom will not download anything from the internet. When a download is required, the plugin will throw
+	 * an exception if the file doesn't already exist on your computer.
+	 * <p>
+	 * You can configure this property:
+	 * <ul>
+	 *   <li>manually through this Gradle extension (although it will only take effect after reaching that point in the buildscript),</li>
+	 *   <li>by passing {@code --offline} to Gradle,</li>
+	 *   <li>by setting the {@code voldeloom.offline} project property (possibly by passing {@code -Pvoldeloom.offline} to Gradle),</li>
+	 *   <li>by setting the {@code voldeloom.offline} system property (possibly using an environment variable)</li>
+	 * </ul>
+	 */
+	public boolean offline;
+	
+	/**
+	 * If 'true', Voldeloom will delete and recompute all derived artifacts, such as "minecraft but remapped".<br>
+	 * (The exception is that the assets will not be redownloaded. Asset-related issues are rarely the problem, and they take a long time.)
+	 * <p>
+	 * You can configure this property:
+	 * <ul>
+	 *   <li>manually through this Gradle extension (although it will only take effect after reaching that point in the buildscript),</li>
+	 *   <li>by passing {@code --refresh-dependencies} to Gradle,</li>
+	 *   <li>by setting the {@code voldeloom.refreshDependencies} project property (possibly by passing {@code -Pvoldeloom.refreshDependencies} to Gradle),</li>
+	 *   <li>by setting the {@code voldeloom.refreshDependencies} system property (possibly using an environment variable)</li>
+	 * </ul>
+	 */
+	public boolean refreshDependencies;
 	
 	private final ProviderGraph providers;
 	private final List<Path> unmappedModsBuilt = new ArrayList<>();

@@ -91,7 +91,7 @@ public class RemappedDependenciesProvider extends DependencyProvider {
 			project.getLogger().info("\\-> Need to remap to {}", job.mappedPath);
 			
 			//perform remap, if the output file does not exist
-			if(Constants.refreshDependencies || Files.notExists(job.mappedPath)) {
+			if(extension.refreshDependencies || Files.notExists(job.mappedPath)) {
 				project.getLogger().info("\\-> Remapped file doesn't exist, running remapper...");
 				
 				try {
