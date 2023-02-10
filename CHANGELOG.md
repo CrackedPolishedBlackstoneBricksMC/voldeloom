@@ -13,7 +13,7 @@ Running changelog document, will be added to as I commit things.
 * Adjusted filenames of some intermediate products to be more consistent:
   * Forge libraries are downloaded to a folder containing the complete Forge artifact name, not just the version
   * Mappings have one canonical name, which also contains the complete mappings artifact name (instead of ad-hoc gluing the artifact id and version together in a slightly different way every time)
-  * **(workspace-breaking)** - You may need to delete files using the old naming convention from `./run/coremods`
+  * **(workspace-breaking)** - You may need to delete files using the old naming convention from `./run/coremods`.
 
 # 2.0 (`agency.highlysuspect:voldeloom:2.0`)
 

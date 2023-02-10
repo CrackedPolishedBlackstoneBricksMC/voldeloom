@@ -65,7 +65,6 @@ import org.gradle.plugins.ide.idea.model.IdeaModel;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -373,9 +372,9 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		MappedProvider mappedProvider = providers.getProviderOfType(MappedProvider.class);
 		mappedProvider.assertInstalled();
 		Path mappedJar = mappedProvider.getMappedJar();
-		Path linemappedJar = getMappedByproduct(extension, "-linemapped.jar");
-		Path sourcesJar = getMappedByproduct(extension, "-sources.jar");
-		Path linemapFile = getMappedByproduct(extension, "-sources.lmap");
+		Path linemappedJar = replaceExtension(mappedJar, "-linemapped.jar");
+		Path sourcesJar = replaceExtension(mappedJar, "-sources.jar");
+		Path linemapFile = replaceExtension(mappedJar, "-sources.lmap");
 		
 		genSourcesDecompileTask.setInput(mappedJar);
 		genSourcesDecompileTask.setOutput(sourcesJar);
@@ -399,6 +398,8 @@ public class LoomGradlePlugin implements Plugin<Project> {
 					throw new RuntimeException(e);
 				}
 			}
+			
+			tt.getLogger().lifecycle("] Sources jar: {}", sourcesJar);
 		});
 		
 		//TODO(VOLDELOOM-DISASTER): This is configurable for basically no reason lol
@@ -480,11 +481,17 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		}
 	}
 	
-	public static Path getMappedByproduct(LoomGradleExtension extension, String suffix) {
-		MappedProvider mappedProvider = extension.getProviderGraph().getProviderOfType(MappedProvider.class);
-		mappedProvider.assertInstalled();
-		String pathStringified = mappedProvider.getMappedJar().toAbsolutePath().toString();
-		if (!pathStringified.toLowerCase(Locale.ROOT).endsWith(".jar")) throw new RuntimeException("Invalid mapped JAR path: " + pathStringified);
-		else return Paths.get(pathStringified.substring(0, pathStringified.length() - 4) + suffix);
+	/**
+	 * Replaces a file extension.
+	 * @param path The path to replace the extension of.
+	 * @param suffix The new extension. If this doesn't begin with a dot, it'll look like a suffix was appended to the filename, too.
+	 */
+	public static Path replaceExtension(Path path, String suffix) {
+		String originalFilename = path.getFileName().toString();
+		int dotIndex = originalFilename.lastIndexOf('.');
+		if(dotIndex != -1 /* no file extension */ && dotIndex != 0 /* the dot is used to mark a hidden file */) {
+			originalFilename = originalFilename.substring(0, dotIndex);
+		}
+		return path.resolveSibling(originalFilename + suffix);
 	}
 }
