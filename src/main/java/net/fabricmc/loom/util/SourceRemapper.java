@@ -28,7 +28,7 @@ import net.fabricmc.loom.Constants;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.LoomGradlePlugin;
 import net.fabricmc.loom.providers.MappedProvider;
-import net.fabricmc.loom.providers.MappingsProvider;
+import net.fabricmc.loom.providers.TinyMappingsProvider;
 import net.fabricmc.mapping.tree.ClassDef;
 import net.fabricmc.mapping.tree.FieldDef;
 import net.fabricmc.mapping.tree.MethodDef;
@@ -58,12 +58,12 @@ public class SourceRemapper {
 
 	private static void remapSourcesInner(Project project, File source, File destination, boolean toNamed) throws Exception {
 		LoomGradleExtension extension = project.getExtensions().getByType(LoomGradleExtension.class);
-		MappingsProvider mappingsProvider = extension.getProviderGraph().getProviderOfType(MappingsProvider.class);
-		mappingsProvider.assertInstalled();
+		TinyMappingsProvider tinyMappingsProvider = extension.getProviderGraph().getProviderOfType(TinyMappingsProvider.class);
+		tinyMappingsProvider.assertInstalled();
 
 		MappingSet mappings = extension.getOrCreateSrcMappingCache(toNamed ? 1 : 0, () -> {
 			try {
-				TinyTree m = mappingsProvider.getMappings();
+				TinyTree m = tinyMappingsProvider.getMappings();
 				
 				//TODO distributionNamespace
 				String sourceNamingScheme = toNamed ? Constants.INTERMEDIATE_NAMING_SCHEME : Constants.MAPPED_NAMING_SCHEME;

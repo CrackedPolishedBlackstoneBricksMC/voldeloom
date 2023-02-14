@@ -28,7 +28,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import net.fabricmc.loom.Constants;
 import net.fabricmc.loom.LoomGradleExtension;
-import net.fabricmc.loom.providers.MappingsProvider;
+import net.fabricmc.loom.providers.TinyMappingsProvider;
 import net.fabricmc.loom.providers.MappedProvider;
 import net.fabricmc.loom.util.LoomTaskExt;
 import net.fabricmc.loom.util.SourceRemapper;
@@ -102,11 +102,11 @@ public class MigrateMappingsTask extends DefaultTask implements LoomTaskExt {
 		Files.createDirectories(outputDir);
 
 		File mappings = loadMappings();
-		MappingsProvider mappingsProvider = extension.getProviderGraph().getProviderOfType(MappingsProvider.class);
-		mappingsProvider.assertInstalled();
+		TinyMappingsProvider tinyMappingsProvider = extension.getProviderGraph().getProviderOfType(TinyMappingsProvider.class);
+		tinyMappingsProvider.assertInstalled();
 
 		try {
-			TinyTree currentMappings = mappingsProvider.getMappings();
+			TinyTree currentMappings = tinyMappingsProvider.getMappings();
 			TinyTree targetMappings = getMappings(mappings);
 			MappedProvider mappedProvider = extension.getProviderGraph().getProviderOfType(MappedProvider.class);
 			mappedProvider.assertInstalled();

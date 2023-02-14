@@ -36,6 +36,9 @@ Running changelog document, will be added to as I commit things.
   * The plugin will *not* retrieve ATs transitively from mod dependencies.
     * Forge has them configurable through Java in the coremod, so it's impossible in the general case.
     * Just paste them into the project. (Because I don't try to auto generate a coremod, you don't have to worry about them showing up in the built jar)
+* Binpatches
+  * 1.6.4 stopped being a jarmod, instead distributing patches inside a `binpatches.pack.lzma` file.
+  * Now, if this file exists, Voldeloom is able to parse the file and apply the binary patches.
 
 ## Other changes
 

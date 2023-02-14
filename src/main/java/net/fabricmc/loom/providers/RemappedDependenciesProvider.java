@@ -37,7 +37,7 @@ import java.util.Set;
  */
 public class RemappedDependenciesProvider extends DependencyProvider {
 	@Inject
-	public RemappedDependenciesProvider(Project project, LoomGradleExtension extension, MinecraftDependenciesProvider mc, MappingsProvider mappings, ForgePatchedAccessTxdProvider patchedTxd) {
+	public RemappedDependenciesProvider(Project project, LoomGradleExtension extension, MinecraftDependenciesProvider mc, TinyMappingsProvider mappings, ForgePatchedAccessTxdProvider patchedTxd) {
 		super(project, extension);
 		this.mc = mc;
 		this.mappings = mappings;
@@ -47,7 +47,7 @@ public class RemappedDependenciesProvider extends DependencyProvider {
 	}
 	
 	private final MinecraftDependenciesProvider mc;
-	private final MappingsProvider mappings;
+	private final TinyMappingsProvider mappings;
 	private final ForgePatchedAccessTxdProvider patchedTxd;
 	
 	private static class RemappingJob {
@@ -148,7 +148,7 @@ public class RemappedDependenciesProvider extends DependencyProvider {
 //			}
 	}
 	
-	private void processMod(Path input, Path output, Configuration config, /* TODO */ ResolvedArtifact artifact, MinecraftDependenciesProvider minecraftDependenciesProvider, MappingsProvider mappingsProvider, ForgePatchedAccessTxdProvider patchedAccessTxdProvider) throws IOException {
+	private void processMod(Path input, Path output, Configuration config, /* TODO */ ResolvedArtifact artifact, MinecraftDependenciesProvider minecraftDependenciesProvider, TinyMappingsProvider tinyMappingsProvider, ForgePatchedAccessTxdProvider patchedAccessTxdProvider) throws IOException {
 		Set<Path> remapClasspath = new HashSet<>();
 		
 		remapClasspath.add(patchedAccessTxdProvider.getTransformedJar());
@@ -167,7 +167,7 @@ public class RemappedDependenciesProvider extends DependencyProvider {
 		boolean sourcesExist = false;
 		
 		new TinyRemapperSession()
-			.setMappings(mappingsProvider.getMappings())
+			.setMappings(tinyMappingsProvider.getMappings())
 			.setInputNamingScheme(extension.forgeCapabilities.computeDistributionNamingScheme())
 			.setInputJar(input)
 			.setInputClasspath(remapClasspath)

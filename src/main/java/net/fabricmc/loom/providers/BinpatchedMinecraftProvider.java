@@ -2,31 +2,39 @@ package net.fabricmc.loom.providers;
 
 import net.fabricmc.loom.DependencyProvider;
 import net.fabricmc.loom.LoomGradleExtension;
+import net.fabricmc.loom.util.mcp.Binpatch;
 import net.fabricmc.loom.util.mcp.BinpatchesPack;
 import org.gradle.api.Project;
 
 import javax.inject.Inject;
+import java.io.IOException;
 import java.net.URI;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
+import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.SimpleFileVisitor;
 import java.nio.file.StandardCopyOption;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Collections;
+import java.util.Map;
 
 public class BinpatchedMinecraftProvider extends DependencyProvider {
 	@Inject
-	public BinpatchedMinecraftProvider(Project project, LoomGradleExtension extension, MinecraftProvider mc, ForgeProvider forge) {
+	public BinpatchedMinecraftProvider(Project project, LoomGradleExtension extension, MinecraftProvider mc, ForgeProvider forge, RawMappingsProvider rawMappings) {
 		super(project, extension);
 		
 		this.mc = mc;
 		this.forge = forge;
+		this.rawMappings = rawMappings;
 		
-		dependsOn(mc, forge);
+		dependsOn(mc, forge, rawMappings);
 	}
 	
 	private final MinecraftProvider mc;
 	private final ForgeProvider forge;
+	private final RawMappingsProvider rawMappings;
 	
 	private Path binpatchedClient;
 	private Path binpatchedServer;
@@ -44,15 +52,22 @@ public class BinpatchedMinecraftProvider extends DependencyProvider {
 	@Override
 	protected void performInstall() throws Exception {
 		if(extension.refreshDependencies || Files.notExists(binpatchedClient) || Files.notExists(binpatchedServer)) {
+			Files.deleteIfExists(binpatchedClient);
+			Files.deleteIfExists(binpatchedServer);
+			
 			try(FileSystem forgeFs = FileSystems.newFileSystem(URI.create("jar:" + forge.getJar().toUri()), Collections.emptyMap())) {
 				Path binpatchesPath = forgeFs.getPath("binpatches.pack.lzma");
 				if(Files.exists(binpatchesPath)) {
-					project.getLogger().info("|-> Found binpatches.pack.lzma.");
+					project.getLogger().lifecycle("|-> Found binpatches.pack.lzma. Reading...");
 					
 					binpatchesExist = true;
 					
-					//read binpatches
-					BinpatchesPack binpatches = new BinpatchesPack().read(project, binpatchesPath);
+					//parse binpatches
+					BinpatchesPack binpatches = new BinpatchesPack()
+						.read(project, binpatchesPath, rawMappings.getJoined(), rawMappings.getPackages())
+						.unmap(project, rawMappings.getJoined(), rawMappings.getPackages());
+					
+					project.getLogger().lifecycle("|-> Found {} client and {} server binpatches.", binpatches.clientBinpatches.size(), binpatches.serverBinpatches.size());
 					
 					try(
 						FileSystem vanillaClientFs = FileSystems.newFileSystem(URI.create("jar:" + mc.getClientJar().toUri()), Collections.emptyMap());
@@ -60,19 +75,47 @@ public class BinpatchedMinecraftProvider extends DependencyProvider {
 						FileSystem patchedClientFs = FileSystems.newFileSystem(URI.create("jar:" + binpatchedClient.toUri()), Collections.singletonMap("create", "true"));
 						FileSystem patchedServerFs = FileSystems.newFileSystem(URI.create("jar:" + binpatchedServer.toUri()), Collections.singletonMap("create", "true"))
 					) {
-						//(perform binpatching)
+						project.getLogger().lifecycle("|-> Patching client...");
+						patch("client", vanillaClientFs, patchedClientFs, binpatches.clientBinpatches);
+						project.getLogger().lifecycle("|-> Patching server...");
+						patch("server", vanillaServerFs, patchedServerFs, binpatches.serverBinpatches);
+						project.getLogger().lifecycle("|-> Somehow, it worked!");
 					}
 				} else {
-					project.getLogger().info("|-> No binpatches.pack.lzma found, will patch like a jarmod later.");
+					project.getLogger().lifecycle("|-> No binpatches.pack.lzma found, will patch like a jarmod later.");
 					Files.copy(mc.getClientJar(), binpatchedClient, StandardCopyOption.REPLACE_EXISTING);
 					Files.copy(mc.getServerJar(), binpatchedServer, StandardCopyOption.REPLACE_EXISTING);
 				}
 			}
 		}
-		
-		//todo delete
-		Files.copy(mc.getClientJar(), binpatchedClient, StandardCopyOption.REPLACE_EXISTING);
-		Files.copy(mc.getServerJar(), binpatchedServer, StandardCopyOption.REPLACE_EXISTING);
+	}
+	
+	private void patch(String name, FileSystem vanillaFs, FileSystem patchedFs, Map<String, Binpatch> binpatches) throws Exception {
+		Files.walkFileTree(vanillaFs.getPath("/"), new SimpleFileVisitor<Path>() {
+			@Override
+			public FileVisitResult preVisitDirectory(Path vanillaPath, BasicFileAttributes attrs) throws IOException {
+				Files.createDirectories(patchedFs.getPath(vanillaPath.toString()));
+				return FileVisitResult.CONTINUE;
+			}
+			
+			@Override
+			public FileVisitResult visitFile(Path vanillaPath, BasicFileAttributes attrs) throws IOException {
+				Path patchedPath = patchedFs.getPath(vanillaPath.toString());
+				String filename = vanillaPath.getFileName().toString();
+				
+				if(filename.endsWith(".class")) {
+					Binpatch binpatch = binpatches.get(filename.substring(0, filename.length() - ".class".length()));
+					if(binpatch != null) {
+						project.getLogger().warn("Binpatching {}...", filename);
+						Files.write(patchedPath, binpatch.apply(Files.readAllBytes(vanillaPath)));
+						return FileVisitResult.CONTINUE;
+					}
+				}
+				
+				Files.copy(vanillaPath, patchedPath);
+				return FileVisitResult.CONTINUE;
+			}
+		});
 	}
 	
 	public Path getBinpatchedClient() {

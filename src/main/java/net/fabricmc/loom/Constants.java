@@ -24,6 +24,8 @@
 
 package net.fabricmc.loom;
 
+import net.fabricmc.loom.providers.TinyMappingsProvider;
+
 /**
  * Values that do not change across an invocation of the plugin, such as the names of Gradle configurations.
  * <p>
@@ -60,7 +62,7 @@ public class Constants {
 	/**
 	 * The Gradle configuration containing the user's specified mappings input file.
 	 *
-	 * @see net.fabricmc.loom.providers.MappingsProvider
+	 * @see TinyMappingsProvider
 	 */
 	public static final String MAPPINGS = "mappings";
 	

@@ -42,7 +42,7 @@ import java.util.function.Predicate;
  */
 public class MappedProvider extends DependencyProvider {
 	@Inject
-	public MappedProvider(Project project, LoomGradleExtension extension, MinecraftDependenciesProvider libs, ForgePatchedProvider forgePatched, ForgePatchedAccessTxdProvider patchedTxd, MappingsProvider mappings) {
+	public MappedProvider(Project project, LoomGradleExtension extension, MinecraftDependenciesProvider libs, ForgePatchedProvider forgePatched, ForgePatchedAccessTxdProvider patchedTxd, TinyMappingsProvider mappings) {
 		super(project, extension);
 		this.libs = libs;
 		this.forgePatched = forgePatched;
@@ -55,7 +55,7 @@ public class MappedProvider extends DependencyProvider {
 	private final MinecraftDependenciesProvider libs;
 	private final ForgePatchedProvider forgePatched;
 	private final ForgePatchedAccessTxdProvider patchedTxd;
-	private final MappingsProvider mappings;
+	private final TinyMappingsProvider mappings;
 	
 	//jars (to be created by performInstall)
 	private Path mappedJar;

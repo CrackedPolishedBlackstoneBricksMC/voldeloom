@@ -26,7 +26,7 @@ package net.fabricmc.loom.task;
 
 import net.fabricmc.loom.Constants;
 import net.fabricmc.loom.LoomGradleExtension;
-import net.fabricmc.loom.providers.MappingsProvider;
+import net.fabricmc.loom.providers.TinyMappingsProvider;
 import net.fabricmc.loom.util.GradleSupport;
 import net.fabricmc.loom.util.TinyRemapperSession;
 import org.gradle.api.Project;
@@ -62,8 +62,8 @@ public class RemapJarTask extends Jar {
 		Path input = this.getInput().getAsFile().get().toPath();
 		Path output = this.getArchivePath().toPath();
 		
-		MappingsProvider mappingsProvider = extension.getProviderGraph().getProviderOfType(MappingsProvider.class);
-		mappingsProvider.assertInstalled();
+		TinyMappingsProvider tinyMappingsProvider = extension.getProviderGraph().getProviderOfType(TinyMappingsProvider.class);
+		tinyMappingsProvider.assertInstalled();
 		
 		Set<Path> remapClasspath = project.getConfigurations()
 			.getByName(JavaPlugin.COMPILE_CLASSPATH_CONFIGURATION_NAME)
@@ -74,7 +74,7 @@ public class RemapJarTask extends Jar {
 			.collect(Collectors.toSet());
 		
 		new TinyRemapperSession()
-			.setMappings(mappingsProvider.getMappings())
+			.setMappings(tinyMappingsProvider.getMappings())
 			.setInputJar(input)
 			.setInputNamingScheme(Constants.MAPPED_NAMING_SCHEME)
 			.setInputClasspath(remapClasspath)

@@ -57,61 +57,56 @@ public class ForgePatchedProvider extends DependencyProvider {
 	
 	public void performInstall() throws Exception {
 		if(Files.notExists(patched)) {
-			if(binpatched.usesBinpatches()) {
-				project.getLogger().lifecycle("|-> Patched jar does not exist, but this Forge version used binpatches. Copying...");
-				Files.copy(merged.getMergedJar(), patched);
-			} else {
-				project.getLogger().lifecycle("|-> Patched jar does not exist, performing jarmod-style patch...");
-				
-				try(FileSystem mergedFs  = FileSystems.newFileSystem(URI.create("jar:" + merged.getMergedJar().toUri()), Collections.emptyMap());
-					  FileSystem forgeFs   = FileSystems.newFileSystem(URI.create("jar:" + forge.getJar().toUri()), Collections.emptyMap());
-					  FileSystem patchedFs = FileSystems.newFileSystem(URI.create("jar:" + patched.toUri()), Collections.singletonMap("create", "true"))) {
-					project.getLogger().lifecycle("|-> Copying vanilla into patched jar...");
-					Files.walkFileTree(mergedFs.getPath("/"), new SimpleFileVisitor<Path>() {
-						@Override
-						public FileVisitResult preVisitDirectory(Path sourceDir, BasicFileAttributes attrs) throws IOException {
-							if(sourceDir.endsWith("META-INF")) {
-								return FileVisitResult.SKIP_SUBTREE;
-							} else {
-								Path destDir = patchedFs.getPath(sourceDir.toString());
-								Files.createDirectories(destDir);
-								return FileVisitResult.CONTINUE;
-							}
-						}
-						
-						@Override
-						public FileVisitResult visitFile(Path sourcePath, BasicFileAttributes attrs) throws IOException {
-							Path destPath = patchedFs.getPath(sourcePath.toString());
-							Files.copy(sourcePath, destPath);
+			project.getLogger().lifecycle("|-> Patched jar does not exist, performing jarmod-style patch...");
+			
+			try(FileSystem mergedFs = FileSystems.newFileSystem(URI.create("jar:" + merged.getMergedJar().toUri()), Collections.emptyMap());
+			    FileSystem forgeFs = FileSystems.newFileSystem(URI.create("jar:" + forge.getJar().toUri()), Collections.emptyMap());
+			    FileSystem patchedFs = FileSystems.newFileSystem(URI.create("jar:" + patched.toUri()), Collections.singletonMap("create", "true"))) {
+				project.getLogger().lifecycle("|-> Copying vanilla into patched jar...");
+				Files.walkFileTree(mergedFs.getPath("/"), new SimpleFileVisitor<Path>() {
+					@Override
+					public FileVisitResult preVisitDirectory(Path sourceDir, BasicFileAttributes attrs) throws IOException {
+						if(sourceDir.endsWith("META-INF")) {
+							return FileVisitResult.SKIP_SUBTREE;
+						} else {
+							Path destDir = patchedFs.getPath(sourceDir.toString());
+							Files.createDirectories(destDir);
 							return FileVisitResult.CONTINUE;
 						}
-					});
+					}
 					
-					project.getLogger().lifecycle("|-> Copying Forge on top...");
-					Files.walkFileTree(forgeFs.getPath("/"), new SimpleFileVisitor<Path>() {
-						@Override
-						public FileVisitResult preVisitDirectory(Path sourceDir, BasicFileAttributes attrs) throws IOException {
-							if(sourceDir.endsWith("META-INF")) {
-								return FileVisitResult.SKIP_SUBTREE;
-							} else {
-								Path destDir = patchedFs.getPath(sourceDir.toString());
-								Files.createDirectories(destDir);
-								return FileVisitResult.CONTINUE;
-							}
-						}
-						
-						@Override
-						public FileVisitResult visitFile(Path sourcePath, BasicFileAttributes attrs) throws IOException {
-							Path destPath = patchedFs.getPath(sourcePath.toString());
-							Files.copy(sourcePath, destPath, StandardCopyOption.REPLACE_EXISTING);
+					@Override
+					public FileVisitResult visitFile(Path sourcePath, BasicFileAttributes attrs) throws IOException {
+						Path destPath = patchedFs.getPath(sourcePath.toString());
+						Files.copy(sourcePath, destPath);
+						return FileVisitResult.CONTINUE;
+					}
+				});
+				
+				project.getLogger().lifecycle("|-> Copying Forge on top...");
+				Files.walkFileTree(forgeFs.getPath("/"), new SimpleFileVisitor<Path>() {
+					@Override
+					public FileVisitResult preVisitDirectory(Path sourceDir, BasicFileAttributes attrs) throws IOException {
+						if(sourceDir.endsWith("META-INF")) {
+							return FileVisitResult.SKIP_SUBTREE;
+						} else {
+							Path destDir = patchedFs.getPath(sourceDir.toString());
+							Files.createDirectories(destDir);
 							return FileVisitResult.CONTINUE;
 						}
-					});
-				}
-				
-				project.getLogger().lifecycle("|-> Deleting META-INF... (just kidding, i didn't copy it in the first place)");
-				project.getLogger().lifecycle("|-> Patch success!");
+					}
+					
+					@Override
+					public FileVisitResult visitFile(Path sourcePath, BasicFileAttributes attrs) throws IOException {
+						Path destPath = patchedFs.getPath(sourcePath.toString());
+						Files.copy(sourcePath, destPath, StandardCopyOption.REPLACE_EXISTING);
+						return FileVisitResult.CONTINUE;
+					}
+				});
 			}
+			
+			project.getLogger().lifecycle("|-> Deleting META-INF... (just kidding, i didn't copy it in the first place)");
+			project.getLogger().lifecycle("|-> Patch success!");
 		}
 	}
 	
