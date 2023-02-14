@@ -82,10 +82,8 @@ public class Binpatch {
 				case 255:
 					//java arrays are not indexable by longs anyway
 					long copySourceLong = readLong(patch);
-					if(copySourceLong > Integer.MAX_VALUE) throw new RuntimeException("Too big!");
-					copySource = (int) copySourceLong;
-					copyLength = readInt(patch);
-					break;
+					if(copySourceLong < 0 || copySourceLong > Integer.MAX_VALUE) throw new RuntimeException("Too big!");
+					copySource = (int) copySourceLong;      copyLength = readInt(patch);    break;
 				default:
 					//intellij knows that this table handles all cases, but javac doesn't!
 					throw new RuntimeException("Unreachable");

@@ -28,8 +28,30 @@ Instead, patches are done in a mildly less copyright-infringing way. The class `
 * Deltas are applied with a modified version of `com.nothome.delta`, algorithm is the same but the library was modified to not use Trove
   * the algorithm is called "GDiff" i think
 
-## Blocker
+## Parsing pack200
 
-Pack200 is removed from the jdk so you need a third party decompresser. Apache Commons Compress has one, but it's... broken?
+Pack200 is removed from the jdk so you need a third party decompresser. ~~Apache Commons Compress has one, but it's... broken?~~
 
-> Failed to unpack Jar:org.apache.commons.compress.harmony.pack200.Pack200Exception: Expected to read 48873 bytes but read 3274
+> ~~Failed to unpack Jar:org.apache.commons.compress.harmony.pack200.Pack200Exception: Expected to read 48873 bytes but read 3274~~
+
+Nah, apache commons-compress is broken in a different way! See https://github.com/apache/commons-compress/pull/360 . You can fix it with a carefully crafted `InputStream`.
+
+# Binpatches themselves
+
+The file format is defined in terms of `DataInputStream`:
+
+| field | read with |
+| --: | :-- |
+| name | `readUTF` |
+| sourceClassName | `readUTF` |
+| targetClassName | `readUTF` |
+| exists | `readBoolean` |
+| checksum | `readInt` if "exists", otherwise zero-length |
+| patchLength | `readInt` |
+| patchBytes | `readFully` into a buffer the size of `patchLength` |
+
+TODO: investigate the class name parameters (i don't think i need this weird filename-parsing hack maybe)
+
+## And the patch data?
+
+It's simply a [gdiff file](https://www.w3.org/TR/NOTE-gdiff-19970825.html).

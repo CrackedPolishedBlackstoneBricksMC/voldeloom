@@ -22,7 +22,7 @@ It will require significant effort to properly deal with split "client" and "ser
 
 Forge 1.3.2-4.3.5.318 using Gradle 7.6.
 
-**Broken.**
+**Broken, but compiling mods might work.**
 
 Remaps and gets to the menu, but Forge prints a *million* warnings about someone putting their mod in the `net.minecraft.src` package, even though it's actually just picking up on Minecraft being in that package. I don't know what package Forge *wants* minecraft to be in, given that that's the package MCP *puts* it in.
 
@@ -58,19 +58,17 @@ Forge 1.5.2-7.8.1.738 using Gradle 7.6.
 
 Forge 1.6.4-9.11.1.1345 using Gradle 7.6.
 
-**Big broken**
+**Broken, but compiling mods might work.** Used to be completely busted due to missing `binpatches.pack.lzma` support.
 
 1. tiny-remapper fails due to mapping name conflicts. It's not wrong, some classes like `bga` (`RenderBat`) end up with two mappings from the same method name to different SRG names, and this is honest to what the SRGs say.
    * "fixed" due to hacking the name conflicts out of the way in `Srg.java`, just so i could at least get the gradle project to import.
-2. Forge is not a jarmod in this version (it uses `binpatches.pack.lzma`), so will need to redo patching logic.
-   * You get vanilla, because none of the patches do anything.
-   * **Ok, I looked into it and the main trouble is the pack200 format that this file is compressed with, which is a complete fucking mess**
-   * Later.
-3. `net.minecraft.client.Minecraft` doesn't have a `main` method anymore.
+2. `net.minecraft.client.Minecraft` doesn't have a `main` method anymore.
    * Fixable by setting the `mainClass` to `net.minecraft.client.main.Main`, where it moved to.
    * FML relauncher is gone. Minecraft is no longer designed to be an applet.
    * This is when the "new launcher" came around (see https://github.com/MinecraftForge/FML/wiki/FML-and-the-new-launcher-in-1.6 ) btw.
-4. No sound.
+3. There is no support for launching the game through Launchwrapper.
+   * Launching Forge directly through `Main` doesn't work. Forge *requires* a `cpw.mods.fml.common.launcher.FMLTweaker` Launchwrapper tweaker in order to function.
+4. (if you were able to get in-game) No sound.
    * This is when Mojang switched to the new file layout (with file hashes).
    * Also the game supports --assetIndex natively :bangbang:
    

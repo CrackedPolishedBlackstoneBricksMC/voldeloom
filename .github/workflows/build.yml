@@ -33,11 +33,11 @@ jobs:
     needs: build
     strategy:
       matrix:
-        sample: [ "1.3.2", "1.4.7", "1.5.2" ]
+        sample: [ "1.3.2", "1.4.7", "1.5.2", "1.6.4" ]
         java_version: [ "8", "17" ]
         include:
-          - java_version: "8"
-            sample: "1.4.7-gradle4"
+          - sample: "1.4.7-gradle4"
+            java_version: "8"
     steps:
       - name: git checkout
         uses: actions/checkout@v3
