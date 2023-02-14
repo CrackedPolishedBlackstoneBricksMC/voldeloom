@@ -1,0 +1,43 @@
+buildscript {
+	repositories {
+		mavenCentral()
+		maven { url "https://maven.fabricmc.net" }
+		//maven { url "https://repo.sleeping.town" } //Commented out to use the version of voldeloom in the settings.gradle includeBuild (hopefully??)
+	}
+	dependencies {
+		classpath "agency.highlysuspect:voldeloom:2.1-SNAPSHOT"
+	}
+}
+
+apply plugin: "agency.highlysuspect.voldeloom"
+
+java {
+	toolchain {
+		//Last version able to set a --release as low as 6.
+		languageVersion = JavaLanguageVersion.of(11)
+	}
+}
+
+compileJava {
+	//Forge doesn't understand classes compiled to versions of the class-file format newer than Java 6's.
+	options.release.set(6)
+}
+
+String minecraftVersion = "1.7.10"
+String forgeVersion = "1.7.10-10.13.4.1614-1.7.10" //Yes it actually specifies the mc version twice
+
+volde {
+	runs {
+		client {
+			programArg "--version=1.7 deobf (Voldeloom)" //TODO 1.6 crashes if --version is not set (only used for Snooper)
+			programArg "--username=quaternary"
+			mainClass = "net.minecraft.client.main.Main" //TODO make it not required to specify this manually
+		}
+	}
+}
+
+dependencies {
+	minecraft "com.mojang:minecraft:${minecraftVersion}"
+	forge "net.minecraftforge:forge:${forgeVersion}:universal"
+	mappings "net.minecraftforge:forge:${forgeVersion}:src@zip" // OOPS! This is actually the MDK
+}
