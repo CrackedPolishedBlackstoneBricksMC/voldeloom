@@ -2,7 +2,6 @@ package net.fabricmc.loom.providers;
 
 import net.fabricmc.loom.DependencyProvider;
 import net.fabricmc.loom.LoomGradleExtension;
-import net.fabricmc.loom.util.mcp.BinpatchesPack;
 import org.gradle.api.Project;
 
 import javax.inject.Inject;
@@ -28,11 +27,12 @@ import java.util.Collections;
  */
 public class ForgePatchedProvider extends DependencyProvider {
 	@Inject
-	public ForgePatchedProvider(Project project, LoomGradleExtension extension, MinecraftProvider mc, MergedProvider merged, ForgeProvider forge) {
+	public ForgePatchedProvider(Project project, LoomGradleExtension extension, MinecraftProvider mc, MergedProvider merged, ForgeProvider forge, BinpatchedMinecraftProvider binpatched) {
 		super(project, extension);
 		this.mc = mc;
 		this.merged = merged;
 		this.forge = forge;
+		this.binpatched = binpatched;
 		
 		dependsOn(mc, merged, forge);
 	}
@@ -40,6 +40,7 @@ public class ForgePatchedProvider extends DependencyProvider {
 	private final MinecraftProvider mc;
 	private final MergedProvider merged;
 	private final ForgeProvider forge;
+	private final BinpatchedMinecraftProvider binpatched;
 	
 	private String patchedVersionTag;
 	private Path patched;
@@ -56,77 +57,62 @@ public class ForgePatchedProvider extends DependencyProvider {
 	
 	public void performInstall() throws Exception {
 		if(Files.notExists(patched)) {
-			project.getLogger().lifecycle("|-> Patched jar does not exist, performing patch...");
-			
-			try(
-				FileSystem mergedFs = FileSystems.newFileSystem(URI.create("jar:" + merged.getMergedJar().toUri()), Collections.emptyMap());
-				FileSystem forgeFs = FileSystems.newFileSystem(URI.create("jar:" + forge.getJar().toUri()), Collections.emptyMap());
-				FileSystem patchedFs = FileSystems.newFileSystem(URI.create("jar:" + patched.toUri()), Collections.singletonMap("create", "true")))
-			{
-				project.getLogger().lifecycle("|-> Copying vanilla into patched jar...");
-				Files.walkFileTree(mergedFs.getPath("/"), new SimpleFileVisitor<Path>() {
-					@Override
-					public FileVisitResult preVisitDirectory(Path sourceDir, BasicFileAttributes attrs) throws IOException {
-						if(sourceDir.endsWith("META-INF")) {
-							return FileVisitResult.SKIP_SUBTREE;
-						} else {
-							Path destDir = patchedFs.getPath(sourceDir.toString());
-							Files.createDirectories(destDir);
+			if(binpatched.usesBinpatches()) {
+				project.getLogger().lifecycle("|-> Patched jar does not exist, but this Forge version used binpatches. Copying...");
+				Files.copy(merged.getMergedJar(), patched);
+			} else {
+				project.getLogger().lifecycle("|-> Patched jar does not exist, performing jarmod-style patch...");
+				
+				try(FileSystem mergedFs  = FileSystems.newFileSystem(URI.create("jar:" + merged.getMergedJar().toUri()), Collections.emptyMap());
+					  FileSystem forgeFs   = FileSystems.newFileSystem(URI.create("jar:" + forge.getJar().toUri()), Collections.emptyMap());
+					  FileSystem patchedFs = FileSystems.newFileSystem(URI.create("jar:" + patched.toUri()), Collections.singletonMap("create", "true"))) {
+					project.getLogger().lifecycle("|-> Copying vanilla into patched jar...");
+					Files.walkFileTree(mergedFs.getPath("/"), new SimpleFileVisitor<Path>() {
+						@Override
+						public FileVisitResult preVisitDirectory(Path sourceDir, BasicFileAttributes attrs) throws IOException {
+							if(sourceDir.endsWith("META-INF")) {
+								return FileVisitResult.SKIP_SUBTREE;
+							} else {
+								Path destDir = patchedFs.getPath(sourceDir.toString());
+								Files.createDirectories(destDir);
+								return FileVisitResult.CONTINUE;
+							}
+						}
+						
+						@Override
+						public FileVisitResult visitFile(Path sourcePath, BasicFileAttributes attrs) throws IOException {
+							Path destPath = patchedFs.getPath(sourcePath.toString());
+							Files.copy(sourcePath, destPath);
 							return FileVisitResult.CONTINUE;
 						}
-					}
+					});
 					
-					@Override
-					public FileVisitResult visitFile(Path sourcePath, BasicFileAttributes attrs) throws IOException {
-						Path destPath = patchedFs.getPath(sourcePath.toString());
-						Files.copy(sourcePath, destPath);
-						return FileVisitResult.CONTINUE;
-					}
-				});
+					project.getLogger().lifecycle("|-> Copying Forge on top...");
+					Files.walkFileTree(forgeFs.getPath("/"), new SimpleFileVisitor<Path>() {
+						@Override
+						public FileVisitResult preVisitDirectory(Path sourceDir, BasicFileAttributes attrs) throws IOException {
+							if(sourceDir.endsWith("META-INF")) {
+								return FileVisitResult.SKIP_SUBTREE;
+							} else {
+								Path destDir = patchedFs.getPath(sourceDir.toString());
+								Files.createDirectories(destDir);
+								return FileVisitResult.CONTINUE;
+							}
+						}
+						
+						@Override
+						public FileVisitResult visitFile(Path sourcePath, BasicFileAttributes attrs) throws IOException {
+							Path destPath = patchedFs.getPath(sourcePath.toString());
+							Files.copy(sourcePath, destPath, StandardCopyOption.REPLACE_EXISTING);
+							return FileVisitResult.CONTINUE;
+						}
+					});
+				}
 				
-				Path binpatchesPackLzma = forgeFs.getPath("binpatches.pack.lzma");
-				if(Files.exists(binpatchesPackLzma)) {
-					project.getLogger().lifecycle("|-> Found binpatches.pack.lzma.");
-					performBinpatchesPatch(mergedFs, forgeFs, patchedFs, binpatchesPackLzma);
-				} else {
-					project.getLogger().lifecycle("|-> No binpatches.pack.lzma found, patching like a jarmod.");
-					performJarmodPatch(forgeFs, patchedFs);
-				}
+				project.getLogger().lifecycle("|-> Deleting META-INF... (just kidding, i didn't copy it in the first place)");
+				project.getLogger().lifecycle("|-> Patch success!");
 			}
-			
-			project.getLogger().lifecycle("|-> Patch success!");
 		}
-	}
-	
-	private void performBinpatchesPatch(FileSystem mergedFs, FileSystem forgeFs, FileSystem patchedFs, Path binpatchesPackLzma) throws IOException {
-		//TODO: This is the wrong place to do binpatches, they're client-only or server-only, not merged, I don't think
-		// Need to study them more lol
-		new BinpatchesPack().read(project, binpatchesPackLzma);
-	}
-	
-	private void performJarmodPatch(FileSystem forgeFs, FileSystem patchedFs) throws IOException {
-		project.getLogger().lifecycle("|-> Copying Forge over top of the patched jar...");
-		Files.walkFileTree(forgeFs.getPath("/"), new SimpleFileVisitor<Path>() {
-			@Override
-			public FileVisitResult preVisitDirectory(Path sourceDir, BasicFileAttributes attrs) throws IOException {
-				if(sourceDir.endsWith("META-INF")) {
-					return FileVisitResult.SKIP_SUBTREE;
-				} else {
-					Path destDir = patchedFs.getPath(sourceDir.toString());
-					Files.createDirectories(destDir);
-					return FileVisitResult.CONTINUE;
-				}
-			}
-			
-			@Override
-			public FileVisitResult visitFile(Path sourcePath, BasicFileAttributes attrs) throws IOException {
-				Path destPath = patchedFs.getPath(sourcePath.toString());
-				Files.copy(sourcePath, destPath, StandardCopyOption.REPLACE_EXISTING);
-				return FileVisitResult.CONTINUE;
-			}
-		});
-		
-		//No need to delete META-INF cause i didn't copy it in the first place ;)
 	}
 	
 	public String getPatchedVersionTag() {

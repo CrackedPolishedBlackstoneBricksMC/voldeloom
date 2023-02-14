@@ -37,14 +37,16 @@ import java.util.Collections;
  */
 public class MergedProvider extends DependencyProvider {
 	@Inject
-	public MergedProvider(Project project, LoomGradleExtension extension, MinecraftProvider mc) {
+	public MergedProvider(Project project, LoomGradleExtension extension, MinecraftProvider mc, BinpatchedMinecraftProvider patchedMc) {
 		super(project, extension);
 		this.mc = mc;
+		this.patchedMc = patchedMc;
 		
-		dependsOn(mc);
+		dependsOn(patchedMc);
 	}
 	
 	private final MinecraftProvider mc;
+	private final BinpatchedMinecraftProvider patchedMc;
 	
 	private Path mergedUnfixed;
 	private Path merged;
@@ -64,7 +66,7 @@ public class MergedProvider extends DependencyProvider {
 		if(Files.notExists(mergedUnfixed)) {
 			project.getLogger().lifecycle("|-> merged-unfixed does not exist, performing merge...");
 			
-			try(JarMerger jm = new JarMerger(mc.getClientJar().toFile(), mc.getServerJar().toFile(), mergedUnfixed.toFile())) {
+			try(JarMerger jm = new JarMerger(patchedMc.getBinpatchedClient().toFile(), patchedMc.getBinpatchedServer().toFile(), mergedUnfixed.toFile())) {
 				jm.enableSyntheticParamsOffset();
 				jm.merge();
 			}
