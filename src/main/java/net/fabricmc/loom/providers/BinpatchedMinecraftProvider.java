@@ -63,9 +63,7 @@ public class BinpatchedMinecraftProvider extends DependencyProvider {
 					binpatchesExist = true;
 					
 					//parse binpatches
-					BinpatchesPack binpatches = new BinpatchesPack()
-						.read(project, binpatchesPath, rawMappings.getJoined(), rawMappings.getPackages())
-						.unmap(project, rawMappings.getJoined(), rawMappings.getPackages());
+					BinpatchesPack binpatches = new BinpatchesPack().read(project, binpatchesPath);
 					
 					project.getLogger().lifecycle("|-> Found {} client and {} server binpatches.", binpatches.clientBinpatches.size(), binpatches.serverBinpatches.size());
 					
@@ -76,9 +74,9 @@ public class BinpatchedMinecraftProvider extends DependencyProvider {
 						FileSystem patchedServerFs = FileSystems.newFileSystem(URI.create("jar:" + binpatchedServer.toUri()), Collections.singletonMap("create", "true"))
 					) {
 						project.getLogger().lifecycle("|-> Patching client...");
-						patch("client", vanillaClientFs, patchedClientFs, binpatches.clientBinpatches);
+						patch(vanillaClientFs, patchedClientFs, binpatches.clientBinpatches);
 						project.getLogger().lifecycle("|-> Patching server...");
-						patch("server", vanillaServerFs, patchedServerFs, binpatches.serverBinpatches);
+						patch(vanillaServerFs, patchedServerFs, binpatches.serverBinpatches);
 						project.getLogger().lifecycle("|-> Somehow, it worked!");
 					}
 				} else {
@@ -90,7 +88,7 @@ public class BinpatchedMinecraftProvider extends DependencyProvider {
 		}
 	}
 	
-	private void patch(String name, FileSystem vanillaFs, FileSystem patchedFs, Map<String, Binpatch> binpatches) throws Exception {
+	private void patch(FileSystem vanillaFs, FileSystem patchedFs, Map<String, Binpatch> binpatches) throws Exception {
 		Files.walkFileTree(vanillaFs.getPath("/"), new SimpleFileVisitor<Path>() {
 			@Override
 			public FileVisitResult preVisitDirectory(Path vanillaPath, BasicFileAttributes attrs) throws IOException {
@@ -101,12 +99,12 @@ public class BinpatchedMinecraftProvider extends DependencyProvider {
 			@Override
 			public FileVisitResult visitFile(Path vanillaPath, BasicFileAttributes attrs) throws IOException {
 				Path patchedPath = patchedFs.getPath(vanillaPath.toString());
-				String filename = vanillaPath.getFileName().toString();
+				String filename = vanillaPath.toString().substring(1); //remove leading slash
 				
 				if(filename.endsWith(".class")) {
 					Binpatch binpatch = binpatches.get(filename.substring(0, filename.length() - ".class".length()));
 					if(binpatch != null) {
-						project.getLogger().warn("Binpatching {}...", filename);
+						project.getLogger().info("Binpatching {}...", filename);
 						Files.write(patchedPath, binpatch.apply(Files.readAllBytes(vanillaPath)));
 						return FileVisitResult.CONTINUE;
 					}
