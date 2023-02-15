@@ -1,10 +1,8 @@
-package net.fabricmc.loom.providers;
+package net.fabricmc.loom.newprovider;
 
-import net.fabricmc.loom.DependencyProvider;
 import net.fabricmc.loom.LoomGradleExtension;
 import org.gradle.api.Project;
 
-import javax.inject.Inject;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.file.FileSystem;
@@ -25,42 +23,55 @@ import java.util.Collections;
  * <p>
  * During this period, Forge was installable as a jarmod. This class is simply a programattic version of "deleting META-INF". 
  */
-public class ForgePatchedProvider extends DependencyProvider {
-	@Inject
-	public ForgePatchedProvider(Project project, LoomGradleExtension extension, MinecraftProvider mc, MergedProvider merged, ForgeProvider forge, BinpatchedMinecraftProvider binpatched) {
+public class ForgePatcher extends NewProvider<ForgePatcher> {
+	public ForgePatcher(Project project, LoomGradleExtension extension) {
 		super(project, extension);
-		this.mc = mc;
-		this.merged = merged;
-		this.forge = forge;
-		this.binpatched = binpatched;
-		
-		dependsOn(mc, merged, forge);
 	}
 	
-	private final MinecraftProvider mc;
-	private final MergedProvider merged;
-	private final ForgeProvider forge;
-	private final BinpatchedMinecraftProvider binpatched;
+	//inputs
+	private Path vanilla, forge;
+	private ConfigElementWrapper mc;
 	
-	private String patchedVersionTag;
+	public ForgePatcher vanilla(Path vanilla) {
+		this.vanilla = vanilla;
+		return this;
+	}
+	
+	public ForgePatcher forge(Path forge) {
+		this.forge = forge;
+		return this;
+	}
+	
+	public ForgePatcher mc(ConfigElementWrapper mc) {
+		this.mc = mc;
+		return this;
+	}
+	
+	//outputs
 	private Path patched;
+	private String patchedVersionTag;
 	
-	@Override
-	protected void performSetup() throws Exception {
-		patchedVersionTag = mc.getVersion() + "-forge-" + forge.getVersion();
+	public Path getPatchedJar() {
+		return patched;
+	}
+	
+	public String getPatchedVersionTag() {
+		return patchedVersionTag;
+	}
+	
+	public ForgePatcher patch() throws Exception {
+		patchedVersionTag = mc.getVersion() + "-forge-" + mc.getVersion();
 		patched = getCacheDir().resolve("minecraft-" + patchedVersionTag + "-merged.jar");
 		
 		project.getLogger().lifecycle("] patched jar: {}", patched);
 		
 		cleanOnRefreshDependencies(patched);
-	}
-	
-	public void performInstall() throws Exception {
+		
 		if(Files.notExists(patched)) {
 			project.getLogger().lifecycle("|-> Patched jar does not exist, performing jarmod-style patch...");
 			
-			try(FileSystem mergedFs = FileSystems.newFileSystem(URI.create("jar:" + merged.getMergedJar().toUri()), Collections.emptyMap());
-			    FileSystem forgeFs = FileSystems.newFileSystem(URI.create("jar:" + forge.getJar().toUri()), Collections.emptyMap());
+			try(FileSystem mergedFs = FileSystems.newFileSystem(URI.create("jar:" + vanilla.toUri()), Collections.emptyMap());
+			    FileSystem forgeFs = FileSystems.newFileSystem(URI.create("jar:" + forge.toUri()), Collections.emptyMap());
 			    FileSystem patchedFs = FileSystems.newFileSystem(URI.create("jar:" + patched.toUri()), Collections.singletonMap("create", "true"))) {
 				project.getLogger().lifecycle("|-> Copying vanilla into patched jar...");
 				Files.walkFileTree(mergedFs.getPath("/"), new SimpleFileVisitor<Path>() {
@@ -108,13 +119,7 @@ public class ForgePatchedProvider extends DependencyProvider {
 			project.getLogger().lifecycle("|-> Deleting META-INF... (just kidding, i didn't copy it in the first place)");
 			project.getLogger().lifecycle("|-> Patch success!");
 		}
-	}
-	
-	public String getPatchedVersionTag() {
-		return patchedVersionTag;
-	}
-	
-	public Path getPatchedJar() {
-		return patched;
+		
+		return this;
 	}
 }

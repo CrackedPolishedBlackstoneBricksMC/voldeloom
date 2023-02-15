@@ -1,6 +1,5 @@
-package net.fabricmc.loom.providers;
+package net.fabricmc.loom.newprovider;
 
-import net.fabricmc.loom.DependencyProvider;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.stitch.merge.JarMerger;
 import org.gradle.api.Project;
@@ -12,7 +11,6 @@ import org.objectweb.asm.FieldVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
-import javax.inject.Inject;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -35,38 +33,52 @@ import java.util.Collections;
  * <p>
  * The merged (and postprocessed) jar is available with {@code getMergedJar()}.
  */
-public class MergedProvider extends DependencyProvider {
-	@Inject
-	public MergedProvider(Project project, LoomGradleExtension extension, MinecraftProvider mc, BinpatchedMinecraftProvider patchedMc) {
+public class Merger extends NewProvider<Merger> {
+	public Merger(Project project, LoomGradleExtension extension) {
 		super(project, extension);
-		this.mc = mc;
-		this.patchedMc = patchedMc;
-		
-		dependsOn(patchedMc);
 	}
 	
-	private final MinecraftProvider mc;
-	private final BinpatchedMinecraftProvider patchedMc;
+	//inputs
+	private Path clientJar, serverJar;
+	private ConfigElementWrapper mc;
 	
-	private Path mergedUnfixed;
+	public Merger client(Path clientJar) {
+		this.clientJar = clientJar;
+		return this;
+	}
+	
+	public Merger server(Path serverJar) {
+		this.serverJar = serverJar;
+		return this;
+	}
+	
+	//TODO: remove this, find some other way of picking the filename lol
+	public Merger mc(ConfigElementWrapper mc) {
+		this.mc = mc;
+		return this;
+	}
+	
+	//outputs
 	private Path merged;
 	
-	@Override
-	protected void performSetup() throws Exception {
+	public Path getMerged() {
+		return merged;
+	}
+	
+	//procedure
+	public Merger merge() throws Exception {
 		merged = getCacheDir().resolve("minecraft-" + mc.getVersion() + "-merged.jar");
-		mergedUnfixed = getCacheDir().resolve("minecraft-" + mc.getVersion() + "-merged-unfixed.jar");
+		Path mergedUnfixed = getCacheDir().resolve("minecraft-" + mc.getVersion() + "-merged-unfixed.jar");
 		
 		project.getLogger().lifecycle("] merged-unfixed jar: {}", mergedUnfixed);
 		project.getLogger().lifecycle("] merged-fixed jar: {}", merged);
 		
 		cleanOnRefreshDependencies(merged, mergedUnfixed);
-	}
-	
-	public void performInstall() throws Exception {
+		
 		if(Files.notExists(mergedUnfixed)) {
 			project.getLogger().lifecycle("|-> merged-unfixed does not exist, performing merge...");
 			
-			try(JarMerger jm = new JarMerger(patchedMc.getBinpatchedClient().toFile(), patchedMc.getBinpatchedServer().toFile(), mergedUnfixed.toFile())) {
+			try(JarMerger jm = new JarMerger(clientJar.toFile(), serverJar.toFile(), mergedUnfixed.toFile())) {
 				jm.enableSyntheticParamsOffset();
 				jm.merge();
 			}
@@ -78,8 +90,7 @@ public class MergedProvider extends DependencyProvider {
 			project.getLogger().lifecycle("|-> merged-fixed does not exist, performing annotation remap...");
 			
 			try(FileSystem unfixedFs = FileSystems.newFileSystem(URI.create("jar:" + mergedUnfixed.toUri()), Collections.emptyMap());
-			    FileSystem fixedFs = FileSystems.newFileSystem(URI.create("jar:" + merged.toUri()), Collections.singletonMap("create", "true")))
-			{
+			    FileSystem fixedFs = FileSystems.newFileSystem(URI.create("jar:" + merged.toUri()), Collections.singletonMap("create", "true"))) {
 				Files.walkFileTree(unfixedFs.getPath("/"), new SimpleFileVisitor<Path>() {
 					@Override
 					public FileVisitResult preVisitDirectory(Path unfixedDir, BasicFileAttributes attrs) throws IOException {
@@ -109,10 +120,8 @@ public class MergedProvider extends DependencyProvider {
 			
 			project.getLogger().lifecycle("|-> Annotation remap success! :)");
 		}
-	}
-	
-	public Path getMergedJar() {
-		return merged;
+		
+		return this;
 	}
 	
 	//I deleted this class but pasted it back from upstream Voldeloom, so, this is all stuff figured out by TwilightFlower. Thanks!

@@ -24,7 +24,8 @@
 
 package net.fabricmc.loom;
 
-import net.fabricmc.loom.providers.TinyMappingsProvider;
+import net.fabricmc.loom.newprovider.AccessTransformer;
+import net.fabricmc.loom.newprovider.Tinifier;
 
 /**
  * Values that do not change across an invocation of the plugin, such as the names of Gradle configurations.
@@ -54,36 +55,32 @@ public class Constants {
 	/**
 	 * The Gradle configuration containing the vanilla Minecraft artifact.<br>
 	 * Owing to Minecraft not being on a real Maven server, only the version of the artifact is used. It doesn't resolve to anything.
-	 * 
-	 * @see net.fabricmc.loom.providers.MinecraftProvider
 	 */
 	public static final String MINECRAFT = "minecraft";
 	
 	/**
 	 * The Gradle configuration containing the user's specified mappings input file.
 	 *
-	 * @see TinyMappingsProvider
+	 * @see Tinifier
 	 */
 	public static final String MAPPINGS = "mappings";
 	
 	/**
 	 * The Gradle configuration containing the Minecraft Forge artifact.
 	 *
-	 * @see net.fabricmc.loom.providers.ForgeProvider
+	 * @see ProviderGraph
 	 */
 	public static final String FORGE = "forge";
 	
 	/**
 	 * The Gradle configuration containing any custom access-transformer files.
 	 * 
-	 * @see net.fabricmc.loom.providers.ForgePatchedAccessTxdProvider
+	 * @see AccessTransformer
 	 */
 	public static final String CUSTOM_ACCESS_TRANSFORMERS = "accessTransformers";
 	
 	/**
 	 * The Gradle configuration containing all of Minecraft's own dependencies, such as LWJGL.
-	 * 
-	 * @see net.fabricmc.loom.providers.MinecraftDependenciesProvider
 	 */
 	public static final String MINECRAFT_DEPENDENCIES = "minecraftLibraries";
 	
@@ -97,8 +94,6 @@ public class Constants {
 	/**
 	 * The Gradle configuration containing all of Forge's own dependencies, such as Guava.<br>
 	 * These were formerly downloaded automatically when Forge started up, but the server is dead.
-	 * 
-	 * @see net.fabricmc.loom.providers.ForgeDependenciesProvider for what detects these dependencies
 	 */
 	public static final String FORGE_DEPENDENCIES = "forgeLibraries";
 	

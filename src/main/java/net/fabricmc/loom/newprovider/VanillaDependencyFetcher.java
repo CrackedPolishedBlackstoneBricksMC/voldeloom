@@ -1,91 +1,83 @@
-/*
- * This file is part of fabric-loom, licensed under the MIT License (MIT).
- *
- * Copyright (c) 2016, 2017, 2018 FabricMC
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
- */
+package net.fabricmc.loom.newprovider;
 
-package net.fabricmc.loom.providers;
-
-import net.fabricmc.loom.Constants;
-import net.fabricmc.loom.DependencyProvider;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.util.DownloadSession;
 import net.fabricmc.loom.util.MinecraftVersionInfo;
 import net.fabricmc.loom.util.ZipUtil;
 import org.gradle.api.Project;
+import org.gradle.api.artifacts.dsl.DependencyHandler;
 
-import javax.inject.Inject;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 
-/**
- * Minecraft has a number of dependencies and native libraries. They are specified in a custom version manifest format, not with a maven POM.
- * This is in charge of reading the version manifest and adding them as real Gradle project dependencies.
- * It also downloads native libraries and extracts their contents.
- */
-public class MinecraftDependenciesProvider extends DependencyProvider {
-	@Inject
-	public MinecraftDependenciesProvider(Project project, LoomGradleExtension extension, MinecraftProvider mc) {
+public class VanillaDependencyFetcher extends NewProvider<VanillaDependencyFetcher> {
+	public VanillaDependencyFetcher(Project project, LoomGradleExtension extension) {
 		super(project, extension);
+	}
+	
+	//inputs
+	private ConfigElementWrapper mc;
+	private MinecraftVersionInfo manifest;
+	private String librariesBaseUrl;
+	
+	public VanillaDependencyFetcher mc(ConfigElementWrapper mc) {
 		this.mc = mc;
-		
-		dependsOn(mc);
+		return this;
 	}
 	
-	private final MinecraftProvider mc;
+	public VanillaDependencyFetcher manifest(MinecraftVersionInfo manifest) {
+		this.manifest = manifest;
+		return this;
+	}
 	
+	public VanillaDependencyFetcher librariesBaseUrl(String librariesBaseUrl) {
+		this.librariesBaseUrl = librariesBaseUrl;
+		return this;
+	}
+	
+	//outputs
 	private Path nativesDir;
-	private Path nativesJarStore;
+	private final Collection<String> mavenDependencies = new ArrayList<>();
 	
-	private final Collection<Path> nonNativeLibs = new HashSet<>();
-	
-	@Override
-	protected void performSetup() throws Exception {
-		nativesDir = getCacheDir().resolve("natives").resolve(mc.getVersion());
-		nativesJarStore = nativesDir.resolve("jars");
-		
-		project.getLogger().lifecycle("] native libraries: {}", nativesJarStore);
-		
-		cleanOnRefreshDependencies(nonNativeLibs);
-		cleanOnRefreshDependencies(nativesDir);
+	public Path getNativesDir() {
+		return nativesDir;
 	}
 	
-	public void performInstall() throws Exception {
+	public Collection<String> getMavenDependencies() {
+		return mavenDependencies;
+	}
+	
+	//TODO: Upstream Voldeloom had a bug where it didn't actually write anything to this collection lol
+	// Returning an empty collection here to maintain the buggy behavior. Later I will analyze the impact
+	public Collection<Path> getNonNativeLibraries_Todo() {
+		//return nonNativeLibs;
+		return Collections.emptyList();
+	}
+	
+	//process
+	public VanillaDependencyFetcher fetch() throws Exception {
+		nativesDir = getCacheDir().resolve("natives").resolve(mc.getVersion());
+		Path nativesJarStore = nativesDir.resolve("jars");
+		
+		cleanOnRefreshDependencies(nativesDir);
+		
 		Files.createDirectories(nativesJarStore);
 		
-		for(MinecraftVersionInfo.Library library : mc.getVersionManifest().libraries) {
+		for(MinecraftVersionInfo.Library library : manifest.libraries) {
 			if(!library.allowed()) continue;
 			
 			if(library.isNative()) {
 				Path libJarFile = library.getPath(nativesJarStore);
 				
 				//download the natives jar
-				new DownloadSession(library.getURL(extension), project)
+				new DownloadSession(librariesBaseUrl + library.getURLSuffix(), project)
 					.dest(libJarFile)
 					.etag(true)
 					.gzip(false)
@@ -130,21 +122,19 @@ public class MinecraftDependenciesProvider extends DependencyProvider {
 				//It appears downloading the library manually is not necessary, since the minecraft info .json
 				//gives maven coordinates which Gradle can resolve the usual way off of mojang's maven
 				
-				//TODO move "physically depending on things" out
-				project.getLogger().info("|-> Found Minecraft dependency {}, adding to the '{}' configuration", depToAdd, Constants.MINECRAFT_DEPENDENCIES);
-				project.getDependencies().add(Constants.MINECRAFT_DEPENDENCIES, depToAdd);
+				log.info("|-> Found Minecraft dependency {}", depToAdd);
+				mavenDependencies.add(depToAdd);
 			}
 		}
-	}
-
-	//TODO: Voldeloom had a bug where it didn't actually write anything to this collection lol
-	// Returning an empty collection here to maintain the buggy behavior. Later I will analyze the impact
-	public Collection<Path> getNonNativeLibraries() {
-		//return nonNativeLibs;
-		return Collections.emptyList();
+		
+		return this;
 	}
 	
-	public Path getNativesDir() {
-		return nativesDir;
+	public VanillaDependencyFetcher installDependenciesToProject(String config, DependencyHandler deps) {
+		for(String mavenDep : mavenDependencies) {
+			deps.add(config, mavenDep);
+		}
+		
+		return this;
 	}
 }

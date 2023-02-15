@@ -29,9 +29,9 @@ import com.google.gson.JsonObject;
 import net.fabricmc.loom.DependencyProvider;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.util.DownloadSession;
+import net.fabricmc.loom.util.MinecraftVersionInfo;
 import org.gradle.api.Project;
 
-import javax.inject.Inject;
 import java.io.BufferedReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -43,15 +43,12 @@ import java.nio.file.Path;
  * This class resolves assets using the "legacy" file layout only (real filenames, not hashes with the `objects` folder).
  */
 public class AssetsProvider extends DependencyProvider {
-	@Inject
-	public AssetsProvider(Project project, LoomGradleExtension extension, MinecraftProvider mc) {
+	public AssetsProvider(Project project, LoomGradleExtension extension, MinecraftVersionInfo versionManifest) {
 		super(project, extension);
-		this.mc = mc;
-		
-		dependsOn(mc);
+		this.versionManifest = versionManifest;
 	}
 	
-	private final MinecraftProvider mc;
+	private final MinecraftVersionInfo versionManifest;
 	
 	private Path assetsCache;
 	private Path assetIndexFile;
@@ -60,8 +57,8 @@ public class AssetsProvider extends DependencyProvider {
 	@Override
 	protected void performSetup() throws Exception {
 		assetsCache = getCacheDir().resolve("assets");
-		assetIndexFile = assetsCache.resolve("indexes").resolve(mc.getVersionManifest().assetIndex.getFabricId(mc.getVersion()) + ".json");
-		thisVersionAssetsDir = assetsCache.resolve("legacy").resolve(mc.getVersion());
+		assetIndexFile = assetsCache.resolve("indexes").resolve(versionManifest.assetIndex.getFabricId(extension.mc.getVersion()) + ".json");
+		thisVersionAssetsDir = assetsCache.resolve("legacy").resolve(extension.mc.getVersion());
 		//Btw, using this `legacy` folder just to get out of regular Loom's way.
 		
 		project.getLogger().lifecycle("] asset index: {}", assetIndexFile);
@@ -74,11 +71,11 @@ public class AssetsProvider extends DependencyProvider {
 	public void performInstall() throws Exception {
 		Files.createDirectories(assetsCache);
 		
-		new DownloadSession(mc.getVersionManifest().assetIndex.url, project)
+		new DownloadSession(versionManifest.assetIndex.url, project)
 			.dest(assetIndexFile)
 			.etag(true)
 			.gzip(true)
-			.skipIfSha1Equals(mc.getVersionManifest().assetIndex.sha1) //TODO: kinda subsumed by skipIfExists lol
+			.skipIfSha1Equals(versionManifest.assetIndex.sha1) //TODO: kinda subsumed by skipIfExists lol
 			.skipIfExists()
 			.download();
 		

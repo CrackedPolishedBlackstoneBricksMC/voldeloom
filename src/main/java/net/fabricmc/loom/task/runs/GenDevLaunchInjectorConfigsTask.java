@@ -1,11 +1,12 @@
 package net.fabricmc.loom.task.runs;
 
 import net.fabricmc.loom.Constants;
-import net.fabricmc.loom.WellKnownLocations;
-import net.fabricmc.loom.providers.MinecraftDependenciesProvider;
-import net.fabricmc.loom.providers.MinecraftProvider;
-import net.fabricmc.loom.util.LoomTaskExt;
 import net.fabricmc.loom.RunConfig;
+import net.fabricmc.loom.WellKnownLocations;
+import net.fabricmc.loom.newprovider.ConfigElementWrapper;
+import net.fabricmc.loom.newprovider.VanillaDependencyFetcher;
+import net.fabricmc.loom.newprovider.VanillaJarFetcher;
+import net.fabricmc.loom.util.LoomTaskExt;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.tasks.OutputFile;
 import org.gradle.api.tasks.TaskAction;
@@ -41,11 +42,9 @@ public class GenDevLaunchInjectorConfigsTask extends DefaultTask implements Loom
 	
 	@TaskAction
 	public void doIt() throws IOException {
-		MinecraftProvider mc = getLoomGradleExtension().getProviderGraph().getProviderOfType(MinecraftProvider.class);
-		mc.assertInstalled();
-		
-		MinecraftDependenciesProvider libs = getLoomGradleExtension().getProviderGraph().getProviderOfType(MinecraftDependenciesProvider.class);
-		libs.assertInstalled();
+		ConfigElementWrapper mc = getLoomGradleExtension().mc;
+		VanillaJarFetcher vanillaJars = getLoomGradleExtension().getProviderGraph().get(VanillaJarFetcher.class);
+		VanillaDependencyFetcher libs = getLoomGradleExtension().getProviderGraph().get(VanillaDependencyFetcher.class);
 		
 		LaunchConfig launchConfig = new LaunchConfig();
 		
@@ -60,7 +59,7 @@ public class GenDevLaunchInjectorConfigsTask extends DefaultTask implements Loom
 				.property(cfg.getBaseName(), "org.lwjgl.librarypath", libs.getNativesDir().toAbsolutePath().toString())
 				
 				.argument(cfg.getBaseName(), "--assetIndex")
-				.argument(cfg.getBaseName(), mc.getVersionManifest().assetIndex.getFabricId(mc.getVersion()))
+				.argument(cfg.getBaseName(), vanillaJars.getVersionManifest().assetIndex.getFabricId(mc.getVersion()))
 				.argument(cfg.getBaseName(), "--assetsDir")
 				.argument(cfg.getBaseName(), WellKnownLocations.getUserCache(getProject()).resolve("assets").toAbsolutePath().toString());
 		}

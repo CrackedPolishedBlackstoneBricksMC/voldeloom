@@ -69,11 +69,19 @@ public class MinecraftVersionInfo {
 		private Artifact artifact;
 		public Rule[] rules;
 
+		@Deprecated
 		public String getURL(LoomGradleExtension ext) {
 			String path;
 			String[] parts = this.name.split(":", 3);
 			path = parts[0].replace(".", "/") + "/" + parts[1] + "/" + parts[2] + "/" + parts[1] + "-" + parts[2] + getClassifier() + ".jar";
 			return ext.librariesBaseUrl + path;
+		}
+		
+		public String getURLSuffix() {
+			String path;
+			String[] parts = this.name.split(":", 3);
+			path = parts[0].replace(".", "/") + "/" + parts[1] + "/" + parts[2] + "/" + parts[1] + "-" + parts[2] + getClassifier() + ".jar";
+			return path;
 		}
 		
 		public Path getPath(Path basePath) {

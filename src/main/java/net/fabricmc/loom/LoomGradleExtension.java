@@ -24,6 +24,9 @@
 
 package net.fabricmc.loom;
 
+import net.fabricmc.loom.newprovider.ConfigElementWrapper;
+import net.fabricmc.loom.newprovider.MappingsWrapper;
+import net.fabricmc.loom.newprovider.ResolvedConfigElementWrapper;
 import net.fabricmc.loom.util.GradleSupport;
 import org.cadixdev.lorenz.MappingSet;
 import org.cadixdev.mercury.Mercury;
@@ -51,6 +54,7 @@ import java.util.function.Supplier;
  */
 public class LoomGradleExtension {
 	public LoomGradleExtension(Project project) { //Gradle reflectively finds this ctor
+		this.project = project;
 		runConfigs = project.container(RunConfig.class, name -> new RunConfig(project, name));
 		remappedConfigurationEntries = project.container(RemappedConfigurationEntry.class, inputName -> new RemappedConfigurationEntry(project, inputName));
 		providers = new ProviderGraph(project, this);
@@ -96,7 +100,6 @@ public class LoomGradleExtension {
 	
 	/**
 	 * If nonnull, this URL will be contacted to download the Minecraft per-version manifest, instead of reading from version_manifest.json. 
-	 * @see net.fabricmc.loom.providers.MinecraftProvider
 	 */
 	public String customManifestUrl = null;
 	
@@ -196,7 +199,12 @@ public class LoomGradleExtension {
 	//Need this hack because remapping can't see into string literals passed into Class.forName
 	public Set<String> hackHackHackDontMapTheseClasses = new HashSet<>();
 	
+	private final Project project;
 	private final ProviderGraph providers;
+	public ConfigElementWrapper mc;
+	public ResolvedConfigElementWrapper forge;
+	public MappingsWrapper mappings;
+	
 	private final List<Path> unmappedModsBuilt = new ArrayList<>();
 	private final MappingSet[] srcMappingCache = new MappingSet[2];
 	private final Mercury[] srcMercuryCache = new Mercury[2];
@@ -223,6 +231,13 @@ public class LoomGradleExtension {
 	
 	public ProviderGraph getProviderGraph() {
 		return providers;
+	}
+	
+	//Called in afterEvaluate:
+	public void wrapCoreDependencies() throws Exception {
+		mc = new ConfigElementWrapper(project, project.getConfigurations().getByName(Constants.MINECRAFT));
+		forge = new ResolvedConfigElementWrapper(project, project.getConfigurations().getByName(Constants.FORGE));
+		mappings = new MappingsWrapper(project, this, project.getConfigurations().getByName(Constants.MAPPINGS));
 	}
 	
 	@SuppressWarnings("unused") //Gradle api

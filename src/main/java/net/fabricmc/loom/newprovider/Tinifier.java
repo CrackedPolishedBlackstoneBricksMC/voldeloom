@@ -22,9 +22,8 @@
  * SOFTWARE.
  */
 
-package net.fabricmc.loom.providers;
+package net.fabricmc.loom.newprovider;
 
-import net.fabricmc.loom.DependencyProvider;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.util.mcp.JarScanData;
 import net.fabricmc.loom.util.mcp.McpTinyv2Writer;
@@ -32,7 +31,6 @@ import net.fabricmc.mapping.tree.TinyMappingFactory;
 import net.fabricmc.mapping.tree.TinyTree;
 import org.gradle.api.Project;
 
-import javax.inject.Inject;
 import java.io.BufferedReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -42,51 +40,60 @@ import java.util.List;
 /**
  * Converts mappings from {@code RawMappingsProvider} into a tinyfile.
  */
-public class TinyMappingsProvider extends DependencyProvider {
-	@Inject
-	public TinyMappingsProvider(Project project, LoomGradleExtension extension, RawMappingsProvider rawMappings, ForgePatchedProvider forgePatched) {
+public class Tinifier extends NewProvider<Tinifier> {
+	public Tinifier(Project project, LoomGradleExtension extension) {
 		super(project, extension);
-		this.rawMappings = rawMappings;
-		this.forgePatched = forgePatched;
-		
-		dependsOn(rawMappings, forgePatched);
 	}
 	
-	private final RawMappingsProvider rawMappings;
-	private final ForgePatchedProvider forgePatched;
+	//inputs
+	private Path jarToScan;
+	private MappingsWrapper mappings;
+	private boolean useSrgsAsFallback = false;
 	
+	public Tinifier jarToScan(Path jarToScan) {
+		this.jarToScan = jarToScan;
+		return this;
+	}
+	
+	public Tinifier mappings(MappingsWrapper mappings) {
+		this.mappings = mappings;
+		return this;
+	}
+	
+	public Tinifier useSrgsAsFallback(boolean useSrgsAsFallback) {
+		this.useSrgsAsFallback = useSrgsAsFallback;
+		return this;
+	}
+	
+	//outputs
 	private Path tinyMappings;
 	private TinyTree parsedMappings;
 	
-	@Override
-	protected void performSetup() throws Exception {
-		//outputs
-		tinyMappings = getCacheDir().resolve("mappings").resolve(rawMappings.getRawMappingsJar().getFileName() + rawMappings.getMappingDiscriminant() + ".tiny");
+	//procedure
+	public Tinifier tinify() throws Exception {
+		tinyMappings = getCacheDir().resolve("mappings").resolve(mappings.getPath().getFileName() + mappings.getMappingDiscriminant() + ".tiny");
 		project.getLogger().lifecycle("] mappings destination: {}", tinyMappings);
 		
 		cleanOnRefreshDependencies(tinyMappings);
-	}
-	
-	public void performInstall() throws Exception {
-		Files.createDirectories(tinyMappings.getParent());
 		
+		Files.createDirectories(tinyMappings.getParent());
 		if(Files.notExists(tinyMappings)) {
 			project.getLogger().lifecycle("|-> Mappings file does not exist, writing...");
 			
-			if(rawMappings.isAlreadyTinyv2()) {
+			if(mappings.isAlreadyTinyv2()) {
 				//TODO: its the TINY PASSTHROUGH HACK !!
-				Files.copy(rawMappings.getRawMappingsJar(), tinyMappings);
+				Files.copy(mappings.getPath(), tinyMappings);
 			} else {
 				project.getLogger().lifecycle("|-> Scanning unmapped jar for field types/inner classes...");
-				JarScanData scanData = new JarScanData().scan(forgePatched.getPatchedJar());
+				JarScanData scanData = new JarScanData().scan(jarToScan);
 				
 				project.getLogger().lifecycle("|-> Computing tinyv2 mappings...");
 				List<String> tinyv2 = new McpTinyv2Writer()
-					.srg(rawMappings.getJoined())
-					.fields(rawMappings.getFields())
-					.methods(rawMappings.getMethods())
-					.packages(rawMappings.getPackages())
-					.srgsAsFallback(extension.forgeCapabilities.useSrgsAsFallback())
+					.srg(mappings.getJoined())
+					.fields(mappings.getFields())
+					.methods(mappings.getMethods())
+					.packages(mappings.getPackages())
+					.srgsAsFallback(useSrgsAsFallback)
 					.jarScanData(scanData)
 					.write();
 				
@@ -94,10 +101,11 @@ public class TinyMappingsProvider extends DependencyProvider {
 			}
 		}
 		
-		//make them available for other tasks
-		try(BufferedReader lol = Files.newBufferedReader(tinyMappings)) {
-			parsedMappings = TinyMappingFactory.loadWithDetection(lol);
+		try(BufferedReader buf = Files.newBufferedReader(tinyMappings)) {
+			parsedMappings = TinyMappingFactory.loadWithDetection(buf);
 		}
+		
+		return this;
 	}
 	
 	public TinyTree getMappings() {
@@ -106,10 +114,5 @@ public class TinyMappingsProvider extends DependencyProvider {
 	
 	public Path getTinyMappings() {
 		return tinyMappings;
-	}
-	
-	@Deprecated
-	public String getMappingsDepString() {
-		return rawMappings.getMappingsDepString();
 	}
 }

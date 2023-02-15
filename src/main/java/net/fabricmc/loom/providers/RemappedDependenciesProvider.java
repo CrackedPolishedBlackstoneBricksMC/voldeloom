@@ -5,17 +5,20 @@ import net.fabricmc.loom.DependencyProvider;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.RemappedConfigurationEntry;
 import net.fabricmc.loom.WellKnownLocations;
+import net.fabricmc.loom.newprovider.AccessTransformer;
+import net.fabricmc.loom.newprovider.Tinifier;
+import net.fabricmc.loom.newprovider.VanillaDependencyFetcher;
 import net.fabricmc.loom.util.TinyRemapperSession;
 import org.gradle.api.Project;
 import org.gradle.api.artifacts.Configuration;
 import org.gradle.api.artifacts.ResolvedArtifact;
 
-import javax.inject.Inject;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -36,19 +39,12 @@ import java.util.Set;
  * <h2>TODO: Clusterfuck</h2>
  */
 public class RemappedDependenciesProvider extends DependencyProvider {
-	@Inject
-	public RemappedDependenciesProvider(Project project, LoomGradleExtension extension, MinecraftDependenciesProvider mc, TinyMappingsProvider mappings, ForgePatchedAccessTxdProvider patchedTxd) {
+	public RemappedDependenciesProvider(Project project, LoomGradleExtension extension, Tinifier mappings) {
 		super(project, extension);
-		this.mc = mc;
 		this.mappings = mappings;
-		this.patchedTxd = patchedTxd;
-		
-		dependsOn(mc, mappings, patchedTxd);
 	}
 	
-	private final MinecraftDependenciesProvider mc;
-	private final TinyMappingsProvider mappings;
-	private final ForgePatchedAccessTxdProvider patchedTxd;
+	private final Tinifier mappings;
 	
 	private static class RemappingJob {
 		public RemappingJob(Path unmappedPath, Path mappedPath, Configuration outConfig) {
@@ -64,7 +60,7 @@ public class RemappedDependenciesProvider extends DependencyProvider {
 	
 	@Override
 	protected void performSetup() throws Exception {
-		String mappingsSuffix = mappings.getMappingsDepString().replaceAll("[^A-Za-z0-9.-]", "_");
+		String mappingsSuffix = extension.mappings.getMappingsDepString().replaceAll("[^A-Za-z0-9.-]", "_");
 		Path remappedModCache = WellKnownLocations.getRemappedModCache(project);
 		
 		for(RemappedConfigurationEntry entry : extension.remappedConfigurationEntries) {
@@ -95,7 +91,7 @@ public class RemappedDependenciesProvider extends DependencyProvider {
 				project.getLogger().info("\\-> Remapped file doesn't exist, running remapper...");
 				
 				try {
-					processMod(job.unmappedPath, job.mappedPath, null, null, mc, mappings, patchedTxd);
+					processMod(job.unmappedPath, job.mappedPath, null, null, mappings, extension.getProviderGraph().get(AccessTransformer.class).getTransformedJar(), extension.getProviderGraph().get(VanillaDependencyFetcher.class).getNonNativeLibraries_Todo());
 				} catch (Exception e) {
 					throw new RuntimeException("Failed to remap dependency at " + job.unmappedPath + " to " + job.mappedPath, e);
 				}
@@ -148,11 +144,11 @@ public class RemappedDependenciesProvider extends DependencyProvider {
 //			}
 	}
 	
-	private void processMod(Path input, Path output, Configuration config, /* TODO */ ResolvedArtifact artifact, MinecraftDependenciesProvider minecraftDependenciesProvider, TinyMappingsProvider tinyMappingsProvider, ForgePatchedAccessTxdProvider patchedAccessTxdProvider) throws IOException {
+	private void processMod(Path input, Path output, Configuration config, /* TODO */ ResolvedArtifact artifact, Tinifier tinifier, Path transformedJar, Collection<Path> nonNativeLibs) throws IOException {
 		Set<Path> remapClasspath = new HashSet<>();
 		
-		remapClasspath.add(patchedAccessTxdProvider.getTransformedJar());
-		remapClasspath.addAll(minecraftDependenciesProvider.getNonNativeLibraries());
+		remapClasspath.add(transformedJar);
+		remapClasspath.addAll(nonNativeLibs);
 		for(File file : project.getConfigurations().getByName(Constants.EVERY_UNMAPPED_MOD).getFiles()) {
 			Path p = file.toPath();
 			if(!p.equals(input)) {
@@ -167,7 +163,7 @@ public class RemappedDependenciesProvider extends DependencyProvider {
 		boolean sourcesExist = false;
 		
 		new TinyRemapperSession()
-			.setMappings(tinyMappingsProvider.getMappings())
+			.setMappings(tinifier.getMappings())
 			.setInputNamingScheme(extension.forgeCapabilities.computeDistributionNamingScheme())
 			.setInputJar(input)
 			.setInputClasspath(remapClasspath)

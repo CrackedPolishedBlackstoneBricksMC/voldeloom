@@ -1,16 +1,14 @@
-package net.fabricmc.loom.providers;
+package net.fabricmc.loom.newprovider;
 
 import com.google.common.hash.Hasher;
 import com.google.common.hash.Hashing;
 import net.fabricmc.loom.Constants;
-import net.fabricmc.loom.DependencyProvider;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.util.mcp.ForgeAccessTransformerSet;
 import org.gradle.api.Project;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
 
-import javax.inject.Inject;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.IOException;
@@ -37,29 +35,42 @@ import java.util.stream.Collectors;
  * <p>
  * Outside of development, this is normally done by Forge as it classloads Minecraft.
  */
-public class ForgePatchedAccessTxdProvider extends DependencyProvider {
-	@Inject
-	public ForgePatchedAccessTxdProvider(Project project, LoomGradleExtension extension, ForgeProvider forge, ForgePatchedProvider forgePatched) {
+public class AccessTransformer extends NewProvider<AccessTransformer> {
+	public AccessTransformer(Project project, LoomGradleExtension extension) {
 		super(project, extension);
-		this.forge = forge;
-		this.forgePatched = forgePatched;
-		
-		dependsOn(forge, forgePatched);
 	}
 	
-	private final ForgeProvider forge;
-	private final ForgePatchedProvider forgePatched;
+	//inputs
+	private ResolvedConfigElementWrapper forge;
+	private Path forgePatched;
+	private String patchedVersionTag;
 	
+	public AccessTransformer forge(ResolvedConfigElementWrapper forge) {
+		this.forge = forge;
+		return this;
+	}
+	
+	public AccessTransformer forgePatched(Path forgePatched) {
+		this.forgePatched = forgePatched;
+		return this;
+	}
+	
+	public AccessTransformer patchedVersionTag(String patchedVersionTag) {
+		this.patchedVersionTag = patchedVersionTag;
+		return this;
+	}
+	
+	//outputs
 	private Set<Path> customAccessTransformers = new HashSet<>();
 	private Path accessTransformedMc;
 	
-	@Override
-	protected boolean projectmapSelf() throws Exception {
-		return !project.getConfigurations().getByName(Constants.CUSTOM_ACCESS_TRANSFORMERS).resolve().isEmpty();
+	public Path getTransformedJar() {
+		return accessTransformedMc;
 	}
 	
-	@Override
-	protected void performSetup() throws Exception {
+	public AccessTransformer transform() throws Exception {
+		projectmapped |= !project.getConfigurations().getByName(Constants.CUSTOM_ACCESS_TRANSFORMERS).resolve().isEmpty();
+		
 		customAccessTransformers = project.getConfigurations().getByName(Constants.CUSTOM_ACCESS_TRANSFORMERS)
 			.resolve()
 			.stream()
@@ -74,18 +85,16 @@ public class ForgePatchedAccessTxdProvider extends DependencyProvider {
 			discriminator = "-" + customAccessTransformerHash();
 		}
 		
-		accessTransformedMc = getCacheDir().resolve("minecraft-" + forgePatched.getPatchedVersionTag() + "-atd" + discriminator + ".jar");
+		accessTransformedMc = getCacheDir().resolve("minecraft-" + patchedVersionTag + "-atd" + discriminator + ".jar");
 		project.getLogger().lifecycle("] access-transformed jar: {}", accessTransformedMc);
 		cleanOnRefreshDependencies(accessTransformedMc);
-	}
-	
-	public void performInstall() throws Exception {
+		
 		if(Files.notExists(accessTransformedMc)) {
 			project.getLogger().lifecycle("|-> Access-transformed jar does not exist, parsing Forge's access transformers...");
 			
 			//Read forge ats
 			ForgeAccessTransformerSet ats = new ForgeAccessTransformerSet();
-			try(FileSystem forgeFs = FileSystems.newFileSystem(URI.create("jar:" + forge.getJar().toUri()), Collections.emptyMap())) {
+			try(FileSystem forgeFs = FileSystems.newFileSystem(URI.create("jar:" + forge.getPath().toUri()), Collections.emptyMap())) {
 				//TODO: where do these names come from, can they be read from the jar?
 				// 1.2.5 does not have these files
 				for(String atFileName : Arrays.asList("forge_at.cfg", "fml_at.cfg")) {
@@ -122,7 +131,7 @@ public class ForgePatchedAccessTxdProvider extends DependencyProvider {
 			project.getLogger().lifecycle("|-> Performing transform...", ats.getCount(), ats.getTouchedClassCount());
 			
 			try(
-				FileSystem unAccessTransformedFs = FileSystems.newFileSystem(URI.create("jar:" + forgePatched.getPatchedJar().toUri()), Collections.emptyMap());
+				FileSystem unAccessTransformedFs = FileSystems.newFileSystem(URI.create("jar:" + forgePatched.toUri()), Collections.emptyMap());
 				FileSystem accessTransformedFs = FileSystems.newFileSystem(URI.create("jar:" + accessTransformedMc.toUri()), Collections.singletonMap("create", "true"))) {
 				Files.walkFileTree(unAccessTransformedFs.getPath("/"), new SimpleFileVisitor<Path>() {
 					@Override
@@ -169,10 +178,8 @@ public class ForgePatchedAccessTxdProvider extends DependencyProvider {
 				unusedAtsReport.forEach(project.getLogger()::warn);
 			}
 		}
-	}
-	
-	public Path getTransformedJar() {
-		return accessTransformedMc;
+		
+		return this;
 	}
 	
 	@SuppressWarnings("UnstableApiUsage")

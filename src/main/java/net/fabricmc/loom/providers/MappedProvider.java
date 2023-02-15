@@ -27,12 +27,13 @@ package net.fabricmc.loom.providers;
 import net.fabricmc.loom.Constants;
 import net.fabricmc.loom.DependencyProvider;
 import net.fabricmc.loom.LoomGradleExtension;
+import net.fabricmc.loom.newprovider.Tinifier;
 import net.fabricmc.loom.util.TinyRemapperSession;
 import org.gradle.api.Project;
 
-import javax.inject.Inject;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Collection;
 import java.util.function.Predicate;
 
 /**
@@ -41,21 +42,20 @@ import java.util.function.Predicate;
  * The named jar is available with {@code getMappedJar()}, and the intermediary (srg) jar is also available.
  */
 public class MappedProvider extends DependencyProvider {
-	@Inject
-	public MappedProvider(Project project, LoomGradleExtension extension, MinecraftDependenciesProvider libs, ForgePatchedProvider forgePatched, ForgePatchedAccessTxdProvider patchedTxd, TinyMappingsProvider mappings) {
+	public MappedProvider(Project project, LoomGradleExtension extension, String patchedVersionTag, Path transformedJar, Tinifier mappings, Collection<Path> nonNativeLibs) {
 		super(project, extension);
-		this.libs = libs;
-		this.forgePatched = forgePatched;
-		this.patchedTxd = patchedTxd;
+		this.patchedVersionTag = patchedVersionTag;
+		this.transformedJar = transformedJar;
 		this.mappings = mappings;
 		
-		dependsOn(libs, forgePatched, patchedTxd, mappings);
+		this.nonNativeLibs = nonNativeLibs;
 	}
 	
-	private final MinecraftDependenciesProvider libs;
-	private final ForgePatchedProvider forgePatched;
-	private final ForgePatchedAccessTxdProvider patchedTxd;
-	private final TinyMappingsProvider mappings;
+	private final String patchedVersionTag;
+	private final Path transformedJar;
+	private final Tinifier mappings;
+	
+	private final Collection<Path> nonNativeLibs;
 	
 	//jars (to be created by performInstall)
 	private Path mappedJar;
@@ -63,13 +63,13 @@ public class MappedProvider extends DependencyProvider {
 	
 	@Override
 	protected void performSetup() throws Exception {
-		String mappingsName = mappings.getMappingsDepString().replaceAll("[^A-Za-z0-9.-]", "_");
+		String mappingsName = extension.mappings.getMappingsDepString().replaceAll("[^A-Za-z0-9.-]", "_");
 		Path mappedDestDir = getCacheDir().resolve("mapped").resolve(mappingsName);
 		
 		//TODO improve how the filename is handled (why do i need to put minecraft- again)
 		// Also TODO, do I need an intermediary jar?
-		intermediaryJar = mappedDestDir.resolve(String.format("minecraft-%s-%s.jar", forgePatched.getPatchedVersionTag(), Constants.INTERMEDIATE_NAMING_SCHEME));
-		mappedJar = mappedDestDir.resolve(String.format("minecraft-%s-%s.jar", forgePatched.getPatchedVersionTag(), Constants.MAPPED_NAMING_SCHEME));
+		intermediaryJar = mappedDestDir.resolve(String.format("minecraft-%s-%s.jar", patchedVersionTag, Constants.INTERMEDIATE_NAMING_SCHEME));
+		mappedJar = mappedDestDir.resolve(String.format("minecraft-%s-%s.jar", patchedVersionTag, Constants.MAPPED_NAMING_SCHEME));
 		
 		project.getLogger().lifecycle("] intermediary jar: {}", intermediaryJar);
 		project.getLogger().lifecycle("] mapped jar: {}", mappedJar);
@@ -95,9 +95,9 @@ public class MappedProvider extends DependencyProvider {
 			
 			new TinyRemapperSession()
 				.setMappings(mappings.getMappings())
-				.setInputJar(patchedTxd.getTransformedJar())
+				.setInputJar(transformedJar)
 				.setInputNamingScheme(Constants.PROGUARDED_NAMING_SCHEME)
-				.setInputClasspath(libs.getNonNativeLibraries())
+				.setInputClasspath(nonNativeLibs)
 				.addOutputJar(Constants.INTERMEDIATE_NAMING_SCHEME, this.intermediaryJar)
 				.addOutputJar(Constants.MAPPED_NAMING_SCHEME, this.mappedJar)
 				.setClassFilter(classFilter)

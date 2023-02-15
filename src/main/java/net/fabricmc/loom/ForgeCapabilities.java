@@ -1,6 +1,5 @@
 package net.fabricmc.loom;
 
-import net.fabricmc.loom.providers.MinecraftProvider;
 import org.gradle.api.Project;
 
 public class ForgeCapabilities {
@@ -54,11 +53,8 @@ public class ForgeCapabilities {
 			throw new IllegalStateException("Accessing computeDistributionNamingScheme before the project is evaluated means the user doesn't have a chance to configure it");
 		}
 		
-		MinecraftProvider mc = extension.getProviderGraph().getProviderOfType(MinecraftProvider.class);
-		mc.tryReach(DependencyProvider.Stage.SETUP);
-		
 		if("auto".equals(distributionNamingScheme)) {
-			distributionNamingScheme = guessMinecraftMinorVersion(mc.getVersion()) >= 5 ? Constants.INTERMEDIATE_NAMING_SCHEME : Constants.PROGUARDED_NAMING_SCHEME;
+			distributionNamingScheme = guessMinecraftMinorVersion(extension.mc.getVersion()) >= 5 ? Constants.INTERMEDIATE_NAMING_SCHEME : Constants.PROGUARDED_NAMING_SCHEME;
 			project.getLogger().info("|-> [ForgeCapabilities guess] I think this Forge version expects mods to be distributed in the '{}' namespace?", distributionNamingScheme);
 		}
 		
@@ -70,12 +66,9 @@ public class ForgeCapabilities {
 			throw new IllegalStateException("Accessing useSrgsAsFallback before the project is evaluated means the user didn't have a chance to configure it");
 		}
 		
-		MinecraftProvider mc = extension.getProviderGraph().getProviderOfType(MinecraftProvider.class);
-		mc.tryReach(DependencyProvider.Stage.SETUP);
-		
 		if(srgsAsFallback instanceof String) {
 			if("auto".equals(srgsAsFallback)) {
-				srgsAsFallback = guessMinecraftMinorVersion(mc.getVersion()) >= 5;
+				srgsAsFallback = guessMinecraftMinorVersion(extension.mc.getVersion()) >= 5;
 				
 				if((Boolean) srgsAsFallback) {
 					project.getLogger().info("|-> [ForgeCapabilities guess] I think this Forge version uses SRGs as the fallback when no mapping is defined?");

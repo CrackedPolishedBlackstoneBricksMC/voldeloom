@@ -25,9 +25,8 @@
 package net.fabricmc.loom;
 
 import groovy.util.Node;
-import net.fabricmc.loom.providers.ForgeDependenciesProvider;
+import net.fabricmc.loom.newprovider.VanillaDependencyFetcher;
 import net.fabricmc.loom.providers.MappedProvider;
-import net.fabricmc.loom.providers.MinecraftDependenciesProvider;
 import net.fabricmc.loom.providers.RemappedDependenciesProvider;
 import net.fabricmc.loom.task.AbstractDecompileTask;
 import net.fabricmc.loom.task.ConfigurationDebugTask;
@@ -358,19 +357,26 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		//We do them in afterEvaluate because the Gradle extension must be configured first, but task execution is too late to mutate the project's dependencies.
 		//I've built a crude task graph system.
 		ProviderGraph providers = extension.getProviderGraph();
-		//We need at least Forge's external libraries,
-		providers.getProviderOfType(ForgeDependenciesProvider.class).tryReach(DependencyProvider.Stage.INSTALLED);
+		try {
+			//Make the core voldeloom dependencies available, like the minecraft dependency
+			extension.wrapCoreDependencies();
+			
+			//Uhhhhh do all the other shit
+			providers.setup();
+		} catch (Exception e) {
+			throw new RuntimeException("Exception setting up provider graph: " + e.getMessage(), e);
+		}
 		//Minecraft with all the patches and user-specified remapping applied,
-		providers.getProviderOfType(MappedProvider.class).tryReach(DependencyProvider.Stage.INSTALLED);
+		providers.getOld(MappedProvider.class).tryReach(DependencyProvider.Stage.INSTALLED);
 		//and remapped versions of user-supplied dependencies. The dependency-provider task-graph stuff will take care of the rest.
-		providers.getProviderOfType(RemappedDependenciesProvider.class).tryReach(DependencyProvider.Stage.INSTALLED);
+		providers.getOld(RemappedDependenciesProvider.class).tryReach(DependencyProvider.Stage.INSTALLED);
 		
 		//Misc wiring-up of genSources-related tasks.
 		AbstractDecompileTask genSourcesDecompileTask = (AbstractDecompileTask) project.getTasks().getByName("genSourcesDecompile");
 		RemapLineNumbersTask genSourcesRemapLineNumbersTask = (RemapLineNumbersTask) project.getTasks().getByName("genSourcesRemapLineNumbers");
 		Task genSourcesTask = project.getTasks().getByName("genSources");
 		
-		MappedProvider mappedProvider = providers.getProviderOfType(MappedProvider.class);
+		MappedProvider mappedProvider = providers.getOld(MappedProvider.class);
 		mappedProvider.assertInstalled();
 		Path mappedJar = mappedProvider.getMappedJar();
 		Path linemappedJar = replaceExtension(mappedJar, "-linemapped.jar");
@@ -381,9 +387,7 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		genSourcesDecompileTask.setOutput(sourcesJar);
 		genSourcesDecompileTask.setLineMapFile(linemapFile);
 		
-		MinecraftDependenciesProvider libs = providers.getProviderOfType(MinecraftDependenciesProvider.class);
-		libs.assertInstalled();
-		genSourcesDecompileTask.setLibraries(libs.getNonNativeLibraries());
+		genSourcesDecompileTask.setLibraries(providers.get(VanillaDependencyFetcher.class).getNonNativeLibraries_Todo());
 		
 		genSourcesRemapLineNumbersTask.setInput(mappedJar);
 		genSourcesRemapLineNumbersTask.setLineMapFile(linemapFile);

@@ -25,7 +25,7 @@
 package net.fabricmc.loom.task.fernflower;
 
 import net.fabricmc.loom.Constants;
-import net.fabricmc.loom.providers.TinyMappingsProvider;
+import net.fabricmc.loom.newprovider.Tinifier;
 import net.fabricmc.loom.task.AbstractDecompileTask;
 import net.fabricmc.loom.task.ForkingJavaExecTask;
 import net.fabricmc.loom.util.ConsumingOutputStream;
@@ -89,9 +89,8 @@ public class FernFlowerTask extends AbstractDecompileTask implements ForkingJava
 		}
 
 		args.add("-t=" + getNumThreads());
-		TinyMappingsProvider tinyMappingsProvider = getLoomGradleExtension().getProviderGraph().getProviderOfType(TinyMappingsProvider.class);
-		tinyMappingsProvider.assertInstalled();
-		args.add("-m=" + tinyMappingsProvider.getTinyMappings().toAbsolutePath());
+		Tinifier tinifier = getLoomGradleExtension().getProviderGraph().get(Tinifier.class);
+		args.add("-m=" + tinifier.getTinyMappings().toAbsolutePath());
 
 		//TODO, Decompiler breaks on jemalloc, J9 module-info.class?
 		getLibraries().forEach(f -> args.add("-e=" + f.getAbsolutePath()));

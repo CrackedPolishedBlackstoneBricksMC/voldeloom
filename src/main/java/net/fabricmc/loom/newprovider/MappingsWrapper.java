@@ -1,14 +1,13 @@
-package net.fabricmc.loom.providers;
+package net.fabricmc.loom.newprovider;
 
 import net.fabricmc.loom.Constants;
-import net.fabricmc.loom.DependencyProvider;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.util.mcp.Members;
 import net.fabricmc.loom.util.mcp.Packages;
 import net.fabricmc.loom.util.mcp.Srg;
 import org.gradle.api.Project;
+import org.gradle.api.artifacts.Configuration;
 
-import javax.inject.Inject;
 import java.net.URI;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
@@ -16,51 +15,19 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collections;
 
-/**
- * Parses mappings in-memory.
- *
- * Supported formats are currently:
- * <ul>
- *   <li>MCP 1.4.7 zips, which do not include package information</li>
- *   <li>a zip of the Minecraft Forge source code, which does include package information</li>
- * </ul>
- * 
- * @see TinyMappingsProvider for what writes the actual tinyfiles
- */
-public class RawMappingsProvider extends DependencyProvider {
-	@Inject
-	public RawMappingsProvider(Project project, LoomGradleExtension extension) {
-		super(project, extension);
-	}
-	
-	private Path rawMappingsJar;
-	private String mappingsDepString;
-	private String mappingDiscriminant = "";
-	
-	//TODO: It's Bad!
-	
-	private Srg joined;
-	private Packages packages;
-	private Members fields;
-	private Members methods;
-	
-	private boolean alreadyTinyv2 = false;
-	
-	@Override
-	protected void performSetup() throws Exception {
-		DependencyInfo mappingsDependency = getSingleDependency(Constants.MAPPINGS);
-		rawMappingsJar = mappingsDependency.resolveSinglePath();
+public class MappingsWrapper extends ResolvedConfigElementWrapper {
+	public MappingsWrapper(Project project, LoomGradleExtension extension, Configuration config) throws Exception {
+		super(project, config);
 		
 		//TODO: REMOVE this hack
 		if(extension.forgeCapabilities.useSrgsAsFallback()) mappingDiscriminant += "-srgfallback";
 		
-		//outputs
-		mappingsDepString = mappingsDependency.getDepString() + mappingDiscriminant;
+		mappingsDepString = getDepString() + mappingDiscriminant;
 		
 		project.getLogger().lifecycle("] mappings dep: {}", mappingsDepString);
-		project.getLogger().lifecycle("] mappings source: {}", rawMappingsJar);
+		project.getLogger().lifecycle("] mappings source: {}", getPath());
 		
-		try(FileSystem mcpZipFs = FileSystems.newFileSystem(URI.create("jar:" + rawMappingsJar.toUri()), Collections.emptyMap())) {
+		try(FileSystem mcpZipFs = FileSystems.newFileSystem(URI.create("jar:" + getPath().toUri()), Collections.emptyMap())) {
 			//TODO: Remove this crap when i do the good mappings system
 			Path tinyv2FunnyMoments = mcpZipFs.getPath("mappings/mappings.tiny");
 			if(Files.exists(tinyv2FunnyMoments)) {
@@ -121,9 +88,17 @@ public class RawMappingsProvider extends DependencyProvider {
 		}
 	}
 	
-	public Path getRawMappingsJar() {
-		return rawMappingsJar;
-	}
+	//TODO: It's Bad!
+	
+	private final String mappingsDepString;
+	private String mappingDiscriminant = "";
+	
+	private Srg joined;
+	private Packages packages;
+	private Members fields;
+	private Members methods;
+	
+	private boolean alreadyTinyv2 = false;
 	
 	public String getMappingsDepString() {
 		return mappingsDepString;
