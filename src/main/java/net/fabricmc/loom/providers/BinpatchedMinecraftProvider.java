@@ -22,19 +22,17 @@ import java.util.Map;
 
 public class BinpatchedMinecraftProvider extends DependencyProvider {
 	@Inject
-	public BinpatchedMinecraftProvider(Project project, LoomGradleExtension extension, MinecraftProvider mc, ForgeProvider forge, RawMappingsProvider rawMappings) {
+	public BinpatchedMinecraftProvider(Project project, LoomGradleExtension extension, MinecraftProvider mc, ForgeProvider forge) {
 		super(project, extension);
 		
 		this.mc = mc;
 		this.forge = forge;
-		this.rawMappings = rawMappings;
 		
-		dependsOn(mc, forge, rawMappings);
+		dependsOn(mc, forge);
 	}
 	
 	private final MinecraftProvider mc;
 	private final ForgeProvider forge;
-	private final RawMappingsProvider rawMappings;
 	
 	private Path binpatchedClient;
 	private Path binpatchedServer;
@@ -62,7 +60,6 @@ public class BinpatchedMinecraftProvider extends DependencyProvider {
 					
 					binpatchesExist = true;
 					
-					//parse binpatches
 					BinpatchesPack binpatches = new BinpatchesPack().read(project, binpatchesPath);
 					
 					project.getLogger().lifecycle("|-> Found {} client and {} server binpatches.", binpatches.clientBinpatches.size(), binpatches.serverBinpatches.size());
