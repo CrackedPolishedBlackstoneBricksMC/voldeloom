@@ -32,10 +32,14 @@ public class Binpatch {
 		return this;
 	}
 	
-	// https://www.w3.org/TR/NOTE-gdiff-19970825.html
+	//The gdiff algorithm is described at https://www.w3.org/TR/NOTE-gdiff-19970825.html .
+	//It's merely a note, not a published standard.
 	public byte[] apply(byte[] originalBytes) {
 		ByteArrayInputStream patch = new ByteArrayInputStream(patchBytes);
-		ByteArrayOutputStream out = new ByteArrayOutputStream();
+		//empirically: this estimate for the output size fits most 1.6.4 binpatches, and the ones that don't fit only grow the array once
+		//here's a plot of "(size after patch/size before patch)" on forge 1.6: https://i.imgur.com/f41kemy.png
+		//the smallest is client GuiControls (0.7x) and the largest is server WorldProvider (4.1x)
+		ByteArrayOutputStream out = new ByteArrayOutputStream((int) (originalBytes.length * 2.2));
 		
 		int magic = readMagic(patch);
 		if(magic != 0xD1FFD1FF) throw new RuntimeException("Invalid magic: " + Integer.toHexString(magic) + ", expected 0xD1FFD1FF");
@@ -43,56 +47,42 @@ public class Binpatch {
 		int version = readUbyte(patch);
 		if(version != 4) throw new RuntimeException("Invalid version: " + version + ", expected version 4");
 		
-		int instruction;
-		while(true) {
-			instruction = patch.read();
+		done: while(true) {
+			int instruction = readUbyte(patch);
 			if(instruction == -1) throw new RuntimeException("Unexpected end-of-patch");
 			if(instruction > 255) throw new RuntimeException("Not a byte: " + instruction);
 			
-			//instruction 0: end-of-file
-			if(instruction == 0) break;
-			
-			//instructions 1 through 246: copy that many bytes from the patch to the output
-			if(instruction <= 246) {
-				byte[] buffer = exactlyNBytes(patch, instruction);
-				out.write(buffer, 0, buffer.length);
-				continue;
-			}
-			
-			//instruction 247 and 248: read a big-endian number, then copy that many bytes from the patch to the output
-			//247 reads a ushort and 248 reads an int
-			if(instruction == 247 || instruction == 248) {
-				int length = instruction == 247 ? readUshort(patch) : readInt(patch);
-				byte[] buffer = exactlyNBytes(patch, length);
-				out.write(buffer, 0, length);
-				continue;
-			}
-			
-			//instructions 249 through 255: copy some bytes from the original file to the output
-			//first parameter: absolute position in the source to copy from, second parameter: source length
-			//the data types vary per instruction
-			int copySource, copyLength;
 			switch(instruction) {
-				case 249: copySource = readUshort(patch); copyLength = readUbyte(patch);  break;
-				case 250: copySource = readUshort(patch); copyLength = readUshort(patch); break;
-				case 251: copySource = readUshort(patch); copyLength = readInt(patch);    break;
-				case 252: copySource = readInt(patch);    copyLength = readUbyte(patch);  break;
-				case 253: copySource = readInt(patch);    copyLength = readUshort(patch); break;
-				case 254: copySource = readInt(patch);    copyLength = readInt(patch);    break;
-				case 255:
-					//java arrays are not indexable by longs anyway
-					long copySourceLong = readLong(patch);
-					if(copySourceLong < 0 || copySourceLong > Integer.MAX_VALUE) throw new RuntimeException("Too big!");
-					copySource = (int) copySourceLong;      copyLength = readInt(patch);    break;
-				default:
-					//intellij knows that this table handles all cases, but javac doesn't!
-					throw new RuntimeException("Unreachable");
+				//Instruction 0: end.
+				case 0: break done;
+				
+				//Instructions 1..=246: copy [instruction] many bytes from patch to output.
+				//Instructions 247/248: read (ushort/uint), copy that many bytes from patch to output.
+				default:  copyFromPatch(patch, instruction,       out); break; //<- forge patches use this
+				case 247: copyFromPatch(patch, readUshort(patch), out); break; //<- forge patches use this
+				case 248: copyFromPatch(patch, readInt(patch),    out); break;
+				
+				//Instructions 249..=255: copy a segment of the original file into the output.
+				//first read "absolute byte offset in original file", then read "length to copy".
+				//Data types vary per-instruction to accomodate different sizes of number.
+				case 249: out.write(originalBytes, readUshort(patch),    readUbyte(patch));  break; //<- forge patches use this
+				case 250: out.write(originalBytes, readUshort(patch),    readUshort(patch)); break;
+				case 251: out.write(originalBytes, readUshort(patch),    readInt(patch));    break;
+				case 252: out.write(originalBytes, readInt(patch),       readUbyte(patch));  break;
+				case 253: out.write(originalBytes, readInt(patch),       readUshort(patch)); break;
+				case 254: out.write(originalBytes, readInt(patch),       readInt(patch));    break;
+				case 255: out.write(originalBytes, readTruncLong(patch), readInt(patch));    break;
 			}
-			
-			out.write(originalBytes, copySource, copyLength);
 		}
 		
 		return out.toByteArray();
+	}
+	
+	private void copyFromPatch(ByteArrayInputStream patch, int howMany, ByteArrayOutputStream out) {
+		byte[] buffer = new byte[howMany];
+		int actuallyRead = patch.read(buffer, 0, buffer.length);
+		if(actuallyRead != buffer.length) throw new RuntimeException("I thought ByteArrayInputStream.read() always filled the buffer");
+		out.write(buffer, 0, buffer.length);
 	}
 	
 	private int readUbyte(ByteArrayInputStream in) {
@@ -116,8 +106,11 @@ public class Binpatch {
 		return result;
 	}
 	
-	private long readLong(ByteArrayInputStream in) {
-		return readBigEndian(in, 8, "long");
+	//We assume the input file fits in a Java array (<2gb), so if we get a `long` we can't use it to index anyway.
+	private int readTruncLong(ByteArrayInputStream in) {
+		long result = readBigEndian(in, 8, "long");
+		if(result < 0 || result > Integer.MAX_VALUE) throw new RuntimeException("long that can't be truncated to an int");
+		return (int) result;
 	}
 	
 	private long readBigEndian(ByteArrayInputStream in, int bytes, String type) {
@@ -131,12 +124,5 @@ public class Binpatch {
 			result |= read;
 		}
 		return result;
-	}
-	
-	private byte[] exactlyNBytes(ByteArrayInputStream in, int bytes) {
-		byte[] buffer = new byte[bytes];
-		int actuallyRead = in.read(buffer, 0, buffer.length);
-		if(actuallyRead != buffer.length) throw new RuntimeException("I thought ByteArrayInputStream always read exactly the right number of bytes");
-		return buffer;
 	}
 }
