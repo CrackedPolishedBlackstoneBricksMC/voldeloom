@@ -25,13 +25,8 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Collections;
 
 /**
- * Merges the Minecraft client jar and server jar into a sinlge -merged jar. When a member is available in only one jar,
- * a {@code @SideOnly} annotation is attached to the corresponding member in the merged jar.
- * <p>
- * The merging tool used is FabricMC's JarMerger. This always leaves Fabric's {@code @Environment} annotations on the single-sided artifacts.
- * It's hardcoded, so a postprocessing step is used to change those into Forge's {@code @SideOnly} annotations.
- * <p>
- * The merged (and postprocessed) jar is available with {@code getMergedJar()}.
+ * Merges two jars, such as a Minecraft client jar and server jar.
+ * When a member is available in only one source jar, a {@code @SideOnly} annotation is attached to the corresponding member in the merged jar.
  */
 public class Merger extends NewProvider<Merger> {
 	public Merger(Project project, LoomGradleExtension extension) {
@@ -68,26 +63,23 @@ public class Merger extends NewProvider<Merger> {
 	//procedure
 	public Merger merge() throws Exception {
 		merged = getCacheDir().resolve("minecraft-" + mc.getVersion() + "-merged.jar");
-		Path mergedUnfixed = getCacheDir().resolve("minecraft-" + mc.getVersion() + "-merged-unfixed.jar");
+		cleanOnRefreshDependencies(merged);
 		
-		project.getLogger().lifecycle("] merged-unfixed jar: {}", mergedUnfixed);
-		project.getLogger().lifecycle("] merged-fixed jar: {}", merged);
+		log.info("] merge client: {}", clientJar);
+		log.info("] merge server: {}", serverJar);
+		log.info("] merge target: {}", merged);
 		
-		cleanOnRefreshDependencies(merged, mergedUnfixed);
-		
-		if(Files.notExists(mergedUnfixed)) {
-			project.getLogger().lifecycle("|-> merged-unfixed does not exist, performing merge...");
+		if(Files.notExists(merged)) {
+			Path mergedUnfixed = Files.createTempFile(merged.getFileName().toString() + "-unfixed", ".jar.tmp");
+			
+			log.lifecycle("|-> Target does not exist. Merging with FabricMC JarMerger to {}", mergedUnfixed);
 			
 			try(JarMerger jm = new JarMerger(clientJar.toFile(), serverJar.toFile(), mergedUnfixed.toFile())) {
 				jm.enableSyntheticParamsOffset();
 				jm.merge();
 			}
 			
-			project.getLogger().lifecycle("|-> Merge success! :)");
-		}
-		
-		if(Files.notExists(merged)) {
-			project.getLogger().lifecycle("|-> merged-fixed does not exist, performing annotation remap...");
+			log.lifecycle("|-> Remapping annotations...");
 			
 			try(FileSystem unfixedFs = FileSystems.newFileSystem(URI.create("jar:" + mergedUnfixed.toUri()), Collections.emptyMap());
 			    FileSystem fixedFs = FileSystems.newFileSystem(URI.create("jar:" + merged.toUri()), Collections.singletonMap("create", "true"))) {
@@ -118,7 +110,7 @@ public class Merger extends NewProvider<Merger> {
 				});
 			}
 			
-			project.getLogger().lifecycle("|-> Annotation remap success! :)");
+			log.lifecycle("|-> Annotation remap success.");
 		}
 		
 		return this;

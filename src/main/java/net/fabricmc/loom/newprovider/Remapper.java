@@ -22,14 +22,14 @@
  * SOFTWARE.
  */
 
-package net.fabricmc.loom.providers;
+package net.fabricmc.loom.newprovider;
 
 import net.fabricmc.loom.Constants;
-import net.fabricmc.loom.DependencyProvider;
 import net.fabricmc.loom.LoomGradleExtension;
-import net.fabricmc.loom.newprovider.Tinifier;
 import net.fabricmc.loom.util.TinyRemapperSession;
+import net.fabricmc.mapping.tree.TinyTree;
 import org.gradle.api.Project;
+import org.gradle.api.artifacts.dsl.DependencyHandler;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -41,29 +41,57 @@ import java.util.function.Predicate;
  * 
  * The named jar is available with {@code getMappedJar()}, and the intermediary (srg) jar is also available.
  */
-public class MappedProvider extends DependencyProvider {
-	public MappedProvider(Project project, LoomGradleExtension extension, String patchedVersionTag, Path transformedJar, Tinifier mappings, Collection<Path> nonNativeLibs) {
+public class Remapper extends NewProvider<Remapper> {
+	public Remapper(Project project, LoomGradleExtension extension) {
 		super(project, extension);
-		this.patchedVersionTag = patchedVersionTag;
-		this.transformedJar = transformedJar;
-		this.mappings = mappings;
-		
-		this.nonNativeLibs = nonNativeLibs;
 	}
 	
-	private final String patchedVersionTag;
-	private final Path transformedJar;
-	private final Tinifier mappings;
+	private String mappingsDepString;
+	private String patchedVersionTag;
+	private TinyTree mappings;
+	private Path transformedJar;
+	private Collection<Path> nonNativeLibs;
 	
-	private final Collection<Path> nonNativeLibs;
+	public Remapper mappingsDepString(String mappingsDepString) {
+		this.mappingsDepString = mappingsDepString;
+		return this;
+	}
 	
-	//jars (to be created by performInstall)
+	public Remapper patchedVersionTag(String patchedVersionTag) {
+		this.patchedVersionTag = patchedVersionTag;
+		return this;
+	}
+	
+	public Remapper mappings(TinyTree mappings) {
+		this.mappings = mappings;
+		return this;
+	}
+	
+	public Remapper transformedJar(Path transformedJar) {
+		this.transformedJar = transformedJar;
+		return this;
+	}
+	
+	public Remapper nonNativeLibs(Collection<Path> nonNativeLibs) {
+		this.nonNativeLibs = nonNativeLibs;
+		return this;
+	}
+	
+	//outputs
 	private Path mappedJar;
 	private Path intermediaryJar;
 	
-	@Override
-	protected void performSetup() throws Exception {
-		String mappingsName = extension.mappings.getMappingsDepString().replaceAll("[^A-Za-z0-9.-]", "_");
+	public Path getMappedJar() {
+		return mappedJar;
+	}
+	
+	public Path getIntermediaryJar() {
+		return intermediaryJar;
+	}
+	
+	//procedure
+	public Remapper remap() throws Exception {
+		String mappingsName = mappingsDepString.replaceAll("[^A-Za-z0-9.-]", "_");
 		Path mappedDestDir = getCacheDir().resolve("mapped").resolve(mappingsName);
 		
 		//TODO improve how the filename is handled (why do i need to put minecraft- again)
@@ -71,15 +99,10 @@ public class MappedProvider extends DependencyProvider {
 		intermediaryJar = mappedDestDir.resolve(String.format("minecraft-%s-%s.jar", patchedVersionTag, Constants.INTERMEDIATE_NAMING_SCHEME));
 		mappedJar = mappedDestDir.resolve(String.format("minecraft-%s-%s.jar", patchedVersionTag, Constants.MAPPED_NAMING_SCHEME));
 		
-		project.getLogger().lifecycle("] intermediary jar: {}", intermediaryJar);
-		project.getLogger().lifecycle("] mapped jar: {}", mappedJar);
-		
 		cleanOnRefreshDependencies(intermediaryJar, mappedJar);
-	}
-	
-	public void performInstall() throws Exception {
+		
 		if (Files.notExists(intermediaryJar) || Files.notExists(mappedJar)) {
-			project.getLogger().lifecycle("|-> At least one mapped jar didn't exist, performing remap...");
+			log.lifecycle("|-> At least one mapped jar didn't exist, performing remap...");
 			
 			//ensure both are actually gone
 			Files.deleteIfExists(mappedJar);
@@ -88,34 +111,32 @@ public class MappedProvider extends DependencyProvider {
 			//These are minecraft libraries that conflict with the ones forge wants
 			//They're obfuscated and mcp maps them back to reality. The forge Ant script had a task to delete them lol.
 			//https://github.com/MinecraftForge/FML/blob/8e7956397dd80902f7ca69c466e833047dfa5010/build.xml#L295-L298
+			//TODO configurable per version or something maybe this is why 1.3 is broken
 			Predicate<String> classFilter = s -> !s.startsWith("argo") && !s.startsWith("org");
 			
 			Files.createDirectories(mappedJar.getParent());
 			Files.createDirectories(intermediaryJar.getParent());
 			
 			new TinyRemapperSession()
-				.setMappings(mappings.getMappings())
+				.setMappings(mappings)
 				.setInputJar(transformedJar)
 				.setInputNamingScheme(Constants.PROGUARDED_NAMING_SCHEME)
 				.setInputClasspath(nonNativeLibs)
 				.addOutputJar(Constants.INTERMEDIATE_NAMING_SCHEME, this.intermediaryJar)
 				.addOutputJar(Constants.MAPPED_NAMING_SCHEME, this.mappedJar)
 				.setClassFilter(classFilter)
-				.setLogger(project.getLogger()::lifecycle)
+				.setLogger(log::lifecycle)
 				.run();
 			
-			project.getLogger().lifecycle("\\-> Remap success! :)");
+			log.lifecycle("\\-> Remap success! :)");
 		}
 		
-		project.getLogger().info("|-> Adding file at {} to the '{}' configuration", mappedJar, Constants.MINECRAFT_NAMED);
-		project.getDependencies().add(Constants.MINECRAFT_NAMED, project.files(mappedJar));
+		return this;
 	}
 	
-	public Path getMappedJar() {
-		return mappedJar;
-	}
-	
-	public Path getIntermediaryJar() {
-		return intermediaryJar;
+	public Remapper installDependenciesToProject(String config, DependencyHandler deps) {
+		deps.add(config, files(mappedJar));
+		
+		return this;
 	}
 }

@@ -22,13 +22,11 @@
  * SOFTWARE.
  */
 
-package net.fabricmc.loom.providers;
+package net.fabricmc.loom.newprovider;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
-import net.fabricmc.loom.DependencyProvider;
 import net.fabricmc.loom.LoomGradleExtension;
-import net.fabricmc.loom.util.DownloadSession;
 import net.fabricmc.loom.util.MinecraftVersionInfo;
 import org.gradle.api.Project;
 
@@ -42,36 +40,56 @@ import java.nio.file.Path;
  * <p>
  * This class resolves assets using the "legacy" file layout only (real filenames, not hashes with the `objects` folder).
  */
-public class AssetsProvider extends DependencyProvider {
-	public AssetsProvider(Project project, LoomGradleExtension extension, MinecraftVersionInfo versionManifest) {
+public class AssetDownloader extends NewProvider<AssetDownloader> {
+	public AssetDownloader(Project project, LoomGradleExtension extension) {
 		super(project, extension);
-		this.versionManifest = versionManifest;
 	}
 	
-	private final MinecraftVersionInfo versionManifest;
+	private ConfigElementWrapper mc;
+	private MinecraftVersionInfo versionManifest;
+	private String resourcesBaseUrl;
 	
-	private Path assetsCache;
-	private Path assetIndexFile;
-	private Path thisVersionAssetsDir;
+	public AssetDownloader mc(ConfigElementWrapper mc) {
+		this.mc = mc;
+		return this;
+	}
 	
-	@Override
-	protected void performSetup() throws Exception {
+	public AssetDownloader versionManifest(MinecraftVersionInfo versionManifest) {
+		this.versionManifest = versionManifest;
+		return this;
+	}
+	
+	public AssetDownloader resourcesBaseUrl(String resourcesBaseUrl) {
+		this.resourcesBaseUrl = resourcesBaseUrl;
+		return this;
+	}
+	
+	private Path thisVersionAssetsDir, assetIndexFile, assetsCache;
+	
+	public Path getAssetsDir() {
+		return thisVersionAssetsDir;
+	}
+	
+	public AssetDownloader computePaths() throws Exception {
 		assetsCache = getCacheDir().resolve("assets");
-		assetIndexFile = assetsCache.resolve("indexes").resolve(versionManifest.assetIndex.getFabricId(extension.mc.getVersion()) + ".json");
-		thisVersionAssetsDir = assetsCache.resolve("legacy").resolve(extension.mc.getVersion());
+		
+		assetIndexFile = assetsCache.resolve("indexes").resolve(versionManifest.assetIndex.getFabricId(mc.getVersion()) + ".json");
+		thisVersionAssetsDir = assetsCache.resolve("legacy").resolve(mc.getVersion());
 		//Btw, using this `legacy` folder just to get out of regular Loom's way.
 		
-		project.getLogger().lifecycle("] asset index: {}", assetIndexFile);
+		log.info("] asset index: {}", assetIndexFile);
 		
 		//Let's not delete the assets themselves on refreshDependencies.
 		//They're rarely the problem, and take a long time to download.
 		cleanOnRefreshDependencies(assetIndexFile/*, thisVersionAssetsDir*/);
+		
+		return this;
 	}
 	
-	public void performInstall() throws Exception {
+	public AssetDownloader downloadAssets() throws Exception {
 		Files.createDirectories(assetsCache);
 		
-		new DownloadSession(versionManifest.assetIndex.url, project)
+		newDownloadSession(versionManifest.assetIndex.url)
 			.dest(assetIndexFile)
 			.etag(true)
 			.gzip(true)
@@ -80,8 +98,7 @@ public class AssetsProvider extends DependencyProvider {
 			.download();
 		
 		if(Files.notExists(thisVersionAssetsDir)) {
-			project.getLogger().lifecycle(":downloading assets...");
-			
+			log.lifecycle("|-> Downloading assets...");
 			JsonObject assetJson;
 			try(BufferedReader in = Files.newBufferedReader(assetIndexFile)) {
 				assetJson = new Gson().fromJson(in, JsonObject.class);
@@ -90,7 +107,7 @@ public class AssetsProvider extends DependencyProvider {
 			
 			//just logging for fun
 			int assetCount = objectsJson.size();
-			project.getLogger().lifecycle("|-> Found " + assetCount + " assets to download.");
+			log.lifecycle("|-> Found {} assets to download.", assetCount);
 			int downloadedCount = 0, nextLogAssetCount = 0, logCount = 0;
 			
 			for(String filename : objectsJson.keySet()) {
@@ -100,7 +117,7 @@ public class AssetsProvider extends DependencyProvider {
 					
 					String sha1 = objectsJson.get(filename).getAsJsonObject().get("hash").getAsString();
 					String shsha1 = sha1.substring(0, 2) + '/' + sha1;
-					new DownloadSession(extension.resourcesBaseUrl + shsha1, project)
+					newDownloadSession(resourcesBaseUrl + shsha1)
 						.quiet()
 						.dest(destFile)
 						.gzip(true)
@@ -111,21 +128,15 @@ public class AssetsProvider extends DependencyProvider {
 					//just logging for fun
 					downloadedCount++;
 					if(downloadedCount >= nextLogAssetCount) {
-						project.getLogger().lifecycle("|-> " + logCount * 10 + "%...");
+						log.lifecycle("\\-> " + logCount * 10 + "%...");
 						logCount++;
 						nextLogAssetCount = logCount * assetCount / 10;
 					}
 				}
 			}
-			project.getLogger().lifecycle("|-> Done!");
+			log.info("|-> Done!");
 		}
-	}
-	
-	public Path getAssetIndexFile() {
-		return assetIndexFile;
-	}
-	
-	public Path getAssetsDir() {
-		return thisVersionAssetsDir;
+		
+		return this;
 	}
 }

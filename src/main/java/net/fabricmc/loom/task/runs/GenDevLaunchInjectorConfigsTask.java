@@ -42,7 +42,7 @@ public class GenDevLaunchInjectorConfigsTask extends DefaultTask implements Loom
 	
 	@TaskAction
 	public void doIt() throws IOException {
-		ConfigElementWrapper mc = getLoomGradleExtension().mc;
+		ConfigElementWrapper mc = getLoomGradleExtension().getProviderGraph().mc;
 		VanillaJarFetcher vanillaJars = getLoomGradleExtension().getProviderGraph().get(VanillaJarFetcher.class);
 		VanillaDependencyFetcher libs = getLoomGradleExtension().getProviderGraph().get(VanillaDependencyFetcher.class);
 		

@@ -2,7 +2,7 @@ package net.fabricmc.loom.task;
 
 import net.fabricmc.loom.Constants;
 import net.fabricmc.loom.LoomGradleExtension;
-import net.fabricmc.loom.providers.AssetsProvider;
+import net.fabricmc.loom.newprovider.AssetDownloader;
 import net.fabricmc.loom.util.LoomTaskExt;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.tasks.OutputDirectories;
@@ -41,8 +41,8 @@ public class ShimResourcesTask extends DefaultTask implements LoomTaskExt {
 	public void doIt() throws Exception {
 		LoomGradleExtension ext = getLoomGradleExtension();
 		
-		AssetsProvider assets = ext.getProviderGraph().getOld(AssetsProvider.class);
-		assets.assertInstalled();
+		AssetDownloader assets = ext.getProviderGraph().get(AssetDownloader.class)
+			.downloadAssets();
 		
 		Path resourceSourceDirectory = assets.getAssetsDir();
 		

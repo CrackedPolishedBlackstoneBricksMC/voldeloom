@@ -27,7 +27,7 @@ package net.fabricmc.loom.util;
 import net.fabricmc.loom.Constants;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.LoomGradlePlugin;
-import net.fabricmc.loom.providers.MappedProvider;
+import net.fabricmc.loom.newprovider.Remapper;
 import net.fabricmc.loom.newprovider.Tinifier;
 import net.fabricmc.mapping.tree.ClassDef;
 import net.fabricmc.mapping.tree.FieldDef;
@@ -58,11 +58,10 @@ public class SourceRemapper {
 
 	private static void remapSourcesInner(Project project, File source, File destination, boolean toNamed) throws Exception {
 		LoomGradleExtension extension = project.getExtensions().getByType(LoomGradleExtension.class);
-		Tinifier tinifier = extension.getProviderGraph().get(Tinifier.class);
-
+		
 		MappingSet mappings = extension.getOrCreateSrcMappingCache(toNamed ? 1 : 0, () -> {
 			try {
-				TinyTree m = tinifier.getMappings();
+				TinyTree m = extension.getProviderGraph().get(Tinifier.class).getTinyTree();
 				
 				//TODO distributionNamespace
 				String sourceNamingScheme = toNamed ? Constants.INTERMEDIATE_NAMING_SCHEME : Constants.MAPPED_NAMING_SCHEME;
@@ -86,10 +85,9 @@ public class SourceRemapper {
 				}
 			}
 			
-			MappedProvider mappedProvider = extension.getProviderGraph().getOld(MappedProvider.class);
-			mappedProvider.assertInstalled();
-			m.getClassPath().add(mappedProvider.getMappedJar());
-			m.getClassPath().add(mappedProvider.getIntermediaryJar());
+			Remapper remapper = extension.getProviderGraph().get(Remapper.class);
+			m.getClassPath().add(remapper.getMappedJar());
+			m.getClassPath().add(remapper.getIntermediaryJar());
 
 			m.getProcessors().add(MercuryRemapper.create(mappings));
 

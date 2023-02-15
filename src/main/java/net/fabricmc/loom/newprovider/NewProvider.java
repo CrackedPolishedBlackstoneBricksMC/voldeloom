@@ -3,7 +3,10 @@ package net.fabricmc.loom.newprovider;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.LoomGradlePlugin;
 import net.fabricmc.loom.WellKnownLocations;
+import net.fabricmc.loom.util.DownloadSession;
 import org.gradle.api.Project;
+import org.gradle.api.artifacts.Configuration;
+import org.gradle.api.file.FileCollection;
 import org.gradle.api.logging.Logger;
 
 import java.nio.file.Path;
@@ -19,7 +22,7 @@ public abstract class NewProvider<SELF extends NewProvider<SELF>> {
 		this.log = project.getLogger();
 	}
 	
-	protected final Project project; //TODO: make it private maybe
+	protected final Project project;
 	private final LoomGradleExtension extension;
 	
 	protected final Logger log;
@@ -31,8 +34,12 @@ public abstract class NewProvider<SELF extends NewProvider<SELF>> {
 		return self();
 	}
 	
+	/**
+	 * Some support for the curiously recurring template pattern
+	 * @return you!
+	 */
 	@SuppressWarnings("unchecked")
-	protected SELF self() {
+	protected final SELF self() {
 		return (SELF) this;
 	}
 	
@@ -41,31 +48,47 @@ public abstract class NewProvider<SELF extends NewProvider<SELF>> {
 		else return WellKnownLocations.getUserCache(project);
 	}
 	
-	
 	/**
 	 * Delete these paths if the refresh-dependency mode is enabled.
-	 * @param paths varargs list of paths
+	 * @param paths varargs list of paths to delete
 	 */
-	public final void cleanOnRefreshDependencies(Path... paths) {
+	protected final void cleanOnRefreshDependencies(Path... paths) {
 		cleanOnRefreshDependencies(Arrays.asList(paths));
 	}
 	
 	/**
 	 * Delete these paths if the refresh-dependency mode is enabled.
-	 * @param paths collection of paths
+	 * @param paths collection of paths to delete
 	 */
-	public final void cleanOnRefreshDependencies(Collection<Path> paths) {
+	protected final void cleanOnRefreshDependencies(Collection<Path> paths) {
 		if(extension.refreshDependencies) {
-			project.getLogger().lifecycle("|-> Deleting outputs of " + getClass().getSimpleName() + " because of refreshDependencies mode");
+			log.lifecycle("!! Deleting outputs of " + getClass().getSimpleName() + " because of refreshDependencies mode");
 			LoomGradlePlugin.delete(project, paths);
 		}
 	}
 	
-	protected Collection<Path> andEtags(Collection<Path> in) {
+	protected final Collection<Path> andEtags(Collection<Path> in) {
 		ArrayList<Path> out = new ArrayList<>(in);
 		for(Path i : in) {
 			out.add(i.resolveSibling(i.getFileName().toString() + ".etag"));
 		}
 		return out;
+	}
+	
+	//Trying to keep the provider stuff pretty separate from most Gradle wizardry, but I do need to poke a few holes:
+	protected final Configuration getConfigurationByName(String name) {
+		return project.getConfigurations().getByName(name);
+	}
+	
+	protected final DownloadSession newDownloadSession(String url) {
+		return new DownloadSession(url, project);
+	}
+	
+	protected final Path getRemappedModCache() {
+		return WellKnownLocations.getRemappedModCache(project);
+	}
+	
+	protected final FileCollection files(Object... paths) {
+		return project.files(paths);
 	}
 }

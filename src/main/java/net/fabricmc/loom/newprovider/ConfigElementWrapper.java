@@ -5,6 +5,13 @@ import org.gradle.api.artifacts.Configuration;
 import org.gradle.api.artifacts.Dependency;
 import org.gradle.api.artifacts.DependencySet;
 
+/**
+ * This is a convenience for dealing with Gradle dependency configurations that are supposed to contain only one file.
+ * 
+ * @see ResolvedConfigElementWrapper for one that also ensures the dependency resolves to something
+ *                                   "why have this at all, if it doesn't resolve the dependency?", i hear you ask
+ *                                   well it's because the {@code minecraft} dependency doesn't actually resolve ;)
+ */
 public class ConfigElementWrapper {
 	public ConfigElementWrapper(Project project, Configuration config) {
 		DependencySet set = config.getDependencies();

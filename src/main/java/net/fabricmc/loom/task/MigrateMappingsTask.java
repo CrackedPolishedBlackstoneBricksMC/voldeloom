@@ -29,7 +29,7 @@ import com.google.common.collect.Iterables;
 import net.fabricmc.loom.Constants;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.newprovider.Tinifier;
-import net.fabricmc.loom.providers.MappedProvider;
+import net.fabricmc.loom.newprovider.Remapper;
 import net.fabricmc.loom.util.LoomTaskExt;
 import net.fabricmc.loom.util.SourceRemapper;
 import net.fabricmc.lorenztiny.LorenzTiny;
@@ -102,14 +102,11 @@ public class MigrateMappingsTask extends DefaultTask implements LoomTaskExt {
 		Files.createDirectories(outputDir);
 
 		File mappings = loadMappings();
-		Tinifier tinifier = extension.getProviderGraph().get(Tinifier.class);
-
+		
 		try {
-			TinyTree currentMappings = tinifier.getMappings();
+			TinyTree currentMappings = extension.getProviderGraph().get(Tinifier.class).getTinyTree();
 			TinyTree targetMappings = getMappings(mappings);
-			MappedProvider mappedProvider = extension.getProviderGraph().getOld(MappedProvider.class);
-			mappedProvider.assertInstalled();
-			migrateMappings(project, mappedProvider, inputDir, outputDir, currentMappings, targetMappings);
+			migrateMappings(project, extension.getProviderGraph().get(Remapper.class), inputDir, outputDir, currentMappings, targetMappings);
 			project.getLogger().lifecycle(":remapped project written to " + outputDir.toAbsolutePath());
 		} catch (IOException e) {
 			throw new IllegalArgumentException("Error while loading mappings", e);
@@ -158,7 +155,7 @@ public class MigrateMappingsTask extends DefaultTask implements LoomTaskExt {
 		}
 	}
 
-	private static void migrateMappings(Project project, MappedProvider mappedProvider,
+	private static void migrateMappings(Project project, Remapper remapper,
 										Path inputDir, Path outputDir, TinyTree currentMappings, TinyTree targetMappings
 	) throws IOException {
 		project.getLogger().lifecycle(":joining mappings");
@@ -168,8 +165,8 @@ public class MigrateMappingsTask extends DefaultTask implements LoomTaskExt {
 		project.getLogger().lifecycle(":remapping");
 		Mercury mercury = SourceRemapper.createMercuryWithClassPath(project, false);
 
-		mercury.getClassPath().add(mappedProvider.getMappedJar());
-		mercury.getClassPath().add(mappedProvider.getIntermediaryJar());
+		mercury.getClassPath().add(remapper.getMappedJar());
+		mercury.getClassPath().add(remapper.getIntermediaryJar());
 
 		mercury.getProcessors().add(MercuryRemapper.create(mappingSet));
 

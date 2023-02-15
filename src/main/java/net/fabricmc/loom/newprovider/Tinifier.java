@@ -66,28 +66,28 @@ public class Tinifier extends NewProvider<Tinifier> {
 	}
 	
 	//outputs
-	private Path tinyMappings;
+	private Path mappingsFile;
 	private TinyTree parsedMappings;
 	
 	//procedure
 	public Tinifier tinify() throws Exception {
-		tinyMappings = getCacheDir().resolve("mappings").resolve(mappings.getPath().getFileName() + mappings.getMappingDiscriminant() + ".tiny");
-		project.getLogger().lifecycle("] mappings destination: {}", tinyMappings);
+		mappingsFile = getCacheDir().resolve("mappings").resolve(mappings.getPath().getFileName() + mappings.getMappingDiscriminant() + ".tiny");
+		log.info("] mappings destination: {}", mappingsFile);
 		
-		cleanOnRefreshDependencies(tinyMappings);
+		cleanOnRefreshDependencies(mappingsFile);
 		
-		Files.createDirectories(tinyMappings.getParent());
-		if(Files.notExists(tinyMappings)) {
-			project.getLogger().lifecycle("|-> Mappings file does not exist, writing...");
+		Files.createDirectories(mappingsFile.getParent());
+		if(Files.notExists(mappingsFile)) {
+			log.info("|-> Mappings file does not exist, writing...");
 			
 			if(mappings.isAlreadyTinyv2()) {
 				//TODO: its the TINY PASSTHROUGH HACK !!
-				Files.copy(mappings.getPath(), tinyMappings);
+				Files.copy(mappings.getPath(), mappingsFile);
 			} else {
-				project.getLogger().lifecycle("|-> Scanning unmapped jar for field types/inner classes...");
+				log.info("|-> Scanning unmapped jar for field types/inner classes...");
 				JarScanData scanData = new JarScanData().scan(jarToScan);
 				
-				project.getLogger().lifecycle("|-> Computing tinyv2 mappings...");
+				log.info("|-> Computing tinyv2 mappings...");
 				List<String> tinyv2 = new McpTinyv2Writer()
 					.srg(mappings.getJoined())
 					.fields(mappings.getFields())
@@ -97,22 +97,22 @@ public class Tinifier extends NewProvider<Tinifier> {
 					.jarScanData(scanData)
 					.write();
 				
-				Files.write(tinyMappings, tinyv2, StandardCharsets.UTF_8);
+				Files.write(mappingsFile, tinyv2, StandardCharsets.UTF_8);
 			}
 		}
 		
-		try(BufferedReader buf = Files.newBufferedReader(tinyMappings)) {
+		try(BufferedReader buf = Files.newBufferedReader(mappingsFile)) {
 			parsedMappings = TinyMappingFactory.loadWithDetection(buf);
 		}
 		
 		return this;
 	}
 	
-	public TinyTree getMappings() {
+	public TinyTree getTinyTree() {
 		return parsedMappings;
 	}
 	
-	public Path getTinyMappings() {
-		return tinyMappings;
+	public Path getMappingsFile() {
+		return mappingsFile;
 	}
 }

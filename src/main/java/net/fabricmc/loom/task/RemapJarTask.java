@@ -62,8 +62,6 @@ public class RemapJarTask extends Jar {
 		Path input = this.getInput().getAsFile().get().toPath();
 		Path output = this.getArchivePath().toPath();
 		
-		Tinifier tinifier = extension.getProviderGraph().get(Tinifier.class);
-		
 		Set<Path> remapClasspath = project.getConfigurations()
 			.getByName(JavaPlugin.COMPILE_CLASSPATH_CONFIGURATION_NAME)
 			.getFiles()
@@ -73,7 +71,7 @@ public class RemapJarTask extends Jar {
 			.collect(Collectors.toSet());
 		
 		new TinyRemapperSession()
-			.setMappings(tinifier.getMappings())
+			.setMappings(extension.getProviderGraph().get(Tinifier.class).getTinyTree())
 			.setInputJar(input)
 			.setInputNamingScheme(Constants.MAPPED_NAMING_SCHEME)
 			.setInputClasspath(remapClasspath)

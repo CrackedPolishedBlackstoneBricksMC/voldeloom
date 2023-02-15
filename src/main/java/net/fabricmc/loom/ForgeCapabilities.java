@@ -54,7 +54,7 @@ public class ForgeCapabilities {
 		}
 		
 		if("auto".equals(distributionNamingScheme)) {
-			distributionNamingScheme = guessMinecraftMinorVersion(extension.mc.getVersion()) >= 5 ? Constants.INTERMEDIATE_NAMING_SCHEME : Constants.PROGUARDED_NAMING_SCHEME;
+			distributionNamingScheme = guessMinecraftMinorVersion(extension.getProviderGraph().mc.getVersion()) >= 5 ? Constants.INTERMEDIATE_NAMING_SCHEME : Constants.PROGUARDED_NAMING_SCHEME;
 			project.getLogger().info("|-> [ForgeCapabilities guess] I think this Forge version expects mods to be distributed in the '{}' namespace?", distributionNamingScheme);
 		}
 		
@@ -68,7 +68,7 @@ public class ForgeCapabilities {
 		
 		if(srgsAsFallback instanceof String) {
 			if("auto".equals(srgsAsFallback)) {
-				srgsAsFallback = guessMinecraftMinorVersion(extension.mc.getVersion()) >= 5;
+				srgsAsFallback = guessMinecraftMinorVersion(extension.getProviderGraph().mc.getVersion()) >= 5;
 				
 				if((Boolean) srgsAsFallback) {
 					project.getLogger().info("|-> [ForgeCapabilities guess] I think this Forge version uses SRGs as the fallback when no mapping is defined?");

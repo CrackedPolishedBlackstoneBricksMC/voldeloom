@@ -7,6 +7,7 @@ import net.fabricmc.loom.util.mcp.Packages;
 import net.fabricmc.loom.util.mcp.Srg;
 import org.gradle.api.Project;
 import org.gradle.api.artifacts.Configuration;
+import org.gradle.api.logging.Logger;
 
 import java.net.URI;
 import java.nio.file.FileSystem;
@@ -15,24 +16,29 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collections;
 
+/**
+ * Loads and parses MCP mappings.
+ * <p>
+ * TODO: more than just MCP!
+ */
 public class MappingsWrapper extends ResolvedConfigElementWrapper {
 	public MappingsWrapper(Project project, LoomGradleExtension extension, Configuration config) throws Exception {
 		super(project, config);
+		Logger log = project.getLogger();
 		
 		//TODO: REMOVE this hack
 		if(extension.forgeCapabilities.useSrgsAsFallback()) mappingDiscriminant += "-srgfallback";
 		
 		mappingsDepString = getDepString() + mappingDiscriminant;
-		
-		project.getLogger().lifecycle("] mappings dep: {}", mappingsDepString);
-		project.getLogger().lifecycle("] mappings source: {}", getPath());
+		log.info("] mappings dep: {}", mappingsDepString);
+		log.info("] mappings source: {}", getPath());
 		
 		try(FileSystem mcpZipFs = FileSystems.newFileSystem(URI.create("jar:" + getPath().toUri()), Collections.emptyMap())) {
 			//TODO: Remove this crap when i do the good mappings system
 			Path tinyv2FunnyMoments = mcpZipFs.getPath("mappings/mappings.tiny");
 			if(Files.exists(tinyv2FunnyMoments)) {
 				//WOW its already in tinyv2 format how neat!!!
-				project.getLogger().warn("MAPPINGS ALREADY TINYv2 I THINK!!!!! Fyi it should probably contain {} {} {} headers", Constants.PROGUARDED_NAMING_SCHEME, Constants.INTERMEDIATE_NAMING_SCHEME, Constants.MAPPED_NAMING_SCHEME);
+				log.warn("MAPPINGS ALREADY TINYv2 I THINK!!!!! Fyi it should probably contain {} {} {} headers", Constants.PROGUARDED_NAMING_SCHEME, Constants.INTERMEDIATE_NAMING_SCHEME, Constants.MAPPED_NAMING_SCHEME);
 				alreadyTinyv2 = true;
 			} else {
 				
@@ -46,21 +52,21 @@ public class MappingsWrapper extends ResolvedConfigElementWrapper {
 				} else {
 					conf = mcpZipFs.getPath(""); //manually zipped mappings?
 				}
-				project.getLogger().lifecycle("] Mappings root detected to be '{}'", conf);
+				log.info("] Mappings root detected to be '{}'", conf);
 				
-				project.getLogger().lifecycle("|-> Reading joined.srg...");
+				log.info("|-> Reading joined.srg...");
 				if(Files.exists(conf.resolve("joined.srg"))) {
 					joined = new Srg().read(conf.resolve("joined.srg"));
 				} else {
 					//just assume we're manually merging a client and server srg
 					//TODO: newids?
-					project.getLogger().lifecycle("\\-> No joined.srg exists. Reading client.srg...");
+					log.info("\\-> No joined.srg exists. Reading client.srg...");
 					Srg client = new Srg().read(conf.resolve("client.srg"));
 					
-					project.getLogger().lifecycle("\\-> Reading server.srg...");
+					log.info("\\-> Reading server.srg...");
 					Srg server = new Srg().read(conf.resolve("server.srg"));
 					
-					project.getLogger().lifecycle("\\-> Manually joining srgs...");
+					log.info("\\-> Manually joining srgs...");
 					joined = client.mergeWith(server);
 				}
 				
@@ -69,21 +75,21 @@ public class MappingsWrapper extends ResolvedConfigElementWrapper {
 					joined.unmapClass(deleteThis);
 				}
 				
-				project.getLogger().lifecycle("|-> Reading fields.csv...");
+				log.info("|-> Reading fields.csv...");
 				fields = new Members().read(conf.resolve("fields.csv"));
 				
-				project.getLogger().lifecycle("|-> Reading methods.csv...");
+				log.info("|-> Reading methods.csv...");
 				methods = new Members().read(conf.resolve("methods.csv"));
 				
-				project.getLogger().lifecycle("|-> Reading packages.csv...");
+				log.info("|-> Reading packages.csv...");
 				if(Files.exists(conf.resolve("packages.csv"))) {
 					packages = new Packages().read(conf.resolve("packages.csv"));
 				} else {
-					project.getLogger().lifecycle("\\-> No packages.csv exists.");
+					log.info("\\-> No packages.csv exists.");
 					packages = null;
 				}
 				
-				project.getLogger().lifecycle("|-> Done!");
+				log.info("|-> Done!");
 			}
 		}
 	}

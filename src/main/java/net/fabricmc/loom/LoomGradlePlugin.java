@@ -25,9 +25,9 @@
 package net.fabricmc.loom;
 
 import groovy.util.Node;
+import net.fabricmc.loom.newprovider.ProviderGraph;
+import net.fabricmc.loom.newprovider.Remapper;
 import net.fabricmc.loom.newprovider.VanillaDependencyFetcher;
-import net.fabricmc.loom.providers.MappedProvider;
-import net.fabricmc.loom.providers.RemappedDependenciesProvider;
 import net.fabricmc.loom.task.AbstractDecompileTask;
 import net.fabricmc.loom.task.ConfigurationDebugTask;
 import net.fabricmc.loom.task.MigrateMappingsTask;
@@ -352,33 +352,17 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		if(extension.offline) project.getLogger().warn("!! We're in offline mode - downloads will abort");
 		if(extension.refreshDependencies) project.getLogger().warn("!! We're in refresh-dependencies mode - intermediate products will be recomputed");
 		
-		//This is where the Magic happens.
-		//"Dependency providers" are dynamic; their content depends on the values of the stuff configured in LoomGradleExtension.
-		//We do them in afterEvaluate because the Gradle extension must be configured first, but task execution is too late to mutate the project's dependencies.
-		//I've built a crude task graph system.
-		ProviderGraph providers = extension.getProviderGraph();
-		try {
-			//Make the core voldeloom dependencies available, like the minecraft dependency
-			extension.wrapCoreDependencies();
-			
-			//Uhhhhh do all the other shit
-			providers.setup();
-		} catch (Exception e) {
-			throw new RuntimeException("Exception setting up provider graph: " + e.getMessage(), e);
-		}
-		//Minecraft with all the patches and user-specified remapping applied,
-		providers.getOld(MappedProvider.class).tryReach(DependencyProvider.Stage.INSTALLED);
-		//and remapped versions of user-supplied dependencies. The dependency-provider task-graph stuff will take care of the rest.
-		providers.getOld(RemappedDependenciesProvider.class).tryReach(DependencyProvider.Stage.INSTALLED);
+		//Scaffold the "provider" system. This is a loose term for "the things that have to run now, after the user configured
+		//their settings in LoomGradleExtension, but before we're not allowed to mutate the project dependencies anymore".
+		ProviderGraph providers = extension.getProviderGraph()
+			.trySetup(); //<- where basically ALL the magic happens
 		
 		//Misc wiring-up of genSources-related tasks.
 		AbstractDecompileTask genSourcesDecompileTask = (AbstractDecompileTask) project.getTasks().getByName("genSourcesDecompile");
 		RemapLineNumbersTask genSourcesRemapLineNumbersTask = (RemapLineNumbersTask) project.getTasks().getByName("genSourcesRemapLineNumbers");
 		Task genSourcesTask = project.getTasks().getByName("genSources");
 		
-		MappedProvider mappedProvider = providers.getOld(MappedProvider.class);
-		mappedProvider.assertInstalled();
-		Path mappedJar = mappedProvider.getMappedJar();
+		Path mappedJar = providers.get(Remapper.class).getMappedJar();
 		Path linemappedJar = replaceExtension(mappedJar, "-linemapped.jar");
 		Path sourcesJar = replaceExtension(mappedJar, "-sources.jar");
 		Path linemapFile = replaceExtension(mappedJar, "-sources.lmap");
@@ -386,7 +370,6 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		genSourcesDecompileTask.setInput(mappedJar);
 		genSourcesDecompileTask.setOutput(sourcesJar);
 		genSourcesDecompileTask.setLineMapFile(linemapFile);
-		
 		genSourcesDecompileTask.setLibraries(providers.get(VanillaDependencyFetcher.class).getNonNativeLibraries_Todo());
 		
 		genSourcesRemapLineNumbersTask.setInput(mappedJar);

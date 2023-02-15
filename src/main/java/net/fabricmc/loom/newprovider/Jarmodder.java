@@ -16,65 +16,67 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Collections;
 
 /**
- * Installs Forge inside of the Minecraft merged jar. The post-installation jar is available with {@code getPatchedJar()}.
+ * Pastes one jar on top of another, and remembers to delete META-INF.
  * <p>
  * Also performs the, uh, critically important task of gluing the Minecraft version number onto the Forge version number.
- * This version tag is used in a few places.
- * <p>
- * During this period, Forge was installable as a jarmod. This class is simply a programattic version of "deleting META-INF". 
+ * This version tag is used in a few places. This should be removed.
  */
-public class ForgePatcher extends NewProvider<ForgePatcher> {
-	public ForgePatcher(Project project, LoomGradleExtension extension) {
+public class Jarmodder extends NewProvider<Jarmodder> {
+	public Jarmodder(Project project, LoomGradleExtension extension) {
 		super(project, extension);
 	}
 	
 	//inputs
-	private Path vanilla, forge;
-	private ConfigElementWrapper mc;
+	private Path base, overlay;
+	@Deprecated private ConfigElementWrapper mcVersion;
+	@Deprecated ConfigElementWrapper forgeVersion;
 	
-	public ForgePatcher vanilla(Path vanilla) {
-		this.vanilla = vanilla;
+	public Jarmodder base(Path base) {
+		this.base = base;
 		return this;
 	}
 	
-	public ForgePatcher forge(Path forge) {
-		this.forge = forge;
+	public Jarmodder overlay(Path overlay) {
+		this.overlay = overlay;
 		return this;
 	}
 	
-	public ForgePatcher mc(ConfigElementWrapper mc) {
-		this.mc = mc;
+	public Jarmodder mc(ConfigElementWrapper mc) {
+		this.mcVersion = mc;
+		return this;
+	}
+	
+	public Jarmodder forge(ConfigElementWrapper forgeVersion) {
+		this.forgeVersion = forgeVersion;
 		return this;
 	}
 	
 	//outputs
 	private Path patched;
-	private String patchedVersionTag;
+	@Deprecated private String patchedVersionTag;
 	
 	public Path getPatchedJar() {
 		return patched;
 	}
 	
-	public String getPatchedVersionTag() {
+	@Deprecated public String getPatchedVersionTag() {
 		return patchedVersionTag;
 	}
 	
-	public ForgePatcher patch() throws Exception {
-		patchedVersionTag = mc.getVersion() + "-forge-" + mc.getVersion();
-		patched = getCacheDir().resolve("minecraft-" + patchedVersionTag + "-merged.jar");
-		
-		project.getLogger().lifecycle("] patched jar: {}", patched);
+	public Jarmodder patch() throws Exception {
+		patchedVersionTag = mcVersion.getVersion() + "-forge-" + forgeVersion.getVersion();
+		patched = getCacheDir().resolve("minecraft-" + patchedVersionTag + "-jarmod.jar");
 		
 		cleanOnRefreshDependencies(patched);
 		
 		if(Files.notExists(patched)) {
-			project.getLogger().lifecycle("|-> Patched jar does not exist, performing jarmod-style patch...");
+			log.lifecycle("|-> Jarmodded jar does not exist, performing jarmod...");
 			
-			try(FileSystem mergedFs = FileSystems.newFileSystem(URI.create("jar:" + vanilla.toUri()), Collections.emptyMap());
-			    FileSystem forgeFs = FileSystems.newFileSystem(URI.create("jar:" + forge.toUri()), Collections.emptyMap());
+			try(FileSystem baseFs    = FileSystems.newFileSystem(URI.create("jar:" + base.toUri()),    Collections.emptyMap());
+			    FileSystem overlayFs = FileSystems.newFileSystem(URI.create("jar:" + overlay.toUri()), Collections.emptyMap());
 			    FileSystem patchedFs = FileSystems.newFileSystem(URI.create("jar:" + patched.toUri()), Collections.singletonMap("create", "true"))) {
-				project.getLogger().lifecycle("|-> Copying vanilla into patched jar...");
-				Files.walkFileTree(mergedFs.getPath("/"), new SimpleFileVisitor<Path>() {
+				log.lifecycle("|-> Copying base into patched jar...");
+				Files.walkFileTree(baseFs.getPath("/"), new SimpleFileVisitor<Path>() {
 					@Override
 					public FileVisitResult preVisitDirectory(Path sourceDir, BasicFileAttributes attrs) throws IOException {
 						if(sourceDir.endsWith("META-INF")) {
@@ -94,8 +96,8 @@ public class ForgePatcher extends NewProvider<ForgePatcher> {
 					}
 				});
 				
-				project.getLogger().lifecycle("|-> Copying Forge on top...");
-				Files.walkFileTree(forgeFs.getPath("/"), new SimpleFileVisitor<Path>() {
+				log.lifecycle("|-> Copying patch over top...");
+				Files.walkFileTree(overlayFs.getPath("/"), new SimpleFileVisitor<Path>() {
 					@Override
 					public FileVisitResult preVisitDirectory(Path sourceDir, BasicFileAttributes attrs) throws IOException {
 						if(sourceDir.endsWith("META-INF")) {
@@ -116,8 +118,8 @@ public class ForgePatcher extends NewProvider<ForgePatcher> {
 				});
 			}
 			
-			project.getLogger().lifecycle("|-> Deleting META-INF... (just kidding, i didn't copy it in the first place)");
-			project.getLogger().lifecycle("|-> Patch success!");
+			log.lifecycle("|-> Deleting META-INF... (just kidding, i didn't copy it in the first place)");
+			log.lifecycle("|-> Jarmod success!");
 		}
 		
 		return this;

@@ -17,6 +17,9 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Collections;
 import java.util.Map;
 
+/**
+ * Applies a set of Forge 1.6+ gdiff binary-patches to an input jar.
+ */
 public class Binpatcher extends NewProvider<Binpatcher> {
 	public Binpatcher(Project project, LoomGradleExtension extension) {
 		super(project, extension);
@@ -46,8 +49,15 @@ public class Binpatcher extends NewProvider<Binpatcher> {
 	//procedure
 	public Binpatcher patch() throws Exception {
 		output = getCacheDir().resolve(LoomGradlePlugin.replaceExtension(input, "-binpatched.jar").getFileName().toString()); //meh
+		cleanOnRefreshDependencies(output);
+		
+		log.info("] binpatch input: {}", input);
+		log.info("] binpatch output: {}", output);
+		log.info("] number of binpatches: {}", binpatches.size());
 		
 		if(Files.notExists(output)) {
+			log.info("|-> Output does not exist, performing binpatch...");
+			
 			try(FileSystem inputFs  = FileSystems.newFileSystem(URI.create("jar:" + input.toUri()),  Collections.emptyMap()); 
 			    FileSystem outputFs = FileSystems.newFileSystem(URI.create("jar:" + output.toUri()), Collections.singletonMap("create", "true"))) {
 				Files.walkFileTree(inputFs.getPath("/"), new SimpleFileVisitor<Path>() {
@@ -59,13 +69,13 @@ public class Binpatcher extends NewProvider<Binpatcher> {
 					
 					@Override
 					public FileVisitResult visitFile(Path vanillaPath, BasicFileAttributes attrs) throws IOException {
-						Path patchedPath = inputFs.getPath(vanillaPath.toString());
+						Path patchedPath = outputFs.getPath(vanillaPath.toString());
 						String filename = vanillaPath.toString().substring(1); //remove leading slash
 						
 						if(filename.endsWith(".class")) {
 							Binpatch binpatch = binpatches.get(filename.substring(0, filename.length() - ".class".length()));
 							if(binpatch != null) {
-								log.info("Binpatching {}...", filename);
+								log.debug("Binpatching {}...", filename);
 								Files.write(patchedPath, binpatch.apply(Files.readAllBytes(vanillaPath)));
 								return FileVisitResult.CONTINUE;
 							}
@@ -76,6 +86,8 @@ public class Binpatcher extends NewProvider<Binpatcher> {
 					}
 				});
 			}
+			
+			log.info("|-> Binpatch success.");
 		}
 		
 		return this;

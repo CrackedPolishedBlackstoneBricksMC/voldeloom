@@ -2,7 +2,7 @@ package net.fabricmc.loom.util.mcp;
 
 import org.apache.commons.compress.compressors.lzma.LZMACompressorInputStream;
 import org.apache.commons.compress.compressors.pack200.Pack200CompressorInputStream;
-import org.gradle.api.Project;
+import org.gradle.api.logging.Logger;
 
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
@@ -20,20 +20,20 @@ public class BinpatchesPack {
 	public final Map<String, Binpatch> clientBinpatches = new LinkedHashMap<>();
 	public final Map<String, Binpatch> serverBinpatches = new LinkedHashMap<>();
 	
-	public BinpatchesPack read(Project p, Path binpatchesPackLzma) {
+	public BinpatchesPack read(Logger log, Path binpatchesPackLzma) {
 		try(InputStream binpatchesPackLzmaIn = new BufferedInputStream(Files.newInputStream(binpatchesPackLzma));
 		    InputStream lzmaDecompressor = new LZMACompressorInputStream(binpatchesPackLzmaIn);
 		    InputStream pack200Decompressor = new Pack200CompressorInputStream(new OpenSesameInputStream(lzmaDecompressor));
 		    ByteArrayOutputStream binpatchesJarBytes = new ByteArrayOutputStream()) {
 			
-			p.getLogger().lifecycle("--> Decompressing {}...", binpatchesPackLzma);
+			log.info("--> Decompressing {}...", binpatchesPackLzma);
 			
 			//standard java boilerplate to pour one stream into another
 			byte[] shuttle = new byte[4096];
 			int readBytes;
 			while((readBytes = pack200Decompressor.read(shuttle)) != -1) binpatchesJarBytes.write(shuttle, 0, readBytes);
 			
-			p.getLogger().lifecycle("--> Parsing decompressed jar...");
+			log.info("--> Parsing decompressed jar...");
 			byte[] binpatchesJarByteArray = binpatchesJarBytes.toByteArray();
 			
 			//Here, using oldschool JarInputStream instead of zip filesystem, because the jar doesn't exist on-disk.

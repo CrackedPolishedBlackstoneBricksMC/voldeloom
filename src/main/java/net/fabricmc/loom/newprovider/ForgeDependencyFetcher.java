@@ -1,10 +1,8 @@
 package net.fabricmc.loom.newprovider;
 
 import net.fabricmc.loom.LoomGradleExtension;
-import net.fabricmc.loom.util.DownloadSession;
 import org.gradle.api.Project;
 import org.gradle.api.artifacts.dsl.DependencyHandler;
-import org.gradle.api.file.FileCollection;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.MethodVisitor;
@@ -19,8 +17,12 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.function.Function;
 
+/**
+ * Forge auto-downloads dependencies at runtime, but the server is long dead, and I'd like to know about the
+ * dependencies when creating the workspace. This sniffs Forge's dependencies out of the Forge jar with a little
+ * static-analysis.
+ */
 public class ForgeDependencyFetcher extends NewProvider<ForgeDependencyFetcher> {
 	public ForgeDependencyFetcher(Project project, LoomGradleExtension extension) {
 		super(project, extension);
@@ -42,7 +44,7 @@ public class ForgeDependencyFetcher extends NewProvider<ForgeDependencyFetcher> 
 	
 	//outputs
 	private final Collection<String> sniffedLibraries = new ArrayList<>();
-	private Collection<Path> resolvedLibraries = new ArrayList<>();
+	private final Collection<Path> resolvedLibraries = new ArrayList<>();
 	
 	//procedure
 	public ForgeDependencyFetcher sniff() throws Exception {
@@ -80,12 +82,12 @@ public class ForgeDependencyFetcher extends NewProvider<ForgeDependencyFetcher> 
 			//TODO: at least 1.5 includes additional "deobfuscation data" zip dep, but also contains a sys property to change download mirror
 			Path coreFmlLibsPath = forgeFs.getPath("/cpw/mods/fml/relauncher/CoreFMLLibraries.class");
 			if(Files.exists(coreFmlLibsPath)) {
-				project.getLogger().info("|-> Parsing cpw.mods.fml.relauncher.CoreFMLLibraries...");
+				log.info("|-> Parsing cpw.mods.fml.relauncher.CoreFMLLibraries...");
 				try(InputStream in = Files.newInputStream(coreFmlLibsPath)) {
 					new ClassReader(in).accept(new LibrarySniffingClassVisitor(null, sniffedLibraries), ClassReader.SKIP_FRAMES); //just don't need frames
 				}
 			} else {
-				project.getLogger().info("|-> No cpw.mods.fml.relauncher.CoreFMLLibraries class in this jar.");
+				log.info("|-> No cpw.mods.fml.relauncher.CoreFMLLibraries class in this jar.");
 			}
 		}
 		
@@ -104,7 +106,7 @@ public class ForgeDependencyFetcher extends NewProvider<ForgeDependencyFetcher> 
 			Path dest = forgeLibsFolder.resolve(lib);
 			resolvedLibraries.add(dest);
 			
-			new DownloadSession(fmlLibrariesBaseUrl + lib, project)
+			newDownloadSession(fmlLibrariesBaseUrl + lib)
 				.dest(dest)
 				.etag(true)
 				.gzip(false)
@@ -115,9 +117,9 @@ public class ForgeDependencyFetcher extends NewProvider<ForgeDependencyFetcher> 
 		return this;
 	}
 	
-	public ForgeDependencyFetcher installDependenciesToProject(String config, DependencyHandler deps, Function<Path, FileCollection> files) {
+	public ForgeDependencyFetcher installDependenciesToProject(String config, DependencyHandler deps) {
 		for(Path resolvedLibrary : resolvedLibraries) {
-			deps.add(config, files.apply(resolvedLibrary));
+			deps.add(config, files(resolvedLibrary));
 		}
 		
 		return this;

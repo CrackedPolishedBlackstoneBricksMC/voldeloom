@@ -11,6 +11,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collections;
 
+/**
+ * Loads a set of binpatches out of a jar.
+ */
 public class BinpatchLoader extends NewProvider<BinpatchLoader> {
 	public BinpatchLoader(Project project, LoomGradleExtension extension) {
 		super(project, extension);
@@ -38,10 +41,16 @@ public class BinpatchLoader extends NewProvider<BinpatchLoader> {
 	
 	//procedure
 	public BinpatchLoader load() throws Exception {
+		log.info("|-> Examining {} for binpatches.", forge.getPath());
+		
 		try(FileSystem forgeFs = FileSystems.newFileSystem(URI.create("jar:" + forge.getPath().toUri()), Collections.emptyMap())) {
 			Path binpatchesPath = forgeFs.getPath("binpatches.pack.lzma");
 			if(Files.exists(binpatchesPath)) {
-				binpatchesPack = new BinpatchesPack().read(project, binpatchesPath);
+				log.info("\\-> Yes, it contains binpatches. Parsing.");
+				binpatchesPack = new BinpatchesPack().read(log, binpatchesPath);
+				log.info("\\-> Binpatches parsed.");
+			} else {
+				log.info("\\-> No, it doesn't contain any binpatches.");
 			}
 		}
 		

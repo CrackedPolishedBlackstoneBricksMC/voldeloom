@@ -25,6 +25,8 @@
 package net.fabricmc.loom;
 
 import net.fabricmc.loom.newprovider.AccessTransformer;
+import net.fabricmc.loom.newprovider.DependencyRemapper;
+import net.fabricmc.loom.newprovider.ProviderGraph;
 import net.fabricmc.loom.newprovider.Tinifier;
 
 /**
@@ -48,7 +50,7 @@ public class Constants {
 	 * The Gradle configuration containing all <i>incoming</i> mod dependencies, e.g. {@code modCompileOnly},
 	 * which are mods that haven't been remapped to the user's current working mappings yet.
 	 * 
-	 * @see net.fabricmc.loom.providers.RemappedDependenciesProvider
+	 * @see DependencyRemapper
 	 */
 	public static final String EVERY_UNMAPPED_MOD = "everyUnmappedMod";
 	
@@ -86,8 +88,6 @@ public class Constants {
 	
 	/**
 	 * The Gradle configuration containing Minecraft, patched with Forge's patches, remapped to the user's current working mappings set.
-	 * 
-	 * @see net.fabricmc.loom.providers.MappedProvider
 	 */
 	public static final String MINECRAFT_NAMED = "minecraftNamed";
 	

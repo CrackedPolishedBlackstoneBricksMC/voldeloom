@@ -1,7 +1,6 @@
 package net.fabricmc.loom.newprovider;
 
 import net.fabricmc.loom.LoomGradleExtension;
-import net.fabricmc.loom.util.DownloadSession;
 import net.fabricmc.loom.util.MinecraftVersionInfo;
 import net.fabricmc.loom.util.ZipUtil;
 import org.gradle.api.Project;
@@ -74,10 +73,12 @@ public class VanillaDependencyFetcher extends NewProvider<VanillaDependencyFetch
 			if(!library.allowed()) continue;
 			
 			if(library.isNative()) {
+				log.info("Found minecraft native dependency {}", library.getArtifactName());
+				
 				Path libJarFile = library.getPath(nativesJarStore);
 				
 				//download the natives jar
-				new DownloadSession(librariesBaseUrl + library.getURLSuffix(), project)
+				newDownloadSession(librariesBaseUrl + library.getURLSuffix())
 					.dest(libJarFile)
 					.etag(true)
 					.gzip(false)
@@ -122,7 +123,7 @@ public class VanillaDependencyFetcher extends NewProvider<VanillaDependencyFetch
 				//It appears downloading the library manually is not necessary, since the minecraft info .json
 				//gives maven coordinates which Gradle can resolve the usual way off of mojang's maven
 				
-				log.info("|-> Found Minecraft dependency {}", depToAdd);
+				log.info("|-> Found Minecraft maven-style dependency {}", depToAdd);
 				mavenDependencies.add(depToAdd);
 			}
 		}

@@ -3,7 +3,6 @@ package net.fabricmc.loom.newprovider;
 import com.google.common.base.Preconditions;
 import com.google.gson.Gson;
 import net.fabricmc.loom.LoomGradleExtension;
-import net.fabricmc.loom.util.DownloadSession;
 import net.fabricmc.loom.util.MinecraftVersionInfo;
 import org.gradle.api.Project;
 
@@ -62,10 +61,13 @@ public class VanillaJarFetcher extends NewProvider<VanillaJarFetcher> {
 		clientJar = getCacheDir().resolve("minecraft-" + mc.getVersion() + "-client.jar");
 		serverJar = getCacheDir().resolve("minecraft-" + mc.getVersion() + "-server.jar");
 		
+		log.info("] client jar: {}", clientJar);
+		log.info("] server jar: {}", serverJar);
+		
 		cleanOnRefreshDependencies(andEtags(Arrays.asList(clientJar, serverJar, thisVersionManifestJson, versionManifestIndexJson)));
 		
 		log.info("|-> Downloading manifest index...");
-		new DownloadSession("https://launchermeta.mojang.com/mc/game/version_manifest.json", project)
+		newDownloadSession("https://launchermeta.mojang.com/mc/game/version_manifest.json")
 			.dest(versionManifestIndexJson)
 			.etag(true)
 			.gzip(true)
@@ -99,7 +101,7 @@ public class VanillaJarFetcher extends NewProvider<VanillaJarFetcher> {
 		}
 		
 		log.info("|-> Found URL for Minecraft {} per-version manifest, downloading...", mc.getVersion());
-		new DownloadSession(selectedVersion.url, project)
+		newDownloadSession(selectedVersion.url)
 			.dest(thisVersionManifestJson)
 			.gzip(true)
 			.etag(true)
@@ -111,8 +113,8 @@ public class VanillaJarFetcher extends NewProvider<VanillaJarFetcher> {
 			versionManifest = new Gson().fromJson(reader, MinecraftVersionInfo.class);
 		}
 		
-		project.getLogger().info("|-> Downloading Minecraft {} client jar...", mc.getVersion());
-		new DownloadSession(versionManifest.downloads.get("client").url, project)
+		log.info("|-> Downloading Minecraft {} client jar...", mc.getVersion());
+		newDownloadSession(versionManifest.downloads.get("client").url)
 			.dest(clientJar)
 			.etag(true)
 			.gzip(false)
@@ -120,8 +122,8 @@ public class VanillaJarFetcher extends NewProvider<VanillaJarFetcher> {
 			.skipIfSha1Equals(versionManifest.downloads.get("client").sha1) //TODO: kinda subsumed by skipIfExists lol
 			.download();
 		
-		project.getLogger().info("|-> Downloading Minecraft {} server jar...", mc.getVersion());
-		new DownloadSession(versionManifest.downloads.get("server").url, project)
+		log.info("|-> Downloading Minecraft {} server jar...", mc.getVersion());
+		newDownloadSession(versionManifest.downloads.get("server").url)
 			.dest(serverJar)
 			.etag(true)
 			.gzip(false)

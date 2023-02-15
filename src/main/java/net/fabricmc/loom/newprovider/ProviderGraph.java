@@ -1,19 +1,9 @@
-package net.fabricmc.loom;
+package net.fabricmc.loom.newprovider;
 
-import net.fabricmc.loom.newprovider.AccessTransformer;
-import net.fabricmc.loom.newprovider.BinpatchLoader;
-import net.fabricmc.loom.newprovider.Binpatcher;
-import net.fabricmc.loom.newprovider.ForgeDependencyFetcher;
-import net.fabricmc.loom.newprovider.ForgePatcher;
-import net.fabricmc.loom.newprovider.Merger;
-import net.fabricmc.loom.newprovider.NewProvider;
-import net.fabricmc.loom.newprovider.Tinifier;
-import net.fabricmc.loom.newprovider.VanillaDependencyFetcher;
-import net.fabricmc.loom.newprovider.VanillaJarFetcher;
-import net.fabricmc.loom.providers.AssetsProvider;
-import net.fabricmc.loom.providers.MappedProvider;
-import net.fabricmc.loom.providers.RemappedDependenciesProvider;
+import net.fabricmc.loom.Constants;
+import net.fabricmc.loom.LoomGradleExtension;
 import org.gradle.api.Project;
+import org.gradle.api.logging.Logger;
 
 import java.nio.file.Path;
 import java.util.HashMap;
@@ -26,42 +16,66 @@ import java.util.Objects;
 public class ProviderGraph {
 	public ProviderGraph(Project project, LoomGradleExtension extension) {
 		this.project = project;
+		this.log = project.getLogger();
 		this.extension = extension;
 	}
 	
 	private final Project project;
+	private final Logger log;
 	private final LoomGradleExtension extension;
-	
 	private final Map<Class<? extends NewProvider<?>>, NewProvider<?>> newProviders = new HashMap<>();
 	
-	public void setup() throws Exception {
-		/// NEW SYSTEM ///
+	public ConfigElementWrapper mc;
+	public ResolvedConfigElementWrapper forge;
+	public MappingsWrapper mappings;
+	
+	public ProviderGraph trySetup() {
+		try {
+			return setup();
+		} catch (Exception e) {
+			throw new RuntimeException("Exception setting up Voldeloom: " + e.getMessage(), e);
+		}
+	}
+	
+	public ProviderGraph setup() throws Exception {
+		log.lifecycle("# Wrapping basic dependencies...");
+		mc = new ConfigElementWrapper(project, project.getConfigurations().getByName(Constants.MINECRAFT));
+		forge = new ResolvedConfigElementWrapper(project, project.getConfigurations().getByName(Constants.FORGE));
+		
+		log.lifecycle("# Parsing mappings...");
+		mappings = new MappingsWrapper(project, extension, project.getConfigurations().getByName(Constants.MAPPINGS));
+		
+		log.lifecycle("# Fetching vanilla jars and indexes...");
 		VanillaJarFetcher vanillaJars = new VanillaJarFetcher(project, extension)
-			.mc(extension.mc)
+			.mc(mc)
 			.customManifestUrl(extension.customManifestUrl)
 			.fetch();
 		
+		log.lifecycle("# Fetching vanilla dependencies...");
 		VanillaDependencyFetcher vanillaDeps = new VanillaDependencyFetcher(project, extension)
 			.superProjectmapped(vanillaJars.projectmapped)
-			.mc(extension.mc)
+			.mc(mc)
 			.manifest(vanillaJars.getVersionManifest())
 			.librariesBaseUrl(extension.librariesBaseUrl)
 			.fetch()
 			.installDependenciesToProject(Constants.MINECRAFT_DEPENDENCIES, project.getDependencies());
 		
+		log.lifecycle("# Fetching Forge's dependencies...");
 		ForgeDependencyFetcher forgeDeps = new ForgeDependencyFetcher(project, extension)
-			.forge(extension.forge)
+			.forge(forge)
 			.fmlLibrariesBaseUrl(extension.fmlLibrariesBaseUrl)
 			.sniff()
 			.fetch()
-			.installDependenciesToProject(Constants.FORGE_DEPENDENCIES, project.getDependencies(), project::files);
+			.installDependenciesToProject(Constants.FORGE_DEPENDENCIES, project.getDependencies());
 		
+		log.lifecycle("# Binpatching?");
 		Path binpatchedClient, binpatchedServer;
 		BinpatchLoader binpatchLoader = new BinpatchLoader(project, extension)
-			.forge(extension.forge)
+			.forge(forge)
 			.load();
 		
 		if(binpatchLoader.hasBinpatches()) {
+			log.lifecycle("## Binpatching.");
 			binpatchedClient = new Binpatcher(project, extension)
 				.superProjectmapped(vanillaJars.projectmapped | binpatchLoader.projectmapped)
 				.input(vanillaJars.getClientJar())
@@ -76,49 +90,81 @@ public class ProviderGraph {
 				.patch()
 				.getOutput();
 		} else {
+			log.lifecycle("## Nope.");
 			binpatchedClient = vanillaJars.getClientJar();
 			binpatchedServer = vanillaJars.getServerJar();
 		}
 		
 		//TODO 1.2.5 split: - cut here?
 		
+		log.lifecycle("# Merging client and server...");
 		Merger merger = new Merger(project, extension)
 			.superProjectmapped(vanillaJars.projectmapped | binpatchLoader.projectmapped)
 			.client(binpatchedClient)
 			.server(binpatchedServer)
-			.mc(extension.mc)
+			.mc(mc)
 			.merge();
 		
 		//TODO: Post-1.6, i think installing it like a jarmod is not strictly correct. Forge should get on the classpath some other way
-		ForgePatcher patched = new ForgePatcher(project, extension)
+		log.lifecycle("# Jarmodding...");
+		Jarmodder patched = new Jarmodder(project, extension)
 			.superProjectmapped(merger.projectmapped)
-			.vanilla(merger.getMerged())
-			.forge(extension.forge.getPath())
-			.mc(extension.mc)
+			.base(merger.getMerged())
+			.overlay(forge.getPath())
+			.mc(mc)
+			.forge(forge)
 			.patch();
 		
+		log.lifecycle("# Applying access transformers...");
 		AccessTransformer transformer = new AccessTransformer(project, extension)
 			.superProjectmapped(patched.projectmapped)
-			.forge(extension.forge)
+			.forge(forge)
 			.forgePatched(patched.getPatchedJar())
 			.patchedVersionTag(patched.getPatchedVersionTag())
 			.transform();
 		
-		Tinifier tinyMappings = new Tinifier(project, extension)
+		log.lifecycle("# Converting mappings to tinyv2...");
+		Tinifier tinifier = new Tinifier(project, extension)
 			.superProjectmapped(transformer.projectmapped)
 			.jarToScan(transformer.getTransformedJar())
-			.mappings(extension.mappings)
+			.mappings(mappings)
 			.useSrgsAsFallback(extension.forgeCapabilities.useSrgsAsFallback())
 			.tinify();
 		
-		makeAvailableToTasks(vanillaJars, vanillaDeps, forgeDeps, transformer, tinyMappings);
+		log.lifecycle("# Remapping Minecraft...");
+		Remapper remapper = new Remapper(project, extension)
+			.superProjectmapped(tinifier.projectmapped | patched.projectmapped | transformer.projectmapped)
+			.mappingsDepString(mappings.getMappingsDepString())
+			.nonNativeLibs(vanillaDeps.getNonNativeLibraries_Todo())
+			.patchedVersionTag(patched.getPatchedVersionTag())
+			.mappings(tinifier.getTinyTree())
+			.transformedJar(transformer.getTransformedJar())
+			.remap()
+			.installDependenciesToProject(Constants.MINECRAFT_NAMED, project.getDependencies());
 		
-		/// OLD SYSTEM ///
+		log.lifecycle("# Remapping mod dependencies...");
+		DependencyRemapper dependencyRemapper = new DependencyRemapper(project, extension)
+			.superProjectmapped(remapper.projectmapped | tinifier.projectmapped | transformer.projectmapped | vanillaDeps.projectmapped)
+			.mappings(mappings)
+			.remappedConfigurationEntries(extension.remappedConfigurationEntries)
+			.tinyTree(tinifier.getTinyTree())
+			.minecraft(transformer.getTransformedJar())
+			.nonNativeLibraries(vanillaDeps.getNonNativeLibraries_Todo())
+			.distributionNamingScheme(extension.forgeCapabilities.computeDistributionNamingScheme())
+			.remapDependencies();
 		
-		MappedProvider mapped = putOld(new MappedProvider(project, extension, patched.getPatchedVersionTag(), transformer.getTransformedJar(), tinyMappings, vanillaDeps.getNonNativeLibraries_Todo()));
+		log.lifecycle("# Configuring asset downloader...");
+		AssetDownloader assets = new AssetDownloader(project, extension)
+			.mc(mc)
+			.versionManifest(vanillaJars.getVersionManifest())
+			.resourcesBaseUrl(extension.resourcesBaseUrl)
+			.computePaths(); //Don't download assets just yet - a gradle task will do this later on the client
 		
-		RemappedDependenciesProvider remappedDeps = putOld(new RemappedDependenciesProvider(project, extension, tinyMappings));
-		AssetsProvider assets = putOld(new AssetsProvider(project, extension, vanillaJars.getVersionManifest()));
+		makeAvailableToTasks(vanillaJars, vanillaDeps, forgeDeps, transformer, tinifier, remapper, assets);
+		
+		log.lifecycle("# Thank you for flying Voldeloom.");
+		
+		return this;
 	}
 	
 	//TODO: Deprecate this too - expose only the needful things to tasks, and keep providers as an implementation detail...
@@ -134,23 +180,5 @@ public class ProviderGraph {
 	@SuppressWarnings("unchecked")
 	public <T extends NewProvider<T>> T get(Class<T> type) {
 		return (T) Objects.requireNonNull(newProviders.get(type));
-	}
-	
-	private final Map<Class<? extends DependencyProvider>, DependencyProvider> constructedProviders = new HashMap<>();
-	
-	@Deprecated
-	private <T extends DependencyProvider> T putOld(T dep) {
-		constructedProviders.put(dep.getClass(), dep);
-		return dep;
-	}
-	
-	@Deprecated
-	@SuppressWarnings("unchecked")
-	public <T extends DependencyProvider> T getOld(Class<T> type) {
-		if(constructedProviders.containsKey(type)) {
-			return (T) constructedProviders.get(type);
-		} else {
-			throw new IllegalStateException("No provider of type " + type);
-		}
 	}
 }
