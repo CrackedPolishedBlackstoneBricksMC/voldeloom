@@ -28,9 +28,7 @@ import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import net.fabricmc.loom.DependencyProvider;
 import net.fabricmc.loom.LoomGradleExtension;
-import net.fabricmc.loom.util.Checksum;
 import net.fabricmc.loom.util.DownloadSession;
-import org.gradle.api.GradleException;
 import org.gradle.api.Project;
 
 import javax.inject.Inject;
@@ -74,27 +72,15 @@ public class AssetsProvider extends DependencyProvider {
 	}
 	
 	public void performInstall() throws Exception {
-		boolean offline = project.getGradle().getStartParameter().isOffline();
-		if (Files.notExists(assetIndexFile) || !Checksum.compareSha1(assetIndexFile, mc.getVersionManifest().assetIndex.sha1)) {
-			project.getLogger().lifecycle(":downloading asset index");
-
-			if (offline) {
-				if (Files.exists(assetIndexFile)) {
-					//We know it's outdated but can't do anything about it, oh well
-					project.getLogger().warn("Asset index outdated");
-				} else {
-					//We don't know what assets we need, just that we don't have any
-					throw new GradleException("Asset index not found at " + assetIndexFile.toAbsolutePath());
-				}
-			} else {
-				Files.createDirectories(assetsCache);
-				new DownloadSession(mc.getVersionManifest().assetIndex.url, project)
-					.dest(assetIndexFile)
-					.etag(true)
-					.gzip(true)
-					.download();
-			}
-		}
+		Files.createDirectories(assetsCache);
+		
+		new DownloadSession(mc.getVersionManifest().assetIndex.url, project)
+			.dest(assetIndexFile)
+			.etag(true)
+			.gzip(true)
+			.skipIfSha1Equals(mc.getVersionManifest().assetIndex.sha1) //TODO: kinda subsumed by skipIfExists lol
+			.skipIfExists()
+			.download();
 		
 		if(Files.notExists(thisVersionAssetsDir)) {
 			project.getLogger().lifecycle(":downloading assets...");
