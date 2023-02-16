@@ -1,5 +1,6 @@
 package net.fabricmc.loom.newprovider;
 
+import com.google.common.base.Preconditions;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.stitch.merge.JarMerger;
 import org.gradle.api.Project;
@@ -62,6 +63,9 @@ public class Merger extends NewProvider<Merger> {
 	
 	//procedure
 	public Merger merge() throws Exception {
+		Preconditions.checkNotNull(clientJar, "client jar");
+		Preconditions.checkNotNull(serverJar, "server jar");
+		
 		merged = getCacheDir().resolve("minecraft-" + mc.getVersion() + "-merged.jar");
 		cleanOnRefreshDependencies(merged);
 		

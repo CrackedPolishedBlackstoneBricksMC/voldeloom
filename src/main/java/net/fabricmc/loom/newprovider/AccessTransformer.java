@@ -1,5 +1,6 @@
 package net.fabricmc.loom.newprovider;
 
+import com.google.common.base.Preconditions;
 import com.google.common.hash.Hasher;
 import com.google.common.hash.Hashing;
 import net.fabricmc.loom.Constants;
@@ -42,20 +43,20 @@ public class AccessTransformer extends NewProvider<AccessTransformer> {
 	
 	//inputs
 	private ResolvedConfigElementWrapper forge;
-	private Path forgePatched;
-	private String patchedVersionTag;
+	private Path forgeJarmodded;
+	@Deprecated private String patchedVersionTag;
 	
 	public AccessTransformer forge(ResolvedConfigElementWrapper forge) {
 		this.forge = forge;
 		return this;
 	}
 	
-	public AccessTransformer forgePatched(Path forgePatched) {
-		this.forgePatched = forgePatched;
+	public AccessTransformer forgeJarmodded(Path forgeJarmodded) {
+		this.forgeJarmodded = forgeJarmodded;
 		return this;
 	}
 	
-	public AccessTransformer patchedVersionTag(String patchedVersionTag) {
+	@Deprecated public AccessTransformer patchedVersionTag(String patchedVersionTag) {
 		this.patchedVersionTag = patchedVersionTag;
 		return this;
 	}
@@ -69,6 +70,10 @@ public class AccessTransformer extends NewProvider<AccessTransformer> {
 	}
 	
 	public AccessTransformer transform() throws Exception {
+		Preconditions.checkNotNull(forge, "forge version");
+		Preconditions.checkNotNull(forgeJarmodded, "jarmod");
+		Preconditions.checkNotNull(patchedVersionTag, "patched version tag");
+		
 		projectmapped |= !getConfigurationByName(Constants.CUSTOM_ACCESS_TRANSFORMERS).resolve().isEmpty();
 		
 		customAccessTransformers = getConfigurationByName(Constants.CUSTOM_ACCESS_TRANSFORMERS)
@@ -131,7 +136,7 @@ public class AccessTransformer extends NewProvider<AccessTransformer> {
 			log.info("|-> Performing transform...");
 			
 			try(
-				FileSystem unAccessTransformedFs = FileSystems.newFileSystem(URI.create("jar:" + forgePatched.toUri()), Collections.emptyMap());
+				FileSystem unAccessTransformedFs = FileSystems.newFileSystem(URI.create("jar:" + forgeJarmodded.toUri()), Collections.emptyMap());
 				FileSystem accessTransformedFs = FileSystems.newFileSystem(URI.create("jar:" + accessTransformedMc.toUri()), Collections.singletonMap("create", "true"))) {
 				Files.walkFileTree(unAccessTransformedFs.getPath("/"), new SimpleFileVisitor<Path>() {
 					@Override

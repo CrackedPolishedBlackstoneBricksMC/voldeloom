@@ -1,5 +1,6 @@
 package net.fabricmc.loom.newprovider;
 
+import com.google.common.base.Preconditions;
 import net.fabricmc.loom.Constants;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.RemappedConfigurationEntry;
@@ -7,11 +8,13 @@ import net.fabricmc.loom.util.TinyRemapperSession;
 import net.fabricmc.mapping.tree.TinyTree;
 import org.gradle.api.Project;
 import org.gradle.api.artifacts.Configuration;
+import org.gradle.api.artifacts.dsl.DependencyHandler;
 
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -37,20 +40,15 @@ public class DependencyRemapper extends NewProvider<DependencyRemapper> {
 		super(project, extension);
 	}
 	
+	//inputs
 	private MappingsWrapper mappingsWrapper;
-	private Iterable<RemappedConfigurationEntry> remappedConfigurationEntries;
 	private TinyTree tinyTree;
-	private Path minecraft;
-	private Collection<Path> nonNativeLibraries;
+	private Iterable<RemappedConfigurationEntry> remappedConfigurationEntries;
 	private String distributionNamingScheme;
+	private final Set<Path> remapClasspath = new HashSet<>();
 	
 	public DependencyRemapper mappings(MappingsWrapper mappingsWrapper) {
 		this.mappingsWrapper = mappingsWrapper;
-		return this;
-	}
-	
-	public DependencyRemapper remappedConfigurationEntries(Iterable<RemappedConfigurationEntry> remappedConfigurationEntries) {
-		this.remappedConfigurationEntries = remappedConfigurationEntries;
 		return this;
 	}
 	
@@ -59,13 +57,8 @@ public class DependencyRemapper extends NewProvider<DependencyRemapper> {
 		return this;
 	}
 	
-	public DependencyRemapper minecraft(Path minecraft) {
-		this.minecraft = minecraft;
-		return this;
-	}
-	
-	public DependencyRemapper nonNativeLibraries(Collection<Path> nonNativeLibraries) {
-		this.nonNativeLibraries = nonNativeLibraries;
+	public DependencyRemapper remappedConfigurationEntries(Iterable<RemappedConfigurationEntry> remappedConfigurationEntries) {
+		this.remappedConfigurationEntries = remappedConfigurationEntries;
 		return this;
 	}
 	
@@ -74,22 +67,38 @@ public class DependencyRemapper extends NewProvider<DependencyRemapper> {
 		return this;
 	}
 	
-	public DependencyRemapper remapDependencies() throws Exception {
-		class RemappingJob {
-			public RemappingJob(Path unmappedPath, Path mappedPath, Configuration outConfig) {
-				this.unmappedPath = unmappedPath;
-				this.mappedPath = mappedPath;
-				this.outConfig = outConfig;
-			}
-			
-			final Path unmappedPath, mappedPath;
-			final Configuration outConfig;
+	public DependencyRemapper addToRemapClasspath(Collection<Path> remapClasspath) {
+		this.remapClasspath.addAll(remapClasspath);
+		return this;
+	}
+	
+	public DependencyRemapper addToRemapClasspath(Path... paths) {
+		return addToRemapClasspath(Arrays.asList(paths));
+	}
+	
+	private static class RemappingJob {
+		public RemappingJob(Path unmappedPath, Path mappedPath, Configuration outConfig) {
+			this.unmappedPath = unmappedPath;
+			this.mappedPath = mappedPath;
+			this.outConfig = outConfig;
 		}
+		
+		final Path unmappedPath, mappedPath;
+		final Configuration outConfig;
+	}
+	private final List<RemappingJob> finishedRemaps = new ArrayList<>();
+	
+	public DependencyRemapper remapDependencies() throws Exception {
+		Preconditions.checkNotNull(mappingsWrapper, "mappings version");
+		Preconditions.checkNotNull(tinyTree, "tiny tree");
+		Preconditions.checkNotNull(remappedConfigurationEntries, "remapped configuration entries");
+		Preconditions.checkNotNull(distributionNamingScheme, "distribution naming scheme");
 		
 		List<RemappingJob> jobs = new ArrayList<>();
 		
 		String mappingsSuffix = mappingsWrapper.getMappingsDepString().replaceAll("[^A-Za-z0-9.-]", "_");
 		Path remappedModCache = getRemappedModCache();
+		cleanOnRefreshDependencies(remappedModCache);
 		
 		for(RemappedConfigurationEntry entry : remappedConfigurationEntries) {
 			Configuration inputConfig = entry.getInputConfig();
@@ -106,8 +115,6 @@ public class DependencyRemapper extends NewProvider<DependencyRemapper> {
 		int count = jobs.size();
 		if(count > 0) log.lifecycle("] {} remappable dependenc{}, dest {}", count, count == 1 ? "y" : "ies", remappedModCache);
 		
-		cleanOnRefreshDependencies(remappedModCache);
-		
 		for(RemappingJob job : jobs) {
 			log.info("|-> Found a mod dependency at {}", job.unmappedPath);
 			log.info("\\-> Need to remap to {}", job.mappedPath);
@@ -117,22 +124,19 @@ public class DependencyRemapper extends NewProvider<DependencyRemapper> {
 				log.info("\\-> Remapped file doesn't exist, running remapper...");
 				
 				try {
-					Set<Path> remapClasspath = new HashSet<>();
+					Set<Path> remapClasspath = new HashSet<>(this.remapClasspath);
 					
-					remapClasspath.add(minecraft);
-					remapClasspath.addAll(nonNativeLibraries);
+					//add the other mod dependencies to the remap classpath
 					for(File file : getConfigurationByName(Constants.EVERY_UNMAPPED_MOD).getFiles()) {
 						Path p = file.toPath();
-						if(!p.equals(job.unmappedPath)) {
-							remapClasspath.add(p);
-						}
+						if(!p.equals(job.unmappedPath)) remapClasspath.add(p);
 					}
 					
 					// If the sources don't exist, we want remapper to give nicer names to the missing variable names.
 					// However, if the sources do exist, if remapper gives names to the parameters that prevents IDEs (at least IDEA)
 					// from replacing the parameters with the actual names from the sources.
 					//boolean sourcesExist = findSources(project.getDependencies(), artifact) != null;
-					boolean sourcesExist = false;
+					boolean sourcesExist = false; //im lazy sorry
 					
 					new TinyRemapperSession()
 						.setMappings(tinyTree)
@@ -143,23 +147,25 @@ public class DependencyRemapper extends NewProvider<DependencyRemapper> {
 						.setLogger(log::info)
 						.dontRemapLocalVariables()
 						.run();
-					
-					if (Files.notExists(job.mappedPath)) {
-						throw new RuntimeException("Failed to remap JAR to 'named' - file not found: " + job.mappedPath.toAbsolutePath());
-					}
 				} catch (Exception e) {
 					throw new RuntimeException("Failed to remap dependency at " + job.unmappedPath + " to " + job.mappedPath, e);
 				}
 				
-				log.info("\\-> Done! :)");
-			} else {
-				log.info("\\-> Already remapped.");
-			}
+				if(Files.notExists(job.mappedPath)) {
+					throw new RuntimeException("Failed to remap dependency at " + job.unmappedPath + " to " + job.mappedPath + " - the target file doesn't exist, hmm");
+				}
+			} else log.info("\\-> Already remapped.");
 			
-			//add it as a dependency to the project
-			//TODO move this to a separate step
-			log.info("\\-> Adding remapped result to the '{}' configuration", job.outConfig.getName());
-			project.getDependencies().add(job.outConfig.getName(), files(job.mappedPath));
+			finishedRemaps.add(job);
+		}
+		
+		return this;
+	}
+	
+	public DependencyRemapper installDependenciesToProject(DependencyHandler deps) {
+		for(RemappingJob finishedJob : finishedRemaps) {
+			log.info("\\-> Adding remapped mod at {} to the '{}' configuration", finishedJob.mappedPath, finishedJob.outConfig.getName());
+			deps.add(finishedJob.outConfig.getName(), files(finishedJob.mappedPath));
 		}
 		
 		return this;

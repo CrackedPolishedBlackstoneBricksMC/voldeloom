@@ -41,10 +41,10 @@ public class ShimResourcesTask extends DefaultTask implements LoomTaskExt {
 	public void doIt() throws Exception {
 		LoomGradleExtension ext = getLoomGradleExtension();
 		
-		AssetDownloader assets = ext.getProviderGraph().get(AssetDownloader.class)
-			.downloadAssets();
-		
-		Path resourceSourceDirectory = assets.getAssetsDir();
+		Path resourceSourceDirectory = ext.getProviderGraph()
+			.get(AssetDownloader.class)
+			.downloadAssets() //<-- actually download them now
+			.getAssetsDir();
 		
 		for(Path resourceTargetDirectory : getResourceTargetDirectories()) {
 			Files.walkFileTree(resourceSourceDirectory, new SimpleFileVisitor<Path>() {

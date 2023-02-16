@@ -24,6 +24,7 @@
 
 package net.fabricmc.loom.newprovider;
 
+import com.google.common.base.Preconditions;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.util.mcp.JarScanData;
 import net.fabricmc.loom.util.mcp.McpTinyv2Writer;
@@ -31,6 +32,7 @@ import net.fabricmc.mapping.tree.TinyMappingFactory;
 import net.fabricmc.mapping.tree.TinyTree;
 import org.gradle.api.Project;
 
+import javax.annotation.Nullable;
 import java.io.BufferedReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -46,7 +48,7 @@ public class Tinifier extends NewProvider<Tinifier> {
 	}
 	
 	//inputs
-	private Path jarToScan;
+	private @Nullable Path jarToScan;
 	private MappingsWrapper mappings;
 	private boolean useSrgsAsFallback = false;
 	
@@ -71,6 +73,8 @@ public class Tinifier extends NewProvider<Tinifier> {
 	
 	//procedure
 	public Tinifier tinify() throws Exception {
+		Preconditions.checkNotNull(mappings, "mappings");
+		
 		mappingsFile = getCacheDir().resolve("mappings").resolve(mappings.getPath().getFileName() + mappings.getMappingDiscriminant() + ".tiny");
 		log.info("] mappings destination: {}", mappingsFile);
 		
@@ -84,8 +88,11 @@ public class Tinifier extends NewProvider<Tinifier> {
 				//TODO: its the TINY PASSTHROUGH HACK !!
 				Files.copy(mappings.getPath(), mappingsFile);
 			} else {
-				log.info("|-> Scanning unmapped jar for field types/inner classes...");
-				JarScanData scanData = new JarScanData().scan(jarToScan);
+				@Nullable JarScanData scanData = null;
+				if(jarToScan != null) {
+					log.info("|-> Scanning unmapped jar for field types/inner classes...");
+					scanData = new JarScanData().scan(jarToScan);
+				}
 				
 				log.info("|-> Computing tinyv2 mappings...");
 				List<String> tinyv2 = new McpTinyv2Writer()

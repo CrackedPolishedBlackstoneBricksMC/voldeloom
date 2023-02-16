@@ -1,5 +1,6 @@
 package net.fabricmc.loom.newprovider;
 
+import com.google.common.base.Preconditions;
 import net.fabricmc.loom.LoomGradleExtension;
 import org.gradle.api.Project;
 
@@ -64,6 +65,9 @@ public class Jarmodder extends NewProvider<Jarmodder> {
 	}
 	
 	public Jarmodder patch() throws Exception {
+		Preconditions.checkNotNull(base, "jarmod base");
+		Preconditions.checkNotNull(overlay, "jarmod overlay");
+		
 		patchedVersionTag = mcVersion.getVersion() + "-forge-" + forgeVersion.getVersion();
 		patched = getCacheDir().resolve("minecraft-" + patchedVersionTag + "-jarmod.jar");
 		

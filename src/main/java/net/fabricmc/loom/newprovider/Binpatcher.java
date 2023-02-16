@@ -1,5 +1,6 @@
 package net.fabricmc.loom.newprovider;
 
+import com.google.common.base.Preconditions;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.LoomGradlePlugin;
 import net.fabricmc.loom.util.mcp.Binpatch;
@@ -48,6 +49,9 @@ public class Binpatcher extends NewProvider<Binpatcher> {
 	
 	//procedure
 	public Binpatcher patch() throws Exception {
+		Preconditions.checkNotNull(input, "binpatch input");
+		Preconditions.checkNotNull(binpatches, "binpatches");
+		
 		output = getCacheDir().resolve(LoomGradlePlugin.replaceExtension(input, "-binpatched.jar").getFileName().toString()); //meh
 		cleanOnRefreshDependencies(output);
 		

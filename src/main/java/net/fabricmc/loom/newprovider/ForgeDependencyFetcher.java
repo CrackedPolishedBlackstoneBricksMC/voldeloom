@@ -1,5 +1,6 @@
 package net.fabricmc.loom.newprovider;
 
+import com.google.common.base.Preconditions;
 import net.fabricmc.loom.LoomGradleExtension;
 import org.gradle.api.Project;
 import org.gradle.api.artifacts.dsl.DependencyHandler;
@@ -48,6 +49,8 @@ public class ForgeDependencyFetcher extends NewProvider<ForgeDependencyFetcher> 
 	
 	//procedure
 	public ForgeDependencyFetcher sniff() throws Exception {
+		Preconditions.checkNotNull(forge, "forge version");
+		
 		class LibrarySniffingClassVisitor extends ClassVisitor {
 			public LibrarySniffingClassVisitor(ClassVisitor classVisitor, Collection<String> sniffedLibraries) {
 				super(Opcodes.ASM4, classVisitor);
@@ -95,6 +98,9 @@ public class ForgeDependencyFetcher extends NewProvider<ForgeDependencyFetcher> 
 	}
 	
 	public ForgeDependencyFetcher fetch() throws Exception {
+		Preconditions.checkNotNull(forge, "forge version");
+		Preconditions.checkNotNull(fmlLibrariesBaseUrl, "FML libraries URL");
+		
 		Path forgeLibsFolder = getCacheDir()
 			.resolve("forgeLibs")
 			.resolve(forge.getDepString().replaceAll("[^A-Za-z0-9.-]", "_"));

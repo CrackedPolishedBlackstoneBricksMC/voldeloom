@@ -14,6 +14,21 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 
+/**
+ * Basically "provider" is a catchall term for "something that has to run in afterEvaluate, because doing it
+ * before the buildscript is evaluated is too early to allow the user to it, but doing it during task execution
+ * is too late to configure the dependencies of the project".
+ * <p>
+ * Generally they're "providers" in the sense that they create some jar file, then "provide" it to the
+ * project by adding it as a dependency to some configuration. Generalize this to "providing" an in-memory
+ * set of mappings, or a boolean saying whether this version of forge has binpatches or not, and that's basically it.
+ * <p>
+ * it's "New" provider, because this project used to have an old provider system, and it sucked real ass, so
+ * in like 5 hours of Hyper focus i erased all of it and replaced it with this much better one :3
+ * 
+ * @param <SELF> curiously recurring template pattern
+ * @see ProviderGraph for where the providers are connected together :3
+ */
 public abstract class NewProvider<SELF extends NewProvider<SELF>> {
 	public NewProvider(Project project, LoomGradleExtension extension) {
 		this.project = project;
@@ -31,16 +46,9 @@ public abstract class NewProvider<SELF extends NewProvider<SELF>> {
 	
 	public SELF superProjectmapped(boolean projectmapped) {
 		this.projectmapped |= projectmapped;
-		return self();
-	}
-	
-	/**
-	 * Some support for the curiously recurring template pattern
-	 * @return you!
-	 */
-	@SuppressWarnings("unchecked")
-	protected final SELF self() {
-		return (SELF) this;
+		
+		@SuppressWarnings("unchecked") SELF self = (SELF) this;
+		return self;
 	}
 	
 	protected final Path getCacheDir() {

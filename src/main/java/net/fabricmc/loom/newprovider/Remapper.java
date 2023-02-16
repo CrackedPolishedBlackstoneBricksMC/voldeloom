@@ -24,6 +24,7 @@
 
 package net.fabricmc.loom.newprovider;
 
+import com.google.common.base.Preconditions;
 import net.fabricmc.loom.Constants;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.util.TinyRemapperSession;
@@ -47,9 +48,9 @@ public class Remapper extends NewProvider<Remapper> {
 	}
 	
 	private String mappingsDepString;
-	private String patchedVersionTag;
-	private TinyTree mappings;
-	private Path transformedJar;
+	@Deprecated String patchedVersionTag;
+	private TinyTree tinyTree;
+	private Path inputJar;
 	private Collection<Path> nonNativeLibs;
 	
 	public Remapper mappingsDepString(String mappingsDepString) {
@@ -57,18 +58,18 @@ public class Remapper extends NewProvider<Remapper> {
 		return this;
 	}
 	
-	public Remapper patchedVersionTag(String patchedVersionTag) {
+	@Deprecated public Remapper patchedVersionTag(String patchedVersionTag) {
 		this.patchedVersionTag = patchedVersionTag;
 		return this;
 	}
 	
-	public Remapper mappings(TinyTree mappings) {
-		this.mappings = mappings;
+	public Remapper tinyTree(TinyTree tinyTree) {
+		this.tinyTree = tinyTree;
 		return this;
 	}
 	
-	public Remapper transformedJar(Path transformedJar) {
-		this.transformedJar = transformedJar;
+	public Remapper inputJar(Path inputJar) {
+		this.inputJar = inputJar;
 		return this;
 	}
 	
@@ -91,6 +92,12 @@ public class Remapper extends NewProvider<Remapper> {
 	
 	//procedure
 	public Remapper remap() throws Exception {
+		Preconditions.checkNotNull(mappingsDepString, "mappings dep string"); // ?
+		Preconditions.checkNotNull(patchedVersionTag, "patched version tag");
+		Preconditions.checkNotNull(tinyTree, "tiny tree");
+		Preconditions.checkNotNull(inputJar, "input jar");
+		Preconditions.checkNotNull(nonNativeLibs, "nonNativeLibs"); // ?
+		
 		String mappingsName = mappingsDepString.replaceAll("[^A-Za-z0-9.-]", "_");
 		Path mappedDestDir = getCacheDir().resolve("mapped").resolve(mappingsName);
 		
@@ -118,8 +125,8 @@ public class Remapper extends NewProvider<Remapper> {
 			Files.createDirectories(intermediaryJar.getParent());
 			
 			new TinyRemapperSession()
-				.setMappings(mappings)
-				.setInputJar(transformedJar)
+				.setMappings(tinyTree)
+				.setInputJar(inputJar)
 				.setInputNamingScheme(Constants.PROGUARDED_NAMING_SCHEME)
 				.setInputClasspath(nonNativeLibs)
 				.addOutputJar(Constants.INTERMEDIATE_NAMING_SCHEME, this.intermediaryJar)

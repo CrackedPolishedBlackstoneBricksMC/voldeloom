@@ -26,9 +26,7 @@ package net.fabricmc.loom.util;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import net.fabricmc.loom.LoomGradleExtension;
 
-import java.io.File;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
@@ -68,27 +66,17 @@ public class MinecraftVersionInfo {
 		public JsonObject downloads;
 		private Artifact artifact;
 		public Rule[] rules;
-
-		@Deprecated
-		public String getURL(LoomGradleExtension ext) {
-			String path;
-			String[] parts = this.name.split(":", 3);
-			path = parts[0].replace(".", "/") + "/" + parts[1] + "/" + parts[2] + "/" + parts[1] + "-" + parts[2] + getClassifier() + ".jar";
-			return ext.librariesBaseUrl + path;
-		}
 		
+		/** url pattern that can be appended to mojang's libraries.minecraft.net server */
 		public String getURLSuffix() {
-			String path;
 			String[] parts = this.name.split(":", 3);
-			path = parts[0].replace(".", "/") + "/" + parts[1] + "/" + parts[2] + "/" + parts[1] + "-" + parts[2] + getClassifier() + ".jar";
-			return path;
+			return parts[0].replace(".", "/") + "/" + parts[1] + "/" + parts[2] + "/" + parts[1] + "-" + parts[2] + getClassifier() + ".jar";
 		}
 		
 		public Path getPath(Path basePath) {
-			String[] parts = this.name.split(":", 3);
-			return basePath.resolve(parts[0].replace(".", File.separator) + File.separator + parts[1] + File.separator + parts[2] + File.separator + parts[1] + "-" + parts[2] + getClassifier() + ".jar");
+			return basePath.resolve(name.replaceAll("[^A-Za-z0-9.-]", "_") + ".jar");
 		}
-
+		
 		public String getSha1() {
 			if (this.downloads == null) {
 				return "";

@@ -25,17 +25,10 @@ public class ProviderGraph {
 	private final LoomGradleExtension extension;
 	private final Map<Class<? extends NewProvider<?>>, NewProvider<?>> newProviders = new HashMap<>();
 	
+	//for better or for worse, "globals"
 	public ConfigElementWrapper mc;
 	public ResolvedConfigElementWrapper forge;
 	public MappingsWrapper mappings;
-	
-	public ProviderGraph trySetup() {
-		try {
-			return setup();
-		} catch (Exception e) {
-			throw new RuntimeException("Exception setting up Voldeloom: " + e.getMessage(), e);
-		}
-	}
 	
 	public ProviderGraph setup() throws Exception {
 		log.lifecycle("# Wrapping basic dependencies...");
@@ -95,7 +88,7 @@ public class ProviderGraph {
 			binpatchedServer = vanillaJars.getServerJar();
 		}
 		
-		//TODO 1.2.5 split: - cut here?
+		//TODO 1.2.5 split: - cut here? (nope, i think it's earlier)
 		
 		log.lifecycle("# Merging client and server...");
 		Merger merger = new Merger(project, extension)
@@ -119,7 +112,7 @@ public class ProviderGraph {
 		AccessTransformer transformer = new AccessTransformer(project, extension)
 			.superProjectmapped(patched.projectmapped)
 			.forge(forge)
-			.forgePatched(patched.getPatchedJar())
+			.forgeJarmodded(patched.getPatchedJar())
 			.patchedVersionTag(patched.getPatchedVersionTag())
 			.transform();
 		
@@ -137,8 +130,8 @@ public class ProviderGraph {
 			.mappingsDepString(mappings.getMappingsDepString())
 			.nonNativeLibs(vanillaDeps.getNonNativeLibraries_Todo())
 			.patchedVersionTag(patched.getPatchedVersionTag())
-			.mappings(tinifier.getTinyTree())
-			.transformedJar(transformer.getTransformedJar())
+			.tinyTree(tinifier.getTinyTree())
+			.inputJar(transformer.getTransformedJar())
 			.remap()
 			.installDependenciesToProject(Constants.MINECRAFT_NAMED, project.getDependencies());
 		
@@ -146,12 +139,13 @@ public class ProviderGraph {
 		DependencyRemapper dependencyRemapper = new DependencyRemapper(project, extension)
 			.superProjectmapped(remapper.projectmapped | tinifier.projectmapped | transformer.projectmapped | vanillaDeps.projectmapped)
 			.mappings(mappings)
+			.tinyTree(tinifier.getTinyTree()) //todo: both this and `mappings`?
 			.remappedConfigurationEntries(extension.remappedConfigurationEntries)
-			.tinyTree(tinifier.getTinyTree())
-			.minecraft(transformer.getTransformedJar())
-			.nonNativeLibraries(vanillaDeps.getNonNativeLibraries_Todo())
 			.distributionNamingScheme(extension.forgeCapabilities.computeDistributionNamingScheme())
-			.remapDependencies();
+			.addToRemapClasspath(transformer.getTransformedJar())
+			.addToRemapClasspath(vanillaDeps.getNonNativeLibraries_Todo())
+			.remapDependencies()
+			.installDependenciesToProject(project.getDependencies());
 		
 		log.lifecycle("# Configuring asset downloader...");
 		AssetDownloader assets = new AssetDownloader(project, extension)
@@ -165,6 +159,14 @@ public class ProviderGraph {
 		log.lifecycle("# Thank you for flying Voldeloom.");
 		
 		return this;
+	}
+	
+	public ProviderGraph trySetup() {
+		try {
+			return setup();
+		} catch (Exception e) {
+			throw new RuntimeException("Exception setting up Voldeloom: " + e.getMessage(), e);
+		}
 	}
 	
 	//TODO: Deprecate this too - expose only the needful things to tasks, and keep providers as an implementation detail...

@@ -1,5 +1,6 @@
 package net.fabricmc.loom.newprovider;
 
+import com.google.common.base.Preconditions;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.util.mcp.BinpatchesPack;
 import org.gradle.api.Project;
@@ -19,7 +20,6 @@ public class BinpatchLoader extends NewProvider<BinpatchLoader> {
 		super(project, extension);
 	}
 	
-	//stage 1:
 	//inputs
 	private ResolvedConfigElementWrapper forge;
 	
@@ -41,6 +41,8 @@ public class BinpatchLoader extends NewProvider<BinpatchLoader> {
 	
 	//procedure
 	public BinpatchLoader load() throws Exception {
+		Preconditions.checkNotNull(forge, "forge version");
+		
 		log.info("|-> Examining {} for binpatches.", forge.getPath());
 		
 		try(FileSystem forgeFs = FileSystems.newFileSystem(URI.create("jar:" + forge.getPath().toUri()), Collections.emptyMap())) {

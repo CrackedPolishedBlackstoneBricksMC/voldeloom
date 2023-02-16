@@ -1,5 +1,6 @@
 package net.fabricmc.loom.newprovider;
 
+import com.google.common.base.Preconditions;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.util.MinecraftVersionInfo;
 import net.fabricmc.loom.util.ZipUtil;
@@ -62,6 +63,10 @@ public class VanillaDependencyFetcher extends NewProvider<VanillaDependencyFetch
 	
 	//process
 	public VanillaDependencyFetcher fetch() throws Exception {
+		Preconditions.checkNotNull(mc, "minecraft version");
+		Preconditions.checkNotNull(manifest, "minecraft version manifest");
+		Preconditions.checkNotNull(librariesBaseUrl, "libraries base URL");
+		
 		nativesDir = getCacheDir().resolve("natives").resolve(mc.getVersion());
 		Path nativesJarStore = nativesDir.resolve("jars");
 		
