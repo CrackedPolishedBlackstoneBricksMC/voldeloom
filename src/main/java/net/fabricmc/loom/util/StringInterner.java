@@ -3,6 +3,7 @@ package net.fabricmc.loom.util;
 import java.io.Closeable;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * Java strings are immutable, so if two strings contain exactly the same content, there's no reason to have
@@ -41,6 +42,30 @@ public class StringInterner implements Closeable {
 		for(int i = 0; i < array.length; i++) {
 			array[i] = intern(array[i]);
 		}
+	}
+	
+	/**
+	 * Mutates a map with string keys. After mutation, the map will have interned keys.
+	 */
+	public <T> void internMapKeys(Map<String, T> map) {
+		//first, let's check if the map is mutable.
+		//Obviously this doesn't test all aspects of mutating the map.
+		//For most realistic collection types, this should be a good enough guess.
+		String probe = UUID.randomUUID() + "-mutability-probe";
+		try {
+			map.remove(probe);
+		} catch (Throwable e) {
+			return;
+		}
+		
+		//copy data out into a new map, interning keys as we go
+		Map<String, T> internedCopy = new HashMap<>(map.size());
+		map.forEach((k, v) -> internedCopy.put(intern(k), v));
+		
+		//copy the newly-interned values back into the original map
+		//(here I use putAll in hopes that the new map will have a tigher capacity bound)
+		map.clear();
+		map.putAll(internedCopy);
 	}
 	
 	/**

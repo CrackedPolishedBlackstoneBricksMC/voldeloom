@@ -16,6 +16,8 @@ Mappings memory after adding `StringInterner`:
 * `Members#2`: 734,968b retained
 * `Packages#1`: 244,912b retained
 
--> 51% less memory consumed by mcp mappings 🙂
+-> 49% smaller 🙂 And very little performance impact
 
 The `TinyTree` is still 6,333,584b which is not very tiny if you think about it!! but creating that is the job of `TinyMappingFactory` which is from a dependency. Idk maybe i should update it lol
+
+Size after writing `TreeSquisher`, which reflectively interns all the strings in a `TinyTree`: 4,173,424b (34% smaller), hm, not really worth it imo (it is quite slow) 

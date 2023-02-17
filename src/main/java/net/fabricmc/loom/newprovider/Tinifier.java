@@ -26,6 +26,7 @@ package net.fabricmc.loom.newprovider;
 
 import com.google.common.base.Preconditions;
 import net.fabricmc.loom.LoomGradleExtension;
+import net.fabricmc.loom.util.terrible.TreeSquisher;
 import net.fabricmc.loom.util.mcp.JarScanData;
 import net.fabricmc.loom.util.mcp.McpTinyv2Writer;
 import net.fabricmc.mapping.tree.TinyMappingFactory;
@@ -108,8 +109,14 @@ public class Tinifier extends NewProvider<Tinifier> {
 			}
 		}
 		
+		log.info("|-> Parsing tinyv2 mappings in-memory...");
 		try(BufferedReader buf = Files.newBufferedReader(mappingsFile)) {
 			parsedMappings = TinyMappingFactory.loadWithDetection(buf);
+			
+			if(projectHasProperty("voldeloom.lowMemory")) {
+				log.info("|-> Compressing in-memory representation using reflection crap...");
+				new TreeSquisher().squish(parsedMappings);
+			}
 		}
 		
 		return this;

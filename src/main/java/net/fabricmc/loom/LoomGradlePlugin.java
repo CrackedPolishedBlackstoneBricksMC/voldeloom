@@ -467,6 +467,13 @@ public class LoomGradlePlugin implements Plugin<Project> {
 				}
 			}
 		}
+		
+		try {
+			project.getLogger().lifecycle("SLEEPY TIME !!!!!!!!!!");
+			Thread.sleep(15000);
+		} catch (Throwable e) {
+			throw new RuntimeException(e);
+		}
 	}
 	
 	/**
