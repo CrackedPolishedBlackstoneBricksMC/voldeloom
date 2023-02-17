@@ -1,5 +1,7 @@
 package net.fabricmc.loom.util.mcp;
 
+import net.fabricmc.loom.util.StringInterner;
+
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -15,7 +17,7 @@ import java.util.Objects;
 public class Members {
 	private final Map<String, Entry> members = new HashMap<>();
 	
-	public Members read(Path path) throws IOException {
+	public Members read(Path path, StringInterner mem) throws IOException {
 		List<String> lines = Files.readAllLines(path);
 		for(int i = 0; i < lines.size(); i++) {
 			String line = lines.get(i).trim();
@@ -44,11 +46,12 @@ public class Members {
 			}
 			
 			//and record the entry
-			members.put(split[0], new Entry(
-				split[1],
+			members.put(mem.intern(split[0]), new Entry(
+				mem.intern(split[1]),
 				parsedSide,
 				//Even though the csv has a trailing comma on fields without a comment,
-				//java's split() method will not include an empty string at the end of the array, it will just return a shorter array
+				//java's split() method will not include an empty string at the end of the array, it will just return a shorter array.
+				//Also, lets not waste time trying to intern the comment, they're likely to be unique.
 				split.length == 3 ? null : split[3])
 			);
 		}

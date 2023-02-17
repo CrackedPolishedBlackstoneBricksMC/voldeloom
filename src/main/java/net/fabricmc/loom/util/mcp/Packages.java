@@ -1,5 +1,7 @@
 package net.fabricmc.loom.util.mcp;
 
+import net.fabricmc.loom.util.StringInterner;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -13,7 +15,7 @@ import java.util.Map;
 public class Packages {
 	private final Map<String, String> packages = new HashMap<>();
 	
-	public Packages read(Path path) throws IOException {
+	public Packages read(Path path, StringInterner mem) throws IOException {
 		List<String> lines = Files.readAllLines(path);
 		for(int i = 0; i < lines.size(); i++) {
 			String line = lines.get(i).trim();
@@ -31,7 +33,7 @@ public class Packages {
 			}
 			
 			//I want to store the full name as the value of the map (so, net/minecraft/block/BlockAnvil)
-			packages.put(split[0], split[1] + "/" + split[0]);
+			packages.put(mem.intern(split[0]), mem.intern(split[1] + "/" + split[0]));
 		}
 		
 		return this;

@@ -1,5 +1,7 @@
 package net.fabricmc.loom.util.mcp;
 
+import net.fabricmc.loom.util.StringInterner;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -18,7 +20,7 @@ public class Srg {
 	public final Map<String, Map<FieldEntry, FieldEntry>> fieldMappingsByOwningClass = new LinkedHashMap<>();
 	public final Map<String, Map<MethodEntry, MethodEntry>> methodMappingsByOwningClass = new LinkedHashMap<>();
 	
-	public Srg read(Path path) throws IOException {
+	public Srg read(Path path, StringInterner mem) throws IOException {
 		List<String> lines = Files.readAllLines(path);
 		for(int i = 0; i < lines.size(); i++) {
 			String line = lines.get(i).trim();
@@ -28,15 +30,20 @@ public class Srg {
 			String[] split = line.split(" ");
 			if(split.length < 3) {
 				System.err.println("line " + lineNo + " is too short: " + line);
-			} else if("CL:".equals(split[0])) {
+				continue;
+			}
+			
+			mem.internArray(split);
+			
+			if("CL:".equals(split[0])) {
 				//Example class line:
 				// CL: abk net/minecraft/src/WorldGenDeadBush
 				classMappings.put(split[1], split[2]);
 			} else if("FD:".equals(split[0])) {
 				//Example field line:
 				// FD: abk/a net/minecraft/src/WorldGenDeadBush/field_76516_a
-				FieldEntry from = FieldEntry.parse(split[1]);
-				FieldEntry to = FieldEntry.parse(split[2]);
+				FieldEntry from = FieldEntry.parse(split[1], mem);
+				FieldEntry to = FieldEntry.parse(split[2], mem);
 				fieldMappingsByOwningClass.computeIfAbsent(from.owningClass, __ -> new LinkedHashMap<>())
 					.put(from, to);
 			} else if("MD:".equals(split[0])) {
@@ -46,16 +53,13 @@ public class Srg {
 					System.err.println("line " + lineNo + " is too short for method descriptor: " + line);
 					continue;
 				}
-				MethodEntry from = MethodEntry.parse(split[1], split[2]);
-				MethodEntry to = MethodEntry.parse(split[3], split[4]);
+				MethodEntry from = MethodEntry.parse(split[1], split[2], mem);
+				MethodEntry to = MethodEntry.parse(split[3], split[4], mem);
 				
 				//TODO: KLUDGE for 1.6.4, need to debug. Naming conflicts
 				// (This is accurate to the actual contents of the SRG, btw, there are duplicates)
-				if(to.name.equals("func_130000_a") && from.descriptor.equals("(Lof;DDDFF)V")) {
-					continue;
-				} else if(to.name.equals("func_82408_c") && from.descriptor.equals("(Lof;IF)V")) {
-					continue;
-				}
+				if(to.name.equals("func_130000_a") && from.descriptor.equals("(Lof;DDDFF)V")) continue;
+				else if(to.name.equals("func_82408_c") && from.descriptor.equals("(Lof;IF)V")) continue;
 				
 				methodMappingsByOwningClass.computeIfAbsent(from.owningClass, __ -> new LinkedHashMap<>())
 					.put(from, to);
@@ -88,20 +92,20 @@ public class Srg {
 	}
 	
 	public static class FieldEntry {
-		public FieldEntry(String owningClass, String name) {
-			this.owningClass = owningClass;
-			this.name = name;
+		public FieldEntry(String owningClass, String name, StringInterner mem) {
+			this.owningClass = mem.intern(owningClass);
+			this.name = mem.intern(name);
 		}
 		
 		public final String owningClass; //"internal name" format, with slashes
 		public final String name;
 		
-		public static FieldEntry parse(String unsplit) {
+		public static FieldEntry parse(String unsplit, StringInterner mem) {
 			//SRGs store field entries like this:
 			//net/minecraft/src/PathPoint/field_75839_a
 			//The name of the field is attached to the owning class with a `/`.
 			int i = unsplit.lastIndexOf('/');
-			return new FieldEntry(unsplit.substring(0, i), unsplit.substring(i + 1));
+			return new FieldEntry(unsplit.substring(0, i), unsplit.substring(i + 1), mem);
 		}
 		
 		@Override
@@ -124,20 +128,20 @@ public class Srg {
 	}
 	
 	public static class MethodEntry {
-		public MethodEntry(String owningClass, String name, String descriptor) {
-			this.owningClass = owningClass;
-			this.name = name;
-			this.descriptor = descriptor;
+		public MethodEntry(String owningClass, String name, String descriptor, StringInterner mem) {
+			this.owningClass = mem.intern(owningClass);
+			this.name = mem.intern(name);
+			this.descriptor = mem.intern(descriptor);
 		}
 		
 		public final String owningClass;
 		public final String name;
 		public final String descriptor;
 		
-		public static MethodEntry parse(String unsplit, String descriptor) {
+		public static MethodEntry parse(String unsplit, String descriptor, StringInterner mem) {
 			//Method names are stored the same way as field names, attached with a `/`
 			int i = unsplit.lastIndexOf('/');
-			return new MethodEntry(unsplit.substring(0, i), unsplit.substring(i + 1), descriptor);
+			return new MethodEntry(unsplit.substring(0, i), unsplit.substring(i + 1), descriptor, mem);
 		}
 		
 		@Override

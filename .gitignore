@@ -19,6 +19,7 @@
 *.iml
 /quat_notes/work
 /quat_notes/work/*
+*.hprof
 
 # Dammit krita
 *.png~

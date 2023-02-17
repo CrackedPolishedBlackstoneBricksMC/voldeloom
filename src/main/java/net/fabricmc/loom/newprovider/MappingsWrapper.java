@@ -2,6 +2,7 @@ package net.fabricmc.loom.newprovider;
 
 import net.fabricmc.loom.Constants;
 import net.fabricmc.loom.LoomGradleExtension;
+import net.fabricmc.loom.util.StringInterner;
 import net.fabricmc.loom.util.mcp.Members;
 import net.fabricmc.loom.util.mcp.Packages;
 import net.fabricmc.loom.util.mcp.Srg;
@@ -41,6 +42,7 @@ public class MappingsWrapper extends ResolvedConfigElementWrapper {
 				log.warn("MAPPINGS ALREADY TINYv2 I THINK!!!!! Fyi it should probably contain {} {} {} headers", Constants.PROGUARDED_NAMING_SCHEME, Constants.INTERMEDIATE_NAMING_SCHEME, Constants.MAPPED_NAMING_SCHEME);
 				alreadyTinyv2 = true;
 			} else {
+				StringInterner strings = new StringInterner();
 				
 				Path conf;
 				if(Files.exists(mcpZipFs.getPath("forge/fml/conf"))) {
@@ -56,15 +58,15 @@ public class MappingsWrapper extends ResolvedConfigElementWrapper {
 				
 				log.info("|-> Reading joined.srg...");
 				if(Files.exists(conf.resolve("joined.srg"))) {
-					joined = new Srg().read(conf.resolve("joined.srg"));
+					joined = new Srg().read(conf.resolve("joined.srg"), strings);
 				} else {
 					//just assume we're manually merging a client and server srg
 					//TODO: newids?
 					log.info("\\-> No joined.srg exists. Reading client.srg...");
-					Srg client = new Srg().read(conf.resolve("client.srg"));
+					Srg client = new Srg().read(conf.resolve("client.srg"), strings);
 					
 					log.info("\\-> Reading server.srg...");
-					Srg server = new Srg().read(conf.resolve("server.srg"));
+					Srg server = new Srg().read(conf.resolve("server.srg"), strings);
 					
 					log.info("\\-> Manually joining srgs...");
 					joined = client.mergeWith(server);
@@ -76,19 +78,20 @@ public class MappingsWrapper extends ResolvedConfigElementWrapper {
 				}
 				
 				log.info("|-> Reading fields.csv...");
-				fields = new Members().read(conf.resolve("fields.csv"));
+				fields = new Members().read(conf.resolve("fields.csv"), strings);
 				
 				log.info("|-> Reading methods.csv...");
-				methods = new Members().read(conf.resolve("methods.csv"));
+				methods = new Members().read(conf.resolve("methods.csv"), strings);
 				
 				log.info("|-> Reading packages.csv...");
 				if(Files.exists(conf.resolve("packages.csv"))) {
-					packages = new Packages().read(conf.resolve("packages.csv"));
+					packages = new Packages().read(conf.resolve("packages.csv"), strings);
 				} else {
 					log.info("\\-> No packages.csv exists.");
 					packages = null;
 				}
 				
+				strings.close();
 				log.info("|-> Done!");
 			}
 		}
