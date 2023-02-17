@@ -27,7 +27,7 @@ package net.fabricmc.loom.newprovider;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import net.fabricmc.loom.LoomGradleExtension;
-import net.fabricmc.loom.util.MinecraftVersionInfo;
+import net.fabricmc.loom.util.VersionManifest;
 import org.gradle.api.Project;
 
 import java.io.BufferedReader;
@@ -46,7 +46,7 @@ public class AssetDownloader extends NewProvider<AssetDownloader> {
 	}
 	
 	//inputs
-	private MinecraftVersionInfo versionManifest;
+	private VersionManifest versionManifest;
 	private String resourcesBaseUrl;
 	
 	//outputs
@@ -58,7 +58,7 @@ public class AssetDownloader extends NewProvider<AssetDownloader> {
 		return this;
 	}
 	
-	public AssetDownloader versionManifest(MinecraftVersionInfo versionManifest) {
+	public AssetDownloader versionManifest(VersionManifest versionManifest) {
 		this.versionManifest = versionManifest;
 		return this;
 	}

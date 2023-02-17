@@ -37,7 +37,7 @@ import java.util.Map;
  * This class is intended to be deserialized with Google GSON.
  */
 @SuppressWarnings("unused")
-public class MinecraftVersionInfo {
+public class VersionManifest {
 	public List<Library> libraries;
 	public Map<String, Downloads> downloads;
 	public AssetIndex assetIndex;

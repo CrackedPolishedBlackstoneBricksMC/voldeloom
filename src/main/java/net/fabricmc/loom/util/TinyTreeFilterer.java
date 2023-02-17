@@ -35,16 +35,12 @@ import net.fabricmc.tinyremapper.IMappingProvider;
 /**
  * Utilities for bridging tiny-mappings-parser and tiny-remapper data structures.
  * <p>
- * Also (TODO) currently the home of about ten kludges.
+ * Mainly, it takes a TinyTree (which can contain any number of naming schemes) and filters out two of them.
  */
-public class TinyRemapperMappingsHelper {
-	private TinyRemapperMappingsHelper() { }
+public class TinyTreeFilterer {
+	private TinyTreeFilterer() { }
 
-	private static IMappingProvider.Member memberOf(String className, String memberName, String descriptor) {
-		return new IMappingProvider.Member(className, memberName, descriptor);
-	}
-
-	public static IMappingProvider create(TinyTree mappings, String from, String to, boolean remapLocalVariables) {
+	public static IMappingProvider filter(TinyTree mappings, String from, String to, boolean remapLocalVariables) {
 		return (acceptor) -> {
 			for (ClassDef classDef : mappings.getClasses()) {
 				String className = classDef.getName(from);
@@ -52,11 +48,11 @@ public class TinyRemapperMappingsHelper {
 				acceptor.acceptClass(className, classDef.getName(to));
 
 				for (FieldDef field : classDef.getFields()) {
-					acceptor.acceptField(memberOf(className, field.getName(from), field.getDescriptor(from)), field.getName(to));
+					acceptor.acceptField(new IMappingProvider.Member(className, field.getName(from), field.getDescriptor(from)), field.getName(to));
 				}
 
 				for (MethodDef method : classDef.getMethods()) {
-					IMappingProvider.Member methodIdentifier = memberOf(className, method.getName(from), method.getDescriptor(from));
+					IMappingProvider.Member methodIdentifier = new IMappingProvider.Member(className, method.getName(from), method.getDescriptor(from));
 					acceptor.acceptMethod(methodIdentifier, method.getName(to));
 
 					if (remapLocalVariables) {

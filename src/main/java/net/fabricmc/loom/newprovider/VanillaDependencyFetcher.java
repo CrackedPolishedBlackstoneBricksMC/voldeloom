@@ -2,7 +2,7 @@ package net.fabricmc.loom.newprovider;
 
 import com.google.common.base.Preconditions;
 import net.fabricmc.loom.LoomGradleExtension;
-import net.fabricmc.loom.util.MinecraftVersionInfo;
+import net.fabricmc.loom.util.VersionManifest;
 import net.fabricmc.loom.util.ZipUtil;
 import org.gradle.api.Project;
 import org.gradle.api.artifacts.dsl.DependencyHandler;
@@ -23,14 +23,14 @@ public class VanillaDependencyFetcher extends NewProvider<VanillaDependencyFetch
 	}
 	
 	//inputs
-	private MinecraftVersionInfo manifest;
+	private VersionManifest manifest;
 	private String librariesBaseUrl;
 	
 	//outputs
 	private Path nativesDir;
 	private final Collection<String> mavenDependencies = new ArrayList<>();
 	
-	public VanillaDependencyFetcher manifest(MinecraftVersionInfo manifest) {
+	public VanillaDependencyFetcher manifest(VersionManifest manifest) {
 		this.manifest = manifest;
 		return this;
 	}
@@ -71,7 +71,7 @@ public class VanillaDependencyFetcher extends NewProvider<VanillaDependencyFetch
 		Path nativesJarStore = nativesDir.resolve("jars");
 		Files.createDirectories(nativesJarStore);
 		
-		for(MinecraftVersionInfo.Library library : manifest.libraries) {
+		for(VersionManifest.Library library : manifest.libraries) {
 			if(!library.allowed()) continue;
 			
 			if(library.isNative()) {

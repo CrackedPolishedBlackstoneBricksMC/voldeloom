@@ -3,7 +3,7 @@ package net.fabricmc.loom.newprovider;
 import com.google.common.base.Preconditions;
 import com.google.gson.Gson;
 import net.fabricmc.loom.LoomGradleExtension;
-import net.fabricmc.loom.util.MinecraftVersionInfo;
+import net.fabricmc.loom.util.VersionManifest;
 import org.gradle.api.Project;
 
 import javax.annotation.Nullable;
@@ -27,7 +27,7 @@ public class VanillaJarFetcher extends NewProvider<VanillaJarFetcher> {
 	//outputs
 	private Path clientJar;
 	private Path serverJar;
-	private MinecraftVersionInfo versionManifest;
+	private VersionManifest versionManifest;
 	
 	public VanillaJarFetcher mc(ConfigElementWrapper mc) {
 		this.mc = mc;
@@ -60,7 +60,7 @@ public class VanillaJarFetcher extends NewProvider<VanillaJarFetcher> {
 		return serverJar;
 	}
 	
-	public MinecraftVersionInfo getVersionManifest() {
+	public VersionManifest getVersionManifest() {
 		return versionManifest;
 	}
 	
@@ -120,7 +120,7 @@ public class VanillaJarFetcher extends NewProvider<VanillaJarFetcher> {
 		
 		log.info("|-> Parsing per-version manifest...");
 		try(BufferedReader reader = Files.newBufferedReader(thisVersionManifestJson)) {
-			versionManifest = new Gson().fromJson(reader, MinecraftVersionInfo.class);
+			versionManifest = new Gson().fromJson(reader, VersionManifest.class);
 		}
 		
 		log.info("|-> Downloading Minecraft {} client jar...", mc.getVersion());

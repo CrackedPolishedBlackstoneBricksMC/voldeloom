@@ -5,7 +5,7 @@ import net.fabricmc.loom.RunConfig;
 import net.fabricmc.loom.WellKnownLocations;
 import net.fabricmc.loom.newprovider.ConfigElementWrapper;
 import net.fabricmc.loom.util.LoomTaskExt;
-import net.fabricmc.loom.util.MinecraftVersionInfo;
+import net.fabricmc.loom.util.VersionManifest;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.tasks.OutputFile;
 import org.gradle.api.tasks.TaskAction;
@@ -42,7 +42,7 @@ public class GenDevLaunchInjectorConfigsTask extends DefaultTask implements Loom
 	@TaskAction
 	public void doIt() throws IOException {
 		ConfigElementWrapper mc = getLoomGradleExtension().getProviderGraph().mc;
-		MinecraftVersionInfo versionManifest = getLoomGradleExtension().getProviderGraph().versionManifest;
+		VersionManifest versionManifest = getLoomGradleExtension().getProviderGraph().versionManifest;
 		Path nativesDir = getLoomGradleExtension().getProviderGraph().mcNativesDir;
 		
 		LaunchConfig launchConfig = new LaunchConfig();

@@ -2,7 +2,7 @@ package net.fabricmc.loom.newprovider;
 
 import net.fabricmc.loom.Constants;
 import net.fabricmc.loom.LoomGradleExtension;
-import net.fabricmc.loom.util.MinecraftVersionInfo;
+import net.fabricmc.loom.util.VersionManifest;
 import org.gradle.api.Project;
 import org.gradle.api.logging.Logger;
 
@@ -34,7 +34,7 @@ public class ProviderGraph {
 	public MappingsWrapper mappings;
 	
 	//and these ones get set a little later, but still within the setup() method. so they should be ok to use from outside.
-	public MinecraftVersionInfo versionManifest;
+	public VersionManifest versionManifest;
 	public Path mcNativesDir;
 	public Collection<Path> mcNonNativeDependencies_Todo;
 	

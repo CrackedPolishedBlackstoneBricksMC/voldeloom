@@ -117,7 +117,7 @@ public class TinyRemapperSession {
 			logger.accept("    \\-> remapping to '" + outputNamingScheme + "' names, and saving to " + outputJar);
 			
 			TinyRemapper remapper = TinyRemapper.newRemapper()
-				.withMappings(TinyRemapperMappingsHelper.create(mappings, inputNamingScheme, outputNamingScheme, remapLocalVariables))
+				.withMappings(TinyTreeFilterer.filter(mappings, inputNamingScheme, outputNamingScheme, remapLocalVariables))
 				.renameInvalidLocals(true)
 				.rebuildSourceFilenames(true)
 				.ignoreFieldDesc(true) //Kinda half-emulates MCP's behavior of textual remapping (and SRGs don't have field descs), TODO configurable maybe
