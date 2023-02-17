@@ -81,9 +81,9 @@ public class Tinifier extends NewProvider<Tinifier> {
 		
 		cleanOnRefreshDependencies(mappingsFile);
 		
-		Files.createDirectories(mappingsFile.getParent());
 		if(Files.notExists(mappingsFile)) {
 			log.info("|-> Mappings file does not exist, writing...");
+			Files.createDirectories(mappingsFile.getParent());
 			
 			if(mappings.isAlreadyTinyv2()) {
 				//TODO: its the TINY PASSTHROUGH HACK !!

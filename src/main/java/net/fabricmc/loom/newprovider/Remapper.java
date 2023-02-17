@@ -47,21 +47,13 @@ public class Remapper extends NewProvider<Remapper> {
 		super(project, extension);
 	}
 	
-	private String mappingsDepString;
-	@Deprecated String patchedVersionTag;
 	private TinyTree tinyTree;
 	private Path inputJar;
 	private Collection<Path> nonNativeLibs;
 	
-	public Remapper mappingsDepString(String mappingsDepString) {
-		this.mappingsDepString = mappingsDepString;
-		return this;
-	}
-	
-	@Deprecated public Remapper patchedVersionTag(String patchedVersionTag) {
-		this.patchedVersionTag = patchedVersionTag;
-		return this;
-	}
+	//outputs
+	private Path mappedJar;
+	private Path intermediaryJar;
 	
 	public Remapper tinyTree(TinyTree tinyTree) {
 		this.tinyTree = tinyTree;
@@ -78,9 +70,15 @@ public class Remapper extends NewProvider<Remapper> {
 		return this;
 	}
 	
-	//outputs
-	private Path mappedJar;
-	private Path intermediaryJar;
+	public Remapper mappedJarName(String mappingType, String mappedJarName) {
+		this.mappedJar = getCacheDir().resolve("mapped").resolve(mappingType).resolve(mappedJarName);
+		return this;
+	}
+	
+	public Remapper intermediaryJarName(String mappingType, String intermediaryJarName) {
+		this.intermediaryJar = getCacheDir().resolve("mapped").resolve(mappingType).resolve(intermediaryJarName);
+		return this;
+	}
 	
 	public Path getMappedJar() {
 		return mappedJar;
@@ -92,19 +90,9 @@ public class Remapper extends NewProvider<Remapper> {
 	
 	//procedure
 	public Remapper remap() throws Exception {
-		Preconditions.checkNotNull(mappingsDepString, "mappings dep string"); // ?
-		Preconditions.checkNotNull(patchedVersionTag, "patched version tag");
 		Preconditions.checkNotNull(tinyTree, "tiny tree");
 		Preconditions.checkNotNull(inputJar, "input jar");
 		Preconditions.checkNotNull(nonNativeLibs, "nonNativeLibs"); // ?
-		
-		String mappingsName = mappingsDepString.replaceAll("[^A-Za-z0-9.-]", "_");
-		Path mappedDestDir = getCacheDir().resolve("mapped").resolve(mappingsName);
-		
-		//TODO improve how the filename is handled (why do i need to put minecraft- again)
-		// Also TODO, do I need an intermediary jar?
-		intermediaryJar = mappedDestDir.resolve(String.format("minecraft-%s-%s.jar", patchedVersionTag, Constants.INTERMEDIATE_NAMING_SCHEME));
-		mappedJar = mappedDestDir.resolve(String.format("minecraft-%s-%s.jar", patchedVersionTag, Constants.MAPPED_NAMING_SCHEME));
 		
 		cleanOnRefreshDependencies(intermediaryJar, mappedJar);
 		

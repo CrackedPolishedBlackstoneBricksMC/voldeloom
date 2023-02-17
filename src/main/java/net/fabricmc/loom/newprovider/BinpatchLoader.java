@@ -21,10 +21,10 @@ public class BinpatchLoader extends NewProvider<BinpatchLoader> {
 	}
 	
 	//inputs
-	private ResolvedConfigElementWrapper forge;
+	private Path forgeJar;
 	
-	public BinpatchLoader forge(ResolvedConfigElementWrapper forge) {
-		this.forge = forge;
+	public BinpatchLoader forgeJar(Path forgeJar) {
+		this.forgeJar = forgeJar;
 		return this;
 	}
 	
@@ -41,11 +41,11 @@ public class BinpatchLoader extends NewProvider<BinpatchLoader> {
 	
 	//procedure
 	public BinpatchLoader load() throws Exception {
-		Preconditions.checkNotNull(forge, "forge version");
+		Preconditions.checkNotNull(forgeJar, "forge jar");
 		
-		log.info("|-> Examining {} for binpatches.", forge.getPath());
+		log.info("|-> Examining {} for binpatches.", forgeJar);
 		
-		try(FileSystem forgeFs = FileSystems.newFileSystem(URI.create("jar:" + forge.getPath().toUri()), Collections.emptyMap())) {
+		try(FileSystem forgeFs = FileSystems.newFileSystem(URI.create("jar:" + forgeJar.toUri()), Collections.emptyMap())) {
 			Path binpatchesPath = forgeFs.getPath("binpatches.pack.lzma");
 			if(Files.exists(binpatchesPath)) {
 				log.info("\\-> Yes, it contains binpatches. Parsing.");

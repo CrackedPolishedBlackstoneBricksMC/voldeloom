@@ -30,11 +30,16 @@ public class ForgeDependencyFetcher extends NewProvider<ForgeDependencyFetcher> 
 	}
 	
 	//inputs
-	private ResolvedConfigElementWrapper forge;
+	private Path forgeJar;
 	private String fmlLibrariesBaseUrl;
 	
-	public ForgeDependencyFetcher forge(ResolvedConfigElementWrapper forge) {
-		this.forge = forge;
+	//outputs
+	private Path extractedLibrariesDir;
+	private final Collection<String> sniffedLibraries = new ArrayList<>();
+	private final Collection<Path> resolvedLibraries = new ArrayList<>();
+	
+	public ForgeDependencyFetcher forgeJar(Path forgeJar) {
+		this.forgeJar = forgeJar;
 		return this;
 	}
 	
@@ -43,13 +48,14 @@ public class ForgeDependencyFetcher extends NewProvider<ForgeDependencyFetcher> 
 		return this;
 	}
 	
-	//outputs
-	private final Collection<String> sniffedLibraries = new ArrayList<>();
-	private final Collection<Path> resolvedLibraries = new ArrayList<>();
+	public ForgeDependencyFetcher extractedLibrariesDirname(String extractedLibrariesDirname) {
+		this.extractedLibrariesDir = getCacheDir().resolve("forgeLibs").resolve(extractedLibrariesDirname);
+		return this;
+	}
 	
 	//procedure
 	public ForgeDependencyFetcher sniff() throws Exception {
-		Preconditions.checkNotNull(forge, "forge version");
+		Preconditions.checkNotNull(forgeJar, "forge jar");
 		
 		class LibrarySniffingClassVisitor extends ClassVisitor {
 			public LibrarySniffingClassVisitor(ClassVisitor classVisitor, Collection<String> sniffedLibraries) {
@@ -79,7 +85,7 @@ public class ForgeDependencyFetcher extends NewProvider<ForgeDependencyFetcher> 
 			}
 		}
 		
-		try(FileSystem forgeFs = FileSystems.newFileSystem(URI.create("jar:" + forge.getPath().toUri()), Collections.emptyMap())) {
+		try(FileSystem forgeFs = FileSystems.newFileSystem(URI.create("jar:" + forgeJar.toUri()), Collections.emptyMap())) {
 			//read from magical hardcoded path inside the forge jar; this is where the auto-downloaded library paths are stored
 			//TODO: applies from forge 1.3 through forge 1.5, dropped in 1.6
 			//TODO: at least 1.5 includes additional "deobfuscation data" zip dep, but also contains a sys property to change download mirror
@@ -98,18 +104,14 @@ public class ForgeDependencyFetcher extends NewProvider<ForgeDependencyFetcher> 
 	}
 	
 	public ForgeDependencyFetcher fetch() throws Exception {
-		Preconditions.checkNotNull(forge, "forge version");
+		Preconditions.checkNotNull(extractedLibrariesDir, "extracted libraries dir");
 		Preconditions.checkNotNull(fmlLibrariesBaseUrl, "FML libraries URL");
 		
-		Path forgeLibsFolder = getCacheDir()
-			.resolve("forgeLibs")
-			.resolve(forge.getDepString().replaceAll("[^A-Za-z0-9.-]", "_"));
+		cleanOnRefreshDependencies(extractedLibrariesDir);
+		Files.createDirectories(extractedLibrariesDir);
 		
-		cleanOnRefreshDependencies(forgeLibsFolder);
-		
-		Files.createDirectories(forgeLibsFolder);
 		for(String lib : sniffedLibraries) {
-			Path dest = forgeLibsFolder.resolve(lib);
+			Path dest = extractedLibrariesDir.resolve(lib);
 			resolvedLibraries.add(dest);
 			
 			newDownloadSession(fmlLibrariesBaseUrl + lib)

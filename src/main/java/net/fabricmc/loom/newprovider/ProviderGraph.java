@@ -5,6 +5,7 @@ import net.fabricmc.loom.LoomGradleExtension;
 import org.gradle.api.Project;
 import org.gradle.api.logging.Logger;
 
+import javax.annotation.Nullable;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
@@ -39,24 +40,30 @@ public class ProviderGraph {
 		mappings = new MappingsWrapper(project, extension, project.getConfigurations().getByName(Constants.MAPPINGS));
 		
 		log.lifecycle("# Fetching vanilla jars and indexes...");
+		
+		String mcPrefix = "minecraft-" + mc.getFilenameSafeVersion();
+		
 		VanillaJarFetcher vanillaJars = new VanillaJarFetcher(project, extension)
 			.mc(mc)
 			.customManifestUrl(extension.customManifestUrl)
+			.clientFilename(mcPrefix + "-client.jar")
+			.serverFilename(mcPrefix + "-server.jar")
 			.fetch();
 		
 		log.lifecycle("# Fetching vanilla dependencies...");
 		VanillaDependencyFetcher vanillaDeps = new VanillaDependencyFetcher(project, extension)
-			.superProjectmapped(vanillaJars.projectmapped)
-			.mc(mc)
+			.superProjectmapped(vanillaJars.isProjectmapped())
 			.manifest(vanillaJars.getVersionManifest())
 			.librariesBaseUrl(extension.librariesBaseUrl)
+			.nativesDirname(mc.getFilenameSafeVersion())
 			.fetch()
 			.installDependenciesToProject(Constants.MINECRAFT_DEPENDENCIES, project.getDependencies());
 		
 		log.lifecycle("# Fetching Forge's dependencies...");
 		ForgeDependencyFetcher forgeDeps = new ForgeDependencyFetcher(project, extension)
-			.forge(forge)
+			.forgeJar(forge.getPath())
 			.fmlLibrariesBaseUrl(extension.fmlLibrariesBaseUrl)
+			.extractedLibrariesDirname(forge.getFilenameSafeDepString())
 			.sniff()
 			.fetch()
 			.installDependenciesToProject(Constants.FORGE_DEPENDENCIES, project.getDependencies());
@@ -64,21 +71,23 @@ public class ProviderGraph {
 		log.lifecycle("# Binpatching?");
 		Path binpatchedClient, binpatchedServer;
 		BinpatchLoader binpatchLoader = new BinpatchLoader(project, extension)
-			.forge(forge)
+			.forgeJar(forge.getPath())
 			.load();
 		
 		if(binpatchLoader.hasBinpatches()) {
 			log.lifecycle("## Binpatching.");
 			binpatchedClient = new Binpatcher(project, extension)
-				.superProjectmapped(vanillaJars.projectmapped | binpatchLoader.projectmapped)
+				.superProjectmapped(vanillaJars.isProjectmapped() | binpatchLoader.isProjectmapped())
 				.input(vanillaJars.getClientJar())
+				.outputFilename(mcPrefix + "-client-binpatched.jar")
 				.binpatches(binpatchLoader.getBinpatches().clientBinpatches)
 				.patch()
 				.getOutput();
 			
 			binpatchedServer = new Binpatcher(project, extension)
-				.superProjectmapped(vanillaJars.projectmapped | binpatchLoader.projectmapped)
+				.superProjectmapped(vanillaJars.isProjectmapped() | binpatchLoader.isProjectmapped())
 				.input(vanillaJars.getServerJar())
+				.outputFilename(mcPrefix + "-server-binpatched.jar")
 				.binpatches(binpatchLoader.getBinpatches().serverBinpatches)
 				.patch()
 				.getOutput();
@@ -92,33 +101,42 @@ public class ProviderGraph {
 		
 		log.lifecycle("# Merging client and server...");
 		Merger merger = new Merger(project, extension)
-			.superProjectmapped(vanillaJars.projectmapped | binpatchLoader.projectmapped)
+			.superProjectmapped(vanillaJars.isProjectmapped() | binpatchLoader.isProjectmapped())
 			.client(binpatchedClient)
 			.server(binpatchedServer)
-			.mc(mc)
+			.mergedFilename(mcPrefix + "-merged.jar")
 			.merge();
 		
 		//TODO: Post-1.6, i think installing it like a jarmod is not strictly correct. Forge should get on the classpath some other way
 		log.lifecycle("# Jarmodding...");
-		Jarmodder patched = new Jarmodder(project, extension)
-			.superProjectmapped(merger.projectmapped)
+		
+		String jarmoddedPrefix = mcPrefix + "-forge-" + forge.getFilenameSafeVersion();
+		
+		Jarmodder jarmod = new Jarmodder(project, extension)
+			.superProjectmapped(merger.isProjectmapped())
 			.base(merger.getMerged())
 			.overlay(forge.getPath())
-			.mc(mc)
-			.forge(forge)
+			.jarmoddedFilename(jarmoddedPrefix + "-jarmod.jar")
 			.patch();
 		
 		log.lifecycle("# Applying access transformers...");
 		AccessTransformer transformer = new AccessTransformer(project, extension)
-			.superProjectmapped(patched.projectmapped)
-			.forge(forge)
-			.forgeJarmodded(patched.getPatchedJar())
-			.patchedVersionTag(patched.getPatchedVersionTag())
+			.superProjectmapped(jarmod.isProjectmapped())
+			.loadCustomAccessTransformers();
+		
+		String accessTransformedPrefix = jarmoddedPrefix + "-atd";
+		@Nullable String atHash = transformer.getCustomAccessTransformerHash();
+		if(atHash != null) accessTransformedPrefix += "-" + atHash;
+		
+		transformer
+			.regularForgeJar(forge.getPath())
+			.forgeJarmodded(jarmod.getJarmoddedJar())
+			.transformedFilename(accessTransformedPrefix + ".jar")
 			.transform();
 		
 		log.lifecycle("# Converting mappings to tinyv2...");
 		Tinifier tinifier = new Tinifier(project, extension)
-			.superProjectmapped(transformer.projectmapped)
+			.superProjectmapped(transformer.isProjectmapped())
 			.jarToScan(transformer.getTransformedJar())
 			.mappings(mappings)
 			.useSrgsAsFallback(extension.forgeCapabilities.useSrgsAsFallback())
@@ -126,10 +144,10 @@ public class ProviderGraph {
 		
 		log.lifecycle("# Remapping Minecraft...");
 		Remapper remapper = new Remapper(project, extension)
-			.superProjectmapped(tinifier.projectmapped | patched.projectmapped | transformer.projectmapped)
-			.mappingsDepString(mappings.getMappingsDepString())
+			.superProjectmapped(tinifier.isProjectmapped() | jarmod.isProjectmapped() | transformer.isProjectmapped())
 			.nonNativeLibs(vanillaDeps.getNonNativeLibraries_Todo())
-			.patchedVersionTag(patched.getPatchedVersionTag())
+			.intermediaryJarName(mappings.getFilenameSafeDepString(), accessTransformedPrefix + "-" + Constants.INTERMEDIATE_NAMING_SCHEME + ".jar")
+			.mappedJarName(      mappings.getFilenameSafeDepString(), accessTransformedPrefix + "-" + Constants.MAPPED_NAMING_SCHEME + ".jar")
 			.tinyTree(tinifier.getTinyTree())
 			.inputJar(transformer.getTransformedJar())
 			.remap()
@@ -137,9 +155,9 @@ public class ProviderGraph {
 		
 		log.lifecycle("# Remapping mod dependencies...");
 		DependencyRemapper dependencyRemapper = new DependencyRemapper(project, extension)
-			.superProjectmapped(remapper.projectmapped | tinifier.projectmapped | transformer.projectmapped | vanillaDeps.projectmapped)
-			.mappings(mappings)
-			.tinyTree(tinifier.getTinyTree()) //todo: both this and `mappings`?
+			.superProjectmapped(remapper.isProjectmapped() | tinifier.isProjectmapped() | transformer.isProjectmapped() | vanillaDeps.isProjectmapped())
+			.mappingsSuffix(mappings.getFilenameSafeDepString())
+			.tinyTree(tinifier.getTinyTree())
 			.remappedConfigurationEntries(extension.remappedConfigurationEntries)
 			.distributionNamingScheme(extension.forgeCapabilities.computeDistributionNamingScheme())
 			.addToRemapClasspath(transformer.getTransformedJar())
@@ -149,10 +167,10 @@ public class ProviderGraph {
 		
 		log.lifecycle("# Configuring asset downloader...");
 		AssetDownloader assets = new AssetDownloader(project, extension)
-			.mc(mc)
+			.assetIndexFilename(vanillaJars.getVersionManifest().assetIndex.getFabricId(mc.getVersion()) + ".json")
 			.versionManifest(vanillaJars.getVersionManifest())
-			.resourcesBaseUrl(extension.resourcesBaseUrl)
-			.computePaths(); //Don't download assets just yet - a gradle task will do this later on the client
+			.resourcesBaseUrl(extension.resourcesBaseUrl);
+			//.downloadAssets(); //Don't download assets just yet - a gradle task will do this later on the client
 		
 		makeAvailableToTasks(vanillaJars, vanillaDeps, forgeDeps, transformer, tinifier, remapper, assets);
 		

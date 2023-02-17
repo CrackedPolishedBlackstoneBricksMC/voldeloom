@@ -41,14 +41,14 @@ public class DependencyRemapper extends NewProvider<DependencyRemapper> {
 	}
 	
 	//inputs
-	private MappingsWrapper mappingsWrapper;
+	private String mappingsSuffix;
 	private TinyTree tinyTree;
 	private Iterable<RemappedConfigurationEntry> remappedConfigurationEntries;
 	private String distributionNamingScheme;
 	private final Set<Path> remapClasspath = new HashSet<>();
 	
-	public DependencyRemapper mappings(MappingsWrapper mappingsWrapper) {
-		this.mappingsWrapper = mappingsWrapper;
+	public DependencyRemapper mappingsSuffix(String mappingsSuffix) {
+		this.mappingsSuffix = mappingsSuffix;
 		return this;
 	}
 	
@@ -89,14 +89,13 @@ public class DependencyRemapper extends NewProvider<DependencyRemapper> {
 	private final List<RemappingJob> finishedRemaps = new ArrayList<>();
 	
 	public DependencyRemapper remapDependencies() throws Exception {
-		Preconditions.checkNotNull(mappingsWrapper, "mappings version");
+		Preconditions.checkNotNull(mappingsSuffix, "mappings suffix");
 		Preconditions.checkNotNull(tinyTree, "tiny tree");
 		Preconditions.checkNotNull(remappedConfigurationEntries, "remapped configuration entries");
 		Preconditions.checkNotNull(distributionNamingScheme, "distribution naming scheme");
 		
 		List<RemappingJob> jobs = new ArrayList<>();
 		
-		String mappingsSuffix = mappingsWrapper.getMappingsDepString().replaceAll("[^A-Za-z0-9.-]", "_");
 		Path remappedModCache = getRemappedModCache();
 		cleanOnRefreshDependencies(remappedModCache);
 		

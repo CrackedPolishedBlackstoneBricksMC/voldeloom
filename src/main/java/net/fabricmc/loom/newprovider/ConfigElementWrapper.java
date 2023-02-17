@@ -53,4 +53,12 @@ public class ConfigElementWrapper {
 	public String getVersion() {
 		return version;
 	}
+	
+	public String getFilenameSafeDepString() {
+		return depString.replaceAll("[^A-Za-z0-9.+-]", "_");
+	}
+	
+	public String getFilenameSafeVersion() {
+		return version.replaceAll("[^A-Za-z0-9.+-]", "_");
+	}
 }

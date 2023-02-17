@@ -36,7 +36,9 @@ public class Merger extends NewProvider<Merger> {
 	
 	//inputs
 	private Path clientJar, serverJar;
-	private ConfigElementWrapper mc;
+	
+	//outputs
+	private Path merged;
 	
 	public Merger client(Path clientJar) {
 		this.clientJar = clientJar;
@@ -48,14 +50,10 @@ public class Merger extends NewProvider<Merger> {
 		return this;
 	}
 	
-	//TODO: remove this, find some other way of picking the filename lol
-	public Merger mc(ConfigElementWrapper mc) {
-		this.mc = mc;
+	public Merger mergedFilename(String mergedFilename) {
+		this.merged = getCacheDir().resolve(mergedFilename);
 		return this;
 	}
-	
-	//outputs
-	private Path merged;
 	
 	public Path getMerged() {
 		return merged;
@@ -66,7 +64,6 @@ public class Merger extends NewProvider<Merger> {
 		Preconditions.checkNotNull(clientJar, "client jar");
 		Preconditions.checkNotNull(serverJar, "server jar");
 		
-		merged = getCacheDir().resolve("minecraft-" + mc.getVersion() + "-merged.jar");
 		cleanOnRefreshDependencies(merged);
 		
 		log.info("] merge client: {}", clientJar);
@@ -74,6 +71,8 @@ public class Merger extends NewProvider<Merger> {
 		log.info("] merge target: {}", merged);
 		
 		if(Files.notExists(merged)) {
+			Files.createDirectories(merged.getParent());
+			
 			Path mergedUnfixed = Files.createTempFile(merged.getFileName().toString() + "-unfixed", ".jar.tmp");
 			
 			log.lifecycle("|-> Target does not exist. Merging with FabricMC JarMerger to {}", mergedUnfixed);

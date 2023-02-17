@@ -10,6 +10,7 @@ import org.gradle.api.Project;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
 
+import javax.annotation.Nullable;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.IOException;
@@ -42,12 +43,16 @@ public class AccessTransformer extends NewProvider<AccessTransformer> {
 	}
 	
 	//inputs
-	private ResolvedConfigElementWrapper forge;
+	private Path forgeJar;
 	private Path forgeJarmodded;
-	@Deprecated private String patchedVersionTag;
 	
-	public AccessTransformer forge(ResolvedConfigElementWrapper forge) {
-		this.forge = forge;
+	//outputs
+	private Set<Path> customAccessTransformers = new HashSet<>();
+	private @Nullable String customAccessTransformerHash;
+	private Path forgeAccessTransformed;
+	
+	public AccessTransformer regularForgeJar(Path forge) {
+		this.forgeJar = forge;
 		return this;
 	}
 	
@@ -56,50 +61,49 @@ public class AccessTransformer extends NewProvider<AccessTransformer> {
 		return this;
 	}
 	
-	@Deprecated public AccessTransformer patchedVersionTag(String patchedVersionTag) {
-		this.patchedVersionTag = patchedVersionTag;
+	public AccessTransformer transformedFilename(String transformedFilename) {
+		this.forgeAccessTransformed = getCacheDir().resolve(transformedFilename);
 		return this;
 	}
 	
-	//outputs
-	private Set<Path> customAccessTransformers = new HashSet<>();
-	private Path accessTransformedMc;
-	
-	public Path getTransformedJar() {
-		return accessTransformedMc;
+	@Nullable
+	public String getCustomAccessTransformerHash() {
+		return customAccessTransformerHash;
 	}
 	
-	public AccessTransformer transform() throws Exception {
-		Preconditions.checkNotNull(forge, "forge version");
-		Preconditions.checkNotNull(forgeJarmodded, "jarmod");
-		Preconditions.checkNotNull(patchedVersionTag, "patched version tag");
-		
-		projectmapped |= !getConfigurationByName(Constants.CUSTOM_ACCESS_TRANSFORMERS).resolve().isEmpty();
-		
+	public Path getTransformedJar() {
+		return forgeAccessTransformed;
+	}
+	
+	public AccessTransformer loadCustomAccessTransformers() throws Exception {
 		customAccessTransformers = getConfigurationByName(Constants.CUSTOM_ACCESS_TRANSFORMERS)
 			.resolve()
 			.stream()
 			.map(File::toPath)
 			.collect(Collectors.toSet());
 		
-		String discriminator;
-		if(customAccessTransformers.isEmpty()) {
-			discriminator = "";
-		} else {
+		if(!customAccessTransformers.isEmpty()) {
 			log.lifecycle("] Found {} custom access transformer files.", customAccessTransformers.size());
-			discriminator = "-" + customAccessTransformerHash();
+			customAccessTransformerHash = customAccessTransformerHash();
 		}
 		
-		accessTransformedMc = getCacheDir().resolve("minecraft-" + patchedVersionTag + "-atd" + discriminator + ".jar");
-		log.lifecycle("] access-transformed jar: {}", accessTransformedMc);
-		cleanOnRefreshDependencies(accessTransformedMc);
+		setProjectmapped(!customAccessTransformers.isEmpty());
+		return this;
+	}
+	
+	public AccessTransformer transform() throws Exception {
+		Preconditions.checkNotNull(forgeJar, "forge version");
+		Preconditions.checkNotNull(forgeJarmodded, "jarmod");
 		
-		if(Files.notExists(accessTransformedMc)) {
+		log.lifecycle("] access-transformed jar: {}", forgeAccessTransformed);
+		cleanOnRefreshDependencies(forgeAccessTransformed);
+		
+		if(Files.notExists(forgeAccessTransformed)) {
 			log.lifecycle("|-> Access-transformed jar does not exist, parsing Forge's access transformers...");
 			
 			//Read forge ats
 			ForgeAccessTransformerSet ats = new ForgeAccessTransformerSet();
-			try(FileSystem forgeFs = FileSystems.newFileSystem(URI.create("jar:" + forge.getPath().toUri()), Collections.emptyMap())) {
+			try(FileSystem forgeFs = FileSystems.newFileSystem(URI.create("jar:" + forgeJar.toUri()), Collections.emptyMap())) {
 				//TODO: where do these names come from, can they be read from the jar?
 				// 1.2.5 does not have these files
 				for(String atFileName : Arrays.asList("forge_at.cfg", "fml_at.cfg")) {
@@ -115,13 +119,10 @@ public class AccessTransformer extends NewProvider<AccessTransformer> {
 			
 			log.info("\\-> Found {} access transformers affecting {} classes inside Forge.", ats.getCount(), ats.getTouchedClassCount());
 			
-			Set<File> customAtFiles = getConfigurationByName(Constants.CUSTOM_ACCESS_TRANSFORMERS).getFiles();
-			if(!customAtFiles.isEmpty()) {
-				log.info("|-> Loading {} custom access transformer file{}...", customAtFiles.size(), customAtFiles.size() == 1 ? "" : "s");
+			if(!customAccessTransformers.isEmpty()) {
+				log.info("|-> Loading {} custom access transformer file{}...", customAccessTransformers.size(), customAccessTransformers.size() == 1 ? "" : "s");
 				
-				for(File customAtFile : customAtFiles) {
-					Path customAtPath = customAtFile.toPath();
-					
+				for(Path customAtPath : customAccessTransformers) {
 					if(Files.exists(customAtPath)) {
 						log.info("\\-> Loading {}...", customAtPath);
 						ats.load(customAtPath);
@@ -137,7 +138,7 @@ public class AccessTransformer extends NewProvider<AccessTransformer> {
 			
 			try(
 				FileSystem unAccessTransformedFs = FileSystems.newFileSystem(URI.create("jar:" + forgeJarmodded.toUri()), Collections.emptyMap());
-				FileSystem accessTransformedFs = FileSystems.newFileSystem(URI.create("jar:" + accessTransformedMc.toUri()), Collections.singletonMap("create", "true"))) {
+				FileSystem accessTransformedFs = FileSystems.newFileSystem(URI.create("jar:" + forgeAccessTransformed.toUri()), Collections.singletonMap("create", "true"))) {
 				Files.walkFileTree(unAccessTransformedFs.getPath("/"), new SimpleFileVisitor<Path>() {
 					@Override
 					public FileVisitResult visitFile(Path srcPath, BasicFileAttributes attrs) throws IOException {

@@ -39,7 +39,7 @@ dependencies {
 	forge "net.minecraftforge:forge:${forgeVersion}:universal@zip"
 	mappings "net.minecraftforge:forge:${forgeVersion}:src@zip"
 	
-	accessTransformers files("./src/main/resources/good_cool_ats.cfg")
+	//accessTransformers files("./src/main/resources/good_cool_ats.cfg")
 	
 	coremodImplementation files("../dep_testin/ears-forge-1.4-1.4.5_01.jar")
 	modImplementation files("../dep_testin/buildcraft-A-1.4.7-3.4.4.jar")

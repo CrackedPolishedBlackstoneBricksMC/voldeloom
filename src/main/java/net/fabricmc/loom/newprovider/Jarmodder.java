@@ -29,8 +29,9 @@ public class Jarmodder extends NewProvider<Jarmodder> {
 	
 	//inputs
 	private Path base, overlay;
-	@Deprecated private ConfigElementWrapper mcVersion;
-	@Deprecated ConfigElementWrapper forgeVersion;
+	
+	//outputs
+	private Path jarmodded;
 	
 	public Jarmodder base(Path base) {
 		this.base = base;
@@ -42,43 +43,27 @@ public class Jarmodder extends NewProvider<Jarmodder> {
 		return this;
 	}
 	
-	public Jarmodder mc(ConfigElementWrapper mc) {
-		this.mcVersion = mc;
+	public Jarmodder jarmoddedFilename(String jarmoddedFilename) {
+		this.jarmodded = getCacheDir().resolve(jarmoddedFilename);
 		return this;
 	}
 	
-	public Jarmodder forge(ConfigElementWrapper forgeVersion) {
-		this.forgeVersion = forgeVersion;
-		return this;
-	}
-	
-	//outputs
-	private Path patched;
-	@Deprecated private String patchedVersionTag;
-	
-	public Path getPatchedJar() {
-		return patched;
-	}
-	
-	@Deprecated public String getPatchedVersionTag() {
-		return patchedVersionTag;
+	public Path getJarmoddedJar() {
+		return jarmodded;
 	}
 	
 	public Jarmodder patch() throws Exception {
 		Preconditions.checkNotNull(base, "jarmod base");
 		Preconditions.checkNotNull(overlay, "jarmod overlay");
 		
-		patchedVersionTag = mcVersion.getVersion() + "-forge-" + forgeVersion.getVersion();
-		patched = getCacheDir().resolve("minecraft-" + patchedVersionTag + "-jarmod.jar");
-		
-		cleanOnRefreshDependencies(patched);
-		
-		if(Files.notExists(patched)) {
+		cleanOnRefreshDependencies(jarmodded);
+		if(Files.notExists(jarmodded)) {
 			log.lifecycle("|-> Jarmodded jar does not exist, performing jarmod...");
+			Files.createDirectories(jarmodded.getParent());
 			
 			try(FileSystem baseFs    = FileSystems.newFileSystem(URI.create("jar:" + base.toUri()),    Collections.emptyMap());
 			    FileSystem overlayFs = FileSystems.newFileSystem(URI.create("jar:" + overlay.toUri()), Collections.emptyMap());
-			    FileSystem patchedFs = FileSystems.newFileSystem(URI.create("jar:" + patched.toUri()), Collections.singletonMap("create", "true"))) {
+			    FileSystem patchedFs = FileSystems.newFileSystem(URI.create("jar:" + jarmodded.toUri()), Collections.singletonMap("create", "true"))) {
 				log.lifecycle("|-> Copying base into patched jar...");
 				Files.walkFileTree(baseFs.getPath("/"), new SimpleFileVisitor<Path>() {
 					@Override

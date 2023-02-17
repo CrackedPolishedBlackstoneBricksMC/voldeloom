@@ -2,7 +2,6 @@ package net.fabricmc.loom.newprovider;
 
 import com.google.common.base.Preconditions;
 import net.fabricmc.loom.LoomGradleExtension;
-import net.fabricmc.loom.LoomGradlePlugin;
 import net.fabricmc.loom.util.mcp.Binpatch;
 import org.gradle.api.Project;
 
@@ -30,6 +29,9 @@ public class Binpatcher extends NewProvider<Binpatcher> {
 	private Path input;
 	private Map<String, Binpatch> binpatches;
 	
+	//outputs
+	private Path output;
+	
 	public Binpatcher input(Path input) {
 		this.input = input;
 		return this;
@@ -40,8 +42,10 @@ public class Binpatcher extends NewProvider<Binpatcher> {
 		return this;
 	}
 	
-	//outputs
-	private Path output;
+	public Binpatcher outputFilename(String outputFilename) {
+		this.output = getCacheDir().resolve(outputFilename);
+		return this;
+	}
 	
 	public Path getOutput() {
 		return output;
@@ -52,7 +56,6 @@ public class Binpatcher extends NewProvider<Binpatcher> {
 		Preconditions.checkNotNull(input, "binpatch input");
 		Preconditions.checkNotNull(binpatches, "binpatches");
 		
-		output = getCacheDir().resolve(LoomGradlePlugin.replaceExtension(input, "-binpatched.jar").getFileName().toString()); //meh
 		cleanOnRefreshDependencies(output);
 		
 		log.info("] binpatch input: {}", input);
@@ -61,6 +64,7 @@ public class Binpatcher extends NewProvider<Binpatcher> {
 		
 		if(Files.notExists(output)) {
 			log.info("|-> Output does not exist, performing binpatch...");
+			Files.createDirectories(output.getParent());
 			
 			try(FileSystem inputFs  = FileSystems.newFileSystem(URI.create("jar:" + input.toUri()),  Collections.emptyMap()); 
 			    FileSystem outputFs = FileSystems.newFileSystem(URI.create("jar:" + output.toUri()), Collections.singletonMap("create", "true"))) {

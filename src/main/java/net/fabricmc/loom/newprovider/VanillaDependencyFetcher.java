@@ -23,14 +23,12 @@ public class VanillaDependencyFetcher extends NewProvider<VanillaDependencyFetch
 	}
 	
 	//inputs
-	private ConfigElementWrapper mc;
 	private MinecraftVersionInfo manifest;
 	private String librariesBaseUrl;
 	
-	public VanillaDependencyFetcher mc(ConfigElementWrapper mc) {
-		this.mc = mc;
-		return this;
-	}
+	//outputs
+	private Path nativesDir;
+	private final Collection<String> mavenDependencies = new ArrayList<>();
 	
 	public VanillaDependencyFetcher manifest(MinecraftVersionInfo manifest) {
 		this.manifest = manifest;
@@ -42,9 +40,10 @@ public class VanillaDependencyFetcher extends NewProvider<VanillaDependencyFetch
 		return this;
 	}
 	
-	//outputs
-	private Path nativesDir;
-	private final Collection<String> mavenDependencies = new ArrayList<>();
+	public VanillaDependencyFetcher nativesDirname(String nativesDirname) {
+		this.nativesDir = getCacheDir().resolve("natives").resolve(nativesDirname);
+		return this;
+	}
 	
 	public Path getNativesDir() {
 		return nativesDir;
@@ -63,15 +62,13 @@ public class VanillaDependencyFetcher extends NewProvider<VanillaDependencyFetch
 	
 	//process
 	public VanillaDependencyFetcher fetch() throws Exception {
-		Preconditions.checkNotNull(mc, "minecraft version");
+		Preconditions.checkNotNull(nativesDir, "natives directory");
 		Preconditions.checkNotNull(manifest, "minecraft version manifest");
 		Preconditions.checkNotNull(librariesBaseUrl, "libraries base URL");
 		
-		nativesDir = getCacheDir().resolve("natives").resolve(mc.getVersion());
-		Path nativesJarStore = nativesDir.resolve("jars");
-		
 		cleanOnRefreshDependencies(nativesDir);
 		
+		Path nativesJarStore = nativesDir.resolve("jars");
 		Files.createDirectories(nativesJarStore);
 		
 		for(MinecraftVersionInfo.Library library : manifest.libraries) {
@@ -91,10 +88,10 @@ public class VanillaDependencyFetcher extends NewProvider<VanillaDependencyFetch
 					.skipIfSha1Equals(library.getSha1())
 					.download();
 				
-				//unpack it
+				//unpack it?
 				Path unpackFlag = libJarFile.resolveSibling(libJarFile.getFileName().toString() + ".unpack-flag");
 				if(!Files.exists(unpackFlag)) {
-					//unpack the natives jar
+					//yes, needs to be unpacked.
 					ZipUtil.unpack(libJarFile, nativesDir, new SimpleFileVisitor<Path>() {
 						@Override
 						public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {

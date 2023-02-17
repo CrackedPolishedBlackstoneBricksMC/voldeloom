@@ -36,16 +36,18 @@ import java.util.Map;
  * <p>
  * This class is intended to be deserialized with Google GSON.
  */
+@SuppressWarnings("unused")
 public class MinecraftVersionInfo {
 	public List<Library> libraries;
 	public Map<String, Downloads> downloads;
 	public AssetIndex assetIndex;
+	public String id; //version number
 
 	public static class Downloads {
 		public String url;
 		public String sha1;
 	}
-
+	
 	public static class AssetIndex {
 		private String id;
 		public String sha1;

@@ -42,17 +42,53 @@ public abstract class NewProvider<SELF extends NewProvider<SELF>> {
 	
 	protected final Logger log;
 	
-	public boolean projectmapped = false;
+	private boolean projectmapped = false;
 	
+	//since "projectmapped" is just a bool that can be set either way at any time,
+	//this flag gets set to `true` as a safety interlock - after reading the projectmapped
+	//flag (and possibly making a decision based off of it) you're not allowed to change it again
+	private boolean leveragedProjectmappiness = false;
+	
+	/**
+	 * Whether this provider has been configured in such a way that should disqualify
+	 * it from being put in the global Gradle cache, a state known as "being projectmapped".
+	 * <p>
+	 * I think this term stems from Loom specifically handling cusotm *mappings*, but
+	 * I'm sticking with the term even in a more general sense of things other than mappings.
+	 */
+	public boolean isProjectmapped() {
+		leveragedProjectmappiness = true;
+		return projectmapped;
+	}
+	
+	@SuppressWarnings("unchecked")
+	public SELF setProjectmapped(boolean projectmapped) {
+		if(leveragedProjectmappiness) {
+			throw new IllegalStateException("Cannot set projectmappiness after already having leveraged it, this might put things in an inconsistent state.");
+		}
+		
+		this.projectmapped |= projectmapped;
+		
+		return (SELF) this;
+	}
+	
+	/**
+	 * Set to {@code true} if a dependent provider is projectmapped. Uses the "curiously recurring
+	 * template pattern", so you can interleave this method into the provider's other builder methods.
+	 */
+	@SuppressWarnings("unchecked")
 	public SELF superProjectmapped(boolean projectmapped) {
 		this.projectmapped |= projectmapped;
 		
-		@SuppressWarnings("unchecked") SELF self = (SELF) this;
-		return self;
+		return (SELF) this;
 	}
 	
-	protected final Path getCacheDir() {
-		if(projectmapped) return WellKnownLocations.getProjectCache(project);
+	/**
+	 * Returns a directory that files can be stashed in. It's project-local if the provider
+	 * is projectmapped, and the global per-user gradle cache if not.
+	 */
+	public final Path getCacheDir() {
+		if(isProjectmapped()) return WellKnownLocations.getProjectCache(project);
 		else return WellKnownLocations.getUserCache(project);
 	}
 	

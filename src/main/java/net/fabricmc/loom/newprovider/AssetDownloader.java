@@ -45,12 +45,16 @@ public class AssetDownloader extends NewProvider<AssetDownloader> {
 		super(project, extension);
 	}
 	
-	private ConfigElementWrapper mc;
+	//inputs
 	private MinecraftVersionInfo versionManifest;
 	private String resourcesBaseUrl;
 	
-	public AssetDownloader mc(ConfigElementWrapper mc) {
-		this.mc = mc;
+	//outputs
+	private Path assetIndexFile;
+	private Path thisVersionAssetsDir;
+	
+	public AssetDownloader assetIndexFilename(String assetIndexFilename) {
+		this.assetIndexFile = getCacheDir().resolve("assets").resolve("indexes").resolve(assetIndexFilename);
 		return this;
 	}
 	
@@ -64,30 +68,15 @@ public class AssetDownloader extends NewProvider<AssetDownloader> {
 		return this;
 	}
 	
-	private Path thisVersionAssetsDir, assetIndexFile, assetsCache;
-	
 	public Path getAssetsDir() {
 		return thisVersionAssetsDir;
 	}
 	
-	public AssetDownloader computePaths() throws Exception {
-		assetsCache = getCacheDir().resolve("assets");
-		
-		assetIndexFile = assetsCache.resolve("indexes").resolve(versionManifest.assetIndex.getFabricId(mc.getVersion()) + ".json");
-		thisVersionAssetsDir = assetsCache.resolve("legacy").resolve(mc.getVersion());
-		//Btw, using this `legacy` folder just to get out of regular Loom's way.
-		
-		log.info("] asset index: {}", assetIndexFile);
-		
+	public AssetDownloader downloadAssets() throws Exception {
 		//Let's not delete the assets themselves on refreshDependencies.
 		//They're rarely the problem, and take a long time to download.
-		cleanOnRefreshDependencies(assetIndexFile/*, thisVersionAssetsDir*/);
-		
-		return this;
-	}
-	
-	public AssetDownloader downloadAssets() throws Exception {
-		Files.createDirectories(assetsCache);
+		cleanOnRefreshDependencies(assetIndexFile);
+		Files.createDirectories(assetIndexFile.getParent());
 		
 		newDownloadSession(versionManifest.assetIndex.url)
 			.dest(assetIndexFile)
@@ -97,8 +86,13 @@ public class AssetDownloader extends NewProvider<AssetDownloader> {
 			.skipIfExists()
 			.download();
 		
+		thisVersionAssetsDir = assetIndexFile
+			.getParent() //removes the filename
+			.getParent() //actually up and out of the "indexes" folder
+			.resolve("legacy").resolve(versionManifest.id);
+		
 		if(Files.notExists(thisVersionAssetsDir)) {
-			log.lifecycle("|-> Downloading assets...");
+			log.lifecycle("|-> Downloading assets to {}...", thisVersionAssetsDir);
 			JsonObject assetJson;
 			try(BufferedReader in = Files.newBufferedReader(assetIndexFile)) {
 				assetJson = new Gson().fromJson(in, JsonObject.class);

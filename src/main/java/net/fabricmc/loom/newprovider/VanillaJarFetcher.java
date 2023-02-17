@@ -24,20 +24,33 @@ public class VanillaJarFetcher extends NewProvider<VanillaJarFetcher> {
 	private ConfigElementWrapper mc;
 	private @Nullable String customManifestUrl;
 	
+	//outputs
+	private Path clientJar;
+	private Path serverJar;
+	private MinecraftVersionInfo versionManifest;
+	
 	public VanillaJarFetcher mc(ConfigElementWrapper mc) {
 		this.mc = mc;
 		return this;
 	}
 	
+	//Must call before clientJarFilename to set projectmapped flag
 	public VanillaJarFetcher customManifestUrl(@Nullable String customManifestUrl) {
 		this.customManifestUrl = customManifestUrl;
+		setProjectmapped(customManifestUrl != null);
+		
 		return this;
 	}
 	
-	//outputs
-	private Path clientJar;
-	private Path serverJar;
-	private MinecraftVersionInfo versionManifest;
+	public VanillaJarFetcher clientFilename(String clientFilename) {
+		this.clientJar = getCacheDir().resolve(clientFilename);
+		return this;
+	}
+	
+	public VanillaJarFetcher serverFilename(String serverFilename) {
+		this.serverJar = getCacheDir().resolve(serverFilename);
+		return this;
+	}
 	
 	public Path getClientJar() {
 		return clientJar;
@@ -56,10 +69,7 @@ public class VanillaJarFetcher extends NewProvider<VanillaJarFetcher> {
 		Preconditions.checkNotNull(mc, "minecraft version");
 		
 		Path versionManifestIndexJson = getCacheDir().resolve("version_manifest.json");
-		Path thisVersionManifestJson = getCacheDir().resolve("minecraft-" + mc.getVersion() + "-info.json");
-		
-		clientJar = getCacheDir().resolve("minecraft-" + mc.getVersion() + "-client.jar");
-		serverJar = getCacheDir().resolve("minecraft-" + mc.getVersion() + "-server.jar");
+		Path thisVersionManifestJson = getCacheDir().resolve("minecraft-" + mc.getFilenameSafeVersion() + "-info.json");
 		
 		log.info("] client jar: {}", clientJar);
 		log.info("] server jar: {}", serverJar);
