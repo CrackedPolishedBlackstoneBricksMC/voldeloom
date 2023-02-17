@@ -4,9 +4,8 @@ import net.fabricmc.loom.Constants;
 import net.fabricmc.loom.RunConfig;
 import net.fabricmc.loom.WellKnownLocations;
 import net.fabricmc.loom.newprovider.ConfigElementWrapper;
-import net.fabricmc.loom.newprovider.VanillaDependencyFetcher;
-import net.fabricmc.loom.newprovider.VanillaJarFetcher;
 import net.fabricmc.loom.util.LoomTaskExt;
+import net.fabricmc.loom.util.MinecraftVersionInfo;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.tasks.OutputFile;
 import org.gradle.api.tasks.TaskAction;
@@ -43,8 +42,8 @@ public class GenDevLaunchInjectorConfigsTask extends DefaultTask implements Loom
 	@TaskAction
 	public void doIt() throws IOException {
 		ConfigElementWrapper mc = getLoomGradleExtension().getProviderGraph().mc;
-		VanillaJarFetcher vanillaJars = getLoomGradleExtension().getProviderGraph().get(VanillaJarFetcher.class);
-		VanillaDependencyFetcher libs = getLoomGradleExtension().getProviderGraph().get(VanillaDependencyFetcher.class);
+		MinecraftVersionInfo versionManifest = getLoomGradleExtension().getProviderGraph().versionManifest;
+		Path nativesDir = getLoomGradleExtension().getProviderGraph().mcNativesDir;
 		
 		LaunchConfig launchConfig = new LaunchConfig();
 		
@@ -55,11 +54,11 @@ public class GenDevLaunchInjectorConfigsTask extends DefaultTask implements Loom
 			launchConfig
 				.property(cfg.getBaseName(), "fabric.development", "true")
 				
-				.property(cfg.getBaseName(), "java.library.path", libs.getNativesDir().toAbsolutePath().toString())
-				.property(cfg.getBaseName(), "org.lwjgl.librarypath", libs.getNativesDir().toAbsolutePath().toString())
+				.property(cfg.getBaseName(), "java.library.path", nativesDir.toAbsolutePath().toString())
+				.property(cfg.getBaseName(), "org.lwjgl.librarypath", nativesDir.toAbsolutePath().toString())
 				
 				.argument(cfg.getBaseName(), "--assetIndex")
-				.argument(cfg.getBaseName(), vanillaJars.getVersionManifest().assetIndex.getFabricId(mc.getVersion()))
+				.argument(cfg.getBaseName(), versionManifest.assetIndex.getFabricId(mc.getVersion()))
 				.argument(cfg.getBaseName(), "--assetsDir")
 				.argument(cfg.getBaseName(), WellKnownLocations.getUserCache(getProject()).resolve("assets").toAbsolutePath().toString());
 		}

@@ -2,11 +2,13 @@ package net.fabricmc.loom.newprovider;
 
 import net.fabricmc.loom.Constants;
 import net.fabricmc.loom.LoomGradleExtension;
+import net.fabricmc.loom.util.MinecraftVersionInfo;
 import org.gradle.api.Project;
 import org.gradle.api.logging.Logger;
 
 import javax.annotation.Nullable;
 import java.nio.file.Path;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -26,10 +28,15 @@ public class ProviderGraph {
 	private final LoomGradleExtension extension;
 	private final Map<Class<? extends NewProvider<?>>, NewProvider<?>> newProviders = new HashMap<>();
 	
-	//for better or for worse, "globals"
+	//for better or for worse, "globals". these ones get set early,
 	public ConfigElementWrapper mc;
 	public ResolvedConfigElementWrapper forge;
 	public MappingsWrapper mappings;
+	
+	//and these ones get set a little later, but still within the setup() method. so they should be ok to use from outside.
+	public MinecraftVersionInfo versionManifest;
+	public Path mcNativesDir;
+	public Collection<Path> mcNonNativeDependencies_Todo;
 	
 	public ProviderGraph setup() throws Exception {
 		log.lifecycle("# Wrapping basic dependencies...");
@@ -40,9 +47,7 @@ public class ProviderGraph {
 		mappings = new MappingsWrapper(project, extension, project.getConfigurations().getByName(Constants.MAPPINGS));
 		
 		log.lifecycle("# Fetching vanilla jars and indexes...");
-		
 		String mcPrefix = "minecraft-" + mc.getFilenameSafeVersion();
-		
 		VanillaJarFetcher vanillaJars = new VanillaJarFetcher(project, extension)
 			.mc(mc)
 			.customManifestUrl(extension.customManifestUrl)
@@ -50,14 +55,19 @@ public class ProviderGraph {
 			.serverFilename(mcPrefix + "-server.jar")
 			.fetch();
 		
+		versionManifest = vanillaJars.getVersionManifest();
+		
 		log.lifecycle("# Fetching vanilla dependencies...");
 		VanillaDependencyFetcher vanillaDeps = new VanillaDependencyFetcher(project, extension)
 			.superProjectmapped(vanillaJars.isProjectmapped())
-			.manifest(vanillaJars.getVersionManifest())
+			.manifest(versionManifest)
 			.librariesBaseUrl(extension.librariesBaseUrl)
 			.nativesDirname(mc.getFilenameSafeVersion())
 			.fetch()
 			.installDependenciesToProject(Constants.MINECRAFT_DEPENDENCIES, project.getDependencies());
+		
+		mcNativesDir = vanillaDeps.getNativesDir();
+		mcNonNativeDependencies_Todo = vanillaDeps.getNonNativeLibraries_Todo();
 		
 		log.lifecycle("# Fetching Forge's dependencies...");
 		ForgeDependencyFetcher forgeDeps = new ForgeDependencyFetcher(project, extension)
@@ -167,12 +177,12 @@ public class ProviderGraph {
 		
 		log.lifecycle("# Configuring asset downloader...");
 		AssetDownloader assets = new AssetDownloader(project, extension)
-			.assetIndexFilename(vanillaJars.getVersionManifest().assetIndex.getFabricId(mc.getVersion()) + ".json")
-			.versionManifest(vanillaJars.getVersionManifest())
+			.assetIndexFilename(versionManifest.assetIndex.getFabricId(mc.getVersion()) + ".json")
+			.versionManifest(versionManifest)
 			.resourcesBaseUrl(extension.resourcesBaseUrl);
 			//.downloadAssets(); //Don't download assets just yet - a gradle task will do this later on the client
 		
-		makeAvailableToTasks(vanillaJars, vanillaDeps, forgeDeps, transformer, tinifier, remapper, assets);
+		makeAvailableToTasks(transformer, tinifier, remapper, assets);
 		
 		log.lifecycle("# Thank you for flying Voldeloom.");
 		

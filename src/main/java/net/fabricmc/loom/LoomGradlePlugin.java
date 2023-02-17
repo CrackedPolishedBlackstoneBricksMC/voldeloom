@@ -27,7 +27,6 @@ package net.fabricmc.loom;
 import groovy.util.Node;
 import net.fabricmc.loom.newprovider.ProviderGraph;
 import net.fabricmc.loom.newprovider.Remapper;
-import net.fabricmc.loom.newprovider.VanillaDependencyFetcher;
 import net.fabricmc.loom.task.AbstractDecompileTask;
 import net.fabricmc.loom.task.ConfigurationDebugTask;
 import net.fabricmc.loom.task.MigrateMappingsTask;
@@ -370,7 +369,7 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		genSourcesDecompileTask.setInput(mappedJar);
 		genSourcesDecompileTask.setOutput(sourcesJar);
 		genSourcesDecompileTask.setLineMapFile(linemapFile);
-		genSourcesDecompileTask.setLibraries(providers.get(VanillaDependencyFetcher.class).getNonNativeLibraries_Todo());
+		genSourcesDecompileTask.setLibraries(providers.mcNonNativeDependencies_Todo);
 		
 		genSourcesRemapLineNumbersTask.setInput(mappedJar);
 		genSourcesRemapLineNumbersTask.setLineMapFile(linemapFile);

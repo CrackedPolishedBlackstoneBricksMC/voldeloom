@@ -9,11 +9,11 @@ Right now theres a "get" method on providergraph, but i intend to remove it and 
 
 * wants the path to the mapped jar (so it can compute the path to the linemapped jar and sources jar, for genSources). uses `Remapper`
   * 🚨WEE WOO🚨 WEE WOO🚨🚨 that is not 1.2.5 safe 
-* wants the non-native library jars (so it can add them to the genSources classpath. uses `VanillaDependencyFetcher`
+* ~~wants the non-native library jars (so it can add them to the genSources classpath.) uses `VanillaDependencyFetcher`~~
 
 ## RunConfig
 
-* `cook` wants `VanillaDependencyFetcher` so it can find the natives directory to set `java.library.path`
+* ~~`cook` wants `VanillaDependencyFetcher` so it can find the natives directory to set `java.library.path`~~
 
 ## MigrateMappingsTask
 
@@ -38,7 +38,7 @@ Right now theres a "get" method on providergraph, but i intend to remove it and 
 you know what, why do i still even have this task
 
 * the path to the asset index (`VanillaJarFetcher`)
-* the natives directory (`VanillaDependencyFetcher`)
+* ~~the natives directory (`VanillaDependencyFetcher`)~~
 
 ## SourceRemapper
 
@@ -65,18 +65,18 @@ does tis one even work
 * MigrateMappingsTask
 * SourceRemapper
 
-## `VanillaDependencyFetcher` non-native libraries
+## ~~`VanillaDependencyFetcher` non-native libraries~~
 
 **this is still intentionally returning an empty list and honestly i havent seen many problems yet, lmao**
 
-* LoomGradlePlugin genSources classpath
+* ~~LoomGradlePlugin genSources classpath~~
 
 (theyre also put on dependency remap classpath, in providergraph)
 
-## `VanillaDependencyFetcher` native libraries folder
+## ~~`VanillaDependencyFetcher` native libraries folder~~
 
-* RunConfig cook
-* GenDevLaunchInjectorConfigsTask
+* ~~RunConfig cook~~
+* ~~GenDevLaunchInjectorConfigsTask~~
 
 ## `VanillaDependencyFetcher` asset index
 
@@ -91,8 +91,8 @@ does tis one even work
 # plan
 
 * assets: move them to an asset downloading task, that's depended on in the regular client setup task workflow
-* version manifest stuff: don't see anything wrong w/ just exposing this
-* same for natives path and stuff
+* ~~version manifest stuff: don't see anything wrong w/ just exposing this~~ done
+* ~~same for natives path and stuff~~
 * tinyfile: move the path to it up
 * parsed tiny mappings: i can move the path up as well, might be worth it to just remove this and parse from scratch every time too lol. (memory profile this)
 
