@@ -115,7 +115,7 @@ public class Tinifier extends NewProvider<Tinifier> {
 			
 			if(projectHasProperty("voldeloom.lowMemory")) {
 				log.info("|-> Compressing in-memory representation using reflection crap...");
-				new TreeSquisher().squish(parsedMappings);
+				new TreeSquisher().squish(log, parsedMappings);
 			}
 		}
 		
