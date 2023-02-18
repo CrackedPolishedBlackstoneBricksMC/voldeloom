@@ -62,7 +62,6 @@ public class FernFlowerTask extends AbstractDecompileTask implements ForkingJava
 		getOutputs().upToDateWhen(t -> false);
 	}
 	
-	private boolean noFork = false;
 	private int numThreads = Runtime.getRuntime().availableProcessors();
 
 	@TaskAction
@@ -158,15 +157,6 @@ public class FernFlowerTask extends AbstractDecompileTask implements ForkingJava
 	@Input
 	public int getNumThreads() {
 		return numThreads;
-	}
-
-	@Input
-	public boolean isNoFork() {
-		return noFork;
-	}
-
-	public void setNoFork(boolean noFork) {
-		this.noFork = noFork;
 	}
 
 	public void setNumThreads(int numThreads) {
