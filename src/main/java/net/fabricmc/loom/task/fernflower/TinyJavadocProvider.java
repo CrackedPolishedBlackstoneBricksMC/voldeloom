@@ -38,33 +38,42 @@ import org.jetbrains.java.decompiler.struct.StructField;
 import org.jetbrains.java.decompiler.struct.StructMethod;
 
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 public class TinyJavadocProvider implements IFabricJavadocProvider {
-	private final Map<String, ClassDef> classes = new HashMap<>();
-	private final Map<EntryTriple, FieldDef> fields = new HashMap<>();
+	private final Map<String, String> classComments = new HashMap<>();
+	private final Map<EntryTriple, String> fieldComments = new HashMap<>();
 	private final Map<EntryTriple, MethodDef> methods = new HashMap<>();
 
 	private final String namespace = Constants.MAPPED_NAMING_SCHEME;
 
-	public TinyJavadocProvider(File tinyFile) {
-		final TinyTree mappings = readMappings(tinyFile);
+	public TinyJavadocProvider(Path tinyFile) {
+		TinyTree mappings;
+		try (BufferedReader reader = Files.newBufferedReader(tinyFile)) {
+			mappings = TinyMappingFactory.loadWithDetection(reader);
+		} catch (IOException e) {
+			//not really a show stopper, just means you won't get comments; everything else in fernflower works fine 
+			System.err.println("(TinyJavadocProvider) Failed to read mappings");
+			e.printStackTrace(System.err);
+			return;
+		}
 
-		for (ClassDef classDef : mappings.getClasses()) {
-			final String className = classDef.getName(namespace);
-			classes.put(className, classDef);
-
-			for (FieldDef fieldDef : classDef.getFields()) {
-				fields.put(new EntryTriple(className, fieldDef.getName(namespace), fieldDef.getDescriptor(namespace)), fieldDef);
+		for(ClassDef classDef : mappings.getClasses()) {
+			String className = classDef.getName(namespace);
+			
+			if(classDef.getComment() != null) classComments.put(className, classDef.getComment());
+			
+			for(FieldDef fieldDef : classDef.getFields()) {
+				if(fieldDef.getComment() != null) fieldComments.put(new EntryTriple(className, fieldDef.getName(namespace), fieldDef.getDescriptor(namespace)), fieldDef.getComment());
 			}
 
-			for (MethodDef methodDef : classDef.getMethods()) {
+			for(MethodDef methodDef : classDef.getMethods()) {
 				methods.put(new EntryTriple(className, methodDef.getName(namespace), methodDef.getDescriptor(namespace)), methodDef);
 			}
 		}
@@ -72,14 +81,12 @@ public class TinyJavadocProvider implements IFabricJavadocProvider {
 
 	@Override
 	public String getClassDoc(StructClass structClass) {
-		ClassDef classDef = classes.get(structClass.qualifiedName);
-		return classDef != null ? classDef.getComment() : null;
+		return classComments.get(structClass.qualifiedName);
 	}
 
 	@Override
 	public String getFieldDoc(StructClass structClass, StructField structField) {
-		FieldDef fieldDef = fields.get(new EntryTriple(structClass.qualifiedName, structField.getName(), structField.getDescriptor()));
-		return fieldDef != null ? fieldDef.getComment() : null;
+		return fieldComments.get(new EntryTriple(structClass.qualifiedName, structField.getName(), structField.getDescriptor()));
 	}
 
 	@Override
@@ -117,13 +124,5 @@ public class TinyJavadocProvider implements IFabricJavadocProvider {
 		}
 
 		return null;
-	}
-
-	private static TinyTree readMappings(File input) {
-		try (BufferedReader reader = Files.newBufferedReader(input.toPath())) {
-			return TinyMappingFactory.loadWithDetection(reader);
-		} catch (IOException e) {
-			throw new RuntimeException("Failed to read mappings", e);
-		}
 	}
 }

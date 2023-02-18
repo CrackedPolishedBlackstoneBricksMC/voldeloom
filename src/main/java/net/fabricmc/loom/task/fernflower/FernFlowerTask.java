@@ -27,7 +27,6 @@ package net.fabricmc.loom.task.fernflower;
 import net.fabricmc.loom.Constants;
 import net.fabricmc.loom.newprovider.Tinifier;
 import net.fabricmc.loom.task.AbstractDecompileTask;
-import net.fabricmc.loom.task.ForkingJavaExecTask;
 import net.fabricmc.loom.util.LoomTaskExt;
 import org.gradle.api.logging.LogLevel;
 import org.gradle.api.tasks.Input;
@@ -43,13 +42,14 @@ import java.util.List;
  * <p>
  * Created by covers1624 on 9/02/19.
  */
-public class FernFlowerTask extends AbstractDecompileTask implements ForkingJavaExecTask, LoomTaskExt {
+public class FernFlowerTask extends AbstractDecompileTask implements LoomTaskExt {
 	public FernFlowerTask() {
 		setGroup(Constants.TASK_GROUP_PLUMBING);
 		setDescription("Runs the Fernflower decompiler on the Minecraft Forge jar.");
 		getOutputs().upToDateWhen(t -> false);
 	}
 	
+	//TODO: Not used
 	private int numThreads = Runtime.getRuntime().availableProcessors();
 
 	@TaskAction
@@ -63,7 +63,7 @@ public class FernFlowerTask extends AbstractDecompileTask implements ForkingJava
 		args.add("-" + IFernflowerPreferences.LOG_LEVEL + "=warn");
 		
 		//ForkedFFExecutor wrapper options
-		args.add(getInput().getAbsolutePath());
+		args.add("-input=" + getInput().getAbsolutePath());
 		args.add("-output=" + getOutput().getAbsolutePath());
 		args.add("-threads=" + getNumThreads());
 		args.add("-mappings=" + getLoomGradleExtension().getProviderGraph().get(Tinifier.class).getMappingsFile().toAbsolutePath());
@@ -73,7 +73,7 @@ public class FernFlowerTask extends AbstractDecompileTask implements ForkingJava
 		if(getProject().hasProperty("voldeloom.saferFernflower")) args.add("-safer-bytecode-provider");
 		
 		getLogging().captureStandardOutput(LogLevel.LIFECYCLE);
-		ExecResult result = javaexec(spec -> {
+		ExecResult result = forkedJavaexec(spec -> {
 			spec.setMain(ForkedFFExecutor.class.getName()); //TODO: setMain is deprecated and removed in Gradle 8
 			//spec.jvmArgs("-Xms200m", "-Xmx3G"); //the defaults work on my machine :tm: and this version of minecraft is so small and cute
 			spec.setArgs(args);

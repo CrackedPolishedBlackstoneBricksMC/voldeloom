@@ -63,7 +63,6 @@ public class ForkedFFExecutor {
 		String input = null;
 		File output = null;
 		File lineMap = null;
-		File mappings = null;
 		List<File> libraries = new ArrayList<>();
 		int numThreads = 0;
 		
@@ -73,10 +72,10 @@ public class ForkedFFExecutor {
 
 		for(String arg : args) {
 			if(isFernflowerOption && arg.length() > 5 && arg.charAt(0) == '-' && arg.charAt(4) == '=') {
-				//Standard fernflower option
+				//Standard fernflower option. These have to come first.
 				options.put(arg.substring(1, 4), arg.substring(5));
 			} else {
-				//Custom ForkedFFExecutor option
+				//Custom ForkedFFExecutor option.
 				isFernflowerOption = false;
 
 				if(arg.startsWith("-library=")) {
@@ -86,23 +85,19 @@ public class ForkedFFExecutor {
 				} else if (arg.startsWith("-linemap=")) {
 					lineMap = new File(arg.substring("-linemap=".length()));
 				} else if (arg.startsWith("-mappings=")) {
-					mappings = new File(arg.substring("-mappings=".length()));
+					options.put(IFabricJavadocProvider.PROPERTY_NAME, new TinyJavadocProvider(Paths.get(arg.substring("-mappings=".length()))));
 				} else if (arg.startsWith("-threads=")) {
-					//TODO: Unused
-					numThreads = Integer.parseInt(arg.substring("-threads=".length()));
+					numThreads = Integer.parseInt(arg.substring("-threads=".length())); //TODO: Unused
 				} else if(arg.equals("-safer-bytecode-provider")) {
 					bytecodeProviderProvider = (__) -> SAFER_BUT_SLOWER_BYTECODE_PROVIDER;
-				} else {
-					input = arg;
+				} else if(arg.startsWith("-input=")){
+					input = arg.substring("-input=".length());
 				}
 			}
 		}
 
 		Objects.requireNonNull(input, "Input not set.");
 		Objects.requireNonNull(output, "Output not set.");
-		Objects.requireNonNull(mappings, "Mappings not set.");
-
-		options.put(IFabricJavadocProvider.PROPERTY_NAME, new TinyJavadocProvider(mappings));
 		
 		System.out.println("Creating bytecode provider...");
 		IBytecodeProvider provider = bytecodeProviderProvider.apply(input);
