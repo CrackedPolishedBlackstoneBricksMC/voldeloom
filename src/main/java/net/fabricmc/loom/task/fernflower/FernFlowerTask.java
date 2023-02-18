@@ -28,27 +28,15 @@ import net.fabricmc.loom.Constants;
 import net.fabricmc.loom.newprovider.Tinifier;
 import net.fabricmc.loom.task.AbstractDecompileTask;
 import net.fabricmc.loom.task.ForkingJavaExecTask;
-import net.fabricmc.loom.util.ConsumingOutputStream;
 import net.fabricmc.loom.util.LoomTaskExt;
-import net.fabricmc.loom.util.OperatingSystem;
-import org.gradle.api.internal.project.ProjectInternal;
 import org.gradle.api.logging.LogLevel;
 import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.TaskAction;
-import org.gradle.internal.logging.progress.ProgressLogger;
-import org.gradle.internal.logging.progress.ProgressLoggerFactory;
-import org.gradle.internal.service.ServiceRegistry;
 import org.gradle.process.ExecResult;
 import org.jetbrains.java.decompiler.main.extern.IFernflowerPreferences;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Stack;
-import java.util.function.Supplier;
-
-import static java.text.MessageFormat.format;
 
 /**
  * A Gradle task that invokes Fernflower!
@@ -66,89 +54,32 @@ public class FernFlowerTask extends AbstractDecompileTask implements ForkingJava
 
 	@TaskAction
 	public void doTask() throws Throwable {
-		if (!OperatingSystem.is64Bit()) {
-			throw new UnsupportedOperationException("FernFlowerTask requires a 64bit JVM to run due to the memory requirements");
-		}
-
-		Map<String, Object> options = new HashMap<>();
-		options.put(IFernflowerPreferences.DECOMPILE_GENERIC_SIGNATURES, "1");
-		options.put(IFernflowerPreferences.BYTECODE_SOURCE_MAPPING, "1");
-		options.put(IFernflowerPreferences.REMOVE_SYNTHETIC, "1");
-		options.put(IFernflowerPreferences.LOG_LEVEL, "trace");
-		getLogging().captureStandardOutput(LogLevel.LIFECYCLE);
-
 		List<String> args = new ArrayList<>();
-
-		options.forEach((k, v) -> args.add(format("-{0}={1}", k, v)));
+		
+		//fernflower options
+		args.add("-" + IFernflowerPreferences.DECOMPILE_GENERIC_SIGNATURES + "=1");
+		args.add("-" + IFernflowerPreferences.BYTECODE_SOURCE_MAPPING + "=1");
+		args.add("-" + IFernflowerPreferences.REMOVE_SYNTHETIC + "=1");
+		args.add("-" + IFernflowerPreferences.LOG_LEVEL + "=warn");
+		
+		//ForkedFFExecutor wrapper options
 		args.add(getInput().getAbsolutePath());
-		args.add("-o=" + getOutput().getAbsolutePath());
-
-		if (getLineMapFile() != null) {
-			args.add("-l=" + getLineMapFile().getAbsolutePath());
-		}
-
-		args.add("-t=" + getNumThreads());
-		args.add("-m=" + getLoomGradleExtension().getProviderGraph().get(Tinifier.class).getMappingsFile().toAbsolutePath());
-
-		//TODO, Decompiler breaks on jemalloc, J9 module-info.class?
-		getLibraries().forEach(f -> args.add("-e=" + f.getAbsolutePath()));
-
-		ServiceRegistry registry = ((ProjectInternal) getProject()).getServices();
-		ProgressLoggerFactory factory = registry.get(ProgressLoggerFactory.class);
-		ProgressLogger progressGroup = factory.newOperation(getClass()).setDescription("Decompile");
-		Supplier<ProgressLogger> loggerFactory = () -> {
-			ProgressLogger pl = factory.newOperation(getClass(), progressGroup);
-			pl.setDescription("decompile worker");
-			pl.started();
-			return pl;
-		};
-		Stack<ProgressLogger> freeLoggers = new Stack<>();
-		Map<String, ProgressLogger> inUseLoggers = new HashMap<>();
-
-		progressGroup.started();
+		args.add("-output=" + getOutput().getAbsolutePath());
+		args.add("-threads=" + getNumThreads());
+		args.add("-mappings=" + getLoomGradleExtension().getProviderGraph().get(Tinifier.class).getMappingsFile().toAbsolutePath());
+		if(getLineMapFile() != null) args.add("-linemap=" + getLineMapFile().getAbsolutePath());
+		getLibraries().forEach(f -> args.add("-library=" + f.getAbsolutePath())); //TODO, Decompiler breaks on jemalloc, J9 module-info.class? (original comment)
+		
+		if(getProject().hasProperty("voldeloom.saferFernflower")) args.add("-safer-bytecode-provider");
+		
+		getLogging().captureStandardOutput(LogLevel.LIFECYCLE);
 		ExecResult result = javaexec(spec -> {
-			spec.setMain(ForkedFFExecutor.class.getName());
-			spec.jvmArgs("-Xms200m", "-Xmx3G");
+			spec.setMain(ForkedFFExecutor.class.getName()); //TODO: setMain is deprecated and removed in Gradle 8
+			//spec.jvmArgs("-Xms200m", "-Xmx3G"); //the defaults work on my machine :tm: and this version of minecraft is so small and cute
 			spec.setArgs(args);
 			spec.setErrorOutput(System.err);
-			spec.setStandardOutput(new ConsumingOutputStream(line -> {
-				if (line.startsWith("Listening for transport") || !line.contains("::")) {
-					System.out.println(line);
-					return;
-				}
-
-				int sepIdx = line.indexOf("::");
-				String id = line.substring(0, sepIdx).trim();
-				String data = line.substring(sepIdx + 2).trim();
-
-				ProgressLogger logger = inUseLoggers.get(id);
-
-				String[] segs = data.split(" ");
-
-				if (segs[0].equals("waiting")) {
-					if (logger != null) {
-						logger.progress("Idle..");
-						inUseLoggers.remove(id);
-						freeLoggers.push(logger);
-					}
-				} else {
-					if (logger == null) {
-						if (!freeLoggers.isEmpty()) {
-							logger = freeLoggers.pop();
-						} else {
-							logger = loggerFactory.get();
-						}
-
-						inUseLoggers.put(id, logger);
-					}
-
-					logger.progress(data);
-				}
-			}));
+			spec.setStandardOutput(System.out);
 		});
-		inUseLoggers.values().forEach(ProgressLogger::completed);
-		freeLoggers.forEach(ProgressLogger::completed);
-		progressGroup.completed();
 
 		result.rethrowFailure();
 		result.assertNormalExitValue();

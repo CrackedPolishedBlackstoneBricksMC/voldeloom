@@ -26,16 +26,27 @@ package net.fabricmc.loom.task.fernflower;
 
 import net.fabricmc.fernflower.api.IFabricJavadocProvider;
 import org.jetbrains.java.decompiler.main.Fernflower;
-import org.jetbrains.java.decompiler.main.extern.IFernflowerLogger;
-import org.jetbrains.java.decompiler.main.extern.IResultSaver;
+import org.jetbrains.java.decompiler.main.decompiler.PrintStreamLogger;
+import org.jetbrains.java.decompiler.main.extern.IBytecodeProvider;
+import org.jetbrains.java.decompiler.util.InterpreterUtil;
 
+import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 
 /**
  * Entry point for Forked FernFlower task.<br>
@@ -46,58 +57,43 @@ import java.util.Objects;
  */
 public class ForkedFFExecutor {
 	public static void main(String[] args) throws IOException {
+		System.out.println("ForkedFFExecutor starting. Parsing options...");
+		
 		Map<String, Object> options = new HashMap<>();
-		File input = null;
+		String input = null;
 		File output = null;
 		File lineMap = null;
 		File mappings = null;
 		List<File> libraries = new ArrayList<>();
 		int numThreads = 0;
+		
+		Function<String, IBytecodeProvider> bytecodeProviderProvider = FairlyUnsafeNioBytecodeProvider::new;
 
-		boolean isOption = true;
+		boolean isFernflowerOption = true;
 
-		for (String arg : args) {
-			if (isOption && arg.length() > 5 && arg.charAt(0) == '-' && arg.charAt(4) == '=') {
-				String value = arg.substring(5);
-
-				if ("true".equalsIgnoreCase(value)) {
-					value = "1";
-				} else if ("false".equalsIgnoreCase(value)) {
-					value = "0";
-				}
-
-				options.put(arg.substring(1, 4), value);
+		for(String arg : args) {
+			if(isFernflowerOption && arg.length() > 5 && arg.charAt(0) == '-' && arg.charAt(4) == '=') {
+				//Standard fernflower option
+				options.put(arg.substring(1, 4), arg.substring(5));
 			} else {
-				isOption = false;
+				//Custom ForkedFFExecutor option
+				isFernflowerOption = false;
 
-				if (arg.startsWith("-e=")) {
-					libraries.add(new File(arg.substring(3)));
-				} else if (arg.startsWith("-o=")) {
-					if (output != null) {
-						throw new RuntimeException("Unable to set more than one output.");
-					}
-
-					output = new File(arg.substring(3));
-				} else if (arg.startsWith("-l=")) {
-					if (lineMap != null) {
-						throw new RuntimeException("Unable to set more than one lineMap file.");
-					}
-
-					lineMap = new File(arg.substring(3));
-				} else if (arg.startsWith("-m=")) {
-					if (mappings != null) {
-						throw new RuntimeException("Unable to use more than one mappings file.");
-					}
-
-					mappings = new File(arg.substring(3));
-				} else if (arg.startsWith("-t=")) {
-					numThreads = Integer.parseInt(arg.substring(3));
+				if(arg.startsWith("-library=")) {
+					libraries.add(new File(arg.substring("-library=".length())));
+				} else if (arg.startsWith("-output=")) {
+					output = new File(arg.substring("-output=".length()));
+				} else if (arg.startsWith("-linemap=")) {
+					lineMap = new File(arg.substring("-linemap=".length()));
+				} else if (arg.startsWith("-mappings=")) {
+					mappings = new File(arg.substring("-mappings=".length()));
+				} else if (arg.startsWith("-threads=")) {
+					//TODO: Unused
+					numThreads = Integer.parseInt(arg.substring("-threads=".length()));
+				} else if(arg.equals("-safer-bytecode-provider")) {
+					bytecodeProviderProvider = (__) -> SAFER_BUT_SLOWER_BYTECODE_PROVIDER;
 				} else {
-					if (input != null) {
-						throw new RuntimeException("Unable to set more than one input.");
-					}
-
-					input = new File(arg);
+					input = arg;
 				}
 			}
 		}
@@ -107,21 +103,71 @@ public class ForkedFFExecutor {
 		Objects.requireNonNull(mappings, "Mappings not set.");
 
 		options.put(IFabricJavadocProvider.PROPERTY_NAME, new TinyJavadocProvider(mappings));
-		runFF(options, libraries, input, output, lineMap);
-	}
-
-	public static void runFF(Map<String, Object> options, List<File> libraries, File input, File output, File lineMap) {
-		System.out.println("Fernflower is starting!");
-
-		IResultSaver saver = new ThreadSafeResultSaver(() -> output, () -> lineMap);
-		IFernflowerLogger logger = new ThreadIDFFLogger();
-		Fernflower ff = new Fernflower(FernFlowerUtils::getBytecode, saver, options, logger);
-
-		for (File library : libraries) {
-			ff.addLibrary(library);
+		
+		System.out.println("Creating bytecode provider...");
+		IBytecodeProvider provider = bytecodeProviderProvider.apply(input);
+		
+		try {
+			System.out.println("Creating Fernflower...");
+			Fernflower ff = new Fernflower(provider, new ThreadSafeResultSaver(output, lineMap), options, new PrintStreamLogger(System.out));
+			
+			System.out.println("Adding libraries...");
+			for(File library : libraries) ff.addLibrary(library);
+			
+			System.out.println("Adding input...");
+			ff.addSource(new File(input));
+			
+			System.out.println("Let's Decompiling");
+			ff.decompileContext();
+		} finally {
+			System.out.println("Cleaning up...");
+			if(provider instanceof Closeable) ((Closeable) provider).close();
 		}
-
-		ff.addSource(input);
-		ff.decompileContext();
 	}
+	
+	private static class FairlyUnsafeNioBytecodeProvider implements IBytecodeProvider, Closeable {
+		public FairlyUnsafeNioBytecodeProvider(String expectedExternalPath) {
+			System.out.println("[!] Using FairlyUnsafeNioBytecodeProvider");
+			try {
+				fs = FileSystems.newFileSystem(URI.create("jar:" + Paths.get(expectedExternalPath).toUri()), Collections.emptyMap());
+			} catch (IOException e) {
+				throw new RuntimeException(e);
+			}
+		}
+		
+		private final FileSystem fs;
+		
+		@Override
+		public byte[] getBytecode(String externalPath, String internalPath) throws IOException {
+			//This class is unsafe because:
+			//1. It blindly assumes `externalPath` refers to the same file as the filesystem opened in the constructor.
+			// (In practice, this is the case when the amount of input files provided to the decompiler is one.)
+			//2. It blindly assumes `internalPath` is never null, which the stock IBytecodeProviders do assume.
+			return Files.readAllBytes(fs.getPath(internalPath));
+		}
+		
+		@Override
+		public void close() throws IOException {
+			fs.close();
+		}
+	}
+	
+	//styled after the one in ConsoleDecompiler
+	private static final IBytecodeProvider SAFER_BUT_SLOWER_BYTECODE_PROVIDER = (externalPath, internalPath) -> {
+		File file = new File(externalPath);
+		
+		if (internalPath == null) {
+			return InterpreterUtil.getBytes(file);
+		} else {
+			try (ZipFile archive = new ZipFile(file)) {
+				ZipEntry entry = archive.getEntry(internalPath);
+				
+				if (entry == null) {
+					throw new IOException("Entry not found: " + internalPath);
+				}
+				
+				return InterpreterUtil.getBytes(archive, entry);
+			}
+		}
+	};
 }
