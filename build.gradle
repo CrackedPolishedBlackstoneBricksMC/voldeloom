@@ -94,7 +94,6 @@ task sourcesJar(type: Jar, dependsOn: classes) {
 	if(it.hasProperty("archiveClassifier")) it.archiveClassifier = "sources" //Gradle 7, 8
 	else it.classifier = "sources" //Gradle 4
 	
-	archiveClassifier = "sources"
 	from sourceSets.main.allSource
 }
 
