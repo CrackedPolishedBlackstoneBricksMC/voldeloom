@@ -32,6 +32,7 @@ public class ForgeDependencyFetcher extends NewProvider<ForgeDependencyFetcher> 
 	//inputs
 	private Path forgeJar;
 	private String fmlLibrariesBaseUrl;
+	private boolean bouncycastleCheat;
 	
 	//outputs
 	private Path extractedLibrariesDir;
@@ -45,6 +46,11 @@ public class ForgeDependencyFetcher extends NewProvider<ForgeDependencyFetcher> 
 	
 	public ForgeDependencyFetcher fmlLibrariesBaseUrl(String fmlLibrariesBaseUrl) {
 		this.fmlLibrariesBaseUrl = fmlLibrariesBaseUrl;
+		return this;
+	}
+	
+	public ForgeDependencyFetcher bouncycastleCheat(boolean bouncycastleCheat) {
+		this.bouncycastleCheat = bouncycastleCheat;
 		return this;
 	}
 	
@@ -95,6 +101,11 @@ public class ForgeDependencyFetcher extends NewProvider<ForgeDependencyFetcher> 
 			} else {
 				log.info("|-> No cpw.mods.fml.relauncher.CoreFMLLibraries class in this jar.");
 			}
+		}
+		
+		if(bouncycastleCheat) {
+			sniffedLibraries.add("bcprov-jdk15on-147.jar");
+			log.info("|-> Cheating and pretending bcprov-jdk15on-147.jar is a Forge library...");
 		}
 		
 		log.info("] found {} libraries", sniffedLibraries.size());

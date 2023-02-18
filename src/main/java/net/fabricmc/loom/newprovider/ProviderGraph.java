@@ -74,6 +74,7 @@ public class ProviderGraph {
 			.forgeJar(forge.getPath())
 			.fmlLibrariesBaseUrl(extension.fmlLibrariesBaseUrl)
 			.extractedLibrariesDirname(forge.getFilenameSafeDepString())
+			.bouncycastleCheat(extension.forgeCapabilities.computeBouncycastleCheat())
 			.sniff()
 			.fetch()
 			.installDependenciesToProject(Constants.FORGE_DEPENDENCIES, project.getDependencies());
@@ -160,6 +161,7 @@ public class ProviderGraph {
 			.mappedJarName(      mappings.getFilenameSafeDepString(), accessTransformedPrefix + "-" + Constants.MAPPED_NAMING_SCHEME + ".jar")
 			.tinyTree(tinifier.getTinyTree())
 			.inputJar(transformer.getTransformedJar())
+			.deletedPrefixes(extension.forgeCapabilities.computeClassFilter())
 			.remap()
 			.installDependenciesToProject(Constants.MINECRAFT_NAMED, project.getDependencies());
 		

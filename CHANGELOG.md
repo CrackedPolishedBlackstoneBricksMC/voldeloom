@@ -5,14 +5,15 @@ Running changelog document, will be added to as I commit things.
 ## (Roadmap...)
 
 * fixing generated run configs
-* fixing 1.3.2 workspace
 * preparing for 1.2.5 support
 * getting launchwrapper up and running for 1.6/1.7 dev workspace
 * the fabled "Good Mappings System"
 
 ## New
 
-* Preliminary support for Gradle 8.
+* Preliminary support for Gradle 8
+  * "preliminary" as in "I don't know if it's super busted but at least the basics work"
+* The 1.3.2 development environment works now
 
 # 2.1 (`agency.highlysuspect:voldeloom:2.1`)
 

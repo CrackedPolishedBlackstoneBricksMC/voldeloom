@@ -85,7 +85,7 @@ With the latest version of Minecraft Forge for each Minecraft version.
 |  | Compile? | Release? | Deobf? | |
 | --: | :-: | :-: | :-: | :-- |
 | <=1.2.5 | ❌ | ❌ | ❌ | The client and server are fully split jars.<br>Right now the toolchain can't handle that. |
-| 1.3.2 | ✅ | 🤔 | ❌ | Dev workspace crashes at runtime, idk why lol |
+| 1.3.2 | ✅ | 🤔 | ✅ | |
 | 1.4.7 | ✅ | ✅ | ✅ | **Has received the most testing.**<br>Used for several production mods. |
 | 1.5.2 | ✅ | ✅ | ✅ | |
 | 1.6.4 | ✅ | 🤔 | ❌ | Plugin doesn't support Launchwrapper yet. |

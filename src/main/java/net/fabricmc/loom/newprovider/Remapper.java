@@ -35,6 +35,7 @@ import org.gradle.api.artifacts.dsl.DependencyHandler;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collection;
+import java.util.Set;
 import java.util.function.Predicate;
 
 /**
@@ -49,6 +50,7 @@ public class Remapper extends NewProvider<Remapper> {
 	
 	private TinyTree tinyTree;
 	private Path inputJar;
+	private Set<String> deletedPrefixes;
 	private Collection<Path> nonNativeLibs;
 	
 	//outputs
@@ -62,6 +64,11 @@ public class Remapper extends NewProvider<Remapper> {
 	
 	public Remapper inputJar(Path inputJar) {
 		this.inputJar = inputJar;
+		return this;
+	}
+	
+	public Remapper deletedPrefixes(Set<String> deletedPrefixes) {
+		this.deletedPrefixes = deletedPrefixes;
 		return this;
 	}
 	
@@ -108,8 +115,7 @@ public class Remapper extends NewProvider<Remapper> {
 			//These are minecraft libraries that conflict with the ones forge wants
 			//They're obfuscated and mcp maps them back to reality. The forge Ant script had a task to delete them lol.
 			//https://github.com/MinecraftForge/FML/blob/8e7956397dd80902f7ca69c466e833047dfa5010/build.xml#L295-L298
-			//TODO configurable per version or something maybe this is why 1.3 is broken
-			Predicate<String> classFilter = s -> !s.startsWith("argo") && !s.startsWith("org");
+			Predicate<String> classFilter = s -> !deletedPrefixes.contains(s.split("/", 2)[0]);
 			
 			Files.createDirectories(mappedJar.getParent());
 			Files.createDirectories(intermediaryJar.getParent());

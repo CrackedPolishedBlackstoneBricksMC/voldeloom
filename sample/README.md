@@ -22,11 +22,11 @@ It will require significant effort to properly deal with split "client" and "ser
 
 Forge 1.3.2-4.3.5.318 using Gradle 7.6.
 
-**Broken, but compiling mods might work.**
+**Works?** I finished this at about 4 in the morning and didn't test it for too long. But I think it works.
 
-Remaps and gets to the menu, but Forge prints a *million* warnings about someone putting their mod in the `net.minecraft.src` package, even though it's actually just picking up on Minecraft being in that package. I don't know what package Forge *wants* minecraft to be in, given that that's the package MCP *puts* it in.
+Tiny cheat to get Bouncycastle onto the classpath (I pretend it's a Forge library, mirroring [this commit](https://github.com/MinecraftForge/FML/commit/a513060a81ac4b245b4f19b5ac3e589eb15e3515) from 1.4 FML)
 
-Creating a world crashes due to an NPE in `ClassReader.<init>` called from `SideTransformer.transform` which causes Bouncycastle's CipherOutputStream class to not load. I also needed a kludge in `McpTinyv2Writer` that provides exceptions to the "use srgs when there's no mcp name" rule, something about `JdomParser.parse`. Not lost on me that these are both external libraries.
+Forge prints a *million* warnings about someone putting their mod in the `net.minecraft.src` package, even though it's actually just picking up on Minecraft being in that package. I don't know what package Forge *wants* minecraft to be in, given that that's the package MCP *puts* it in.
 
 ### 1.4.7
 
@@ -34,13 +34,13 @@ Forge 1.4.7-6.6.2.534 using Gradle 7.6.
 
 **Works great.** This is the first version to receive attention, and the one I test against the most.
 
-You may execute this with any JVM. The `toolchains` feature selects a compiling JVM that is able to write classes with version 50 (Java 6). Any newer class file versions will crash Forge when it scans the jar.
+You may execute this project with any JVM. The `toolchains` feature selects a compiling JVM that is able to write classes with version 50 (Java 6). Any newer class file versions will crash Forge when it scans the jar.
 
 ### 1.4.7-gradle4
 
 Forge 1.4.7-6.6.2.534 using Gradle **4.10.3**.
 
-**Works great.** This must be executed on a Java 8 JVM, because gradle 4 is not compatible with newer jvms, and the `toolchains` feature doesn't exist yet to select the correct compiler.
+**Works great.** This project must be executed on a Java 8 JVM, because gradle 4 is not compatible with newer jvms, and the `toolchains` feature doesn't exist yet to select the correct compiler.
 
 ### 1.4.7-gradle8
 
