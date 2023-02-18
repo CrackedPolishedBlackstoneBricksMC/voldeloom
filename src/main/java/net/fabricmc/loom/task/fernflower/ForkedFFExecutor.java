@@ -64,7 +64,6 @@ public class ForkedFFExecutor {
 		File output = null;
 		File lineMap = null;
 		List<File> libraries = new ArrayList<>();
-		int numThreads = 0;
 		
 		Function<String, IBytecodeProvider> bytecodeProviderProvider = FairlyUnsafeNioBytecodeProvider::new;
 
@@ -86,8 +85,6 @@ public class ForkedFFExecutor {
 					lineMap = new File(arg.substring("-linemap=".length()));
 				} else if (arg.startsWith("-mappings=")) {
 					options.put(IFabricJavadocProvider.PROPERTY_NAME, new TinyJavadocProvider(Paths.get(arg.substring("-mappings=".length()))));
-				} else if (arg.startsWith("-threads=")) {
-					numThreads = Integer.parseInt(arg.substring("-threads=".length())); //TODO: Unused
 				} else if(arg.equals("-safer-bytecode-provider")) {
 					bytecodeProviderProvider = (__) -> SAFER_BUT_SLOWER_BYTECODE_PROVIDER;
 				} else if(arg.startsWith("-input=")){

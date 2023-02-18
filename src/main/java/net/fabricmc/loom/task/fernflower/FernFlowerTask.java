@@ -50,7 +50,6 @@ public class FernFlowerTask extends AbstractDecompileTask implements LoomTaskExt
 		getOutputs().upToDateWhen(t -> false);
 	}
 	
-	//TODO: Not used
 	private int numThreads = Runtime.getRuntime().availableProcessors();
 
 	@TaskAction
@@ -62,14 +61,14 @@ public class FernFlowerTask extends AbstractDecompileTask implements LoomTaskExt
 		args.add("-" + IFernflowerPreferences.BYTECODE_SOURCE_MAPPING + "=1");
 		args.add("-" + IFernflowerPreferences.REMOVE_SYNTHETIC + "=1");
 		args.add("-" + IFernflowerPreferences.LOG_LEVEL + "=warn");
+		args.add("-" + IFernflowerPreferences.THREADS + "=" + getNumThreads());
 		
 		//ForkedFFExecutor wrapper options
 		args.add("-input=" + getInput().getAbsolutePath());
 		args.add("-output=" + getOutput().getAbsolutePath());
-		args.add("-threads=" + getNumThreads());
 		args.add("-mappings=" + getLoomGradleExtension().getProviderGraph().get(Tinifier.class).getMappingsFile().toAbsolutePath());
 		if(getLineMapFile() != null) args.add("-linemap=" + getLineMapFile().getAbsolutePath());
-		getLibraries().forEach(f -> args.add("-library=" + f.getAbsolutePath())); //TODO, Decompiler breaks on jemalloc, J9 module-info.class? (original comment)
+		getLibraries().forEach(f -> args.add("-library=" + f.getAbsolutePath()));
 		
 		if(getProject().hasProperty("voldeloom.saferFernflower")) args.add("-safer-bytecode-provider");
 		
