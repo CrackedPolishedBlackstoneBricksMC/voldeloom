@@ -27,6 +27,7 @@ package net.fabricmc.loom.task.fernflower;
 import net.fabricmc.loom.Constants;
 import net.fabricmc.loom.newprovider.Tinifier;
 import net.fabricmc.loom.task.AbstractDecompileTask;
+import net.fabricmc.loom.util.GradleSupport;
 import net.fabricmc.loom.util.LoomTaskExt;
 import org.gradle.api.logging.LogLevel;
 import org.gradle.api.tasks.Input;
@@ -74,7 +75,9 @@ public class FernFlowerTask extends AbstractDecompileTask implements LoomTaskExt
 		
 		getLogging().captureStandardOutput(LogLevel.LIFECYCLE);
 		ExecResult result = forkedJavaexec(spec -> {
-			spec.setMain(ForkedFFExecutor.class.getName()); //TODO: setMain is deprecated and removed in Gradle 8
+			//spec.setMain(ForkedFFExecutor.class.getName()); //TODO: setMain is deprecated and removed in Gradle 8
+			GradleSupport.setMainClass(spec, ForkedFFExecutor.class.getName());
+			
 			//spec.jvmArgs("-Xms200m", "-Xmx3G"); //the defaults work on my machine :tm: and this version of minecraft is so small and cute
 			spec.setArgs(args);
 			spec.setErrorOutput(System.err);

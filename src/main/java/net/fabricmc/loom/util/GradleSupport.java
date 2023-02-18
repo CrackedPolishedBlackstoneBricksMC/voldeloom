@@ -37,6 +37,7 @@ import org.gradle.api.provider.Property;
 import org.gradle.api.provider.Provider;
 import org.gradle.api.tasks.JavaExec;
 import org.gradle.internal.Pair;
+import org.gradle.process.JavaExecSpec;
 
 import javax.annotation.Nullable;
 import java.lang.reflect.Field;
@@ -79,6 +80,9 @@ public class GradleSupport {
 		return configurations.getByName(compileOrImplementation);
 	}
 	
+	//RegularFileProperty is incubating in Gradle 4 but got stabilized as-is in 7,
+	//so when i'm using Gradle 4, the UnstableApiUsage warning is redundant.
+	@SuppressWarnings({"UnstableApiUsage", "RedundantSuppression"})
 	public static RegularFileProperty getRegularFileProperty(Project project) {
 		try {
 			//First try the new method,
@@ -93,12 +97,18 @@ public class GradleSupport {
 		}
 	}
 	
+	//RegularFileProperty/ProjectLayout is incubating in Gradle 4 but got stabilized as-is in 7,
+	//so when i'm using Gradle 4, the UnstableApiUsage warning is redundant.
+	@SuppressWarnings({"UnstableApiUsage", "RedundantSuppression"})
 	private static RegularFileProperty getRegularFilePropertyModern(Project project) throws ReflectiveOperationException {
 		ObjectFactory objectFactory = project.getObjects();
 		return (RegularFileProperty) getAccessibleMethod(objectFactory.getClass(), "fileProperty")
 			.invoke(objectFactory);
 	}
 	
+	//RegularFileProperty/ProjectLayout is incubating in Gradle 4 but got stabilized as-is in 7,
+	//so when i'm using Gradle 4, the UnstableApiUsage warning is redundant.
+	@SuppressWarnings({"UnstableApiUsage", "RedundantSuppression"})
 	private static RegularFileProperty getRegularFilePropertyLegacy(Project project) throws ReflectiveOperationException {
 		ProjectLayout layout = project.getLayout();
 		return (RegularFileProperty) getAccessibleMethod(layout.getClass(), "fileProperty")
@@ -131,32 +141,39 @@ public class GradleSupport {
 		}
 	}
 	
-	public static void setMainClass(JavaExec task, String mainClass) {
+	public static void setMainClass(JavaExecSpec task, String mainClass) {
 		try {
 			setMainClassModern(task, mainClass);
-		} catch (ReflectiveOperationException ignore) {
-			setMainClassLegacy(task, mainClass);
+		} catch (ReflectiveOperationException cantModern) {
+			try {
+				setMainClassLegacy(task, mainClass);
+			} catch (ReflectiveOperationException cantLegacy) {
+				RuntimeException ball = new RuntimeException("Couldn't set main class on JavaExecSpec", cantLegacy);
+				ball.addSuppressed(cantModern);
+				throw ball;
+			}
 		}
 	}
 	
-	private static void setMainClassModern(JavaExec task, String mainClass) throws ReflectiveOperationException {
-		Method getMainClassMethod = task.getClass().getMethod("getMainClass");
-		getMainClassMethod.setAccessible(true);
-		
-		@SuppressWarnings("unchecked")
-		Property<String> mainClassProp = (Property<String>) getMainClassMethod.invoke(task);
-		mainClassProp.set(mainClass);
+	//Property<> is incubating in Gradle 4 but got stabilized as-is in 7,
+	//so when i'm using Gradle 4, the UnstableApiUsage warning is redundant.
+	@SuppressWarnings({"UnstableApiUsage", "RedundantSuppression", "unchecked"})
+	private static void setMainClassModern(JavaExecSpec task, String mainClass) throws ReflectiveOperationException {
+		((Property<String>) getAccessibleMethod(task.getClass(), "getMainClass")
+			.invoke(task))
+			.set(mainClass);
 	}
 	
-	@SuppressWarnings("deprecation") //The method still exists in Gradle 7, but it is deprecated and doesn't function correctly.
-	private static void setMainClassLegacy(JavaExec task, String mainClass) {
-		task.setMain(mainClass);
+	//The method still exists in Gradle 7, but it is deprecated and doesn't function correctly
+	//TODO: The method doesn't exist in Gradle 8 anymore!
+	private static void setMainClassLegacy(JavaExecSpec task, String mainClass) throws ReflectiveOperationException {
+		getAccessibleMethod(task.getClass(), "setMain", String.class)
+			.invoke(task, mainClass);
 	}
 	
 	@SuppressWarnings({
 		"rawtypes", "unchecked", //Property<?> and Provider<?> rawtypes, lets me call set() when I can't name the type.
-		"UnstableApiUsage", //Most of the API was marked unstable in Gradle 4. It got stabilized as-is in 7...
-		"RedundantSuppression" //...so when i'm using Gradle 7, the UnstableApiUsage warning is redundant.
+		"UnstableApiUsage", "RedundantSuppression"
 	})
 	public static boolean trySetJavaToolchain(JavaExec task, @Nullable JavaVersion javaVersion, @Nullable String vendorString) {
 		task.getLogger().info("] Trying to set up a Java {} {} toolchain for {}", javaVersion, vendorString, task.getName());
@@ -237,6 +254,10 @@ public class GradleSupport {
 		throw new IllegalArgumentException("[Voldeloom GradleSupport] Not sure how to parse this " + o.getClass() + " as a JVM vendor.");
 	}
 	
+	
+	//Property<> is incubating in Gradle 4 but got stabilized as-is in 7,
+	//so when i'm using Gradle 4, the UnstableApiUsage warning is redundant.
+	@SuppressWarnings({"UnstableApiUsage", "RedundantSuppression"})
 	public static Pair<JavaVersion, String> readToolchainSpec(Object javaToolchainSpec) {
 		try {
 			Method getLanguageVersion = getAccessibleMethod(javaToolchainSpec.getClass(), "getLanguageVersion");
