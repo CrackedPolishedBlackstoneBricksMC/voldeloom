@@ -55,18 +55,25 @@ dependencies {
 	implementation "com.google.guava:guava:28.0-jre"
 	
 	//mapping tools
-	implementation ("net.fabricmc:stitch:0.4.3.71") { exclude module: "enigma" }
-	implementation ("net.fabricmc:tiny-remapper:0.2.0.57") { transitive = false }
-	implementation ("net.fabricmc:lorenz-tiny:1.0.0+build.1") { transitive = false }
+	implementation "net.fabricmc:stitch:0.6.2"
+	//stitch's transitives, which are marked "runtime" for some reason. (it also has guava but i already have that)
+	implementation "org.ow2.asm:asm:9.1"
+	implementation "org.ow2.asm:asm-commons:9.1"
+	implementation "org.ow2.asm:asm-tree:9.1"
+	implementation "org.ow2.asm:asm-util:9.1"
+	implementation "net.fabricmc:tiny-mappings-parser:0.3.0+build.17"
+	
+	implementation ("net.fabricmc:tiny-remapper:0.8.6") { transitive = false } //another copy of asm (this time 9.3)
+	implementation ("net.fabricmc:lorenz-tiny:1.0.0+build.1") { transitive = false } //TODO: only used by MigrateMappingsTask
+	
+	//other stuff
+	implementation "org.jetbrains:intellij-fernflower:1.2.1.16" //decompiler
+	implementation "org.cadixdev:mercury:0.1.0.fabric-SNAPSHOT" //source remapper
 	
 	//Forge 1.6's binpatches.pack.lzma
 	implementation "org.apache.commons:commons-compress:1.22"
 	implementation "org.tukaani:xz:1.9" //commons-compress LZMA support
 	//implementation "lzma:lzma:0.0.1" //Weird mystery lzma decompressor that Forge uses (on spongepowered maven)
-	
-	//other stuff
-	implementation "org.jetbrains:intellij-fernflower:1.1.0.11" //decompiler
-	implementation "org.cadixdev:mercury:0.1.0.fabric-SNAPSHOT" //source remapper
 }
 
 // Properties of the artifact //
