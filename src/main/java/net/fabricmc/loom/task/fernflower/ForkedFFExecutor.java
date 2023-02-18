@@ -142,7 +142,8 @@ public class ForkedFFExecutor {
 			//This class is unsafe because:
 			//1. It blindly assumes `externalPath` refers to the same file as the filesystem opened in the constructor.
 			// (In practice, this is the case when the amount of input files provided to the decompiler is one.)
-			//2. It blindly assumes `internalPath` is never null, which the stock IBytecodeProviders do assume.
+			//2. It blindly assumes `internalPath` is never null. The stock IBytecodeProviders check for this and open the entire file instead.
+			//But hey it saves like 15 seconds on the fernflower runtime :sunglas
 			return Files.readAllBytes(fs.getPath(internalPath));
 		}
 		
