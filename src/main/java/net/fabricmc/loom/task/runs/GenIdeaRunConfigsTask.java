@@ -31,8 +31,7 @@ public class GenIdeaRunConfigsTask extends DefaultTask implements LoomTaskExt {
 			return;
 		}
 		
-		Path ideaDir = project.file(".idea").toPath();
-		Path runConfigsDir = ideaDir.resolve("runConfigurations");
+		Path runConfigsDir = project.file(".idea").toPath().resolve("runConfigurations");
 		Files.createDirectories(runConfigsDir);
 		
 		for(RunConfig cfg : extension.runConfigs) {

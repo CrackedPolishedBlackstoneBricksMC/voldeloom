@@ -100,6 +100,11 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		project.getLogger().lifecycle("=====");
 		project.getLogger().lifecycle("Applying Voldeloom {} to {}.", getClass().getPackage().getImplementationVersion(), project.getDisplayName());
 		project.getLogger().lifecycle("Java version is '{}', Gradle version is '{}'. I hope it works :)", System.getProperty("java.version"), project.getGradle().getGradleVersion());
+		
+		if(project.getGradle().getGradleVersion().startsWith("8.")) {
+			project.getLogger().warn("!! Gradle 8 support is very untested! I recommend 7.6 at the moment. Good luck though!");
+		}
+		
 		project.getLogger().lifecycle("=====");
 		
 		//Apply a handful of bonus plugins. This acts the same as writing `apply plugin: 'java'` in the buildscript.
@@ -287,8 +292,8 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		
 		//IDE integration:
 		tasks.register("genEclipseRuns", GenEclipseRunsTask.class);
-		tasks.register("genIdeaRuns", GenIdeaRunConfigsTask.class, t -> t.dependsOn("idea"));
-		tasks.register("genIdeaWorkspace", GenIdeaProjectTask.class, t -> t.dependsOn("idea"));
+		tasks.register("genIdeaRuns", GenIdeaRunConfigsTask.class);
+		tasks.register("genIdeaWorkspace", GenIdeaProjectTask.class);
 		tasks.register("vscode", GenVsCodeProjectTask.class);
 		tasks.register("genDevLaunchInjectorConfigs", GenDevLaunchInjectorConfigsTask.class);
 		
@@ -312,8 +317,9 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		tasks.register("printConfigurationsPlease", ConfigurationDebugTask.class);
 		
 		//TODO is it safe to configure this now? I ask because upstream did it in afterEvaluate
-		tasks.named("idea").configure(t -> t.finalizedBy(tasks.named("genIdeaWorkspace"), tasks.named("genIdeaRuns")));
-		tasks.named("eclipse").configure(t -> t.finalizedBy(tasks.named("genEclipseRuns")));
+		//TODO 2 i dont think its actually needed
+		//tasks.named("idea").configure(t -> t.finalizedBy(tasks.named("genIdeaWorkspace"), tasks.named("genIdeaRuns")));
+		//tasks.named("eclipse").configure(t -> t.finalizedBy(tasks.named("genEclipseRuns")));
 		
 		//Cleaning
 		//TODO: restore (I'm redoing the provider system)
@@ -396,12 +402,12 @@ public class LoomGradlePlugin implements Plugin<Project> {
 			RemapJarTask remapJarTask = (RemapJarTask) project.getTasks().findByName("remapJar");
 			
 			if (!remapJarTask.getInput().isPresent()) {
-				jarTask.setClassifier("dev");
-				remapJarTask.setClassifier("");
-				remapJarTask.getInput().set(jarTask.getArchivePath());
+				GradleSupport.setClassifier(jarTask, "dev");
+				GradleSupport.setClassifier(remapJarTask, "");
+				remapJarTask.getInput().set(GradleSupport.getArchiveFile(jarTask));
 			}
 			
-			extension.addUnmappedMod(jarTask.getArchivePath().toPath());
+			extension.addUnmappedMod(GradleSupport.getArchiveFile(jarTask).toPath());
 			
 			project.getArtifacts().add("archives", remapJarTask);
 			remapJarTask.dependsOn(jarTask);
@@ -411,8 +417,8 @@ public class LoomGradlePlugin implements Plugin<Project> {
 			try {
 				AbstractArchiveTask sourcesTask = (AbstractArchiveTask) project.getTasks().getByName("sourcesJar");
 				RemapSourcesJarTask remapSourcesJarTask = (RemapSourcesJarTask) project.getTasks().findByName("remapSourcesJar");
-				remapSourcesJarTask.setInput(sourcesTask.getArchivePath());
-				remapSourcesJarTask.setOutput(sourcesTask.getArchivePath());
+				remapSourcesJarTask.setInput(GradleSupport.getArchiveFile(sourcesTask)); //TODO: are you sure about that
+				remapSourcesJarTask.setOutput(GradleSupport.getArchiveFile(sourcesTask));
 				remapSourcesJarTask.doLast(task -> project.getArtifacts().add("archives", remapSourcesJarTask.getOutput()));
 				remapSourcesJarTask.dependsOn("sourcesJar");
 				project.getTasks().getByName("build").dependsOn(remapSourcesJarTask);
@@ -420,7 +426,7 @@ public class LoomGradlePlugin implements Plugin<Project> {
 				// pass
 			}
 		} else {
-			extension.addUnmappedMod(jarTask.getArchivePath().toPath());
+			extension.addUnmappedMod(GradleSupport.getArchiveFile(jarTask).toPath());
 		}
 		
 		//Configure a few Maven publishing settings. I (quat)'m not familiar with maven publishing so idk

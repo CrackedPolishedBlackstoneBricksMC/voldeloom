@@ -31,15 +31,18 @@ import org.gradle.api.artifacts.Configuration;
 import org.gradle.api.artifacts.ConfigurationContainer;
 import org.gradle.api.artifacts.repositories.ArtifactRepository;
 import org.gradle.api.file.ProjectLayout;
+import org.gradle.api.file.RegularFile;
 import org.gradle.api.file.RegularFileProperty;
 import org.gradle.api.model.ObjectFactory;
 import org.gradle.api.provider.Property;
 import org.gradle.api.provider.Provider;
 import org.gradle.api.tasks.JavaExec;
+import org.gradle.api.tasks.bundling.AbstractArchiveTask;
 import org.gradle.internal.Pair;
 import org.gradle.process.JavaExecSpec;
 
 import javax.annotation.Nullable;
+import java.io.File;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.Locale;
@@ -85,34 +88,22 @@ public class GradleSupport {
 	@SuppressWarnings({"UnstableApiUsage", "RedundantSuppression"})
 	public static RegularFileProperty getRegularFileProperty(Project project) {
 		try {
-			//First try the new method,
-			return getRegularFilePropertyModern(project);
-		} catch (Exception e) {
+			//Gradle 7
+			ObjectFactory objectFactory = project.getObjects();
+			return (RegularFileProperty) getAccessibleMethod(objectFactory.getClass(), "fileProperty")
+				.invoke(objectFactory);
+		} catch (Exception cantModern) {
 			try {
-				//if that fails fall back.
-				return getRegularFilePropertyLegacy(project);
-			} catch (Exception ee) {
-				throw new RuntimeException("Unable to getfileProperty... pensive");
+				//Gradle 4
+				ProjectLayout layout = project.getLayout();
+				return (RegularFileProperty) getAccessibleMethod(layout.getClass(), "fileProperty")
+					.invoke(layout);
+			} catch (Exception cantLegacy) {
+				RuntimeException ball = new RuntimeException("Unable to figure out how to get a file property", cantLegacy);
+				ball.addSuppressed(cantModern);
+				throw ball;
 			}
 		}
-	}
-	
-	//RegularFileProperty/ProjectLayout is incubating in Gradle 4 but got stabilized as-is in 7,
-	//so when i'm using Gradle 4, the UnstableApiUsage warning is redundant.
-	@SuppressWarnings({"UnstableApiUsage", "RedundantSuppression"})
-	private static RegularFileProperty getRegularFilePropertyModern(Project project) throws ReflectiveOperationException {
-		ObjectFactory objectFactory = project.getObjects();
-		return (RegularFileProperty) getAccessibleMethod(objectFactory.getClass(), "fileProperty")
-			.invoke(objectFactory);
-	}
-	
-	//RegularFileProperty/ProjectLayout is incubating in Gradle 4 but got stabilized as-is in 7,
-	//so when i'm using Gradle 4, the UnstableApiUsage warning is redundant.
-	@SuppressWarnings({"UnstableApiUsage", "RedundantSuppression"})
-	private static RegularFileProperty getRegularFilePropertyLegacy(Project project) throws ReflectiveOperationException {
-		ProjectLayout layout = project.getLayout();
-		return (RegularFileProperty) getAccessibleMethod(layout.getClass(), "fileProperty")
-			.invoke(layout);
 	}
 	
 	//(VOLDELOOM-DISASTER) includeGroup is an optimization that avoids making spurious HTTP requests to unrelated repos.
@@ -141,12 +132,18 @@ public class GradleSupport {
 		}
 	}
 	
+	@SuppressWarnings({"UnstableApiUsage", "RedundantSuppression", "unchecked"})
 	public static void setMainClass(JavaExecSpec task, String mainClass) {
 		try {
-			setMainClassModern(task, mainClass);
+			//Gradle 7
+			((Property<String>) getAccessibleMethod(task.getClass(), "getMainClass")
+				.invoke(task))
+				.set(mainClass);
 		} catch (ReflectiveOperationException cantModern) {
 			try {
-				setMainClassLegacy(task, mainClass);
+				//Gradle 4
+				getAccessibleMethod(task.getClass(), "setMain", String.class)
+					.invoke(task, mainClass);
 			} catch (ReflectiveOperationException cantLegacy) {
 				RuntimeException ball = new RuntimeException("Couldn't set main class on JavaExecSpec", cantLegacy);
 				ball.addSuppressed(cantModern);
@@ -155,20 +152,40 @@ public class GradleSupport {
 		}
 	}
 	
-	//Property<> is incubating in Gradle 4 but got stabilized as-is in 7,
-	//so when i'm using Gradle 4, the UnstableApiUsage warning is redundant.
 	@SuppressWarnings({"UnstableApiUsage", "RedundantSuppression", "unchecked"})
-	private static void setMainClassModern(JavaExecSpec task, String mainClass) throws ReflectiveOperationException {
-		((Property<String>) getAccessibleMethod(task.getClass(), "getMainClass")
-			.invoke(task))
-			.set(mainClass);
+	public static void setClassifier(AbstractArchiveTask task, String classifier) {
+		try {
+			((Property<String>) getAccessibleMethod(task.getClass(), "getArchiveClassifier")
+				.invoke(task))
+				.set(classifier);
+		} catch (ReflectiveOperationException cantModern) {
+			try {
+				getAccessibleMethod(task.getClass(), "setClassifier", String.class)
+					.invoke(task, classifier);
+			} catch (ReflectiveOperationException cantLegacy) {
+				RuntimeException ball = new RuntimeException("Couldn't set classifier on AbstractArchiveTask", cantLegacy);
+				ball.addSuppressed(cantModern);
+				throw ball;
+			}
+		}
 	}
 	
-	//The method still exists in Gradle 7, but it is deprecated and doesn't function correctly
-	//TODO: The method doesn't exist in Gradle 8 anymore!
-	private static void setMainClassLegacy(JavaExecSpec task, String mainClass) throws ReflectiveOperationException {
-		getAccessibleMethod(task.getClass(), "setMain", String.class)
-			.invoke(task, mainClass);
+	@SuppressWarnings({"UnstableApiUsage", "RedundantSuppression", "unchecked"})
+	public static File getArchiveFile(AbstractArchiveTask task) {
+		try {
+			return ((Provider<RegularFile>) getAccessibleMethod(task.getClass(), "getArchiveFile")
+				.invoke(task))
+				.get().getAsFile();
+		} catch (ReflectiveOperationException cantModern) {
+			try {
+				return (File) getAccessibleMethod(task.getClass(), "getArchivePath")
+					.invoke(task);
+			} catch (ReflectiveOperationException cantLegacy) {
+				RuntimeException ball = new RuntimeException("Couldn't get archive file on AbstractArchiveTask", cantLegacy);
+				ball.addSuppressed(cantModern);
+				throw ball;
+			}
+		}
 	}
 	
 	@SuppressWarnings({

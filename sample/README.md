@@ -42,6 +42,12 @@ Forge 1.4.7-6.6.2.534 using Gradle **4.10.3**.
 
 **Works great.** This must be executed on a Java 8 JVM, because gradle 4 is not compatible with newer jvms, and the `toolchains` feature doesn't exist yet to select the correct compiler.
 
+### 1.4.7-gradle8
+
+Forge 1.4.7-6.6.2.534 using Gradle **8.0**.
+
+This is another "curiosity" project. I don't know if I recommend using Gradle 8 just yet (a little too cutting-edge for my tastes)
+
 ### 1.4.7-thingy
 
 Forge 1.4.7-6.6.2.534 using Gradle 7.6 and [unascribed's UnknownThingy mapping set](https://git.sleeping.town/unascribed/UnknownThingy) instead of MCP.

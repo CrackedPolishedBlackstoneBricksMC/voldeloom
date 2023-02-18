@@ -1,5 +1,7 @@
 # Voldeloom-disastertime
 
+**Current stable:** `2.1` (manually posted) / **Current snapshot:** `2.2-SNAPSHOT` (from CI every commit)
+
 Gradle plugin for ~~Fabric~~ ancient versions of Forge. 
 
 If you're interested in the history:
@@ -29,7 +31,7 @@ Also: this should go without saying, but do not bother the official Forge commun
 
 # Usage
 
-Start with this `build.gradle`. I would *strongly* suggest using modern tech - Java 17 and Gradle 7.6.
+Start with this `build.gradle`. I would *strongly* suggest using modern tech - Java 17 and Gradle 7.6, to be specific. (Gradle 8 might work too, if you use version `2.2-SNAPSHOT`.)
 
 ```groovy
 buildscript {
@@ -39,7 +41,7 @@ buildscript {
 		maven { url "https://repo.sleeping.town" }
 	}
 	dependencies {
-		classpath "agency.highlysuspect:voldeloom:2.1-SNAPSHOT"
+		classpath "agency.highlysuspect:voldeloom:2.1" //or "2.2-SNAPSHOT" for the cutting-edge 
 	}
 }
 
@@ -68,7 +70,7 @@ Now `./gradlew runClient --info --stacktrace` should perform a bunch of magic cu
 
 Then just start modding. Don't worry too much about Java versions - the plugin will provision a Java 8 toolchain for launching the game.
 
-If you require an older version of Java or Gradle, it should work all the way down to Java 8 and Gradle 4, with some caveats. Remember to invoke vintage Gradles with Java 8 - older Gradle versions are not Java 9-clean, and they don't have the toolchains feature that will let me select an appropriate JRE for running the game with. Also, if you're using the sample `build.gradle` above, replace the `java.toolchain` and `compileJava.options` lines with `sourceCompatibility = targetCompatibility = "1.6";`.
+If you require an older version of Java or Gradle, it should work all the way down to Java 8 and Gradle 4, with some caveats. Remember to invoke vintage Gradles with Java 8 - older Gradle versions are not Java 9-clean, and they don't have the toolchains feature that will let me select an appropriate JRE for running the game with. Also, if you're using the sample `build.gradle` above, replace the `java.toolchain` and `compileJava.options` lines with `sourceCompatibility = "1.6"; targetCompatibility = "1.6";`.
 
 # Version status
 

@@ -1,6 +1,20 @@
 Running changelog document, will be added to as I commit things.
 
-# Next version: 2.1 (`agency.highlysuspect:voldeloom:2.1-SNAPSHOT`)
+# Next version: 2.2 (`agency.highlysuspect:voldeloom:2.2-SNAPSHOT`)
+
+## (Roadmap...)
+
+* fixing generated run configs
+* fixing 1.3.2 workspace
+* preparing for 1.2.5 support
+* getting launchwrapper up and running for 1.6/1.7 dev workspace
+* the fabled "Good Mappings System"
+
+## New
+
+* Preliminary support for Gradle 8.
+
+# 2.1 (`agency.highlysuspect:voldeloom:2.1`)
 
 ## Breaking changes
 
@@ -18,7 +32,7 @@ Running changelog document, will be added to as I commit things.
   * **(workspace-breaking)** - You may need to delete files using the old naming convention from `./run/coremods`.
 * The hack that erased some classes from the mappings so Ears 1.4.7 would work in deobf is removed
   * Replaced with `hackHackHackDontMapTheseClasses` property inside `volde`
-  * As the name suggests :tm: i will remove it later when i gt the good mappings system up
+  * As the name suggests :tm: i will remove it later when i get the good mappings system up
 
 ## New
 
