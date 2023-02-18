@@ -57,6 +57,9 @@ public class Jarmodder extends NewProvider<Jarmodder> {
 		Preconditions.checkNotNull(overlay, "jarmod overlay");
 		
 		cleanOnRefreshDependencies(jarmodded);
+		
+		log.lifecycle("] jarmodded: {}", jarmodded);
+		
 		if(Files.notExists(jarmodded)) {
 			log.lifecycle("|-> Jarmodded jar does not exist, performing jarmod...");
 			Files.createDirectories(jarmodded.getParent());

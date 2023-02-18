@@ -77,10 +77,9 @@ public class Tinifier extends NewProvider<Tinifier> {
 		Preconditions.checkNotNull(mappings, "mappings");
 		
 		mappingsFile = getCacheDir().resolve("mappings").resolve(mappings.getPath().getFileName() + mappings.getMappingDiscriminant() + ".tiny");
-		log.info("] mappings destination: {}", mappingsFile);
+		log.lifecycle("] mappings destination: {}", mappingsFile);
 		
 		cleanOnRefreshDependencies(mappingsFile);
-		
 		if(Files.notExists(mappingsFile)) {
 			log.info("|-> Mappings file does not exist, writing...");
 			Files.createDirectories(mappingsFile.getParent());

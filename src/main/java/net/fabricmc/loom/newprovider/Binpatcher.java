@@ -59,7 +59,7 @@ public class Binpatcher extends NewProvider<Binpatcher> {
 		cleanOnRefreshDependencies(output);
 		
 		log.info("] binpatch input: {}", input);
-		log.info("] binpatch output: {}", output);
+		log.lifecycle("] binpatch output: {}", output);
 		log.info("] number of binpatches: {}", binpatches.size());
 		
 		if(Files.notExists(output)) {

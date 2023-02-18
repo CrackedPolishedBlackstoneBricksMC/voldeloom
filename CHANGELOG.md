@@ -36,12 +36,20 @@ Running changelog document, will be added to as I commit things.
   * The plugin will *not* retrieve ATs transitively from mod dependencies.
     * Forge has them configurable through Java in the coremod, so it's impossible in the general case.
     * Just paste them into the project. (Because I don't try to auto generate a coremod, you don't have to worry about them showing up in the built jar)
-* Binpatches
+* Binpatches.
   * 1.6.4 stopped being a jarmod, instead distributing patches inside a `binpatches.pack.lzma` file.
   * Now, if this file exists, Voldeloom is able to parse the file and apply the binary patches.
+  * You can't quite launch 1.6 yet, but it's a start.
 
 ## Other changes
 
+* Rewrote how `genSources` interacts with Fernflower.
+  * It does not attempt to interact with the Gradle `ProgressLogger` system anymore, because it didn't appear to be working. This also removed a *lot* of logging being swallowed by the progress logger.
+  * Another optimization (rather brazenly using NIO for reading classes from the jar) improved the runtime a fair bit on my computer. This is a tinge unsafe, so `-Pvoldeloom.saferFernflower` will toggle back to the old `ZipFile`/`ZipEntry` system.
+* Reduced retained size of in-memory MCP mappings by about 50%.
+  * You can also reduce the retained size of the in-memory Tiny mappings tree with `-Pvoldeloom.lowMemory`, but it's a bit slow and unsafe, whcih is why it's behind a flag. Might be useful if you're very memory constrained and want to squeeze out every drop.
+* Redid the whole "dependency provider" system to be less garbage.
+  * Names of providers have changed. The general shape of log output also changed, a bit less spammy, but I will still spam you with file paths.
 * The project-wide `offline` and `refreshDependencies` flags were moved from `Constants` into the extension:
   * Set the `voldeloom.offline` system property, project property, pass `--offline` to Gradle, or configure `offline` in the extension to configure offline mode
   * Set the `voldeloom.refreshDependencies` system property, project property, pass `--refresh-dependencies` to Gradle, or configure `refreshDependencies` in the extension to configure refreshDependencies mode

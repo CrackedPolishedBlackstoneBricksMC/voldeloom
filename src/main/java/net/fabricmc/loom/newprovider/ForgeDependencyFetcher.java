@@ -58,12 +58,9 @@ public class ForgeDependencyFetcher extends NewProvider<ForgeDependencyFetcher> 
 		Preconditions.checkNotNull(forgeJar, "forge jar");
 		
 		class LibrarySniffingClassVisitor extends ClassVisitor {
-			public LibrarySniffingClassVisitor(ClassVisitor classVisitor, Collection<String> sniffedLibraries) {
-				super(Opcodes.ASM4, classVisitor);
-				this.sniffedLibraries = sniffedLibraries;
+			public LibrarySniffingClassVisitor() {
+				super(Opcodes.ASM4, null);
 			}
-			
-			private final Collection<String> sniffedLibraries;
 			
 			@Override
 			public MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
@@ -93,12 +90,14 @@ public class ForgeDependencyFetcher extends NewProvider<ForgeDependencyFetcher> 
 			if(Files.exists(coreFmlLibsPath)) {
 				log.info("|-> Parsing cpw.mods.fml.relauncher.CoreFMLLibraries...");
 				try(InputStream in = Files.newInputStream(coreFmlLibsPath)) {
-					new ClassReader(in).accept(new LibrarySniffingClassVisitor(null, sniffedLibraries), ClassReader.SKIP_FRAMES); //just don't need frames
+					new ClassReader(in).accept(new LibrarySniffingClassVisitor(), ClassReader.SKIP_FRAMES); //just don't need frames
 				}
 			} else {
 				log.info("|-> No cpw.mods.fml.relauncher.CoreFMLLibraries class in this jar.");
 			}
 		}
+		
+		log.info("] found {} libraries", sniffedLibraries.size());
 		
 		return this;
 	}

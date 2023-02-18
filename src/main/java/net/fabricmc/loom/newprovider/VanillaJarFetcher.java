@@ -71,8 +71,10 @@ public class VanillaJarFetcher extends NewProvider<VanillaJarFetcher> {
 		Path versionManifestIndexJson = getCacheDir().resolve("version_manifest.json");
 		Path thisVersionManifestJson = getCacheDir().resolve("minecraft-" + mc.getFilenameSafeVersion() + "-info.json");
 		
-		log.info("] client jar: {}", clientJar);
-		log.info("] server jar: {}", serverJar);
+		log.lifecycle("] client jar: {}", clientJar);
+		log.lifecycle("] server jar: {}", serverJar);
+		log.lifecycle("] manifest index: {}", versionManifestIndexJson);
+		log.lifecycle("] this version manifest: {}", thisVersionManifestJson);
 		
 		cleanOnRefreshDependencies(andEtags(Arrays.asList(clientJar, serverJar, thisVersionManifestJson, versionManifestIndexJson)));
 		

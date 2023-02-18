@@ -66,16 +66,21 @@ public class VanillaDependencyFetcher extends NewProvider<VanillaDependencyFetch
 		Preconditions.checkNotNull(manifest, "minecraft version manifest");
 		Preconditions.checkNotNull(librariesBaseUrl, "libraries base URL");
 		
+		log.lifecycle("] native libraries directory: {}", nativesDir);
+		
 		cleanOnRefreshDependencies(nativesDir);
 		
 		Path nativesJarStore = nativesDir.resolve("jars");
 		Files.createDirectories(nativesJarStore);
+		
+		int nativeDepCount = 0;
 		
 		for(VersionManifest.Library library : manifest.libraries) {
 			if(!library.allowed()) continue;
 			
 			if(library.isNative()) {
 				log.info("Found minecraft native dependency {}", library.getArtifactName());
+				nativeDepCount++;
 				
 				Path libJarFile = library.getPath(nativesJarStore);
 				
@@ -129,6 +134,8 @@ public class VanillaDependencyFetcher extends NewProvider<VanillaDependencyFetch
 				mavenDependencies.add(depToAdd);
 			}
 		}
+		
+		log.info("] found {} native libraries and {} maven dependencies", nativeDepCount, mavenDependencies.size());
 		
 		return this;
 	}

@@ -75,7 +75,6 @@ public class FernFlowerTask extends AbstractDecompileTask implements LoomTaskExt
 		
 		getLogging().captureStandardOutput(LogLevel.LIFECYCLE);
 		ExecResult result = forkedJavaexec(spec -> {
-			//spec.setMain(ForkedFFExecutor.class.getName()); //TODO: setMain is deprecated and removed in Gradle 8
 			GradleSupport.setMainClass(spec, ForkedFFExecutor.class.getName());
 			
 			//spec.jvmArgs("-Xms200m", "-Xmx3G"); //the defaults work on my machine :tm: and this version of minecraft is so small and cute

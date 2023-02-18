@@ -94,8 +94,10 @@ public class Remapper extends NewProvider<Remapper> {
 		Preconditions.checkNotNull(inputJar, "input jar");
 		Preconditions.checkNotNull(nonNativeLibs, "nonNativeLibs"); // ?
 		
-		cleanOnRefreshDependencies(intermediaryJar, mappedJar);
+		log.lifecycle("] intermediary jar: {}", intermediaryJar);
+		log.lifecycle("] mapped jar: {}", mappedJar);
 		
+		cleanOnRefreshDependencies(intermediaryJar, mappedJar);
 		if (Files.notExists(intermediaryJar) || Files.notExists(mappedJar)) {
 			log.lifecycle("|-> At least one mapped jar didn't exist, performing remap...");
 			

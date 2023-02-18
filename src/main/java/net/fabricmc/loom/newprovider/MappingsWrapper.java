@@ -31,8 +31,8 @@ public class MappingsWrapper extends ResolvedConfigElementWrapper {
 		if(extension.forgeCapabilities.useSrgsAsFallback()) mappingDiscriminant += "-srgfallback";
 		
 		mappingsDepString = getDepString() + mappingDiscriminant;
-		log.info("] mappings dep: {}", mappingsDepString);
-		log.info("] mappings source: {}", getPath());
+		log.lifecycle("] mappings dep: {}", mappingsDepString);
+		log.lifecycle("] mappings source: {}", getPath());
 		
 		try(FileSystem mcpZipFs = FileSystems.newFileSystem(URI.create("jar:" + getPath().toUri()), Collections.emptyMap())) {
 			//TODO: Remove this crap when i do the good mappings system

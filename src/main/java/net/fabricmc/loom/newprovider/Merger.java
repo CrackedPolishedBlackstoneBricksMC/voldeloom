@@ -68,7 +68,7 @@ public class Merger extends NewProvider<Merger> {
 		
 		log.info("] merge client: {}", clientJar);
 		log.info("] merge server: {}", serverJar);
-		log.info("] merge target: {}", merged);
+		log.lifecycle("] merge target: {}", merged);
 		
 		if(Files.notExists(merged)) {
 			Files.createDirectories(merged.getParent());
