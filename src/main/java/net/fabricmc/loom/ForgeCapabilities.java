@@ -49,6 +49,15 @@ public class ForgeCapabilities {
 	 */
 	private Supplier<Boolean> bouncycastleCheat = Suppliers.memoize(this::guessBouncycastleCheat);
 	
+	private Supplier<Boolean> requiresLaunchwrapper = Suppliers.memoize(this::guessRequiresLaunchwrapper);
+	
+	public enum LibraryDownloader {
+		NONE,
+		DEAD,
+		CONFIGURABLE
+	}
+	private Supplier<LibraryDownloader> libraryDownloaderType = Suppliers.memoize(this::guessLibraryDownloaderType);
+	
 	public String getDistributionNamingScheme() {
 		return distributionNamingScheme.get();
 	}
@@ -63,6 +72,14 @@ public class ForgeCapabilities {
 	
 	public boolean getBouncycastleCheat() {
 		return bouncycastleCheat.get();
+	}
+	
+	public boolean getRequiresLaunchwrapper() {
+		return requiresLaunchwrapper.get();
+	}
+	
+	public LibraryDownloader getLibraryDownloaderType() {
+		return libraryDownloaderType.get();
 	}
 	
 	public String guessDistributionNamingScheme() {
@@ -119,6 +136,34 @@ public class ForgeCapabilities {
 		}
 	}
 	
+	public boolean guessRequiresLaunchwrapper() {
+		checkConfigured("guessSupportsAssetIndex");
+		
+		if(guessMinecraftMinorVersion() >= 6) {
+			log.info("|-> [ForgeCapabilities guess] Guessing that this Forge version requires a Launchwrapper tweaker?");
+			return true;
+		} else {
+			log.info("|-> [ForgeCapabilities guess] Guessing that this Forge version is launched directly from the normal Minecraft main class?");
+			return false;
+		}
+	}
+	
+	public LibraryDownloader guessLibraryDownloaderType() {
+		checkConfigured("guessLibraryDownloaderType");
+		
+		int minor = guessMinecraftMinorVersion();
+		if(minor == 5) {
+			log.info("|-> [ForgeCapabilities guess] Guessing that this Forge version has a library downloader configurable through fml.core.libraries.mirror?");
+			return LibraryDownloader.CONFIGURABLE;
+		} else if(minor < 5) {
+			log.info("|-> [ForgeCapabilities guess] Guessing that this Forge version has a broken library downloader that contacts a dead server?");
+			return LibraryDownloader.DEAD;
+		} else {
+			log.info("|-> [ForgeCapabilities guess] Guessing that this Forge version does not have a library downloader?");
+			return LibraryDownloader.NONE;
+		}
+	}
+	
 	private void checkConfigured(String what) {
 		if(!project.getState().getExecuted()) {
 			throw new IllegalStateException("Accessing " + what + " before the project is evaluated means the user doesn't have a chance to configure it!");
@@ -161,6 +206,18 @@ public class ForgeCapabilities {
 	}
 	
 	@SuppressWarnings("unused") //gradle api
+	public ForgeCapabilities setRequiresLaunchwrapper(boolean requiresLaunchwrapper) {
+		this.requiresLaunchwrapper = () -> requiresLaunchwrapper;
+		return this;
+	}
+	
+	@SuppressWarnings("unused") //gradle api
+	public ForgeCapabilities setLibraryDownloaderType(LibraryDownloader libraryDownloaderType) {
+		this.libraryDownloaderType = () -> libraryDownloaderType;
+		return this;
+	}
+	
+	@SuppressWarnings("unused") //gradle api
 	public ForgeCapabilities setDistributionNamingSchemeSupplier(Supplier<String> distributionNamingScheme) {
 		this.distributionNamingScheme = distributionNamingScheme;
 		return this;
@@ -181,6 +238,18 @@ public class ForgeCapabilities {
 	@SuppressWarnings("unused") //gradle api
 	public ForgeCapabilities setBouncycastleCheatSupplier(Supplier<Boolean> bouncycastleCheat) {
 		this.bouncycastleCheat = bouncycastleCheat;
+		return this;
+	}
+	
+	@SuppressWarnings("unused") //gradle api
+	public ForgeCapabilities setRequiresLaunchwrapperSupplier(Supplier<Boolean> requiresLaunchwrapper) {
+		this.requiresLaunchwrapper = requiresLaunchwrapper;
+		return this;
+	}
+	
+	@SuppressWarnings("unused") //gradle api
+	public ForgeCapabilities setLibraryDownloaderTypeSupplier(Supplier<LibraryDownloader> libraryDownloaderType) {
+		this.libraryDownloaderType = libraryDownloaderType;
 		return this;
 	}
 }

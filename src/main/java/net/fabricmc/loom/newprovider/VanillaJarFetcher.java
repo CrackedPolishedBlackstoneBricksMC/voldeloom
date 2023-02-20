@@ -1,19 +1,16 @@
 package net.fabricmc.loom.newprovider;
 
 import com.google.common.base.Preconditions;
-import com.google.gson.Gson;
 import net.fabricmc.loom.LoomGradleExtension;
+import net.fabricmc.loom.util.ManifestIndex;
 import net.fabricmc.loom.util.VersionManifest;
 import org.gradle.api.Project;
 
 import javax.annotation.Nullable;
-import java.io.BufferedReader;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Period;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
+import java.util.Locale;
 
 public class VanillaJarFetcher extends NewProvider<VanillaJarFetcher> {
 	public VanillaJarFetcher(Project project, LoomGradleExtension extension) {
@@ -87,26 +84,17 @@ public class VanillaJarFetcher extends NewProvider<VanillaJarFetcher> {
 			.download();
 		
 		log.info("|-> Parsing manifest index...");
-		ManifestVersion versionManifestIndex;
-		try(BufferedReader reader = Files.newBufferedReader(versionManifestIndexJson)) {
-			versionManifestIndex = new Gson().fromJson(reader, ManifestVersion.class);
-		}
+		ManifestIndex versionManifestIndex = ManifestIndex.read(versionManifestIndexJson);
 		
-		ManifestVersion.VersionData selectedVersion = null;
+		ManifestIndex.VersionData selectedVersion = null;
 		if(customManifestUrl != null) {
 			log.lifecycle("!! Using custom Minecraft per-version manifest at URL: {}", customManifestUrl);
-			selectedVersion = new ManifestVersion.VersionData();
+			selectedVersion = new ManifestIndex.VersionData();
 			selectedVersion.id = mc.getVersion();
 			selectedVersion.url = customManifestUrl;
 		} else {
 			log.info("|-> Browsing manifest index, looking for per-version manifest for {}...", mc.getVersion());
-			for(ManifestVersion.VersionData indexedVersion : versionManifestIndex.versions) { //what's a little O(N) lookup between friends
-				if(indexedVersion.id.equalsIgnoreCase(mc.getVersion())) {
-					selectedVersion = indexedVersion;
-					break;
-				}
-			}
-			
+			selectedVersion = versionManifestIndex.versions.get(mc.getVersion().toLowerCase(Locale.ROOT));
 			if(selectedVersion == null || selectedVersion.url == null) {
 				throw new IllegalStateException("Could not find a per-version manifest corresponding to Minecraft version '" + mc.getVersion() + "' in version_manifest.json ('" + versionManifestIndexJson +"').");
 			}
@@ -121,9 +109,7 @@ public class VanillaJarFetcher extends NewProvider<VanillaJarFetcher> {
 			.download();
 		
 		log.info("|-> Parsing per-version manifest...");
-		try(BufferedReader reader = Files.newBufferedReader(thisVersionManifestJson)) {
-			versionManifest = new Gson().fromJson(reader, VersionManifest.class);
-		}
+		versionManifest = VersionManifest.read(thisVersionManifestJson);
 		
 		log.info("|-> Downloading Minecraft {} client jar...", mc.getVersion());
 		newDownloadSession(versionManifest.downloads.get("client").url)
@@ -144,14 +130,5 @@ public class VanillaJarFetcher extends NewProvider<VanillaJarFetcher> {
 			.download();
 		
 		return this;
-	}
-	
-	//designed to be parsed with google gson
-	public static class ManifestVersion {
-		public List<ManifestVersion.VersionData> versions = new ArrayList<>();
-		
-		public static class VersionData {
-			public String id, url;
-		}
 	}
 }

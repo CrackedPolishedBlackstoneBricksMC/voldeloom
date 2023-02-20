@@ -73,7 +73,7 @@ public class ProviderGraph {
 		ForgeDependencyFetcher forgeDeps = new ForgeDependencyFetcher(project, extension)
 			.forgeJar(forge.getPath())
 			.fmlLibrariesBaseUrl(extension.fmlLibrariesBaseUrl)
-			.extractedLibrariesDirname(forge.getFilenameSafeDepString())
+			.libDownloaderDir(forge.getFilenameSafeDepString())
 			.bouncycastleCheat(extension.forgeCapabilities.getBouncycastleCheat())
 			.sniff()
 			.fetch()

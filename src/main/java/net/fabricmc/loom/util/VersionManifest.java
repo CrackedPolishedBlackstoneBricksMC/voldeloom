@@ -24,9 +24,14 @@
 
 package net.fabricmc.loom.util;
 
+import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.annotations.SerializedName;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
@@ -38,10 +43,18 @@ import java.util.Map;
  */
 @SuppressWarnings("unused")
 public class VersionManifest {
+	public static VersionManifest read(Path path) throws IOException {
+		try(BufferedReader reader = Files.newBufferedReader(path)) {
+			return new Gson().fromJson(reader, VersionManifest.class);
+		}
+	}
+	
 	public List<Library> libraries;
 	public Map<String, Downloads> downloads;
 	public AssetIndex assetIndex;
 	public String id; //version number
+	public String mainClass;
+	public String minecraftArguments;
 
 	public static class Downloads {
 		public String url;
@@ -64,6 +77,7 @@ public class VersionManifest {
 
 	public static class Library {
 		public String name;
+		@SerializedName("url") public String forgeDownloadRoot; //used by Forge 1.6/1.7's version.json, i don't think it's vanilla
 		public JsonObject natives;
 		public JsonObject downloads;
 		private Artifact artifact;

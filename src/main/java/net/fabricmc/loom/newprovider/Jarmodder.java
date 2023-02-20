@@ -103,6 +103,10 @@ public class Jarmodder extends NewProvider<Jarmodder> {
 					
 					@Override
 					public FileVisitResult visitFile(Path sourcePath, BasicFileAttributes attrs) throws IOException {
+						//TODO: move this OUT, not into the general jarmods system
+						// If this file is missing, Forge will assume it's in a dev environment and not do runtime binpatching
+						if(sourcePath.toString().endsWith("binpatches.pack.lzma")) return FileVisitResult.CONTINUE;
+						
 						Path destPath = patchedFs.getPath(sourcePath.toString());
 						Files.copy(sourcePath, destPath, StandardCopyOption.REPLACE_EXISTING);
 						return FileVisitResult.CONTINUE;

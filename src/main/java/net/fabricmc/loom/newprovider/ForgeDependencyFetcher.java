@@ -2,6 +2,7 @@ package net.fabricmc.loom.newprovider;
 
 import com.google.common.base.Preconditions;
 import net.fabricmc.loom.LoomGradleExtension;
+import net.fabricmc.loom.util.VersionManifest;
 import org.gradle.api.Project;
 import org.gradle.api.artifacts.dsl.DependencyHandler;
 import org.objectweb.asm.ClassReader;
@@ -35,9 +36,11 @@ public class ForgeDependencyFetcher extends NewProvider<ForgeDependencyFetcher> 
 	private boolean bouncycastleCheat;
 	
 	//outputs
-	private Path extractedLibrariesDir;
-	private final Collection<String> sniffedLibraries = new ArrayList<>();
-	private final Collection<Path> resolvedLibraries = new ArrayList<>();
+	private Path libDownloaderDir;
+	private final Collection<String> sniffedLibDownloaderJarNames = new ArrayList<>();
+	private final Collection<Path> resolvedLibDownloaderJars = new ArrayList<>();
+	
+	private Collection<String> sniffedMavenDepNames = new ArrayList<>();
 	
 	public ForgeDependencyFetcher forgeJar(Path forgeJar) {
 		this.forgeJar = forgeJar;
@@ -54,8 +57,8 @@ public class ForgeDependencyFetcher extends NewProvider<ForgeDependencyFetcher> 
 		return this;
 	}
 	
-	public ForgeDependencyFetcher extractedLibrariesDirname(String extractedLibrariesDirname) {
-		this.extractedLibrariesDir = getCacheDir().resolve("forgeLibs").resolve(extractedLibrariesDirname);
+	public ForgeDependencyFetcher libDownloaderDir(String extractedLibrariesDirname) {
+		this.libDownloaderDir = getCacheDir().resolve("forgeLibs").resolve(extractedLibrariesDirname);
 		return this;
 	}
 	
@@ -79,7 +82,7 @@ public class ForgeDependencyFetcher extends NewProvider<ForgeDependencyFetcher> 
 						//and seeing which array the string constants end up being written to.
 						if(value instanceof String && ((String) value).endsWith(".jar")) {
 							log.info("|-> Found Forge library: {}", value);
-							sniffedLibraries.add((String) value);
+							sniffedLibDownloaderJarNames.add((String) value);
 						}
 					}
 				};
@@ -99,30 +102,45 @@ public class ForgeDependencyFetcher extends NewProvider<ForgeDependencyFetcher> 
 					new ClassReader(in).accept(new LibrarySniffingClassVisitor(), ClassReader.SKIP_FRAMES); //just don't need frames
 				}
 			} else {
-				log.info("|-> No cpw.mods.fml.relauncher.CoreFMLLibraries class in this jar.");
+				log.info("|-> No cpw.mods.fml.relauncher.CoreFMLLibraries class in this Forge jar.");
+			}
+			
+			Path versionJsonPath = forgeFs.getPath("/version.json");
+			if(Files.exists(versionJsonPath)) {
+				log.info("|-> A version.json exists in this Forge jar, I guess we're in the Launchwrapper era. Parsing it for libraries.");
+				VersionManifest versionManifest = VersionManifest.read(versionJsonPath); //yup, the vanilla format
+				
+				for(VersionManifest.Library lib : versionManifest.libraries) {
+					//todo: all the natives handling from vanilla's library sniffer too?
+					if(lib.allowed() && !"http://files.minecraftforge.net/maven/".equals(lib.forgeDownloadRoot)) {
+						sniffedMavenDepNames.add(lib.name);
+					}
+				}
+			} else {
+				log.info("|-> No version.json exists in this jar.");
 			}
 		}
 		
 		if(bouncycastleCheat) {
-			sniffedLibraries.add("bcprov-jdk15on-147.jar");
+			sniffedLibDownloaderJarNames.add("bcprov-jdk15on-147.jar");
 			log.info("|-> Cheating and pretending bcprov-jdk15on-147.jar is a Forge library...");
 		}
 		
-		log.info("] found {} libraries", sniffedLibraries.size());
+		log.info("] found {} lib-downloader libraries and {} Maven libraries", sniffedLibDownloaderJarNames.size(), sniffedMavenDepNames.size());
 		
 		return this;
 	}
 	
 	public ForgeDependencyFetcher fetch() throws Exception {
-		Preconditions.checkNotNull(extractedLibrariesDir, "extracted libraries dir");
+		Preconditions.checkNotNull(libDownloaderDir, "extracted libraries dir");
 		Preconditions.checkNotNull(fmlLibrariesBaseUrl, "FML libraries URL");
 		
-		cleanOnRefreshDependencies(extractedLibrariesDir);
-		Files.createDirectories(extractedLibrariesDir);
+		cleanOnRefreshDependencies(libDownloaderDir);
+		Files.createDirectories(libDownloaderDir);
 		
-		for(String lib : sniffedLibraries) {
-			Path dest = extractedLibrariesDir.resolve(lib);
-			resolvedLibraries.add(dest);
+		for(String lib : sniffedLibDownloaderJarNames) {
+			Path dest = libDownloaderDir.resolve(lib);
+			resolvedLibDownloaderJars.add(dest);
 			
 			newDownloadSession(fmlLibrariesBaseUrl + lib)
 				.dest(dest)
@@ -136,8 +154,12 @@ public class ForgeDependencyFetcher extends NewProvider<ForgeDependencyFetcher> 
 	}
 	
 	public ForgeDependencyFetcher installDependenciesToProject(String config, DependencyHandler deps) {
-		for(Path resolvedLibrary : resolvedLibraries) {
+		for(Path resolvedLibrary : resolvedLibDownloaderJars) {
 			deps.add(config, files(resolvedLibrary));
+		}
+		
+		for(String mavenDep : sniffedMavenDepNames) {
+			deps.add(config, mavenDep);
 		}
 		
 		return this;
