@@ -88,7 +88,7 @@ With the latest version of Minecraft Forge for each Minecraft version.
 | 1.3.2 | ✅ | 🤔 | ✅ | |
 | 1.4.7 | ✅ | ✅ | ✅ | **Has received the most testing.**<br>Used for several production mods. |
 | 1.5.2 | ✅ | ✅ | ✅ | |
-| 1.6.4 | ✅ | 🤔 | ❌ | Plugin doesn't support Launchwrapper yet. |
+| 1.6.4 | ✅ | 🤔 | ✅ | dev workspace mmmmight be busted |
 | 1.7.10 | 🤔 | 🤔 | ❌ | god it'd be so cool to support this version.<br>Haven't evaluated how hard it will be. |
 | >=1.8.9 | ❌ | ❌ | ❌ | Probably impossible to support. |
 

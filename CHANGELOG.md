@@ -14,6 +14,7 @@ Running changelog document, will be added to as I commit things.
 * Preliminary support for Gradle 8
   * "preliminary" as in "I don't know if it's super busted but at least the basics work"
 * The 1.3.2 development environment works now
+* The 1.6.4 development environment works now (maybe)
 
 # 2.1 (`agency.highlysuspect:voldeloom:2.1`)
 

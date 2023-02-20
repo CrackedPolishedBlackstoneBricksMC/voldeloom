@@ -64,19 +64,22 @@ Forge 1.5.2-7.8.1.738 using Gradle 7.6.
 
 Forge 1.6.4-9.11.1.1345 using Gradle 7.6.
 
-**Broken, but compiling mods might work.** Used to be completely busted due to missing `binpatches.pack.lzma` support.
+**Works, quietly.**
+
+Used to be completely busted due to missing `binpatches.pack.lzma` support + missing Launchwrapper support.
+
+Now the main problem is that it doesn't download the sounds in the right location, so the game launches but there's no sound.
 
 1. tiny-remapper fails due to mapping name conflicts. It's not wrong, some classes like `bga` (`RenderBat`) end up with two mappings from the same method name to different SRG names, and this is honest to what the SRGs say.
    * "fixed" due to hacking the name conflicts out of the way in `Srg.java`, just so i could at least get the gradle project to import.
 2. `net.minecraft.client.Minecraft` doesn't have a `main` method anymore.
-   * Fixable by setting the `mainClass` to `net.minecraft.client.main.Main`, where it moved to.
-   * FML relauncher is gone. Minecraft is no longer designed to be an applet.
-   * This is when the "new launcher" came around (see https://github.com/MinecraftForge/FML/wiki/FML-and-the-new-launcher-in-1.6 ) btw.
-3. There is no support for launching the game through Launchwrapper.
-   * Launching Forge directly through `Main` doesn't work. Forge *requires* a `cpw.mods.fml.common.launcher.FMLTweaker` Launchwrapper tweaker in order to function.
-4. (if you were able to get in-game) No sound.
+   * Fixed by getting a lil basic support for launchwrapper
+3. Invalid `ClientBrandRetriever` jar signature, which trips `FMLSanityChecker`.
+   * Impossible to fix because pre-binpatching all the Forge stuff is going to break the signature anyway,
+   * "Fixed" by passing `-Dfml.ignoreInvalidMinecraftCertificates=true`, which makes this class chill out a bit, lol
+4. No sound.
    * This is when Mojang switched to the new file layout (with file hashes).
-   * Also the game supports --assetIndex natively :bangbang:
+   * Also the game supports --assetIndex natively now :bangbang:
 
 ### 1.7.10
 

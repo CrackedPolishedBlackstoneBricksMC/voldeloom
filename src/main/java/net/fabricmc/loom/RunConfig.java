@@ -140,6 +140,13 @@ public class RunConfig implements Named {
 			} else {
 				copy.programArg("--tweakClass=cpw.mods.fml.common.launcher.FMLServerTweaker");
 			}
+			
+			//Tell FMLSanityChecker to Not:tm:.
+			//Previously it only checked for Forge certificate + that you didn't install ModLoader, which is fine, but in 1.6
+			//it started checking the signature of ClientBrandRetriever.class as well, which fails.
+			//It doesn't expect to be ran in deobf, so it's finding the META-INF-missing already-binpatched ClientBrandRetriever, and
+			//going "ohhhohh, someone must have modified the jar! abort, abort!", yeah, it was me who modified the jar, actually
+			copy.vmArg("-Dfml.ignoreInvalidMinecraftCertificates=true");
 		}
 		
 		//Toolchains nonsense
