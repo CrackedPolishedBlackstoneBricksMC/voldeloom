@@ -33,7 +33,7 @@ public class MappingsWrapper extends ResolvedConfigElementWrapper {
 		Logger log = project.getLogger();
 		
 		//TODO: REMOVE this hack
-		if(extension.forgeCapabilities.getSrgsAsFallback()) mappingDiscriminant += "-srgfallback";
+		if(extension.forgeCapabilities.srgsAsFallback.get()) mappingDiscriminant += "-srgfallback";
 		
 		mappingsDepString = getDepString() + mappingDiscriminant;
 		log.lifecycle("] mappings dep: {}", mappingsDepString);

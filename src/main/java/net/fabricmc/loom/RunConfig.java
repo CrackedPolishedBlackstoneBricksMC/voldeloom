@@ -125,12 +125,12 @@ public class RunConfig implements Named {
 			copy.property("org.lwjgl.librarypath", nativeLibsDir);
 		}
 		
-		if(ext.forgeCapabilities.getLibraryDownloaderType() == ForgeCapabilities.LibraryDownloader.CONFIGURABLE) {
+		if(ext.forgeCapabilities.libraryDownloaderType.get() == ForgeCapabilities.LibraryDownloader.CONFIGURABLE) {
 			copy.property("fml.core.libraries.mirror", ext.fmlLibrariesBaseUrl + "%s"); //forge uses it as a format string
 		}
 		
 		//TODO: dumb kludge (and overrides user's choice for main class)
-		if(ext.forgeCapabilities.getRequiresLaunchwrapper()) {
+		if(ext.forgeCapabilities.requiresLaunchwrapper.get()) {
 			copy.setMainClass("net.minecraft.launchwrapper.Launch");
 			//TODO not here
 			copy.programArg("--version=" + ext.getProviderGraph().mc.getVersion() + " (Voldeloom deobf)");

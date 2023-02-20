@@ -25,62 +25,7 @@ public class ForgeCapabilities {
 	 * <p>
 	 * By default, this evaluates to 'intermediary' since 1.5, and 'official' before it.
 	 */
-	private Supplier<String> distributionNamingScheme = Suppliers.memoize(this::guessDistributionNamingScheme);
-	
-	/**
-	 * If a field/method is missing a mapping, if 'true' the proguarded name will show through, and if 'false' the MCP name will.
-	 * <p>
-	 * By default, this evaluates to 'true' since 1.5, and 'false' before it.
-	 * TODO: is this even a good idea?
-	 */
-	private Supplier<Boolean> srgsAsFallback = Suppliers.memoize(this::guessSrgsAsFallback);
-	
-	/**
-	 * Minecraft used to contain shaded copies of libraries that MCP tried to map back to reality.
-	 * The Forge installation procedure would sometimes delete these libraries after deobfuscating the game.
-	 * The exact libraries changed over time.
-	 * <p>
-	 * Example: https://github.com/MinecraftForge/FML/blob/8e7956397dd80902f7ca69c466e833047dfa5010/build.xml#L295-L298
-	 */
-	private Supplier<Set<String>> classFilter = Suppliers.memoize(this::guessClassFilter);
-	
-	/**
-	 * TODO: write javadoc when its not 4am
-	 */
-	private Supplier<Boolean> bouncycastleCheat = Suppliers.memoize(this::guessBouncycastleCheat);
-	
-	private Supplier<Boolean> requiresLaunchwrapper = Suppliers.memoize(this::guessRequiresLaunchwrapper);
-	
-	public enum LibraryDownloader {
-		NONE,
-		DEAD,
-		CONFIGURABLE
-	}
-	private Supplier<LibraryDownloader> libraryDownloaderType = Suppliers.memoize(this::guessLibraryDownloaderType);
-	
-	public String getDistributionNamingScheme() {
-		return distributionNamingScheme.get();
-	}
-	
-	public boolean getSrgsAsFallback() {
-		return srgsAsFallback.get();
-	}
-	
-	public Set<String> getClassFilter() {
-		return classFilter.get();
-	}
-	
-	public boolean getBouncycastleCheat() {
-		return bouncycastleCheat.get();
-	}
-	
-	public boolean getRequiresLaunchwrapper() {
-		return requiresLaunchwrapper.get();
-	}
-	
-	public LibraryDownloader getLibraryDownloaderType() {
-		return libraryDownloaderType.get();
-	}
+	public Supplier<String> distributionNamingScheme = Suppliers.memoize(this::guessDistributionNamingScheme);
 	
 	public String guessDistributionNamingScheme() {
 		checkConfigured("guessDistributionNamingScheme");
@@ -89,6 +34,26 @@ public class ForgeCapabilities {
 		log.info("|-> [ForgeCapabilities guess] I think this Forge version expects mods to be distributed in the '{}' namespace?", dist);
 		return dist;
 	}
+	
+	@SuppressWarnings("unused") //gradle api
+	public ForgeCapabilities setDistributionNamingScheme(String distributionNamingScheme) {
+		this.distributionNamingScheme = () -> distributionNamingScheme;
+		return this;
+	}
+	
+	@SuppressWarnings("unused") //gradle api
+	public ForgeCapabilities setDistributionNamingSchemeSupplier(Supplier<String> distributionNamingScheme) {
+		this.distributionNamingScheme = distributionNamingScheme;
+		return this;
+	}
+	
+	/**
+	 * If a field/method is missing a mapping, if 'true' the proguarded name will show through, and if 'false' the MCP name will.
+	 * <p>
+	 * By default, this evaluates to 'true' since 1.5, and 'false' before it.
+	 * TODO: is this even a good idea?
+	 */
+	public Supplier<Boolean> srgsAsFallback = Suppliers.memoize(this::guessSrgsAsFallback);
 	
 	public boolean guessSrgsAsFallback() {
 		checkConfigured("guessSrgsAsFallback");
@@ -101,6 +66,27 @@ public class ForgeCapabilities {
 			return false;
 		}
 	}
+	
+	@SuppressWarnings("unused") //gradle api
+	public ForgeCapabilities setSrgsAsFallback(boolean srgsAsFallback) {
+		this.srgsAsFallback = () -> srgsAsFallback;
+		return this;
+	}
+	
+	@SuppressWarnings("unused") //gradle api
+	public ForgeCapabilities setSrgsAsFallbackSupplier(Supplier<Boolean> srgsAsFallback) {
+		this.srgsAsFallback = srgsAsFallback;
+		return this;
+	}
+	
+	/**
+	 * Minecraft used to contain shaded copies of libraries that MCP tried to map back to reality.
+	 * The Forge installation procedure would sometimes delete these libraries after deobfuscating the game.
+	 * The exact libraries changed over time.
+	 * <p>
+	 * Example: https://github.com/MinecraftForge/FML/blob/8e7956397dd80902f7ca69c466e833047dfa5010/build.xml#L295-L298
+	 */
+	public Supplier<Set<String>> classFilter = Suppliers.memoize(this::guessClassFilter);
 	
 	public Set<String> guessClassFilter() {
 		checkConfigured("guessClassFilter");
@@ -124,6 +110,23 @@ public class ForgeCapabilities {
 		}
 	}
 	
+	@SuppressWarnings("unused") //gradle api
+	public ForgeCapabilities setClassFilter(Set<String> classFilter) {
+		this.classFilter = () -> classFilter;
+		return this;
+	}
+	
+	@SuppressWarnings("unused") //gradle api
+	public ForgeCapabilities setClassFilterSupplier(Supplier<Set<String>> classFilter) {
+		this.classFilter = classFilter;
+		return this;
+	}
+	
+	/**
+	 * TODO: write javadoc when its not 4am
+	 */
+	public Supplier<Boolean> bouncycastleCheat = Suppliers.memoize(this::guessBouncycastleCheat);
+	
 	public boolean guessBouncycastleCheat() {
 		checkConfigured("guessBouncycastleCheat");
 		
@@ -136,6 +139,20 @@ public class ForgeCapabilities {
 		}
 	}
 	
+	@SuppressWarnings("unused") //gradle api
+	public ForgeCapabilities setBouncycastleCheat(boolean bouncycastleCheat) {
+		this.bouncycastleCheat = () -> bouncycastleCheat;
+		return this;
+	}
+	
+	@SuppressWarnings("unused") //gradle api
+	public ForgeCapabilities setBouncycastleCheatSupplier(Supplier<Boolean> bouncycastleCheat) {
+		this.bouncycastleCheat = bouncycastleCheat;
+		return this;
+	}
+	
+	public Supplier<Boolean> requiresLaunchwrapper = Suppliers.memoize(this::guessRequiresLaunchwrapper);
+	
 	public boolean guessRequiresLaunchwrapper() {
 		checkConfigured("guessSupportsAssetIndex");
 		
@@ -147,6 +164,25 @@ public class ForgeCapabilities {
 			return false;
 		}
 	}
+	
+	@SuppressWarnings("unused") //gradle api
+	public ForgeCapabilities setRequiresLaunchwrapper(boolean requiresLaunchwrapper) {
+		this.requiresLaunchwrapper = () -> requiresLaunchwrapper;
+		return this;
+	}
+	
+	@SuppressWarnings("unused") //gradle api
+	public ForgeCapabilities setRequiresLaunchwrapperSupplier(Supplier<Boolean> requiresLaunchwrapper) {
+		this.requiresLaunchwrapper = requiresLaunchwrapper;
+		return this;
+	}
+	
+	public enum LibraryDownloader {
+		NONE,
+		DEAD,
+		CONFIGURABLE
+	}
+	public Supplier<LibraryDownloader> libraryDownloaderType = Suppliers.memoize(this::guessLibraryDownloaderType);
 	
 	public LibraryDownloader guessLibraryDownloaderType() {
 		checkConfigured("guessLibraryDownloaderType");
@@ -164,6 +200,18 @@ public class ForgeCapabilities {
 		}
 	}
 	
+	@SuppressWarnings("unused") //gradle api
+	public ForgeCapabilities setLibraryDownloaderType(LibraryDownloader libraryDownloaderType) {
+		this.libraryDownloaderType = () -> libraryDownloaderType;
+		return this;
+	}
+	
+	@SuppressWarnings("unused") //gradle api
+	public ForgeCapabilities setLibraryDownloaderTypeSupplier(Supplier<LibraryDownloader> libraryDownloaderType) {
+		this.libraryDownloaderType = libraryDownloaderType;
+		return this;
+	}
+	
 	private void checkConfigured(String what) {
 		if(!project.getState().getExecuted()) {
 			throw new IllegalStateException("Accessing " + what + " before the project is evaluated means the user doesn't have a chance to configure it!");
@@ -179,77 +227,5 @@ public class ForgeCapabilities {
 			System.err.println("Couldn't guess the minor version of Minecraft version " + mcVersion);
 			return 0;
 		}
-	}
-	
-	@SuppressWarnings("unused") //gradle api
-	public ForgeCapabilities setDistributionNamingScheme(String distributionNamingScheme) {
-		this.distributionNamingScheme = () -> distributionNamingScheme;
-		return this;
-	}
-	
-	@SuppressWarnings("unused") //gradle api
-	public ForgeCapabilities setSrgsAsFallback(boolean srgsAsFallback) {
-		this.srgsAsFallback = () -> srgsAsFallback;
-		return this;
-	}
-	
-	@SuppressWarnings("unused") //gradle api
-	public ForgeCapabilities setClassFilter(Set<String> classFilter) {
-		this.classFilter = () -> classFilter;
-		return this;
-	}
-	
-	@SuppressWarnings("unused") //gradle api
-	public ForgeCapabilities setBouncycastleCheat(boolean bouncycastleCheat) {
-		this.bouncycastleCheat = () -> bouncycastleCheat;
-		return this;
-	}
-	
-	@SuppressWarnings("unused") //gradle api
-	public ForgeCapabilities setRequiresLaunchwrapper(boolean requiresLaunchwrapper) {
-		this.requiresLaunchwrapper = () -> requiresLaunchwrapper;
-		return this;
-	}
-	
-	@SuppressWarnings("unused") //gradle api
-	public ForgeCapabilities setLibraryDownloaderType(LibraryDownloader libraryDownloaderType) {
-		this.libraryDownloaderType = () -> libraryDownloaderType;
-		return this;
-	}
-	
-	@SuppressWarnings("unused") //gradle api
-	public ForgeCapabilities setDistributionNamingSchemeSupplier(Supplier<String> distributionNamingScheme) {
-		this.distributionNamingScheme = distributionNamingScheme;
-		return this;
-	}
-	
-	@SuppressWarnings("unused") //gradle api
-	public ForgeCapabilities setSrgsAsFallbackSupplier(Supplier<Boolean> srgsAsFallback) {
-		this.srgsAsFallback = srgsAsFallback;
-		return this;
-	}
-	
-	@SuppressWarnings("unused") //gradle api
-	public ForgeCapabilities setClassFilterSupplier(Supplier<Set<String>> classFilter) {
-		this.classFilter = classFilter;
-		return this;
-	}
-	
-	@SuppressWarnings("unused") //gradle api
-	public ForgeCapabilities setBouncycastleCheatSupplier(Supplier<Boolean> bouncycastleCheat) {
-		this.bouncycastleCheat = bouncycastleCheat;
-		return this;
-	}
-	
-	@SuppressWarnings("unused") //gradle api
-	public ForgeCapabilities setRequiresLaunchwrapperSupplier(Supplier<Boolean> requiresLaunchwrapper) {
-		this.requiresLaunchwrapper = requiresLaunchwrapper;
-		return this;
-	}
-	
-	@SuppressWarnings("unused") //gradle api
-	public ForgeCapabilities setLibraryDownloaderTypeSupplier(Supplier<LibraryDownloader> libraryDownloaderType) {
-		this.libraryDownloaderType = libraryDownloaderType;
-		return this;
 	}
 }
