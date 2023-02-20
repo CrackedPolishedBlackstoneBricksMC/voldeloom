@@ -1,11 +1,13 @@
 package net.fabricmc.loom;
 
+import com.google.common.base.Suppliers;
 import org.gradle.api.Project;
 import org.gradle.api.logging.Logger;
 
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.function.Supplier;
 
 public class ForgeCapabilities {
 	public ForgeCapabilities(Project project, LoomGradleExtension extension) {
@@ -23,7 +25,7 @@ public class ForgeCapabilities {
 	 * <p>
 	 * By default, this evaluates to 'intermediary' since 1.5, and 'official' before it.
 	 */
-	public String distributionNamingScheme = "auto";
+	private Supplier<String> distributionNamingScheme = Suppliers.memoize(this::guessDistributionNamingScheme);
 	
 	/**
 	 * If a field/method is missing a mapping, if 'true' the proguarded name will show through, and if 'false' the MCP name will.
@@ -31,7 +33,7 @@ public class ForgeCapabilities {
 	 * By default, this evaluates to 'true' since 1.5, and 'false' before it.
 	 * TODO: is this even a good idea?
 	 */
-	public Object srgsAsFallback = "auto";
+	private Supplier<Boolean> srgsAsFallback = Suppliers.memoize(this::guessSrgsAsFallback);
 	
 	/**
 	 * Minecraft used to contain shaded copies of libraries that MCP tried to map back to reality.
@@ -40,124 +42,81 @@ public class ForgeCapabilities {
 	 * <p>
 	 * Example: https://github.com/MinecraftForge/FML/blob/8e7956397dd80902f7ca69c466e833047dfa5010/build.xml#L295-L298
 	 */
-	public String classFilter = "auto";
+	private Supplier<Set<String>> classFilter = Suppliers.memoize(this::guessClassFilter);
 	
 	/**
 	 * TODO: write javadoc when its not 4am
 	 */
-	public Object bouncycastleCheat = "auto";
+	private Supplier<Boolean> bouncycastleCheat = Suppliers.memoize(this::guessBouncycastleCheat);
 	
-	@SuppressWarnings("unused") //gradle api
 	public String getDistributionNamingScheme() {
-		return distributionNamingScheme;
+		return distributionNamingScheme.get();
 	}
 	
-	@SuppressWarnings("unused") //gradle api
-	public ForgeCapabilities setDistributionNamingScheme(String distributionNamingScheme) {
-		this.distributionNamingScheme = distributionNamingScheme;
-		return this;
+	public boolean getSrgsAsFallback() {
+		return srgsAsFallback.get();
 	}
 	
-	@SuppressWarnings("unused") //gradle api
-	public Object getSrgsAsFallback() {
-		return srgsAsFallback;
+	public Set<String> getClassFilter() {
+		return classFilter.get();
 	}
 	
-	@SuppressWarnings("unused") //gradle api
-	public ForgeCapabilities setSrgsAsFallback(Object srgsAsFallback) {
-		this.srgsAsFallback = srgsAsFallback;
-		return this;
+	public boolean getBouncycastleCheat() {
+		return bouncycastleCheat.get();
 	}
 	
-	@SuppressWarnings("unused") //gradle api
-	public String getClassFilter() {
-		return classFilter;
-	}
-	
-	@SuppressWarnings("unused") //gradle api
-	public ForgeCapabilities setClassFilter(String classFilter) {
-		this.classFilter = classFilter;
-		return this;
-	}
-	
-	@SuppressWarnings("unused") //gradle api
-	public Object getBouncycastleCheat() {
-		return bouncycastleCheat;
-	}
-	
-	@SuppressWarnings("unused") //gradle api
-	public ForgeCapabilities setBouncycastleCheat(Object bouncycastleCheat) {
-		this.bouncycastleCheat = bouncycastleCheat;
-		return this;
-	}
-	
-	public String computeDistributionNamingScheme() {
-		checkConfigured("computeDistributionNamingScheme");
+	public String guessDistributionNamingScheme() {
+		checkConfigured("guessDistributionNamingScheme");
 		
-		if("auto".equals(distributionNamingScheme)) {
-			distributionNamingScheme = guessMinecraftMinorVersion() >= 5 ? Constants.INTERMEDIATE_NAMING_SCHEME : Constants.PROGUARDED_NAMING_SCHEME;
-			log.info("|-> [ForgeCapabilities guess] I think this Forge version expects mods to be distributed in the '{}' namespace?", distributionNamingScheme);
+		String dist = guessMinecraftMinorVersion() >= 5 ? Constants.INTERMEDIATE_NAMING_SCHEME : Constants.PROGUARDED_NAMING_SCHEME;
+		log.info("|-> [ForgeCapabilities guess] I think this Forge version expects mods to be distributed in the '{}' namespace?", dist);
+		return dist;
+	}
+	
+	public boolean guessSrgsAsFallback() {
+		checkConfigured("guessSrgsAsFallback");
+		
+		if(guessMinecraftMinorVersion() >= 5) {
+			log.info("|-> [ForgeCapabilities guess] I think this Forge version uses SRGs as the fallback when no mapping is defined?");
+			return true;
+		} else {
+			log.info("|-> [ForgeCapabilities guess] I think this Forge version uses proguarded names as the fallback when no mapping is defined?");
+			return false;
 		}
-		
-		return distributionNamingScheme;
 	}
 	
-	public boolean useSrgsAsFallback() {
-		checkConfigured("useSrgsAsFallback");
+	public Set<String> guessClassFilter() {
+		checkConfigured("guessClassFilter");
 		
-		if("auto".equals(srgsAsFallback)) {
-			srgsAsFallback = guessMinecraftMinorVersion() >= 5;
+		int minor = guessMinecraftMinorVersion();
+		
+		if(minor <= 2) {
+			log.info("|-> [ForgeCapabilities guess] I think this Forge version filters classes starting with 'argo' when remapping?");
+			return Collections.singleton("argo");
+		} else if(minor <= 7) {
+			log.info("|-> [ForgeCapabilities guess] I think this Forge version filters classes starting with 'argo' and 'org' when remapping?");
 			
-			if((Boolean) srgsAsFallback) {
-				log.info("|-> [ForgeCapabilities guess] I think this Forge version uses SRGs as the fallback when no mapping is defined?");
-			} else {
-				log.info("|-> [ForgeCapabilities guess] I think this Forge version uses proguarded names as the fallback when no mapping is defined?");
-			}
+			HashSet<String> lol = new HashSet<>(2);
+			lol.add("argo");
+			lol.add("org");
+			return lol;
+		} else {
+			//I don't really have any evidence that lib-deleting ended in 1.8 - TODO check.
+			log.info("|-> [ForgeCapabilities guess] I don't think this Forge version filters any classes when remapping?");
+			return Collections.emptySet();
 		}
-		
-		if(srgsAsFallback instanceof String) return Boolean.parseBoolean((String) srgsAsFallback);
-		if(srgsAsFallback instanceof Boolean) return (Boolean) srgsAsFallback;
-		throw new IllegalStateException("Can't coerce " + srgsAsFallback.getClass() + " to a boolean, in computeSrgsAsFallback");
 	}
 	
-	public Set<String> computeClassFilter() {
-		checkConfigured("computeClassFilter");
+	public boolean guessBouncycastleCheat() {
+		checkConfigured("guessBouncycastleCheat");
 		
-		if("auto".equals(classFilter)) {
-			int minor = guessMinecraftMinorVersion();
-			
-			if(minor <= 2) {
-				log.info("|-> [ForgeCapabilities guess] I think this Forge version filters classes starting with 'argo' when remapping?");
-				classFilter = "argo";
-			} else if(minor <= 7) {
-				log.info("|-> [ForgeCapabilities guess] I think this Forge version filters classes starting with 'argo' and 'org' when remapping?");
-				classFilter = "argo;org";
-			} else {
-				//I don't really have any evidence that lib-deleting ended in 1.8 - TODO check.
-				log.info("|-> [ForgeCapabilities guess] I don't think this Forge version filters any classes when remapping?");
-				classFilter = "";
-			}
+		if(guessMinecraftMinorVersion() == 3) {
+			log.info("|-> [ForgeCapabilities guess] Cheating and pretending bouncycastle is a Forge library");
+			return true;
+		} else {
+			log.info("|-> [ForgeCapabilities guess] Not cheating and pretending bouncycastle is a Forge libray");
+			return false;
 		}
-		
-		return new HashSet<>(Arrays.asList(classFilter.split(";")));
-	}
-	
-	public boolean computeBouncycastleCheat() {
-		checkConfigured("computeBouncycastleCheat");
-		
-		if("auto".equals(bouncycastleCheat)) {
-			bouncycastleCheat = guessMinecraftMinorVersion() == 3;
-			
-			if((Boolean) bouncycastleCheat) {
-				log.info("|-> [ForgeCapabilities guess] Cheating and pretending bouncycastle is a Forge library");
-			} else {
-				log.info("|-> [ForgeCapabilities guess] Not cheating and pretending bouncycastle is a Forge libray");
-			}
-		}
-		
-		if(bouncycastleCheat instanceof String) return Boolean.parseBoolean((String) bouncycastleCheat);
-		if(bouncycastleCheat instanceof Boolean) return (Boolean) bouncycastleCheat;
-		throw new IllegalStateException("Can't coerce " + bouncycastleCheat.getClass() + " to a boolean, in computeBouncycastleCheat");
 	}
 	
 	private void checkConfigured(String what) {
@@ -175,5 +134,53 @@ public class ForgeCapabilities {
 			System.err.println("Couldn't guess the minor version of Minecraft version " + mcVersion);
 			return 0;
 		}
+	}
+	
+	@SuppressWarnings("unused") //gradle api
+	public ForgeCapabilities setDistributionNamingScheme(String distributionNamingScheme) {
+		this.distributionNamingScheme = () -> distributionNamingScheme;
+		return this;
+	}
+	
+	@SuppressWarnings("unused") //gradle api
+	public ForgeCapabilities setSrgsAsFallback(boolean srgsAsFallback) {
+		this.srgsAsFallback = () -> srgsAsFallback;
+		return this;
+	}
+	
+	@SuppressWarnings("unused") //gradle api
+	public ForgeCapabilities setClassFilter(Set<String> classFilter) {
+		this.classFilter = () -> classFilter;
+		return this;
+	}
+	
+	@SuppressWarnings("unused") //gradle api
+	public ForgeCapabilities setBouncycastleCheat(boolean bouncycastleCheat) {
+		this.bouncycastleCheat = () -> bouncycastleCheat;
+		return this;
+	}
+	
+	@SuppressWarnings("unused") //gradle api
+	public ForgeCapabilities setDistributionNamingSchemeSupplier(Supplier<String> distributionNamingScheme) {
+		this.distributionNamingScheme = distributionNamingScheme;
+		return this;
+	}
+	
+	@SuppressWarnings("unused") //gradle api
+	public ForgeCapabilities setSrgsAsFallbackSupplier(Supplier<Boolean> srgsAsFallback) {
+		this.srgsAsFallback = srgsAsFallback;
+		return this;
+	}
+	
+	@SuppressWarnings("unused") //gradle api
+	public ForgeCapabilities setClassFilterSupplier(Supplier<Set<String>> classFilter) {
+		this.classFilter = classFilter;
+		return this;
+	}
+	
+	@SuppressWarnings("unused") //gradle api
+	public ForgeCapabilities setBouncycastleCheatSupplier(Supplier<Boolean> bouncycastleCheat) {
+		this.bouncycastleCheat = bouncycastleCheat;
+		return this;
 	}
 }

@@ -74,7 +74,7 @@ public class ProviderGraph {
 			.forgeJar(forge.getPath())
 			.fmlLibrariesBaseUrl(extension.fmlLibrariesBaseUrl)
 			.extractedLibrariesDirname(forge.getFilenameSafeDepString())
-			.bouncycastleCheat(extension.forgeCapabilities.computeBouncycastleCheat())
+			.bouncycastleCheat(extension.forgeCapabilities.getBouncycastleCheat())
 			.sniff()
 			.fetch()
 			.installDependenciesToProject(Constants.FORGE_DEPENDENCIES, project.getDependencies());
@@ -150,7 +150,7 @@ public class ProviderGraph {
 			.superProjectmapped(transformer.isProjectmapped())
 			.jarToScan(transformer.getTransformedJar())
 			.mappings(mappings)
-			.useSrgsAsFallback(extension.forgeCapabilities.useSrgsAsFallback())
+			.useSrgsAsFallback(extension.forgeCapabilities.getSrgsAsFallback())
 			.tinify();
 		
 		log.lifecycle("# Remapping Minecraft...");
@@ -161,7 +161,7 @@ public class ProviderGraph {
 			.mappedJarName(      mappings.getFilenameSafeDepString(), accessTransformedPrefix + "-" + Constants.MAPPED_NAMING_SCHEME + ".jar")
 			.tinyTree(tinifier.getTinyTree())
 			.inputJar(transformer.getTransformedJar())
-			.deletedPrefixes(extension.forgeCapabilities.computeClassFilter())
+			.deletedPrefixes(extension.forgeCapabilities.getClassFilter())
 			.remap()
 			.installDependenciesToProject(Constants.MINECRAFT_NAMED, project.getDependencies());
 		
@@ -171,7 +171,7 @@ public class ProviderGraph {
 			.mappingsSuffix(mappings.getFilenameSafeDepString())
 			.tinyTree(tinifier.getTinyTree())
 			.remappedConfigurationEntries(extension.remappedConfigurationEntries)
-			.distributionNamingScheme(extension.forgeCapabilities.computeDistributionNamingScheme())
+			.distributionNamingScheme(extension.forgeCapabilities.getDistributionNamingScheme())
 			.addToRemapClasspath(transformer.getTransformedJar())
 			.addToRemapClasspath(vanillaDeps.getNonNativeLibraries_Todo())
 			.remapDependencies()
