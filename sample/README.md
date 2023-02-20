@@ -85,6 +85,4 @@ Now the main problem is that it doesn't download the sounds in the right locatio
 
 Forge 1.7.10-10.13.4.1614-1.7.10 (yes it says 1.7.10 twice) using Gradle 7.6.
 
-Just for kicks.
-
-**FUBARd.**, mainly because the `-sources` artifact on their Maven is fake and it's actually the mod development kit, lol
+~~**FUBARd.**, mainly because the `-sources` artifact on their Maven is fake and it's actually the mod development kit, lol~~ Using a shell script to `git clone` Forge: **Everything is busted**, SRGs are there but MCP names are missing, access transformers seem to go unused, game crashes due to `aji$4` illegal access error, a million other things. At the very least binpatches are working

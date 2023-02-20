@@ -357,6 +357,9 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		if(extension.offline) project.getLogger().warn("!! We're in offline mode - downloads will abort");
 		if(extension.refreshDependencies) project.getLogger().warn("!! We're in refresh-dependencies mode - intermediate products will be recomputed");
 		
+		//Pre-setup actions requested by the user
+		extension.beforeMinecraftSetupActions.forEach(action -> action.execute(project));
+		
 		//Scaffold the "provider" system. This is a loose term for "the things that have to run now, after the user configured
 		//their settings in LoomGradleExtension, but before we're not allowed to mutate the project dependencies anymore".
 		ProviderGraph providers = extension.getProviderGraph()
@@ -472,6 +475,8 @@ public class LoomGradlePlugin implements Plugin<Project> {
 				}
 			}
 		}
+		
+		extension.afterMinecraftSetupActions.forEach(action -> action.execute(project));
 	}
 	
 	/**

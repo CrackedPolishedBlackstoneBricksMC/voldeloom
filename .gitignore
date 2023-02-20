@@ -17,8 +17,8 @@
 !/**/gradle-wrapper.jar
 !/sample/dep_testin/*.jar
 *.iml
-/quat_notes/work
-/quat_notes/work/*
+/**/work
+/**/work/*
 *.hprof
 
 # Dammit krita

@@ -196,6 +196,12 @@ public class LoomGradleExtension {
 	//Need this hack because remapping can't see into string literals passed into Class.forName
 	public Set<String> hackHackHackDontMapTheseClasses = new HashSet<>();
 	
+	/**
+	 * Callbacks for more precision than "afterEvaluate"
+	 */
+	public List<Action<? super Project>> beforeMinecraftSetupActions = new ArrayList<>();
+	public List<Action<? super Project>> afterMinecraftSetupActions = new ArrayList<>();
+	
 	private final ProviderGraph providers;
 	
 	private final List<Path> unmappedModsBuilt = new ArrayList<>();
@@ -245,6 +251,14 @@ public class LoomGradleExtension {
 		action.execute(remappedConfigurationEntries);
 		
 		warnOnProbablyWrongConfigurationNames = last;
+	}
+	
+	public void beforeMinecraftSetup(Action<? super Project> action) {
+		beforeMinecraftSetupActions.add(action);
+	}
+	
+	public void afterMinecraftSetup(Action<? super Project> action) {
+		afterMinecraftSetupActions.add(action);
 	}
 	
 	//Toolchain support, awkwardly at arm's length because of the Gradle 4 source-compatibility restriction

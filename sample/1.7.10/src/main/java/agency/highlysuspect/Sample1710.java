@@ -1,9 +1,10 @@
 package agency.highlysuspect;
 
-import cpw.mods.fml.common.FMLLog;
 import cpw.mods.fml.common.Mod;
 import cpw.mods.fml.common.SidedProxy;
 import cpw.mods.fml.common.event.FMLPreInitializationEvent;
+import cpw.mods.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.common.MinecraftForge;
 
 import java.util.logging.Logger;
 
@@ -15,11 +16,12 @@ public class Sample1710 {
 	public static SampleCommonProxy proxy;
 	
 	public Sample1710() {
-		LOGGER.setParent(FMLLog.getLogger());
 		LOGGER.info("Hello, constructor!");
+		
+		MinecraftForge.EVENT_BUS.register(this);
 	}
 	
-	@Mod.PreInit
+	@SubscribeEvent
 	public void preinit(FMLPreInitializationEvent e) {
 		LOGGER.info("Hello, preinit!");
 		proxy.hi();

@@ -29,15 +29,22 @@ String forgeVersion = "1.7.10-10.13.4.1614-1.7.10" //Yes it actually specifies t
 volde {
 	runs {
 		client {
-			programArg "--version=1.7 deobf (Voldeloom)" //TODO 1.6 crashes if --version is not set (only used for Snooper)
 			programArg "--username=quaternary"
-			mainClass = "net.minecraft.client.main.Main" //TODO make it not required to specify this manually
+			programArg "--userProperties={}" //required to launch (that is an empty json object)
+			programArg "--accessToken=69" //required to launch
 		}
 	}
+}
+
+File hilariousFunnyForge = new File("./work/hilarious-funny-forge.zip")
+if(!hilariousFunnyForge.exists()) {
+	println "TIME FOR SCRIPT.. I HOPE YOURE ON LINUX"
+	"./create-hilarious-forge.sh".execute()
 }
 
 dependencies {
 	minecraft "com.mojang:minecraft:${minecraftVersion}"
 	forge "net.minecraftforge:forge:${forgeVersion}:universal"
-	mappings "net.minecraftforge:forge:${forgeVersion}:src@zip" // OOPS! This is actually the MDK
+	//mappings "net.minecraftforge:forge:${forgeVersion}:src@zip" // OOPS! This is actually the MDK
+	mappings files("./work/hilarious-funny-forge.zip")
 }
