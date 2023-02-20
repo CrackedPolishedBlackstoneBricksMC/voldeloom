@@ -10,11 +10,16 @@ import org.gradle.api.Project;
 import org.gradle.api.artifacts.Configuration;
 import org.gradle.api.logging.Logger;
 
+import java.io.IOException;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
+import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Collections;
 
 /**
@@ -44,15 +49,12 @@ public class MappingsWrapper extends ResolvedConfigElementWrapper {
 			} else {
 				StringInterner strings = new StringInterner();
 				
-				Path conf;
-				if(Files.exists(mcpZipFs.getPath("forge/fml/conf"))) {
-					conf = mcpZipFs.getPath("forge/fml/conf"); //Forge 1.3 to Forge 1.7
-				} else if(Files.exists(mcpZipFs.getPath("forge/conf"))) {
-					conf = mcpZipFs.getPath("forge/conf"); //Forge 1.2
-				} else if(Files.exists(mcpZipFs.getPath("conf"))) {
-					conf = mcpZipFs.getPath("conf"); //MCP
-				} else {
-					conf = mcpZipFs.getPath(""); //manually zipped mappings?
+				log.info("|-> Looking for MCP mappings...");
+				MCPMappingsRootFinder finder = new MCPMappingsRootFinder();
+				Files.walkFileTree(mcpZipFs.getPath("/"), finder);
+				Path conf = finder.mappingsRoot;
+				if(conf == null) {
+					throw new IllegalArgumentException("Unable to find MCP mappings in " + getPath() + " - " + finder.explain());
 				}
 				log.info("] Mappings root detected to be '{}'", conf);
 				
@@ -135,5 +137,34 @@ public class MappingsWrapper extends ResolvedConfigElementWrapper {
 	
 	public boolean isAlreadyTinyv2() {
 		return alreadyTinyv2;
+	}
+	
+	private static class MCPMappingsRootFinder extends SimpleFileVisitor<Path> {
+		public Path mappingsRoot;
+		
+		@Override
+		public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
+			//signal 1: look for an mcp.cfg file.
+			//This file existing is a pretty unambiguous signal, but it is unlikely to be written by anything emitting
+			//MCP artifacts in the modern day (it is a configuration file for the Python 2-based MCP tooling)
+			if(Files.exists(dir.resolve("mcp.cfg"))) {
+				mappingsRoot = dir;
+				return FileVisitResult.TERMINATE;
+			}
+			
+			//signal 2: Look for a version.cfg file.
+			//That's kind of a generic filename, so also check that it actually looks like an MCP version file.
+			Path versionCfg = dir.resolve("version.cfg");
+			if(Files.exists(versionCfg) && new String(Files.readAllBytes(versionCfg), StandardCharsets.UTF_8).contains("MCPVersion")) {
+				mappingsRoot = dir;
+				return FileVisitResult.TERMINATE;
+			}
+			
+			return FileVisitResult.CONTINUE;
+		}
+		
+		String explain() {
+			return "didn't find a 'mcp.cfg' file, and didn't find a 'version.cfg' file containing the string 'MCPVersion'";
+		}
 	}
 }

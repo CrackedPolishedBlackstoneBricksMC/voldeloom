@@ -38,8 +38,11 @@ volde {
 
 File hilariousFunnyForge = new File("./work/hilarious-funny-forge.zip")
 if(!hilariousFunnyForge.exists()) {
-	println "TIME FOR SCRIPT.. I HOPE YOURE ON LINUX"
-	"./create-hilarious-forge.sh".execute()
+	println "!! Downloading 1.7.10's sources to '" + hilariousFunnyForge + "' (forge's maven is broken and doesn't host them)"
+	hilariousFunnyForge.getParentFile().mkdirs()
+	hilariousFunnyForge.withOutputStream {
+		it << new URL("https://github.com/MinecraftForge/MinecraftForge/archive/refs/heads/1.7.10.zip").openStream()
+	}
 }
 
 dependencies {
