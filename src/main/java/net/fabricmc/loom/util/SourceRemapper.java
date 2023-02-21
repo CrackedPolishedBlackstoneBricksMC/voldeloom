@@ -31,7 +31,6 @@ import net.fabricmc.mapping.tree.ClassDef;
 import net.fabricmc.mapping.tree.FieldDef;
 import net.fabricmc.mapping.tree.MethodDef;
 import net.fabricmc.mapping.tree.TinyTree;
-import net.fabricmc.stitch.util.StitchUtil;
 import org.cadixdev.lorenz.MappingSet;
 import org.cadixdev.lorenz.io.MappingsReader;
 import org.cadixdev.lorenz.model.ClassMapping;
@@ -41,8 +40,12 @@ import org.gradle.api.Project;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Collections;
 
 /**
  * Wrapper around the CadixDev Mercury tool; a Java source remapper tool.
@@ -121,8 +124,8 @@ public class SourceRemapper {
 			}
 		}
 
-		StitchUtil.FileSystemDelegate dstFs = destination.isDirectory() ? null : StitchUtil.getJarFileSystem(destination, true);
-		Path dstPath = dstFs != null ? dstFs.get().getPath("/") : destination.toPath();
+		FileSystem dstFs = destination.isDirectory() ? null : FileSystems.newFileSystem(URI.create("jar:" + destination.toURI()), Collections.singletonMap("create", "true"));
+		Path dstPath = dstFs != null ? dstFs.getPath("/") : destination.toPath();
 
 		try {
 			mercury.rewrite(srcPath, dstPath);

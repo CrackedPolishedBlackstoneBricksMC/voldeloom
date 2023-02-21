@@ -16,7 +16,6 @@
 
 package net.fabricmc.loom.yoinked.stitch;
 
-import net.fabricmc.stitch.util.StitchUtil;
 import org.objectweb.asm.*;
 import org.objectweb.asm.tree.*;
 
@@ -25,7 +24,8 @@ import java.util.*;
 /**
  * This is a modified copy of Stitch's ClassMerger.
  *
- * Mainly I modified it to allow changing the annotatation types JarMerger adds to the jars.
+ * Mainly I modified it to allow changing the annotatation types JarMerger adds to the jars, and to avoid adding
+ * duplicate copies of those annotations when one already exists (Forge binpatches add annotations sometimes)
  */
 public class ClassMergerCooler {
 	private String sideEnum = "Lnet/fabricmc/api/EnvType;";
@@ -64,7 +64,7 @@ public class ClassMergerCooler {
 			List<String> listClient = toMap(entriesClient, this.entriesClient);
 			List<String> listServer = toMap(entriesServer, this.entriesServer);
 			
-			this.entryNames = StitchUtil.mergePreserveOrder(listClient, listServer);
+			this.entryNames = mergePreserveOrder(listClient, listServer);
 		}
 		
 		public abstract String getName(T entry);
@@ -144,13 +144,13 @@ public class ClassMergerCooler {
 		ClassReader readerS = new ClassReader(classServer);
 		ClassWriter writer = new ClassWriter(0);
 		
-		ClassNode nodeC = new ClassNode(StitchUtil.ASM_VERSION);
+		ClassNode nodeC = new ClassNode(Opcodes.ASM9);
 		readerC.accept(nodeC, 0);
 		
-		ClassNode nodeS = new ClassNode(StitchUtil.ASM_VERSION);
+		ClassNode nodeS = new ClassNode(Opcodes.ASM9);
 		readerS.accept(nodeS, 0);
 		
-		ClassNode nodeOut = new ClassNode(StitchUtil.ASM_VERSION);
+		ClassNode nodeOut = new ClassNode(Opcodes.ASM9);
 		nodeOut.version = nodeC.version;
 		nodeOut.access = nodeC.access;
 		nodeOut.name = nodeC.name;
@@ -183,7 +183,7 @@ public class ClassMergerCooler {
 			nodeOut.visibleTypeAnnotations.addAll(nodeC.visibleTypeAnnotations);
 		}
 		
-		List<String> itfs = StitchUtil.mergePreserveOrder(nodeC.interfaces, nodeS.interfaces);
+		List<String> itfs = mergePreserveOrder(nodeC.interfaces, nodeS.interfaces);
 		nodeOut.interfaces = new ArrayList<>();
 		
 		List<String> clientItfs = new ArrayList<>();
@@ -259,5 +259,32 @@ public class ClassMergerCooler {
 		
 		nodeOut.accept(writer);
 		return writer.toByteArray();
+	}
+	
+	public static List<String> mergePreserveOrder(List<String> first, List<String> second) {
+		List<String> out = new ArrayList<>();
+		int i = 0;
+		int j = 0;
+		
+		while (i < first.size() || j < second.size()) {
+			while (i < first.size() && j < second.size()
+				&& first.get(i).equals(second.get(j))) {
+				out.add(first.get(i));
+				i++;
+				j++;
+			}
+			
+			while (i < first.size() && !second.contains(first.get(i))) {
+				out.add(first.get(i));
+				i++;
+			}
+			
+			while (j < second.size() && !first.contains(second.get(j))) {
+				out.add(second.get(j));
+				j++;
+			}
+		}
+		
+		return out;
 	}
 }

@@ -54,9 +54,7 @@ dependencies {
 	implementation "com.google.code.gson:gson:2.8.5"
 	implementation "com.google.guava:guava:28.0-jre"
 	
-	//mapping tools
-	implementation "net.fabricmc:stitch:0.6.2"
-	//stitch's transitives, which are marked "runtime" for some reason. (it also has guava but i already have that)
+	//mapping tools. (formerly transitive dependencies of Stitch, but i forked the relevant parts of that library)
 	implementation "org.ow2.asm:asm:9.1"
 	implementation "org.ow2.asm:asm-commons:9.1"
 	implementation "org.ow2.asm:asm-tree:9.1"

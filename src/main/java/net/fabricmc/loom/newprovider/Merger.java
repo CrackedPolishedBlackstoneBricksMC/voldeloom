@@ -6,8 +6,12 @@ import net.fabricmc.loom.yoinked.stitch.ClassMergerCooler;
 import net.fabricmc.loom.yoinked.stitch.JarMergerCooler;
 import org.gradle.api.Project;
 
+import java.net.URI;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Collections;
 
 /**
  * Merges two jars, such as a Minecraft client jar and server jar.
@@ -22,7 +26,7 @@ public class Merger extends NewProvider<Merger> {
 	private Path clientJar, serverJar;
 	
 	//outputs
-	private Path merged;
+	private Path mergedJar;
 	
 	public Merger client(Path clientJar) {
 		this.clientJar = clientJar;
@@ -35,12 +39,12 @@ public class Merger extends NewProvider<Merger> {
 	}
 	
 	public Merger mergedFilename(String mergedFilename) {
-		this.merged = getCacheDir().resolve(mergedFilename);
+		this.mergedJar = getCacheDir().resolve(mergedFilename);
 		return this;
 	}
 	
-	public Path getMerged() {
-		return merged;
+	public Path getMergedJar() {
+		return mergedJar;
 	}
 	
 	//procedure
@@ -48,24 +52,25 @@ public class Merger extends NewProvider<Merger> {
 		Preconditions.checkNotNull(clientJar, "client jar");
 		Preconditions.checkNotNull(serverJar, "server jar");
 		
-		cleanOnRefreshDependencies(merged);
+		cleanOnRefreshDependencies(mergedJar);
 		
 		log.info("] merge client: {}", clientJar);
 		log.info("] merge server: {}", serverJar);
-		log.lifecycle("] merge target: {}", merged);
+		log.lifecycle("] merge target: {}", mergedJar);
 		
-		if(Files.notExists(merged)) {
-			Files.createDirectories(merged.getParent());
+		if(Files.notExists(mergedJar)) {
+			Files.createDirectories(mergedJar.getParent());
 			
-			log.lifecycle("|-> Target does not exist. Merging with JarMergerCooler to {}", merged);
+			log.lifecycle("|-> Target does not exist. Merging with JarMergerCooler to {}", mergedJar);
 			
-			try(JarMergerCooler jm = new JarMergerCooler(clientJar.toFile(), serverJar.toFile(), merged.toFile())) {
-				jm.classMergerCooler = new ClassMergerCooler()
+			try(FileSystem clientFs = FileSystems.newFileSystem(URI.create("jar:" + clientJar.toUri()), Collections.emptyMap());
+			    FileSystem serverFs = FileSystems.newFileSystem(URI.create("jar:" + serverJar.toUri()), Collections.emptyMap());
+			    FileSystem mergedFs = FileSystems.newFileSystem(URI.create("jar:" + mergedJar.toUri()), Collections.singletonMap("create", "true"));
+			    JarMergerCooler jm = new JarMergerCooler(clientFs, serverFs, mergedFs)) {
+				//jm.enableSyntheticParamsOffset();
+				jm.merge(new ClassMergerCooler()
 					.sideEnum("Lcpw/mods/fml/relauncher/Side;")
-					.sideDescriptorAnnotation("Lcpw/mods/fml/relauncher/SideOnly;");
-				
-				jm.enableSyntheticParamsOffset();
-				jm.merge();
+					.sideDescriptorAnnotation("Lcpw/mods/fml/relauncher/SideOnly;"));
 			}
 			
 			log.lifecycle("|-> Merged.");

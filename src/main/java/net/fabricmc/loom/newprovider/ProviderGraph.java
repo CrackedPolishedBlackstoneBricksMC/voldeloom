@@ -136,7 +136,7 @@ public class ProviderGraph {
 			String jarmoddedPrefix = mcPrefix + "-forge-" + forge.getFilenameSafeVersion();
 			Jarmodder jarmod = new Jarmodder(project, extension)
 				.superProjectmapped(merger.isProjectmapped())
-				.base(merger.getMerged())
+				.base(merger.getMergedJar())
 				.overlay(forge.getPath())
 				.jarmoddedFilename(jarmoddedPrefix + "-jarmod.jar")
 				.patch();

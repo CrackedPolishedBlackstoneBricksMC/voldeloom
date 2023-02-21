@@ -26,7 +26,6 @@ package net.fabricmc.loom.task;
 
 import net.fabricmc.loom.Constants;
 import net.fabricmc.loom.util.LineNumberRemapper;
-import net.fabricmc.stitch.util.StitchUtil;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.Project;
 import org.gradle.api.tasks.InputFile;
@@ -35,6 +34,10 @@ import org.gradle.api.tasks.TaskAction;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystems;
+import java.util.Collections;
 
 /**
  * Gradle task used when decompiling the game that corrects line numbers in Fernflower's output.
@@ -58,8 +61,9 @@ public class RemapLineNumbersTask extends DefaultTask {
 		LineNumberRemapper remapper = new LineNumberRemapper();
 		remapper.readMappings(getLineMapFile());
 
-		try (StitchUtil.FileSystemDelegate inFs = StitchUtil.getJarFileSystem(getInput(), true); StitchUtil.FileSystemDelegate outFs = StitchUtil.getJarFileSystem(getOutput(), true)) {
-			remapper.process(project.getLogger(), inFs.get().getPath("/"), outFs.get().getPath("/"));
+		try (FileSystem in = FileSystems.newFileSystem(URI.create("jar:" + getInput().toURI()), Collections.emptyMap());
+		     FileSystem out = FileSystems.newFileSystem(URI.create("jar:" + getOutput().toURI()), Collections.singletonMap("create", "true"))) {
+			remapper.process(project.getLogger(), in.getPath("/"), out.getPath("/"));
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}

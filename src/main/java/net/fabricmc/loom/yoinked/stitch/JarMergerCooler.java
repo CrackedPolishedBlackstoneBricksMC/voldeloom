@@ -16,16 +16,14 @@
 
 package net.fabricmc.loom.yoinked.stitch;
 
-import net.fabricmc.stitch.util.SnowmanClassVisitor;
-import net.fabricmc.stitch.util.StitchUtil;
-import net.fabricmc.stitch.util.SyntheticParameterClassVisitor;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.Opcodes;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.FileSystem;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -48,34 +46,26 @@ import java.util.stream.Collectors;
 /**
  * This is a modified copy of Stitch's JarMerger.
  * 
- * Mainly I modified it to allow changing the annotatation types JarMerger adds to the jars.
+ * Mainly I modified it to allow changing the annotatation types JarMerger adds to the jars, but also
+ * to simplify it a bit and use regular FileSystems instead of the stitch FileSystemDelegate weird thing
+ * because Tbh i have never ran into that issue in practice (close your darned file systems please)
  */
 public class JarMergerCooler implements AutoCloseable {
-	public JarMergerCooler(File inputClient, File inputServer, File output) throws IOException {
-		if (output.exists()) {
-			if (!output.delete()) {
-				throw new IOException("Could not delete " + output.getName());
-			}
-		}
-		
-		this.inputClient = (inputClientFs = StitchUtil.getJarFileSystem(inputClient, false)).get().getPath("/");
-		this.inputServer = (inputServerFs = StitchUtil.getJarFileSystem(inputServer, false)).get().getPath("/");
-		this.outputFs = StitchUtil.getJarFileSystem(output, true);
+	public JarMergerCooler(FileSystem inputClientFs, FileSystem inputServerFs, FileSystem outputFs) {
+		this.inputClientFs = inputClientFs;
+		this.inputServerFs = inputServerFs;
+		this.outputFs = outputFs;
 		
 		this.entriesClient = new HashMap<>();
 		this.entriesServer = new HashMap<>();
 		this.entriesAll = new TreeSet<>();
-		
-		this.classMergerCooler = new ClassMergerCooler();
 	}
 	
-	private final StitchUtil.FileSystemDelegate inputClientFs, inputServerFs, outputFs;
-	private final Path inputClient, inputServer;
+	private final FileSystem inputClientFs, inputServerFs, outputFs;
 	private final Map<String, Entry> entriesClient, entriesServer;
 	private final Set<String> entriesAll;
-	private boolean removeSnowmen = false;
-	private boolean offsetSyntheticsParams = false;
-	public ClassMergerCooler classMergerCooler;
+//	private boolean removeSnowmen = false;
+//	private boolean offsetSyntheticsParams = false;
 	
 	public static class Entry {
 		public final Path path;
@@ -89,13 +79,13 @@ public class JarMergerCooler implements AutoCloseable {
 		}
 	}
 	
-	public void enableSnowmanRemoval() {
-		removeSnowmen = true;
-	}
-	
-	public void enableSyntheticParamsOffset() {
-		offsetSyntheticsParams = true;
-	}
+//	public void enableSnowmanRemoval() {
+//		removeSnowmen = true;
+//	}
+//	
+//	public void enableSyntheticParamsOffset() {
+//		offsetSyntheticsParams = true;
+//	}
 	
 	@Override
 	public void close() throws IOException {
@@ -104,9 +94,9 @@ public class JarMergerCooler implements AutoCloseable {
 		outputFs.close();
 	}
 	
-	private void readToMap(Map<String, Entry> map, Path input) {
+	private void readToMap(Map<String, Entry> map, FileSystem input) {
 		try {
-			Files.walkFileTree(input, new SimpleFileVisitor<Path>() {
+			Files.walkFileTree(input.getPath("/"), new SimpleFileVisitor<Path>() {
 				@Override
 				public FileVisitResult visitFile(Path path, BasicFileAttributes attr) throws IOException {
 					if (attr.isDirectory()) {
@@ -141,7 +131,7 @@ public class JarMergerCooler implements AutoCloseable {
 	}
 	
 	private void add(Entry entry) throws IOException {
-		Path outPath = outputFs.get().getPath(entry.path.toString());
+		Path outPath = outputFs.getPath(entry.path.toString());
 		if (outPath.getParent() != null) {
 			Files.createDirectories(outPath.getParent());
 		}
@@ -160,10 +150,10 @@ public class JarMergerCooler implements AutoCloseable {
 			);
 	}
 	
-	public void merge() throws IOException {
+	public void merge(ClassMergerCooler classMergerCooler) throws IOException {
 		ExecutorService service = Executors.newFixedThreadPool(2);
-		service.submit(() -> readToMap(entriesClient, inputClient));
-		service.submit(() -> readToMap(entriesServer, inputServer));
+		service.submit(() -> readToMap(entriesClient, inputClientFs));
+		service.submit(() -> readToMap(entriesServer, inputServerFs));
 		service.shutdown();
 		try {
 			boolean worked = service.awaitTermination(1, TimeUnit.HOURS);
@@ -214,16 +204,16 @@ public class JarMergerCooler implements AutoCloseable {
 					ClassVisitor visitor = writer;
 					
 					if (side != null) {
-						visitor = classMergerCooler.new SidedClassVisitor(StitchUtil.ASM_VERSION, visitor, side);
+						visitor = classMergerCooler.new SidedClassVisitor(Opcodes.ASM9, visitor, side);
 					}
 					
-					if (removeSnowmen) {
-						visitor = new SnowmanClassVisitor(StitchUtil.ASM_VERSION, visitor);
-					}
-					
-					if (offsetSyntheticsParams) {
-						visitor = new SyntheticParameterClassVisitor(StitchUtil.ASM_VERSION, visitor);
-					}
+//					if (removeSnowmen) {
+//						visitor = new SnowmanClassVisitor(StitchUtil.ASM_VERSION, visitor);
+//					}
+//					
+//					if (offsetSyntheticsParams) {
+//						visitor = new SyntheticParameterClassVisitor(StitchUtil.ASM_VERSION, visitor);
+//					}
 					
 					if (visitor != writer) {
 						reader.accept(visitor, 0);
