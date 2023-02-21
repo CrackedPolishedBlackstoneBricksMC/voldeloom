@@ -25,7 +25,6 @@
 package net.fabricmc.loom.task.fernflower;
 
 import net.fabricmc.loom.Constants;
-import net.fabricmc.loom.newprovider.Tinifier;
 import net.fabricmc.loom.task.AbstractDecompileTask;
 import net.fabricmc.loom.util.GradleSupport;
 import net.fabricmc.loom.util.LoomTaskExt;
@@ -66,9 +65,13 @@ public class FernFlowerTask extends AbstractDecompileTask implements LoomTaskExt
 		//ForkedFFExecutor wrapper options
 		args.add("-input=" + getInput().getAbsolutePath());
 		args.add("-output=" + getOutput().getAbsolutePath());
-		args.add("-mappings=" + getLoomGradleExtension().getProviderGraph().get(Tinifier.class).getMappingsFile().toAbsolutePath());
-		if(getLineMapFile() != null) args.add("-linemap=" + getLineMapFile().getAbsolutePath());
 		getLibraries().forEach(f -> args.add("-library=" + f.getAbsolutePath()));
+		if(getLoomGradleExtension().getProviderGraph().tinyMappingsFile != null) {
+			args.add("-mappings=" + getLoomGradleExtension().getProviderGraph().tinyMappingsFile.toAbsolutePath());
+		}
+		if(getLineMapFile() != null) {
+			args.add("-linemap=" + getLineMapFile().getAbsolutePath());
+		}
 		
 		if(getProject().hasProperty("voldeloom.saferFernflower")) args.add("-safer-bytecode-provider");
 		

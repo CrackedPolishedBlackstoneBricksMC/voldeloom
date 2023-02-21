@@ -26,7 +26,6 @@ package net.fabricmc.loom.task;
 
 import net.fabricmc.loom.Constants;
 import net.fabricmc.loom.LoomGradleExtension;
-import net.fabricmc.loom.newprovider.Tinifier;
 import net.fabricmc.loom.util.GradleSupport;
 import net.fabricmc.loom.util.TinyRemapperSession;
 import org.gradle.api.Project;
@@ -71,7 +70,7 @@ public class RemapJarTask extends Jar {
 			.collect(Collectors.toSet());
 		
 		new TinyRemapperSession()
-			.setMappings(extension.getProviderGraph().get(Tinifier.class).getTinyTree())
+			.setMappings(extension.getProviderGraph().tinyTree)
 			.setInputJar(input)
 			.setInputNamingScheme(Constants.MAPPED_NAMING_SCHEME)
 			.setInputClasspath(remapClasspath)

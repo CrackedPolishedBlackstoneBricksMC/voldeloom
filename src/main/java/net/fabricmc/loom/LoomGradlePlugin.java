@@ -38,7 +38,6 @@ import net.fabricmc.loom.task.RunTask;
 import net.fabricmc.loom.task.ShimForgeLibrariesTask;
 import net.fabricmc.loom.task.ShimResourcesTask;
 import net.fabricmc.loom.task.fernflower.FernFlowerTask;
-import net.fabricmc.loom.task.runs.GenDevLaunchInjectorConfigsTask;
 import net.fabricmc.loom.task.runs.GenEclipseRunsTask;
 import net.fabricmc.loom.task.runs.GenIdeaProjectTask;
 import net.fabricmc.loom.task.runs.GenIdeaRunConfigsTask;
@@ -295,7 +294,6 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		tasks.register("genIdeaRuns", GenIdeaRunConfigsTask.class);
 		tasks.register("genIdeaWorkspace", GenIdeaProjectTask.class);
 		tasks.register("vscode", GenVsCodeProjectTask.class);
-		tasks.register("genDevLaunchInjectorConfigs", GenDevLaunchInjectorConfigsTask.class);
 		
 		//Support for run configs:
 		tasks.register("shimForgeLibraries", ShimForgeLibrariesTask.class);

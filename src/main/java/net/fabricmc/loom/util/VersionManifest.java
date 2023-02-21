@@ -51,7 +51,7 @@ public class VersionManifest {
 	
 	public List<Library> libraries;
 	public Map<String, Downloads> downloads;
-	public AssetIndex assetIndex;
+	@SerializedName("assetIndex") public AssetIndexReference assetIndexReference;
 	public String id; //version number
 	public String mainClass;
 	public String minecraftArguments;
@@ -61,18 +61,14 @@ public class VersionManifest {
 		public String sha1;
 	}
 	
-	public static class AssetIndex {
-		private String id;
+	public static class AssetIndexReference {
+		public String id;
 		public String sha1;
 		public String url;
 
-		public String getId() {
-			return id;
-		}
-
-		public String getFabricId(String version) {
-			return id.equals(version) ? version : version + "-" + id;
-		}
+//		public String getFabricId(String version) {
+//			return id.equals(version) ? version : version + "-" + id;
+//		}
 	}
 
 	public static class Library {

@@ -26,7 +26,7 @@ Forge 1.3.2-4.3.5.318 using Gradle 7.6.
 
 Tiny cheat to get Bouncycastle onto the classpath (I pretend it's a Forge library, mirroring [this commit](https://github.com/MinecraftForge/FML/commit/a513060a81ac4b245b4f19b5ac3e589eb15e3515) from 1.4 FML)
 
-Forge prints a *million* warnings about someone putting their mod in the `net.minecraft.src` package, even though it's actually just picking up on Minecraft being in that package. I don't know what package Forge *wants* minecraft to be in, given that that's the package MCP *puts* it in.
+Forge prints a *million* warnings about someone putting their mod in the `net.minecraft.src` package, even though it's actually just picking up on Minecraft being in that package. I don't know what package Forge *wants* minecraft to be in, given that that's the package MCP *puts* it in. They can be ignored.
 
 ### 1.4.7
 
@@ -46,7 +46,7 @@ Forge 1.4.7-6.6.2.534 using Gradle **4.10.3**.
 
 Forge 1.4.7-6.6.2.534 using Gradle **8.0**.
 
-This is another "curiosity" project. I don't know if I recommend using Gradle 8 just yet (a little too cutting-edge for my tastes)
+**Works great.** This is another "curiosity" project. I don't know if I recommend using Gradle 8 just yet (a little too cutting-edge for my tastes)
 
 ### 1.4.7-thingy
 
@@ -64,25 +64,10 @@ Forge 1.5.2-7.8.1.738 using Gradle 7.6.
 
 Forge 1.6.4-9.11.1.1345 using Gradle 7.6.
 
-**Works, quietly.**
-
-Used to be completely busted due to missing `binpatches.pack.lzma` support + missing Launchwrapper support.
-
-Now the main problem is that it doesn't download the sounds in the right location, so the game launches but there's no sound.
-
-1. tiny-remapper fails due to mapping name conflicts. It's not wrong, some classes like `bga` (`RenderBat`) end up with two mappings from the same method name to different SRG names, and this is honest to what the SRGs say.
-   * "fixed" due to hacking the name conflicts out of the way in `Srg.java`, just so i could at least get the gradle project to import.
-2. `net.minecraft.client.Minecraft` doesn't have a `main` method anymore.
-   * Fixed by getting a lil basic support for launchwrapper
-3. Invalid `ClientBrandRetriever` jar signature, which trips `FMLSanityChecker`.
-   * Impossible to fix because pre-binpatching all the Forge stuff is going to break the signature anyway,
-   * "Fixed" by passing `-Dfml.ignoreInvalidMinecraftCertificates=true`, which makes this class chill out a bit, lol
-4. No sound.
-   * This is when Mojang switched to the new file layout (with file hashes).
-   * Also the game supports --assetIndex natively now :bangbang:
+**Works great** ever since I added binpatches.pack.lzma support and Launchwrapper support.
 
 ### 1.7.10
 
 Forge 1.7.10-10.13.4.1614-1.7.10 (yes it says 1.7.10 twice) using Gradle 7.6.
 
-~~**FUBARd.**, mainly because the `-sources` artifact on their Maven is fake and it's actually the mod development kit, lol~~ Using a shell script to `git clone` Forge: **Everything is busted**, SRGs are there but MCP names are missing, access transformers seem to go unused, game crashes due to `aji$4` illegal access error, a million other things. At the very least binpatches are working
+~~**FUBARd.**, mainly because the `-sources` artifact on their Maven is fake and it's actually the mod development kit, lol~~ Downloading Forge sources from github: **Everything is busted**, SRGs are there but MCP names are missing, access transformers seem to go unused, game crashes due to `aji$4` illegal access error, a million other things. At the very least binpatches are working

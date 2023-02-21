@@ -3,6 +3,7 @@ package net.fabricmc.loom.newprovider;
 import net.fabricmc.loom.Constants;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.util.VersionManifest;
+import net.fabricmc.mapping.tree.TinyTree;
 import org.gradle.api.Project;
 import org.gradle.api.logging.Logger;
 
@@ -37,6 +38,11 @@ public class ProviderGraph {
 	public VersionManifest versionManifest;
 	public Path mcNativesDir;
 	public Collection<Path> mcNonNativeDependencies_Todo;
+	
+	public Path tinyMappingsFile;
+	public TinyTree tinyTree;
+	
+	public AssetDownloader assets;
 	
 	public ProviderGraph setup() throws Exception {
 		log.lifecycle("# Wrapping basic dependencies...");
@@ -134,11 +140,9 @@ public class ProviderGraph {
 		AccessTransformer transformer = new AccessTransformer(project, extension)
 			.superProjectmapped(jarmod.isProjectmapped())
 			.loadCustomAccessTransformers();
-		
 		String accessTransformedPrefix = jarmoddedPrefix + "-atd";
 		@Nullable String atHash = transformer.getCustomAccessTransformerHash();
 		if(atHash != null) accessTransformedPrefix += "-" + atHash;
-		
 		transformer
 			.regularForgeJar(forge.getPath())
 			.forgeJarmodded(jarmod.getJarmoddedJar())
@@ -152,6 +156,8 @@ public class ProviderGraph {
 			.mappings(mappings)
 			.useSrgsAsFallback(extension.forgeCapabilities.srgsAsFallback.get())
 			.tinify();
+		tinyMappingsFile = tinifier.getMappingsFile();
+		tinyTree = tinifier.getTinyTree();
 		
 		log.lifecycle("# Remapping Minecraft...");
 		Remapper remapper = new Remapper(project, extension)
@@ -159,7 +165,7 @@ public class ProviderGraph {
 			.nonNativeLibs(vanillaDeps.getNonNativeLibraries_Todo())
 			.intermediaryJarName(mappings.getFilenameSafeDepString(), accessTransformedPrefix + "-" + Constants.INTERMEDIATE_NAMING_SCHEME + ".jar")
 			.mappedJarName(      mappings.getFilenameSafeDepString(), accessTransformedPrefix + "-" + Constants.MAPPED_NAMING_SCHEME + ".jar")
-			.tinyTree(tinifier.getTinyTree())
+			.tinyTree(tinyTree)
 			.inputJar(transformer.getTransformedJar())
 			.deletedPrefixes(extension.forgeCapabilities.classFilter.get())
 			.remap()
@@ -169,7 +175,7 @@ public class ProviderGraph {
 		DependencyRemapper dependencyRemapper = new DependencyRemapper(project, extension)
 			.superProjectmapped(remapper.isProjectmapped() | tinifier.isProjectmapped() | transformer.isProjectmapped() | vanillaDeps.isProjectmapped())
 			.mappingsSuffix(mappings.getFilenameSafeDepString())
-			.tinyTree(tinifier.getTinyTree())
+			.tinyTree(tinyTree)
 			.remappedConfigurationEntries(extension.remappedConfigurationEntries)
 			.distributionNamingScheme(extension.forgeCapabilities.distributionNamingScheme.get())
 			.addToRemapClasspath(transformer.getTransformedJar())
@@ -178,13 +184,12 @@ public class ProviderGraph {
 			.installDependenciesToProject(project.getDependencies());
 		
 		log.lifecycle("# Configuring asset downloader...");
-		AssetDownloader assets = new AssetDownloader(project, extension)
-			.assetIndexFilename(versionManifest.assetIndex.getFabricId(mc.getVersion()) + ".json")
+		assets = new AssetDownloader(project, extension)
 			.versionManifest(versionManifest)
-			.resourcesBaseUrl(extension.resourcesBaseUrl);
-			//.downloadAssets(); //Don't download assets just yet - a gradle task will do this later on the client
+			.resourcesBaseUrl(extension.resourcesBaseUrl)
+			.prepare();
 		
-		makeAvailableToTasks(transformer, tinifier, remapper, assets);
+		makeAvailableToTasks(remapper);
 		
 		log.lifecycle("# Thank you for flying Voldeloom.");
 		

@@ -129,6 +129,10 @@ public class RunConfig implements Named {
 			copy.property("fml.core.libraries.mirror", ext.fmlLibrariesBaseUrl + "%s"); //forge uses it as a format string
 		}
 		
+		if(ext.forgeCapabilities.supportsAssetsDir.get()) {
+			copy.programArg("--assetsDir=" + ext.getProviderGraph().assets.getAssetsDir().toAbsolutePath());
+		}
+		
 		//TODO: dumb kludge (and overrides user's choice for main class)
 		if(ext.forgeCapabilities.requiresLaunchwrapper.get()) {
 			copy.setMainClass("net.minecraft.launchwrapper.Launch");

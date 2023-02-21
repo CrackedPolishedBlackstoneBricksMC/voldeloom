@@ -73,7 +73,7 @@ public class VanillaJarFetcher extends NewProvider<VanillaJarFetcher> {
 		log.lifecycle("] manifest index: {}", versionManifestIndexJson);
 		log.lifecycle("] this version manifest: {}", thisVersionManifestJson);
 		
-		cleanOnRefreshDependencies(andEtags(Arrays.asList(clientJar, serverJar, thisVersionManifestJson, versionManifestIndexJson)));
+		cleanOnRefreshDependencies(andEtags(Arrays.asList(clientJar, serverJar, versionManifestIndexJson, thisVersionManifestJson)));
 		
 		log.info("|-> Downloading manifest index...");
 		newDownloadSession("https://launchermeta.mojang.com/mc/game/version_manifest.json")

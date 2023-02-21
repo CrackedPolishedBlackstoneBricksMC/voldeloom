@@ -50,13 +50,13 @@ public class AssetDownloader extends NewProvider<AssetDownloader> {
 	private String resourcesBaseUrl;
 	
 	//outputs
-	private Path assetIndexFile;
-	private Path thisVersionAssetsDir;
+	private Path assetIndexJson;
+	private Path assetsDir;
+	private boolean legacyLayout;
 	
-	public AssetDownloader assetIndexFilename(String assetIndexFilename) {
-		this.assetIndexFile = getCacheDir().resolve("assets").resolve("indexes").resolve(assetIndexFilename);
-		return this;
-	}
+	//privates
+	private boolean freshAssetIndex;
+	private JsonObject assets;
 	
 	public AssetDownloader versionManifest(VersionManifest versionManifest) {
 		this.versionManifest = versionManifest;
@@ -69,48 +69,73 @@ public class AssetDownloader extends NewProvider<AssetDownloader> {
 	}
 	
 	public Path getAssetsDir() {
-		return thisVersionAssetsDir;
+		return assetsDir;
 	}
 	
-	public AssetDownloader downloadAssets() throws Exception {
+	public Path getAssetIndex() {
+		return assetIndexJson;
+	}
+	
+	public AssetDownloader prepare() throws Exception {
+		Path assetsCache = getCacheDir().resolve("assets");
+		
+		assetIndexJson = assetsCache.resolve("indexes").resolve(versionManifest.assetIndexReference.id + ".json");
+		
 		//Let's not delete the assets themselves on refreshDependencies.
 		//They're rarely the problem, and take a long time to download.
-		cleanOnRefreshDependencies(assetIndexFile);
-		Files.createDirectories(assetIndexFile.getParent());
+		//That's why i check freshAssetIndex before deleting it on refreshDependencies.
+		freshAssetIndex = Files.notExists(assetIndexJson);
+		cleanOnRefreshDependencies(assetIndexJson);
 		
-		newDownloadSession(versionManifest.assetIndex.url)
-			.dest(assetIndexFile)
+		//download asset index
+		newDownloadSession(versionManifest.assetIndexReference.url)
+			.dest(assetIndexJson)
 			.etag(true)
 			.gzip(true)
-			.skipIfSha1Equals(versionManifest.assetIndex.sha1) //TODO: kinda subsumed by skipIfExists lol
+			.skipIfSha1Equals(versionManifest.assetIndexReference.sha1) //TODO: kinda subsumed by skipIfExists lol
 			.skipIfExists()
 			.download();
 		
-		thisVersionAssetsDir = assetIndexFile
-			.getParent() //removes the filename
-			.getParent() //actually up and out of the "indexes" folder
-			.resolve("legacy").resolve(versionManifest.id);
+		//parse it as json
+		try(BufferedReader in = Files.newBufferedReader(assetIndexJson)) {
+			assets = new Gson().fromJson(in, JsonObject.class);
+		}
 		
-		if(Files.notExists(thisVersionAssetsDir)) {
-			log.lifecycle("|-> Downloading assets to {}...", thisVersionAssetsDir);
-			JsonObject assetJson;
-			try(BufferedReader in = Files.newBufferedReader(assetIndexFile)) {
-				assetJson = new Gson().fromJson(in, JsonObject.class);
-			}
-			JsonObject objectsJson = assetJson.getAsJsonObject("objects");
+		//find what layout it's in
+		legacyLayout =
+			//Every version other than 1.6:
+			(assets.has("map_to_resources") && assets.getAsJsonPrimitive("map_to_resources").getAsBoolean()) ||
+			//1.6, for some reason:
+			(assets.has("virtual") && assets.getAsJsonPrimitive("virtual").getAsBoolean());
+		
+		//decide what directory to put the output artifacts in
+		if(legacyLayout) assetsDir = assetsCache.resolve("legacy").resolve(versionManifest.assetIndexReference.id);
+		else assetsDir = assetsCache.resolve("objects");
+		
+		return this;
+	}
+	
+	public AssetDownloader downloadAssets() throws Exception {
+		if(freshAssetIndex) {
+			log.lifecycle("|-> Downloading assets to {}...", assetsDir);
+			JsonObject objects = assets.getAsJsonObject("objects");
 			
-			//just logging for fun
-			int assetCount = objectsJson.size();
+			//<logging>
+			int assetCount = objects.size();
 			log.lifecycle("|-> Found {} assets to download.", assetCount);
 			int downloadedCount = 0, nextLogAssetCount = 0, logCount = 0;
+			//</logging>
 			
-			for(String filename : objectsJson.keySet()) {
-				Path destFile = thisVersionAssetsDir.resolve(filename);
+			for(String filename : objects.keySet()) {
+				String sha1 = objects.get(filename).getAsJsonObject().get("hash").getAsString();
+				String sh = sha1.substring(0, 2);
+				String shsha1 = sh + '/' + sha1;
+				
+				Path destFile = legacyLayout ?
+					assetsDir.resolve(filename) :
+					assetsDir.resolve(sh).resolve(sha1);
+				
 				if(Files.notExists(destFile)) {
-					Files.createDirectories(destFile.getParent());
-					
-					String sha1 = objectsJson.get(filename).getAsJsonObject().get("hash").getAsString();
-					String shsha1 = sha1.substring(0, 2) + '/' + sha1;
 					newDownloadSession(resourcesBaseUrl + shsha1)
 						.quiet()
 						.dest(destFile)
@@ -118,15 +143,16 @@ public class AssetDownloader extends NewProvider<AssetDownloader> {
 						.etag(false) //we're hopefully not gonna be redownloading these
 						.skipIfExists()
 						.download();
-					
-					//just logging for fun
-					downloadedCount++;
-					if(downloadedCount >= nextLogAssetCount) {
-						log.lifecycle("\\-> " + logCount * 10 + "%...");
-						logCount++;
-						nextLogAssetCount = logCount * assetCount / 10;
-					}
 				}
+				
+				//<logging>
+				downloadedCount++;
+				if(downloadedCount >= nextLogAssetCount) {
+					log.lifecycle("\\-> " + logCount * 10 + "%...");
+					logCount++;
+					nextLogAssetCount = logCount * assetCount / 10;
+				}
+				//</logging>
 			}
 			log.info("|-> Done!");
 		}

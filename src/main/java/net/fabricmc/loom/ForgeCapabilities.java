@@ -20,6 +20,23 @@ public class ForgeCapabilities {
 	private final LoomGradleExtension extension;
 	private final Logger log;
 	
+	private void checkConfigured(String what) {
+		if(!project.getState().getExecuted()) {
+			throw new IllegalStateException("Accessing " + what + " before the project is evaluated means the user doesn't have a chance to configure it!");
+		}
+	}
+	
+	private int guessMinecraftMinorVersion() {
+		String mcVersion = extension.getProviderGraph().mc.getVersion();
+		
+		try {
+			return Integer.parseInt(mcVersion.split("\\.")[1]);
+		} catch (NumberFormatException | ArrayIndexOutOfBoundsException e) {
+			System.err.println("Couldn't guess the minor version of Minecraft version " + mcVersion);
+			return 0;
+		}
+	}
+	
 	/**
 	 * What naming scheme that this Forge version expects to find mods in.
 	 * <p>
@@ -212,20 +229,29 @@ public class ForgeCapabilities {
 		return this;
 	}
 	
-	private void checkConfigured(String what) {
-		if(!project.getState().getExecuted()) {
-			throw new IllegalStateException("Accessing " + what + " before the project is evaluated means the user doesn't have a chance to configure it!");
+	public Supplier<Boolean> supportsAssetsDir = Suppliers.memoize(this::guessSupportsAssetIndex);
+	
+	public boolean guessSupportsAssetIndex() {
+		checkConfigured("guessSupportsAssetIndex");
+		
+		if(guessMinecraftMinorVersion() >= 6) {
+			log.info("|-> [ForgeCapabilities guess] Guessing that this Minecraft version supports setting --assetsDir?");
+			return true;
+		} else {
+			log.info("|-> [ForgeCapabilities guess] Guessing that this Minecraft version does not support setting --assetsDir?");
+			return false;
 		}
 	}
 	
-	private int guessMinecraftMinorVersion() {
-		String mcVersion = extension.getProviderGraph().mc.getVersion();
-		
-		try {
-			return Integer.parseInt(mcVersion.split("\\.")[1]);
-		} catch (NumberFormatException | ArrayIndexOutOfBoundsException e) {
-			System.err.println("Couldn't guess the minor version of Minecraft version " + mcVersion);
-			return 0;
-		}
+	@SuppressWarnings("unused") //gradle api
+	public ForgeCapabilities supportsAssetIndex(boolean supportsAssetIndex) {
+		this.supportsAssetsDir = () -> supportsAssetIndex;
+		return this;
+	}
+	
+	@SuppressWarnings("unused") //gradle api
+	public ForgeCapabilities supportsAssetIndexSupplier(Supplier<Boolean> supportsAssetIndex) {
+		this.supportsAssetsDir = supportsAssetIndex;
+		return this;
 	}
 }

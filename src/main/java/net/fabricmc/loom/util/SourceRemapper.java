@@ -28,7 +28,6 @@ import net.fabricmc.loom.Constants;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.LoomGradlePlugin;
 import net.fabricmc.loom.newprovider.Remapper;
-import net.fabricmc.loom.newprovider.Tinifier;
 import net.fabricmc.mapping.tree.ClassDef;
 import net.fabricmc.mapping.tree.FieldDef;
 import net.fabricmc.mapping.tree.MethodDef;
@@ -61,14 +60,12 @@ public class SourceRemapper {
 		
 		MappingSet mappings = extension.getOrCreateSrcMappingCache(toNamed ? 1 : 0, () -> {
 			try {
-				TinyTree m = extension.getProviderGraph().get(Tinifier.class).getTinyTree();
-				
 				//TODO distributionNamespace
 				String sourceNamingScheme = toNamed ? Constants.INTERMEDIATE_NAMING_SCHEME : Constants.MAPPED_NAMING_SCHEME;
 				String targetNamingScheme = toNamed ? Constants.MAPPED_NAMING_SCHEME : Constants.INTERMEDIATE_NAMING_SCHEME;
 				
 				project.getLogger().lifecycle(":loading {} -> {} source mappings", sourceNamingScheme, targetNamingScheme);
-				return new TinyReader(m, sourceNamingScheme, targetNamingScheme).read();
+				return new TinyReader(extension.getProviderGraph().tinyTree, sourceNamingScheme, targetNamingScheme).read();
 			} catch (Exception e) {
 				throw new RuntimeException(e);
 			}
