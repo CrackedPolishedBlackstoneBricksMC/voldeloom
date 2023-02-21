@@ -91,43 +91,54 @@ public class ForgeAccessTransformerSet {
 		return AccessTransformation.NO_CHANGE;
 	}
 	
-	public void load(Path path) throws IOException {
+	public void load(Path path, boolean mappedAccessTransformers) throws IOException {
 		for(String line : Files.readAllLines(path)) {
-			line = line.split("#", 2)[0].trim(); // strip comments, extraneous whitespace
-			if(line.length() == 0 || line.startsWith("#")) { // skip empty lines
-				continue;
-			}
+			line = line.split("#", 2)[0].trim(); //strip comments, extraneous whitespace
+			if(line.length() == 0 || line.startsWith("#")) continue; //skip empty lines
 			
-			String[] split = line.split(" ", 2);
+			String[] split = line.split(" ");
 			AccessTransformation transformationType = AccessTransformation.fromString(split[0]);
-			String target = split[1];
 			
-			if(target.contains(".")) { //field or method transformer (they both have dots)
-				if(target.contains("(")) { //method transformer
-					if(target.endsWith(".*()")) { //wildcard method transformer
-						//TODO: splitting on `.` may only work because Minecraft obf classes are all unpackaged
-						// I don't know whether this format uses `/` to split packages, but if it doesn't, this is wrong
-						wildcardMethodTransformers.put(target.split("\\.", 2)[0], transformationType);
-					} else { //non-wildcard method transformer
-						methodTransformers.put(target, transformationType);
+			if(mappedAccessTransformers) { //Forge 1.7 format - class names separated from method/field names with a space
+				String owningClass = split[1].replace('.', '/'); //-> normalize to 'internal name'
+				touchedClasses.add(owningClass);
+				
+				if(split.length > 2) {
+					String member = split[2].replace('.', '/'); //-> normalize to 'internal name'
+					if(member.contains("(")) {
+						if(member.contains("*")) wildcardMethodTransformers.put(owningClass, transformationType);
+						else methodTransformers.put(owningClass + "." + member, transformationType);
+					} else {
+						if(member.contains("*")) wildcardFieldTransformers.put(owningClass, transformationType);
+						else fieldTransformers.put(owningClass + "." + member, transformationType);
 					}
-				} else { //field transformer
-					if(target.endsWith(".*")) { //wildcard field transformer
-						wildcardFieldTransformers.put(target.split("\\.", 2)[0], transformationType);
-					} else { //non-wildcard field transformer
-						fieldTransformers.put(target, transformationType);
-					}
+				} else {
+					classTransformers.put(owningClass, transformationType);
 				}
-			} else { //class transformer
-				classTransformers.put(target, transformationType);
+			} else { //Forge 1.6 and below format - class names glued to method/field names with a "."
+				String target = split[1];
+				if(target.contains(".")) {
+					//TODO: splitting on `.` may only work because Minecraft obf classes are all unpackaged.
+					// I don't know whether this format uses `/` to split packages, but if it doesn't, this is wrong.
+					String[] targetSplit = target.split("\\.", 2);
+					String owningClass = targetSplit[0];
+					String member = targetSplit[1];
+					
+					touchedClasses.add(owningClass);
+					
+					if(member.contains("(")) {
+						if(member.contains("*")) wildcardMethodTransformers.put(owningClass, transformationType);
+						else methodTransformers.put(target, transformationType);
+					} else {
+						if(member.contains("*")) wildcardFieldTransformers.put(owningClass, transformationType);
+						else fieldTransformers.put(target, transformationType);
+					}
+				} else {
+					touchedClasses.add(target);
+					classTransformers.put(target, transformationType);
+				}
 			}
 		}
-		
-		touchedClasses.addAll(classTransformers.keySet());
-		touchedClasses.addAll(wildcardFieldTransformers.keySet());
-		touchedClasses.addAll(wildcardMethodTransformers.keySet());
-		fieldTransformers.keySet().stream().map(key -> key.split("\\.")[0]).forEach(touchedClasses::add); //sloppily extract class name from the at type
-		methodTransformers.keySet().stream().map(key -> key.split("\\.")[0]).forEach(touchedClasses::add); //TODO i probably should use a more rich key type, not strings
 		
 		count = classTransformers.size() + fieldTransformers.size() + methodTransformers.size() + wildcardFieldTransformers.size() + wildcardMethodTransformers.size();
 	}

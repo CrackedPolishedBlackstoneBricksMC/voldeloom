@@ -88,8 +88,7 @@ public abstract class NewProvider<SELF extends NewProvider<SELF>> {
 	 * is projectmapped, and the global per-user gradle cache if not.
 	 */
 	public final Path getCacheDir() {
-		if(isProjectmapped()) return WellKnownLocations.getProjectCache(project);
-		else return WellKnownLocations.getUserCache(project);
+		return WellKnownLocations.getCache(project, isProjectmapped());
 	}
 	
 	/**

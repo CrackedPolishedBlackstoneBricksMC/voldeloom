@@ -254,4 +254,18 @@ public class ForgeCapabilities {
 		this.supportsAssetsDir = supportsAssetIndex;
 		return this;
 	}
+	
+	public Supplier<Boolean> mappedAccessTransformers = Suppliers.memoize(this::guessMappedAccessTransformers);
+	
+	public boolean guessMappedAccessTransformers() {
+		checkConfigured("guessMappedAccessTransformers");
+		
+		if(guessMinecraftMinorVersion() >= 7) {
+			log.info("|-> [ForgeCapabilities guess] Guessing that this Forge version had '{}'-named access transformers?", Constants.INTERMEDIATE_NAMING_SCHEME);
+			return true;
+		} else {
+			log.info("|-> [ForgeCapabilities guess] Guessing that this Forge version had '{}'-named access transformers?", Constants.PROGUARDED_NAMING_SCHEME);
+			return false;
+		}
+	}
 }

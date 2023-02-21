@@ -60,4 +60,8 @@ public class WellKnownLocations {
 		
 		return remappedModCache;
 	}
+	
+	public static Path getCache(Project project, boolean projectmapped) {
+		return projectmapped ? getProjectCache(project) : getUserCache(project);
+	}
 }

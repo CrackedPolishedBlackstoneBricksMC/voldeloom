@@ -30,17 +30,18 @@ import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.util.TinyRemapperSession;
 import net.fabricmc.mapping.tree.TinyTree;
 import org.gradle.api.Project;
-import org.gradle.api.artifacts.dsl.DependencyHandler;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.Predicate;
 
 /**
  * Remaps the patched+accesstransformed Minecraft+Forge jar into the user's selected mappings.
- * 
+ *
  * The named jar is available with {@code getMappedJar()}, and the intermediary (srg) jar is also available.
  */
 public class Remapper extends NewProvider<Remapper> {
@@ -49,20 +50,27 @@ public class Remapper extends NewProvider<Remapper> {
 	}
 	
 	private TinyTree tinyTree;
+	private String mappingsDepString;
+	private String inputNamingScheme;
 	private Path inputJar;
 	private Set<String> deletedPrefixes;
 	private Collection<Path> nonNativeLibs;
 	
 	//outputs
-	private Path mappedJar;
-	private Path intermediaryJar;
+	private final Map<String, Path> outputJars = new HashMap<>();
 	
 	public Remapper tinyTree(TinyTree tinyTree) {
 		this.tinyTree = tinyTree;
 		return this;
 	}
 	
-	public Remapper inputJar(Path inputJar) {
+	public Remapper mappingsDepString(String mappingsDepString) {
+		this.mappingsDepString = mappingsDepString;
+		return this;
+	}
+	
+	public Remapper inputJar(String inputNamingScheme, Path inputJar) {
+		this.inputNamingScheme = inputNamingScheme;
 		this.inputJar = inputJar;
 		return this;
 	}
@@ -77,22 +85,13 @@ public class Remapper extends NewProvider<Remapper> {
 		return this;
 	}
 	
-	public Remapper mappedJarName(String mappingType, String mappedJarName) {
-		this.mappedJar = getCacheDir().resolve("mapped").resolve(mappingType).resolve(mappedJarName);
+	public Remapper addOutputJar(String namingScheme, String mappedJarName) {
+		this.outputJars.put(namingScheme, getCacheDir().resolve("mapped").resolve(mappingsDepString).resolve(mappedJarName));
 		return this;
 	}
 	
-	public Remapper intermediaryJarName(String mappingType, String intermediaryJarName) {
-		this.intermediaryJar = getCacheDir().resolve("mapped").resolve(mappingType).resolve(intermediaryJarName);
-		return this;
-	}
-	
-	public Path getMappedJar() {
-		return mappedJar;
-	}
-	
-	public Path getIntermediaryJar() {
-		return intermediaryJar;
+	public Path getMappedJar(String namingScheme) {
+		return outputJars.get(namingScheme);
 	}
 	
 	//procedure
@@ -101,44 +100,39 @@ public class Remapper extends NewProvider<Remapper> {
 		Preconditions.checkNotNull(inputJar, "input jar");
 		Preconditions.checkNotNull(nonNativeLibs, "nonNativeLibs"); // ?
 		
-		log.lifecycle("] intermediary jar: {}", intermediaryJar);
-		log.lifecycle("] mapped jar: {}", mappedJar);
+		boolean allExist = true;
+		for(Map.Entry<String, Path> yeah : new HashMap<>(outputJars).entrySet()) {
+			String namingScheme = yeah.getKey();
+			Path jar = yeah.getValue();
+			
+			log.lifecycle("] {} jar: {}", namingScheme, jar);
+			cleanOnRefreshDependencies(jar);
+			if(Files.notExists(jar)) allExist = false;
+		}
 		
-		cleanOnRefreshDependencies(intermediaryJar, mappedJar);
-		if (Files.notExists(intermediaryJar) || Files.notExists(mappedJar)) {
+		if(!allExist) {
 			log.lifecycle("|-> At least one mapped jar didn't exist, performing remap...");
 			
 			//ensure both are actually gone
-			Files.deleteIfExists(mappedJar);
-			Files.deleteIfExists(intermediaryJar);
+			for(Path jar : outputJars.values()) Files.deleteIfExists(jar);
 			
 			//These are minecraft libraries that conflict with the ones forge wants
 			//They're obfuscated and mcp maps them back to reality. The forge Ant script had a task to delete them lol.
 			//https://github.com/MinecraftForge/FML/blob/8e7956397dd80902f7ca69c466e833047dfa5010/build.xml#L295-L298
 			Predicate<String> classFilter = s -> !deletedPrefixes.contains(s.split("/", 2)[0]);
 			
-			Files.createDirectories(mappedJar.getParent());
-			Files.createDirectories(intermediaryJar.getParent());
-			
-			new TinyRemapperSession()
+			TinyRemapperSession sesh = new TinyRemapperSession()
 				.setMappings(tinyTree)
 				.setInputJar(inputJar)
 				.setInputNamingScheme(Constants.PROGUARDED_NAMING_SCHEME)
 				.setInputClasspath(nonNativeLibs)
-				.addOutputJar(Constants.INTERMEDIATE_NAMING_SCHEME, this.intermediaryJar)
-				.addOutputJar(Constants.MAPPED_NAMING_SCHEME, this.mappedJar)
 				.setClassFilter(classFilter)
-				.setLogger(log::lifecycle)
-				.run();
+				.setLogger(log::lifecycle);
+			outputJars.forEach(sesh::addOutputJar);
+			sesh.run();
 			
 			log.lifecycle("\\-> Remap success! :)");
 		}
-		
-		return this;
-	}
-	
-	public Remapper installDependenciesToProject(String config, DependencyHandler deps) {
-		deps.add(config, files(mappedJar));
 		
 		return this;
 	}

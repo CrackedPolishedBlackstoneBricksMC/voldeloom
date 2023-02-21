@@ -26,7 +26,6 @@ package net.fabricmc.loom;
 
 import groovy.util.Node;
 import net.fabricmc.loom.newprovider.ProviderGraph;
-import net.fabricmc.loom.newprovider.Remapper;
 import net.fabricmc.loom.task.AbstractDecompileTask;
 import net.fabricmc.loom.task.ConfigurationDebugTask;
 import net.fabricmc.loom.task.MigrateMappingsTask;
@@ -368,7 +367,7 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		RemapLineNumbersTask genSourcesRemapLineNumbersTask = (RemapLineNumbersTask) project.getTasks().getByName("genSourcesRemapLineNumbers");
 		Task genSourcesTask = project.getTasks().getByName("genSources");
 		
-		Path mappedJar = providers.get(Remapper.class).getMappedJar();
+		Path mappedJar = providers.finishedJar;
 		Path linemappedJar = replaceExtension(mappedJar, "-linemapped.jar");
 		Path sourcesJar = replaceExtension(mappedJar, "-sources.jar");
 		Path linemapFile = replaceExtension(mappedJar, "-sources.lmap");

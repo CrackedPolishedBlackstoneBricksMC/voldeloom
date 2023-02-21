@@ -28,7 +28,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import net.fabricmc.loom.Constants;
 import net.fabricmc.loom.LoomGradleExtension;
-import net.fabricmc.loom.newprovider.Remapper;
 import net.fabricmc.loom.util.LoomTaskExt;
 import net.fabricmc.loom.util.SourceRemapper;
 import net.fabricmc.lorenztiny.LorenzTiny;
@@ -105,7 +104,7 @@ public class MigrateMappingsTask extends DefaultTask implements LoomTaskExt {
 		try {
 			TinyTree currentMappings = extension.getProviderGraph().tinyTree;
 			TinyTree targetMappings = getMappings(mappings);
-			migrateMappings(project, extension.getProviderGraph().get(Remapper.class), inputDir, outputDir, currentMappings, targetMappings);
+			migrateMappings(project, extension.getProviderGraph().finishedJar, inputDir, outputDir, currentMappings, targetMappings);
 			project.getLogger().lifecycle(":remapped project written to " + outputDir.toAbsolutePath());
 		} catch (IOException e) {
 			throw new IllegalArgumentException("Error while loading mappings", e);
@@ -154,7 +153,7 @@ public class MigrateMappingsTask extends DefaultTask implements LoomTaskExt {
 		}
 	}
 
-	private static void migrateMappings(Project project, Remapper remapper,
+	private static void migrateMappings(Project project, Path mappedJar,
 										Path inputDir, Path outputDir, TinyTree currentMappings, TinyTree targetMappings
 	) throws IOException {
 		project.getLogger().lifecycle(":joining mappings");
@@ -164,8 +163,8 @@ public class MigrateMappingsTask extends DefaultTask implements LoomTaskExt {
 		project.getLogger().lifecycle(":remapping");
 		Mercury mercury = SourceRemapper.createMercuryWithClassPath(project, false);
 
-		mercury.getClassPath().add(remapper.getMappedJar());
-		mercury.getClassPath().add(remapper.getIntermediaryJar());
+		mercury.getClassPath().add(mappedJar);
+		//mercury.getClassPath().add(remapper.getIntermediaryJar());
 
 		mercury.getProcessors().add(MercuryRemapper.create(mappingSet));
 

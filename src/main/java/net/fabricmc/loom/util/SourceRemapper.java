@@ -27,7 +27,6 @@ package net.fabricmc.loom.util;
 import net.fabricmc.loom.Constants;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.LoomGradlePlugin;
-import net.fabricmc.loom.newprovider.Remapper;
 import net.fabricmc.mapping.tree.ClassDef;
 import net.fabricmc.mapping.tree.FieldDef;
 import net.fabricmc.mapping.tree.MethodDef;
@@ -82,9 +81,10 @@ public class SourceRemapper {
 				}
 			}
 			
-			Remapper remapper = extension.getProviderGraph().get(Remapper.class);
-			m.getClassPath().add(remapper.getMappedJar());
-			m.getClassPath().add(remapper.getIntermediaryJar());
+			//TODO fix
+			Path mappedJar = extension.getProviderGraph().finishedJar;
+			m.getClassPath().add(mappedJar);
+			//m.getClassPath().add(remapper.getIntermediaryJar());
 
 			m.getProcessors().add(MercuryRemapper.create(mappings));
 

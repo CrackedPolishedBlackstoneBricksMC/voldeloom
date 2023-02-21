@@ -13,6 +13,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Supplier;
 
 /**
  * Manages the tangle of DependencyProviders.
@@ -43,6 +44,8 @@ public class ProviderGraph {
 	public TinyTree tinyTree;
 	
 	public AssetDownloader assets;
+	
+	public Path finishedJar; //TODO it's not 1.2.5-clean
 	
 	public ProviderGraph setup() throws Exception {
 		log.lifecycle("# Wrapping basic dependencies...");
@@ -134,49 +137,86 @@ public class ProviderGraph {
 			.jarmoddedFilename(jarmoddedPrefix + "-jarmod.jar")
 			.patch();
 		
-		log.lifecycle("# Applying access transformers...");
-		AccessTransformer transformer = new AccessTransformer(project, extension)
-			.superProjectmapped(jarmod.isProjectmapped())
-			.loadCustomAccessTransformers();
-		String accessTransformedPrefix = jarmoddedPrefix + "-atd";
-		@Nullable String atHash = transformer.getCustomAccessTransformerHash();
-		if(atHash != null) accessTransformedPrefix += "-" + atHash;
-		transformer
-			.regularForgeJar(forge.getPath())
-			.forgeJarmodded(jarmod.getJarmoddedJar())
-			.transformedFilename(accessTransformedPrefix + ".jar")
-			.transform();
-		
 		log.lifecycle("# Converting mappings to tinyv2...");
 		Tinifier tinifier = new Tinifier(project, extension)
-			.superProjectmapped(transformer.isProjectmapped())
-			.scanJars(transformer.getTransformedJar())
+			.superProjectmapped(jarmod.isProjectmapped())
+			.scanJars(jarmod.getJarmoddedJar())
 			.mappings(mappings)
 			.useSrgsAsFallback(extension.forgeCapabilities.srgsAsFallback.get())
 			.tinify();
 		tinyMappingsFile = tinifier.getMappingsFile();
 		tinyTree = tinifier.getTinyTree();
 		
-		log.lifecycle("# Remapping Minecraft...");
-		Remapper remapper = new Remapper(project, extension)
-			.superProjectmapped(tinifier.isProjectmapped() | jarmod.isProjectmapped() | transformer.isProjectmapped())
-			.nonNativeLibs(vanillaDeps.getNonNativeLibraries_Todo())
-			.intermediaryJarName(mappings.getFilenameSafeDepString(), accessTransformedPrefix + "-" + Constants.INTERMEDIATE_NAMING_SCHEME + ".jar")
-			.mappedJarName(      mappings.getFilenameSafeDepString(), accessTransformedPrefix + "-" + Constants.MAPPED_NAMING_SCHEME + ".jar")
+		log.lifecycle("# Preparing ATs...");
+		AccessTransformer transformer = new AccessTransformer(project, extension)
+			.superProjectmapped(tinifier.isProjectmapped())
+			.regularForgeJar(forge.getPath())
+			.loadCustomAccessTransformers();
+		@Nullable String atHash = transformer.getCustomAccessTransformerHash();
+		String atdSuffix = "-atd" + (atHash == null ? "" : "-" + atHash);
+		
+		Supplier<Remapper> remapperFactory = () -> new Remapper(project, extension)
+			.superProjectmapped(transformer.isProjectmapped() | tinifier.isProjectmapped() | jarmod.isProjectmapped())
 			.tinyTree(tinyTree)
-			.inputJar(transformer.getTransformedJar())
-			.deletedPrefixes(extension.forgeCapabilities.classFilter.get())
-			.remap()
-			.installDependenciesToProject(Constants.MINECRAFT_NAMED, project.getDependencies());
+			.mappingsDepString(mappings.getFilenameSafeDepString())
+			.nonNativeLibs(mcNonNativeDependencies_Todo)
+			.deletedPrefixes(extension.forgeCapabilities.classFilter.get());
+		
+		if(extension.forgeCapabilities.mappedAccessTransformers.get()) { //1.7-style
+			transformer.mappedAccessTransformers(true);
+			//The ATs are presented using SRG names.
+			//we will map the jar to SRG names, perform the AT, then map the ATd jar to named
+			//The intermediary jar does lag behind when this is done, though
+			//TODO: probably better to textually proguard the ATs or something
+			
+			log.lifecycle("# Remapping (before ATs)...");
+			Remapper toIntermediateRemapper = remapperFactory.get()
+				.inputJar(Constants.PROGUARDED_NAMING_SCHEME, jarmod.getJarmoddedJar())
+				.addOutputJar(Constants.INTERMEDIATE_NAMING_SCHEME, jarmoddedPrefix + "-" + Constants.INTERMEDIATE_NAMING_SCHEME + ".jar")
+				.remap();
+				
+			log.lifecycle("# Applying access transformers...");
+			transformer
+				.inputJar(toIntermediateRemapper.getMappedJar(Constants.INTERMEDIATE_NAMING_SCHEME))
+				.transformedFilename(jarmoddedPrefix + "-" + Constants.INTERMEDIATE_NAMING_SCHEME + atdSuffix + ".jar")
+				.transform();
+			
+			log.lifecycle("# Remapping again (after applying ATs)...");
+			Remapper toNamedRemapper = remapperFactory.get()
+				.inputJar(Constants.INTERMEDIATE_NAMING_SCHEME, transformer.getTransformedJar())
+				.addOutputJar(Constants.MAPPED_NAMING_SCHEME, jarmoddedPrefix + atdSuffix + "-" + Constants.MAPPED_NAMING_SCHEME + ".jar")
+				.remap();
+			
+			finishedJar = toNamedRemapper.getMappedJar(Constants.MAPPED_NAMING_SCHEME);
+		} else {
+			transformer.mappedAccessTransformers(false);
+			//The ATs are presented with proguarded names.
+			//simply AT the jar then map it to both namespaces.
+			log.lifecycle("# Applying access transformers...");
+			transformer
+				.inputJar(jarmod.getJarmoddedJar())
+				.transformedFilename(jarmoddedPrefix + atdSuffix + ".jar")
+				.transform();
+			
+			log.lifecycle("# Remapping (after ATs)...");
+			Remapper remapper = remapperFactory.get()
+				.inputJar(Constants.PROGUARDED_NAMING_SCHEME, transformer.getTransformedJar())
+				.addOutputJar(Constants.INTERMEDIATE_NAMING_SCHEME, jarmoddedPrefix + atdSuffix + "-" + Constants.INTERMEDIATE_NAMING_SCHEME + ".jar")
+				.addOutputJar(Constants.MAPPED_NAMING_SCHEME, jarmoddedPrefix + atdSuffix + "-" + Constants.MAPPED_NAMING_SCHEME + ".jar")
+				.remap();
+			
+			finishedJar = remapper.getMappedJar(Constants.MAPPED_NAMING_SCHEME);
+		}
+		project.getDependencies().add(Constants.MINECRAFT_NAMED, project.files(finishedJar));
 		
 		log.lifecycle("# Remapping mod dependencies...");
 		DependencyRemapper dependencyRemapper = new DependencyRemapper(project, extension)
-			.superProjectmapped(remapper.isProjectmapped() | tinifier.isProjectmapped() | transformer.isProjectmapped() | vanillaDeps.isProjectmapped())
+			.superProjectmapped(tinifier.isProjectmapped() | transformer.isProjectmapped() | vanillaDeps.isProjectmapped())
 			.mappingsSuffix(mappings.getFilenameSafeDepString())
 			.tinyTree(tinyTree)
 			.remappedConfigurationEntries(extension.remappedConfigurationEntries)
 			.distributionNamingScheme(extension.forgeCapabilities.distributionNamingScheme.get())
-			.addToRemapClasspath(transformer.getTransformedJar())
+			.addToRemapClasspath(jarmod.getJarmoddedJar())
 			.addToRemapClasspath(vanillaDeps.getNonNativeLibraries_Todo())
 			.remapDependencies()
 			.installDependenciesToProject(project.getDependencies());
@@ -186,8 +226,6 @@ public class ProviderGraph {
 			.versionManifest(versionManifest)
 			.resourcesBaseUrl(extension.resourcesBaseUrl)
 			.prepare();
-		
-		makeAvailableToTasks(remapper);
 		
 		log.lifecycle("# Thank you for flying Voldeloom.");
 		
