@@ -86,11 +86,11 @@ public class MappingsWrapper extends ResolvedConfigElementWrapper {
 				methods = new Members().read(conf.resolve("methods.csv"), strings);
 				
 				log.info("|-> Reading packages.csv...");
+				packages = new Packages();
 				if(Files.exists(conf.resolve("packages.csv"))) {
-					packages = new Packages().read(conf.resolve("packages.csv"), strings);
+					packages.read(conf.resolve("packages.csv"), strings);
 				} else {
 					log.info("\\-> No packages.csv exists.");
-					packages = null;
 				}
 				
 				strings.close();

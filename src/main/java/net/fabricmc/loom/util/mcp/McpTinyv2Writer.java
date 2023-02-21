@@ -2,7 +2,6 @@ package net.fabricmc.loom.util.mcp;
 
 import net.fabricmc.loom.Constants;
 
-import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -15,7 +14,7 @@ public class McpTinyv2Writer {
 	private Srg srg;
 	private Members fields;
 	private Members methods;
-	private @Nullable Packages packages;
+	private Packages packages;
 	
 	private boolean srgsAsFallback = false;
 	private JarScanData jarScanData;
@@ -35,7 +34,7 @@ public class McpTinyv2Writer {
 		return this;
 	}
 	
-	public McpTinyv2Writer packages(@Nullable Packages packages) {
+	public McpTinyv2Writer packages(Packages packages) {
 		this.packages = packages;
 		return this;
 	}
@@ -68,7 +67,7 @@ public class McpTinyv2Writer {
 		//for each class:
 		srg.classMappings.forEach((classProguard, classSrg) -> {
 			//apply packaging transformation
-			String classSrgRepackage = packages != null ? packages.repackage(classSrg) : classSrg;
+			String classSrgRepackage = packages.repackage(classSrg);
 			
 			//write class name
 			lines.add("c\t" + classProguard + "\t" + classSrgRepackage + "\t" + classSrgRepackage); //srg class names == named class names
