@@ -25,7 +25,6 @@
 package net.fabricmc.loom.newprovider;
 
 import com.google.common.base.Preconditions;
-import net.fabricmc.loom.Constants;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.util.TinyRemapperSession;
 import net.fabricmc.mapping.tree.TinyTree;
@@ -35,6 +34,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Predicate;
@@ -57,7 +57,7 @@ public class Remapper extends NewProvider<Remapper> {
 	private Collection<Path> nonNativeLibs;
 	
 	//outputs
-	private final Map<String, Path> outputJars = new HashMap<>();
+	private final Map<String, Path> outputJars = new LinkedHashMap<>();
 	
 	public Remapper tinyTree(TinyTree tinyTree) {
 		this.tinyTree = tinyTree;
@@ -124,7 +124,7 @@ public class Remapper extends NewProvider<Remapper> {
 			TinyRemapperSession sesh = new TinyRemapperSession()
 				.setMappings(tinyTree)
 				.setInputJar(inputJar)
-				.setInputNamingScheme(Constants.PROGUARDED_NAMING_SCHEME)
+				.setInputNamingScheme(inputNamingScheme)
 				.setInputClasspath(nonNativeLibs)
 				.setClassFilter(classFilter)
 				.setLogger(log::lifecycle);

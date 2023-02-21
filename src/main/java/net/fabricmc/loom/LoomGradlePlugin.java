@@ -156,6 +156,9 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		
 		//Forge!
 		project.getConfigurations().maybeCreate(Constants.FORGE).setTransitive(false);
+		//and the split configs (used for 1.2.5)
+		project.getConfigurations().maybeCreate(Constants.FORGE_CLIENT).setTransitive(false);
+		project.getConfigurations().maybeCreate(Constants.FORGE_SERVER).setTransitive(false);
 		//The dependencies for Forge itself.
 		Configuration forgeDependencies = project.getConfigurations().maybeCreate(Constants.FORGE_DEPENDENCIES).setTransitive(false);
 		

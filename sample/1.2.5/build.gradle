@@ -36,6 +36,7 @@ volde {
 
 dependencies {
 	minecraft "com.mojang:minecraft:${minecraftVersion}"
-	forge "net.minecraftforge:forge:${forgeVersion}:client@zip" //TODO how to handle split forge?
+	forgeClient "net.minecraftforge:forge:${forgeVersion}:client@zip"
+	forgeServer "net.minecraftforge:forge:${forgeVersion}:server@zip"
 	mappings "net.minecraftforge:forge:${forgeVersion}:src@zip"
 }

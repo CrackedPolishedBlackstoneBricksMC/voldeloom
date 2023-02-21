@@ -209,3 +209,21 @@ by 1.8.8, the FML submodule is gone and its java classes were merged into `src/m
 > FML is no more. FML has ceased to be. FML's expired and gone to meet its maker. FML's a stiff! Bereft of life, FML rests in peace.
 > 
 > [-cpw](https://github.com/MinecraftForge/MinecraftForge/commit/614bbcb0da8b8bcb9fd49cc70cc6856be4f49a7c)
+
+# MCPBot era
+
+Python MCP tooling is dead, long live MCP tooling.
+
+Todo write more. Una's mirror site is [here](https://mcpbot.unascribed.com/).
+
+Class names (in `.srg` and a new `.csrg` format) are provided in the `mcp` folder. These are not versioned with anything other than the Minecraft version, because class names do not change in the MCP ecosystem. Field, method, and parameter names are included in versioned MCP releases in the `mcp_stable` and `mcp_snapshot` folders, which have a `_nodoc` version that omits the Javadoc column for a smaller download.
+
+## `.csrg`
+
+It's like an `.srg` but slightly smaller and slightly more irritating to parse. The `CL:`, `FD:`, `MD:` etc prefixes are gone. Instead, split on spaces, and see how many segments you get:
+
+* if there's two elements, it's a `PK` line if the first element ends in a `/`, otherwise it's a `CL` line;
+* if there's three elements, it's a `FD` line;
+* if there's four segments, it's a `MD` line. The remapped copy of the method descriptor is no longer included.
+
+MCPBot provides both `.srg` and `.csrg` exports.

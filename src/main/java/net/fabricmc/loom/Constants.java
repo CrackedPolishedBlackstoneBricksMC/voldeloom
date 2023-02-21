@@ -73,6 +73,8 @@ public class Constants {
 	 * @see ProviderGraph
 	 */
 	public static final String FORGE = "forge";
+	public static final String FORGE_CLIENT = "forgeClient";
+	public static final String FORGE_SERVER = "forgeServer";
 	
 	/**
 	 * The Gradle configuration containing any custom access-transformer files.

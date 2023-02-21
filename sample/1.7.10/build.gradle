@@ -36,6 +36,7 @@ volde {
 	}
 }
 
+//TODO: una told me the MCP mappings in the Forge zip are not actually used, and i should use mcpbot exports instead
 File hilariousFunnyForge = new File("./work/hilarious-funny-forge.zip")
 if(!hilariousFunnyForge.exists()) {
 	println "!! Downloading 1.7.10's sources to '" + hilariousFunnyForge + "' (forge's maven is broken and doesn't host them)"
