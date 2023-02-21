@@ -29,11 +29,11 @@ public class JarScanData {
 	public final Map<String, String> fieldDescs = new HashMap<>();
 	public final Map<String, Set<String>> innerClasses = new HashMap<>();
 	
-	public JarScanData scan(Path mc) throws IOException {
-		try(FileSystem mcFs = FileSystems.newFileSystem(URI.create("jar:" + mc.toUri()), Collections.emptyMap())) {
+	public void scan(Path jar) throws IOException {
+		try(FileSystem jarFs = FileSystems.newFileSystem(URI.create("jar:" + jar.toUri()), Collections.emptyMap())) {
 			ClassVisitor loader = new InfoLoadingClassVisitor();
 			
-			Files.walkFileTree(mcFs.getPath("/"), new SimpleFileVisitor<Path>() {
+			Files.walkFileTree(jarFs.getPath("/"), new SimpleFileVisitor<Path>() {
 				@Override
 				public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
 					if(file.toString().endsWith(".class")) {
@@ -44,8 +44,6 @@ public class JarScanData {
 					return FileVisitResult.CONTINUE;
 				}
 			});
-			
-			return this;
 		}
 	}
 	

@@ -55,7 +55,7 @@ public class McpTinyv2Writer {
 	 * If nonnull, this repository of scanned data from the unremapped jar will be used to guess field type information.<br>
 	 * If null, every field will be typed as java.lang.Void.
 	 */
-	public McpTinyv2Writer jarScanData(@Nullable JarScanData jarScanData) {
+	public McpTinyv2Writer jarScanData(JarScanData jarScanData) {
 		this.jarScanData = jarScanData;
 		return this;
 	}

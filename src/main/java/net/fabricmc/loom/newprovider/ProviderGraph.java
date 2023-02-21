@@ -126,9 +126,7 @@ public class ProviderGraph {
 		
 		//TODO: Post-1.6, i think installing it like a jarmod is not strictly correct. Forge should get on the classpath some other way
 		log.lifecycle("# Jarmodding...");
-		
 		String jarmoddedPrefix = mcPrefix + "-forge-" + forge.getFilenameSafeVersion();
-		
 		Jarmodder jarmod = new Jarmodder(project, extension)
 			.superProjectmapped(merger.isProjectmapped())
 			.base(merger.getMerged())
@@ -152,7 +150,7 @@ public class ProviderGraph {
 		log.lifecycle("# Converting mappings to tinyv2...");
 		Tinifier tinifier = new Tinifier(project, extension)
 			.superProjectmapped(transformer.isProjectmapped())
-			.jarToScan(transformer.getTransformedJar())
+			.scanJars(transformer.getTransformedJar())
 			.mappings(mappings)
 			.useSrgsAsFallback(extension.forgeCapabilities.srgsAsFallback.get())
 			.tinify();
