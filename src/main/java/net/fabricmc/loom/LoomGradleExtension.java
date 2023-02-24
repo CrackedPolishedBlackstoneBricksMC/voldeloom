@@ -38,7 +38,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.function.Supplier;
 
 /**
  * A Gradle extension. When you write <code>minecraft {</code> in a project's build.gradle, you get access to one of these.

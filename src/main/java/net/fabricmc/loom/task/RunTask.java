@@ -26,9 +26,9 @@ package net.fabricmc.loom.task;
 
 import net.fabricmc.loom.Constants;
 import net.fabricmc.loom.LoomGradleExtension;
+import net.fabricmc.loom.RunConfig;
 import net.fabricmc.loom.util.GradleSupport;
 import net.fabricmc.loom.util.LoomTaskExt;
-import net.fabricmc.loom.RunConfig;
 import org.gradle.api.JavaVersion;
 import org.gradle.api.tasks.JavaExec;
 

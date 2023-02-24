@@ -24,12 +24,12 @@
 
 package net.fabricmc.loom.util;
 
+import groovy.util.Node;
+
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
-import groovy.util.Node;
 
 public final class GroovyXmlUtil {
 	private GroovyXmlUtil() { }
