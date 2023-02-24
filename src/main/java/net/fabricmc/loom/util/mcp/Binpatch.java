@@ -7,23 +7,26 @@ import java.io.IOException;
 import java.io.InputStream;
 
 public class Binpatch {
+	public String originalEntryName;
 	public String name;
 	public String sourceClassName;
 	public String targetClassName;
-	public boolean exists;
+	public boolean existsAtTarget;
 	public int checksum;
 	public int patchLength;
 	public byte[] patchBytes;
 	
 	//see ClassPatchManager#readPatch. It's the same among 1.6.4 and 1.7.10.
-	public Binpatch read(InputStream in) throws IOException {
+	public Binpatch read(String originalEntryName, InputStream in) throws IOException {
+		this.originalEntryName = originalEntryName;
+		
 		DataInputStream dataIn = new DataInputStream(in); //Not using try-with-resources. I do not want to close the provided stream.
 		
 		name = dataIn.readUTF();
 		sourceClassName = dataIn.readUTF();
 		targetClassName = dataIn.readUTF();
-		exists = dataIn.readBoolean();
-		if(exists) checksum = dataIn.readInt();
+		existsAtTarget = dataIn.readBoolean();
+		if(existsAtTarget) checksum = dataIn.readInt();
 		patchLength = dataIn.readInt();
 		
 		patchBytes = new byte[patchLength];

@@ -48,7 +48,7 @@ public class BinpatchesPack {
 					else if(entry.getName().startsWith("binpatch/server/")) target = serverBinpatches;
 					else continue;
 					
-					Binpatch binpatch = new Binpatch().read(binpatchesJar);
+					Binpatch binpatch = new Binpatch().read(entry.getName(), binpatchesJar);
 					target.put(binpatch.sourceClassName.replace('.', '/'), binpatch);
 				}
 			}

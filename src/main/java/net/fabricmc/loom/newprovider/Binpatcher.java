@@ -15,7 +15,9 @@ import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Applies a set of Forge 1.6+ gdiff binary-patches to an input jar.
@@ -68,6 +70,9 @@ public class Binpatcher extends NewProvider<Binpatcher> {
 			
 			try(FileSystem inputFs  = FileSystems.newFileSystem(URI.create("jar:" + input.toUri()),  Collections.emptyMap()); 
 			    FileSystem outputFs = FileSystems.newFileSystem(URI.create("jar:" + output.toUri()), Collections.singletonMap("create", "true"))) {
+				
+				Set<Binpatch> unusedBinpatches = new HashSet<>(binpatches.values());
+				
 				Files.walkFileTree(inputFs.getPath("/"), new SimpleFileVisitor<Path>() {
 					@Override
 					public FileVisitResult preVisitDirectory(Path vanillaPath, BasicFileAttributes attrs) throws IOException {
@@ -85,6 +90,7 @@ public class Binpatcher extends NewProvider<Binpatcher> {
 							if(binpatch != null) {
 								log.debug("Binpatching {}...", filename);
 								Files.write(patchedPath, binpatch.apply(Files.readAllBytes(vanillaPath)));
+								unusedBinpatches.remove(binpatch);
 								return FileVisitResult.CONTINUE;
 							}
 						}
@@ -93,6 +99,26 @@ public class Binpatcher extends NewProvider<Binpatcher> {
 						return FileVisitResult.CONTINUE;
 					}
 				});
+				
+				for(Binpatch unusedPatch : unusedBinpatches) {
+					if(unusedPatch.existsAtTarget) {
+						log.warn("Unused binpatch with 'existsAtTarget = true', {}", unusedPatch.originalEntryName);
+					} else {
+						log.debug("Binpatching (!existsAtTarget) {}...", unusedPatch.targetClassName);
+						
+						//ugh
+						String[] split = unusedPatch.targetClassName.split("\\.");
+						split[split.length - 1] += ".class";
+						Path path = outputFs.getPath("/", split);
+						
+						if(Files.exists(path)) {
+							log.warn("Unused binpatch with 'existsAtTarget = false' for a file that already exists, {}", unusedPatch.originalEntryName);
+						} else {
+							Files.createDirectories(path.getParent());
+							Files.write(path, unusedPatch.apply(new byte[0]));
+						}
+					}
+				}
 			}
 			
 			log.info("|-> Binpatch success.");
