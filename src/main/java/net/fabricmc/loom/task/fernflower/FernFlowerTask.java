@@ -49,7 +49,7 @@ public class FernFlowerTask extends AbstractDecompileTask implements LoomTaskExt
 		getOutputs().upToDateWhen(t -> false);
 	}
 	
-	private int numThreads = Runtime.getRuntime().availableProcessors();
+	private int numThreads = Math.max(1, Runtime.getRuntime().availableProcessors() - 1);
 
 	@TaskAction
 	public void doTask() throws Throwable {
