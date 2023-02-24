@@ -28,10 +28,8 @@ import groovy.util.Node;
 import net.fabricmc.loom.newprovider.ProviderGraph;
 import net.fabricmc.loom.task.AbstractDecompileTask;
 import net.fabricmc.loom.task.ConfigurationDebugTask;
-import net.fabricmc.loom.task.MigrateMappingsTask;
 import net.fabricmc.loom.task.RemapJarTask;
 import net.fabricmc.loom.task.RemapLineNumbersTask;
-import net.fabricmc.loom.task.RemapSourcesJarTask;
 import net.fabricmc.loom.task.RemappedConfigEntryFolderCopyTask;
 import net.fabricmc.loom.task.RunTask;
 import net.fabricmc.loom.task.ShimForgeLibrariesTask;
@@ -46,7 +44,6 @@ import net.fabricmc.loom.util.GroovyXmlUtil;
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
 import org.gradle.api.Task;
-import org.gradle.api.UnknownTaskException;
 import org.gradle.api.artifacts.Configuration;
 import org.gradle.api.artifacts.Dependency;
 import org.gradle.api.artifacts.repositories.MavenArtifactRepository;
@@ -274,12 +271,8 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		//and (if a closure is specified) call the closure to configure the task. Optimization thing, I guess.
 		TaskContainer tasks = project.getTasks();
 		
-		//Utility:
-		tasks.register("migrateMappings", MigrateMappingsTask.class);
-		
 		//Remapping artifacts:
 		tasks.register("remapJar", RemapJarTask.class);
-		tasks.register("remapSourcesJar", RemapSourcesJarTask.class);
 		
 		//genSources:
 		tasks.register("genSourcesDecompile", FernFlowerTask.class);
@@ -320,24 +313,6 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		//TODO 2 i dont think its actually needed
 		//tasks.named("idea").configure(t -> t.finalizedBy(tasks.named("genIdeaWorkspace"), tasks.named("genIdeaRuns")));
 		//tasks.named("eclipse").configure(t -> t.finalizedBy(tasks.named("genEclipseRuns")));
-		
-		//Cleaning
-		//TODO: restore (I'm redoing the provider system)
-		// In the mean time use refresh-dependencies mode (there's a plugin-specific variant too, check LoomGradleExtension)
-//		List<TaskProvider<?>> cleaningTasks = extensionUnconfigured.getDependencyManager().getCleaningTasks();
-//		tasks.register("cleanEverything").configure(task -> {
-//			task.setGroup(Constants.TASK_GROUP_CLEANING);
-//			task.setDescription("Try to remove all files relating to the currently selected Minecraft version, Forge version, and mappings.\n" +
-//				"Caveat creare: this clumsily runs after all the DependencyProviders do, so it will clean things *after* computing them.");
-//			for(TaskProvider<?> t : cleaningTasks) task.dependsOn(t);
-//		});
-//		tasks.register("cleanEverythingNotAssets").configure(task -> {
-//			task.setGroup(Constants.TASK_GROUP_CLEANING);
-//			task.setDescription("Try to remove all files relating to the currently selected Minecraft version, Forge version, and mappings...\n" +
-//				"except for the asset index, because that takes forever to redownload and is rarely a problem.\n" +
-//				"Caveat creare: this clumsily runs after all the DependencyProviders do, so it will clean things *after* computing them.");
-//			for(TaskProvider<?> t : cleaningTasks) if(!t.getName().equals("cleanAssetsProvider")) task.dependsOn(t);
-//		});
 
 		//So. build.gradle files *look* declarative, but recall that they are imperative programs, executed top-to-bottom.
 		//All of the above happens immediately upon encountering the `apply plugin` line. The rest of the script hasn't executed yet.
@@ -416,18 +391,19 @@ public class LoomGradlePlugin implements Plugin<Project> {
 			remapJarTask.dependsOn(jarTask);
 			project.getTasks().getByName("build").dependsOn(remapJarTask);
 			
-			//And configure source remapping, to get a -sources-dev jar or something.
-			try {
-				AbstractArchiveTask sourcesTask = (AbstractArchiveTask) project.getTasks().getByName("sourcesJar");
-				RemapSourcesJarTask remapSourcesJarTask = (RemapSourcesJarTask) project.getTasks().findByName("remapSourcesJar");
-				remapSourcesJarTask.setInput(GradleSupport.getArchiveFile(sourcesTask)); //TODO: are you sure about that
-				remapSourcesJarTask.setOutput(GradleSupport.getArchiveFile(sourcesTask));
-				remapSourcesJarTask.doLast(task -> project.getArtifacts().add("archives", remapSourcesJarTask.getOutput()));
-				remapSourcesJarTask.dependsOn("sourcesJar");
-				project.getTasks().getByName("build").dependsOn(remapSourcesJarTask);
-			} catch (UnknownTaskException e) {
-				// pass
-			}
+//			//And configure source remapping, to get a -sources-dev jar or something.
+//			//TODO add this back :(
+//			try {
+//				AbstractArchiveTask sourcesTask = (AbstractArchiveTask) project.getTasks().getByName("sourcesJar");
+//				RemapSourcesJarTask remapSourcesJarTask = (RemapSourcesJarTask) project.getTasks().findByName("remapSourcesJar");
+//				remapSourcesJarTask.setInput(GradleSupport.getArchiveFile(sourcesTask)); //TODO: are you sure about that
+//				remapSourcesJarTask.setOutput(GradleSupport.getArchiveFile(sourcesTask));
+//				remapSourcesJarTask.doLast(task -> project.getArtifacts().add("archives", remapSourcesJarTask.getOutput()));
+//				remapSourcesJarTask.dependsOn("sourcesJar");
+//				project.getTasks().getByName("build").dependsOn(remapSourcesJarTask);
+//			} catch (UnknownTaskException e) {
+//				// pass
+//			}
 		} else {
 			extension.addUnmappedMod(GradleSupport.getArchiveFile(jarTask).toPath());
 		}

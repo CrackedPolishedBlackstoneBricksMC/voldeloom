@@ -50,28 +50,31 @@ repositories {
 }
 
 dependencies {
-	implementation gradleApi() //for the currently-running version of Gradle
+	implementation gradleApi() //the currently-running version of Gradle
+	
+	//general java crap
 	implementation "com.google.code.gson:gson:2.8.5"
 	implementation "com.google.guava:guava:28.0-jre"
 	
-	//mapping tools. (formerly transitive dependencies of Stitch, but i forked the relevant parts of that library)
+	//bytecode
 	implementation "org.ow2.asm:asm:9.1"
 	implementation "org.ow2.asm:asm-commons:9.1"
 	implementation "org.ow2.asm:asm-tree:9.1"
 	implementation "org.ow2.asm:asm-util:9.1"
+	
+	//mappings
 	implementation "net.fabricmc:tiny-mappings-parser:0.3.0+build.17"
+	implementation ("net.fabricmc:tiny-remapper:0.8.6") { transitive = false } //disabling transitives removes another copy of asm (this time 9.3)
 	
-	implementation ("net.fabricmc:tiny-remapper:0.8.6") { transitive = false } //another copy of asm (this time 9.3)
-	implementation ("net.fabricmc:lorenz-tiny:1.0.0+build.1") { transitive = false } //TODO: only used by MigrateMappingsTask
+	//decompilers
+	implementation "org.jetbrains:intellij-fernflower:1.2.1.16"
 	
-	//other stuff
-	implementation "org.jetbrains:intellij-fernflower:1.2.1.16" //decompiler
-	implementation "org.cadixdev:mercury:0.1.0.fabric-SNAPSHOT" //source remapper
-	
-	//Forge 1.6's binpatches.pack.lzma
+	//forge 1.6's binpatches.pack.lzma
 	implementation "org.apache.commons:commons-compress:1.22"
 	implementation "org.tukaani:xz:1.9" //commons-compress LZMA support
-	//implementation "lzma:lzma:0.0.1" //Weird mystery lzma decompressor that Forge uses (on spongepowered maven)
+	
+	//implementation ("net.fabricmc:lorenz-tiny:1.0.0+build.1") { transitive = false } //TODO: only used by MigrateMappingsTask
+	//implementation "org.cadixdev:mercury:0.1.0.fabric-SNAPSHOT" //TODO: only used by RemapSourcesJar
 }
 
 // Properties of the artifact //

@@ -8,30 +8,17 @@ Right now theres a "get" method on providergraph, but i intend to remove it and 
 ## LoomGradlePlugin
 
 * wants the path to the mapped jar (so it can compute the path to the linemapped jar and sources jar, for genSources). uses `Remapper`
-  * 🚨WEE WOO🚨 WEE WOO🚨🚨 that is not 1.2.5 safe 
-
-## MigrateMappingsTask
-
-* wants the mapped jar and intermediary jar for the remapper classpath, so it calls up `Remapper`
   * 🚨WEE WOO🚨 WEE WOO🚨🚨 that is not 1.2.5 safe
 
 ## ShimResourcesTask
 
 * causes `AssetDownloader` to actually download the assets (because theyre not needed just to compile !!)
 
-## SourceRemapper
-
-does tis one even work
-
-* mapped/intermediary jars for the classpath (`Remapper`)
-
 # or to put that another way
 
 ## `Remapper` "the mapped jar" or "the intermediary jar" which is maybe not 1.2.5 clean
 
 * LoomGradlePlugin wiring up gensources tasks
-* MigrateMappingsTask
-* SourceRemapper
 
 ## `VanillaDependencyFetcher` asset index
 

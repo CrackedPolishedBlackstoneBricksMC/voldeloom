@@ -26,8 +26,6 @@ package net.fabricmc.loom;
 
 import net.fabricmc.loom.newprovider.ProviderGraph;
 import net.fabricmc.loom.util.GradleSupport;
-import org.cadixdev.lorenz.MappingSet;
-import org.cadixdev.mercury.Mercury;
 import org.gradle.api.Action;
 import org.gradle.api.JavaVersion;
 import org.gradle.api.NamedDomainObjectContainer;
@@ -205,18 +203,18 @@ public class LoomGradleExtension {
 	private final ProviderGraph providers;
 	
 	private final List<Path> unmappedModsBuilt = new ArrayList<>();
-	private final MappingSet[] srcMappingCache = new MappingSet[2];
-	private final Mercury[] srcMercuryCache = new Mercury[2];
-
-	//(for SourceRemapper tasks)
-	public MappingSet getOrCreateSrcMappingCache(int id, Supplier<MappingSet> factory) {
-		return srcMappingCache[id] != null ? srcMappingCache[id] : (srcMappingCache[id] = factory.get());
-	}
-	
-	//(for SourceRemapper tasks)
-	public Mercury getOrCreateSrcMercuryCache(int id, Supplier<Mercury> factory) {
-		return srcMercuryCache[id] != null ? srcMercuryCache[id] : (srcMercuryCache[id] = factory.get());
-	}
+//	private final MappingSet[] srcMappingCache = new MappingSet[2];
+//	private final Mercury[] srcMercuryCache = new Mercury[2];
+//
+//	//(for SourceRemapper tasks)
+//	public MappingSet getOrCreateSrcMappingCache(int id, Supplier<MappingSet> factory) {
+//		return srcMappingCache[id] != null ? srcMappingCache[id] : (srcMappingCache[id] = factory.get());
+//	}
+//	
+//	//(for SourceRemapper tasks)
+//	public Mercury getOrCreateSrcMercuryCache(int id, Supplier<Mercury> factory) {
+//		return srcMercuryCache[id] != null ? srcMercuryCache[id] : (srcMercuryCache[id] = factory.get());
+//	}
 
 	//set in LoomGradlePlugin afterEvaluate
 	public void addUnmappedMod(Path file) {
