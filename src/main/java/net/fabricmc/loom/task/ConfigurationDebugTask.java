@@ -17,7 +17,7 @@ import java.io.File;
  */
 public class ConfigurationDebugTask extends DefaultTask implements LoomTaskExt {
 	public ConfigurationDebugTask() {
-		setGroup(Constants.TASK_GROUP_TOOLS);
+		setGroup(Constants.TASK_GROUP_PLUMBING);
 		setDescription("Prints some information about the Configurations used in the project and their relationships between each other.");
 		getOutputs().upToDateWhen(__ -> false);
 	}

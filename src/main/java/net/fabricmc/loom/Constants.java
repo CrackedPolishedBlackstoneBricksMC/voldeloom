@@ -38,11 +38,10 @@ import net.fabricmc.loom.newprovider.Tinifier;
  */
 public class Constants {
 	/// Task groups ///
-	public static final String TASK_GROUP_CLEANING = "fabric.clean";
-	public static final String TASK_GROUP_IDE = "fabric.ide";
-	public static final String TASK_GROUP_PLUMBING = "fabric.plumbing";
-	public static final String TASK_GROUP_RUNNING = "fabric.run";
-	public static final String TASK_GROUP_TOOLS = "fabric.tools";
+	public static final String TASK_GROUP_IDE = "volde.ide";
+	public static final String TASK_GROUP_PLUMBING = "volde.plumbing";
+	public static final String TASK_GROUP_RUNNING = "volde.run";
+	public static final String TASK_GROUP_TOOLS = "volde.tools";
 
 	/// Configuration names ///
 	
