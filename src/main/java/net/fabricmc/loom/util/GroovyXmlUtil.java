@@ -31,6 +31,11 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+/**
+ * Turns out Groovy's XML document API isn't any fun to use in typesafe and sugarfree languages.
+ * <p>
+ * (This is one of the older classes in the plugin I think?)
+ */
 public final class GroovyXmlUtil {
 	private GroovyXmlUtil() { }
 

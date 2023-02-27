@@ -25,7 +25,6 @@
 package net.fabricmc.loom;
 
 import groovy.util.Node;
-import net.fabricmc.loom.newprovider.ProviderGraph;
 import net.fabricmc.loom.task.ConfigurationDebugTask;
 import net.fabricmc.loom.task.GenSourcesTask;
 import net.fabricmc.loom.task.RemapJarTask;
@@ -325,8 +324,7 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		
 		//Scaffold the "provider" system. This is a loose term for "the things that have to run now, after the user configured
 		//their settings in LoomGradleExtension, but before we're not allowed to mutate the project dependencies anymore".
-		ProviderGraph providers = extension.getProviderGraph()
-			.trySetup(); //<- where basically ALL the magic happens
+		extension.getProviderGraph().trySetup();
 		
 		//TODO(VOLDELOOM-DISASTER): This is configurable for basically no reason lol
 		//Enables the default mod remapper
