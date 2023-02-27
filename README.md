@@ -205,21 +205,23 @@ I agree! There *should* be better error messages!
 
 ### Forge whines about getting `e04c5335922c5e457f0a7cd62c93c4a7f699f829` for a couple of dependency hashes
 
-The `shimForgeLibraries` task is intended to download the libraries Forge wants and place them in the locations it expects to find them before launching the game, since they were removed from the hardcoded URLs in Forge a long time ago (I think that's the sha1 of the Forge server's 404 page).
+The `shimForgeLibraries` task is intended to download the libraries Forge wants and place them in the locations it expects to find them *before* launching the game, since they were removed from the hardcoded URLs in Forge a long time ago (I think that's the sha1 of the Forge server's 404 page).
 
-Either that task didn't run and the libraries aren't there (examine the Gradle log to see if it ran), or the `minecraft.applet.TargetDirectory` system property did not get set on the client and it's trying to read libraries out of your real `.minecraft` folder - if it's doing that, the rest of the game will also try to run out of that folder.
+Either that task didn't run and the libraries aren't there (examine the Gradle log to see if it ran), or the `minecraft.applet.TargetDirectory` system property did not get set on the client and it's trying to read libraries out of your real `.minecraft` folder - if it's doing that, the rest of the game will also try to run out of that folder (check the path where Forge told you it saved the crash log)
 
 ### Forge NPEing about something in `FMLRelaunchLog`
 
-Forge assumes the `.minecraft` directory exists without checking or creating it. If it doesn't exist, an exception will be thrown when it creates its log file, but it swallows the exception, so you get an NPE shortly after when it tries to use the log.
-
-So this is another "the game is probably not using the correct working directory" bug. Check that the `minecraft.applet.TargetDirectory` system property is set.
+Forge assumes the `.minecraft` directory exists without checking or creating it. If it doesn't exist an exception will be thrown when it creates its log file, but it silently swallows the exception, so you get an NPE shortly after when it tries to use the log. Because the plugin will try to create the `run` directory if it doesn't exist, this is likely another "the game is not using the correct working directory" bug, so check that the `minecraft.applet.TargetDirectory` system property is set.
 
 ### Buuuunch of logspam about "Unable to read a class file correctly" or "probably a corrupt zip"
 
-Something compiled to Java 8's classfile format is on the classpath. Forge only works with classes compiled for Java 6.
+Something compiled to Java 8's classfile format is on the classpath. Forge 1.4.7 only works with classes compiled for Java 6. (Not sure why this happens when using generated run configs, instead of the gradle runClient task, probably a classpath difference)
 
-(Not sure why this happens when using generated run configs, instead of the gradle runClient task, probably a classpath difference)
+### `genSources` NPEs on `ClassWrapper.getMethodWrapper` in methods like `placeDoor`, `getOptionOrdinalValue`, `multiplyBy32AndRound` etc
+
+When desugaring a switch-over-enum, this version of Fernflower assumes its associated "switchmap" class is named with the same convention that `javac` uses when compiling switch-over-enum, and will crash if it can't find it. Mojang proguarded the switchmap classes and MCP went back and renamed them, but gave them the "wrong" name, causing the bug. See [this page on the CFR website](https://www.benf.org/other/cfr/switch-on-enum.html) for more information about switch-over-enum, and `quat_notes/weird_enum_switch_methods.md` for some of my notes.
+
+This is a binary-based toolchain where the decompiler output is just for show, so a method failing to decompile is not a big deal. If you need to see the body of the method you can try Quiltflower, the built-in IntelliJ decompiler, or CFR.
 
 # Notes page
 
