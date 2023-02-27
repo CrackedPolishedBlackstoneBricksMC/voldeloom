@@ -26,15 +26,13 @@ package net.fabricmc.loom;
 
 import groovy.util.Node;
 import net.fabricmc.loom.newprovider.ProviderGraph;
-import net.fabricmc.loom.task.AbstractDecompileTask;
 import net.fabricmc.loom.task.ConfigurationDebugTask;
+import net.fabricmc.loom.task.GenSourcesTask;
 import net.fabricmc.loom.task.RemapJarTask;
-import net.fabricmc.loom.task.RemapLineNumbersTask;
 import net.fabricmc.loom.task.RemappedConfigEntryFolderCopyTask;
 import net.fabricmc.loom.task.RunTask;
 import net.fabricmc.loom.task.ShimForgeLibrariesTask;
 import net.fabricmc.loom.task.ShimResourcesTask;
-import net.fabricmc.loom.task.fernflower.FernFlowerTask;
 import net.fabricmc.loom.task.runs.GenEclipseRunsTask;
 import net.fabricmc.loom.task.runs.GenIdeaProjectTask;
 import net.fabricmc.loom.task.runs.GenIdeaRunConfigsTask;
@@ -43,7 +41,6 @@ import net.fabricmc.loom.util.GradleSupport;
 import net.fabricmc.loom.util.GroovyXmlUtil;
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
-import org.gradle.api.Task;
 import org.gradle.api.artifacts.Configuration;
 import org.gradle.api.artifacts.Dependency;
 import org.gradle.api.artifacts.repositories.MavenArtifactRepository;
@@ -55,8 +52,6 @@ import org.gradle.api.tasks.TaskProvider;
 import org.gradle.api.tasks.bundling.AbstractArchiveTask;
 import org.gradle.plugins.ide.idea.model.IdeaModel;
 
-import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -275,14 +270,7 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		tasks.register("remapJar", RemapJarTask.class);
 		
 		//genSources:
-		tasks.register("genSourcesDecompile", FernFlowerTask.class);
-		tasks.register("genSourcesRemapLineNumbers", RemapLineNumbersTask.class, task -> task.dependsOn("genSourcesDecompile"));
-		tasks.register("genSources", task -> {
-			task.setGroup(Constants.TASK_GROUP_TOOLS);
-			task.setDescription("Decompile Minecraft and Forge using the Fernflower decompiler. The resulting file may be attached to your IDE to provide a better Minecraft-browsing experience.");
-			task.getOutputs().upToDateWhen(t -> false);
-			task.dependsOn("genSourcesRemapLineNumbers");
-		});
+		tasks.register("genSources", GenSourcesTask.class);
 		
 		//IDE integration:
 		tasks.register("genEclipseRuns", GenEclipseRunsTask.class);
@@ -339,39 +327,6 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		//their settings in LoomGradleExtension, but before we're not allowed to mutate the project dependencies anymore".
 		ProviderGraph providers = extension.getProviderGraph()
 			.trySetup(); //<- where basically ALL the magic happens
-		
-		//Misc wiring-up of genSources-related tasks.
-		AbstractDecompileTask genSourcesDecompileTask = (AbstractDecompileTask) project.getTasks().getByName("genSourcesDecompile");
-		RemapLineNumbersTask genSourcesRemapLineNumbersTask = (RemapLineNumbersTask) project.getTasks().getByName("genSourcesRemapLineNumbers");
-		Task genSourcesTask = project.getTasks().getByName("genSources");
-		
-		Path mappedJar = providers.finishedJar;
-		Path linemappedJar = replaceExtension(mappedJar, "-linemapped.jar");
-		Path sourcesJar = replaceExtension(mappedJar, "-sources.jar");
-		Path linemapFile = replaceExtension(mappedJar, "-sources.lmap");
-		
-		genSourcesDecompileTask.setInput(mappedJar);
-		genSourcesDecompileTask.setOutput(sourcesJar);
-		genSourcesDecompileTask.setLineMapFile(linemapFile);
-		genSourcesDecompileTask.setLibraries(providers.mcNonNativeDependencies_Todo);
-		
-		genSourcesRemapLineNumbersTask.setInput(mappedJar);
-		genSourcesRemapLineNumbersTask.setLineMapFile(linemapFile);
-		genSourcesRemapLineNumbersTask.setOutput(linemappedJar);
-		
-		//TODO(VOLDELOOM-DISASTER): is there a reason the mapped jar is moved into place in a roundabout way? Cachebusting?
-		genSourcesTask.doLast((tt) -> {
-			if(Files.exists(linemappedJar)) {
-				try {
-					project.delete(mappedJar);
-					Files.copy(linemappedJar, mappedJar);
-				} catch (IOException e) {
-					throw new RuntimeException(e);
-				}
-			}
-			
-			tt.getLogger().lifecycle("] Sources jar: {}", sourcesJar);
-		});
 		
 		//TODO(VOLDELOOM-DISASTER): This is configurable for basically no reason lol
 		//Enables the default mod remapper

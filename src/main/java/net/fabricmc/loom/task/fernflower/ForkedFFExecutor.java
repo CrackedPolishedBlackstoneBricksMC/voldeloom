@@ -57,7 +57,7 @@ import java.util.zip.ZipFile;
  */
 public class ForkedFFExecutor {
 	public static void main(String[] args) throws IOException {
-		System.out.println("ForkedFFExecutor starting. Parsing options...");
+		System.out.println("\\-> ForkedFFExecutor starting. Parsing options...");
 		
 		Map<String, Object> options = new HashMap<>();
 		String input = null;
@@ -96,30 +96,30 @@ public class ForkedFFExecutor {
 		Objects.requireNonNull(input, "Input not set.");
 		Objects.requireNonNull(output, "Output not set.");
 		
-		System.out.println("Creating bytecode provider...");
+		System.out.println("\\-> Creating bytecode provider...");
 		IBytecodeProvider provider = bytecodeProviderProvider.apply(input);
 		
 		try {
-			System.out.println("Creating Fernflower...");
+			System.out.println("\\-> Creating Fernflower...");
 			Fernflower ff = new Fernflower(provider, new ThreadSafeResultSaver(output, lineMap), options, new PrintStreamLogger(System.out));
 			
-			System.out.println("Adding libraries...");
+			System.out.println("\\-> Adding libraries...");
 			for(File library : libraries) ff.addLibrary(library);
 			
-			System.out.println("Adding input...");
+			System.out.println("\\-> Adding input...");
 			ff.addSource(new File(input));
 			
-			System.out.println("Let's Decompiling");
+			System.out.println("\\-> Let's Decompiling");
 			ff.decompileContext();
 		} finally {
-			System.out.println("Cleaning up...");
+			System.out.println("\\-> Cleaning up...");
 			if(provider instanceof Closeable) ((Closeable) provider).close();
 		}
 	}
 	
 	private static class FairlyUnsafeNioBytecodeProvider implements IBytecodeProvider, Closeable {
 		public FairlyUnsafeNioBytecodeProvider(String expectedExternalPath) {
-			System.out.println("[!] Using FairlyUnsafeNioBytecodeProvider");
+			System.out.println("\\-> [!] Using FairlyUnsafeNioBytecodeProvider");
 			try {
 				fs = FileSystems.newFileSystem(URI.create("jar:" + Paths.get(expectedExternalPath).toUri()), Collections.emptyMap());
 			} catch (IOException e) {

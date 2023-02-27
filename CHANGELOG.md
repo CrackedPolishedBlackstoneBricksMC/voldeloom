@@ -5,8 +5,7 @@ Running changelog document, will be added to as I commit things.
 ## (Roadmap...)
 
 * fixing generated run configs
-* preparing for 1.2.5 support
-* getting launchwrapper up and running for 1.6/1.7 dev workspace
+* fixing 1.2, fixing 1.7
 * the fabled "Good Mappings System"
 
 ## New
@@ -15,6 +14,10 @@ Running changelog document, will be added to as I commit things.
   * "preliminary" as in "I don't know if it's super busted but at least the basics work"
 * The 1.3.2 development environment works now
 * The 1.6.4 development environment works now (maybe)
+
+## Changes
+
+* The `genSourcesDecompile` and `genSourcesRemapLineNumbers` plumbing tasks have been removed and their functionality merged into the top-level `genSources` task. There wasn't much of a reason to split them in the first place.
 
 # 2.1 (`agency.highlysuspect:voldeloom:2.1`)
 
