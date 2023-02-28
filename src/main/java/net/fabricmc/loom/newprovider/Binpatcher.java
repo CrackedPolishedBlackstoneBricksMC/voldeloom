@@ -104,13 +104,16 @@ public class Binpatcher extends NewProvider<Binpatcher> {
 					if(unusedPatch.existsAtTarget) {
 						log.warn("Unused binpatch with 'existsAtTarget = true', {}", unusedPatch.originalEntryName);
 					} else {
-						log.debug("Binpatching (!existsAtTarget) {}...", unusedPatch.targetClassName);
+						log.debug("Binpatching (!existsAtTarget) {}...", unusedPatch.sourceClassName);
 						
-						Path path = outputFs.getPath(unusedPatch.sourceClassName + ".class"); //TODO is this correct
+						String[] split = unusedPatch.sourceClassName.split("\\.");
+						split[split.length - 1] += ".class";
+						Path path = outputFs.getPath("/", split);
 						
 						if(Files.exists(path)) {
 							log.warn("Unused binpatch with 'existsAtTarget = false' for a file that already exists, {}", unusedPatch.originalEntryName);
 						} else {
+							if(path.getParent() != null) Files.createDirectories(path.getParent());
 							Files.write(path, unusedPatch.apply(new byte[0]));
 						}
 					}
