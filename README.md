@@ -76,7 +76,7 @@ If you require an older version of Java or Gradle, it should work all the way do
 
 # Version status
 
-With the latest version of Minecraft Forge for each Minecraft version.
+Using the latest version of Minecraft Forge for each Minecraft version.
 
 * "Compile" -> CI tests that a small sample mod is able to compile. The sample links against a few classes from Forge and Minecraft, so it shows that some level of setup is working.
 * "Release" -> Said compiled mod might even work if you put it in a production Forge enviornment.
@@ -86,13 +86,15 @@ With the latest version of Minecraft Forge for each Minecraft version.
 
 |  | Compile? | Release? | Deobf? | |
 | --: | :-: | :-: | :-: | :-- |
-| <=1.2.5 | ❌ | ❌ | ❌ | The client and server are fully split jars.<br>Right now the toolchain can't handle that. |
+| 1.0 | ❌ | ❌ | ❌ | Predates `files.minecraftforge.net`. |
+| 1.1 | ❌ | ❌ | ❌ | I don't think there is much interest in modding for this version. |
+| 1.2.5 | ❌ | ❌ | ❌ | The client and server are fully split jars.<br>Right now the toolchain can't handle that. |
 | 1.3.2 | ✅ | 🤔 | ✅ | |
 | 1.4.7 | ✅ | ✅ | ✅ | **Has received the most testing.**<br>Used for several production mods. |
 | 1.5.2 | ✅ | ✅ | ✅ | |
-| 1.6.4 | ✅ | 🤔 | ✅ | dev workspace mmmmight be busted |
-| 1.7.10 | 🤔 | 🤔 | ❌ | god it'd be so cool to support this version.<br>Haven't evaluated how hard it will be. |
-| >=1.8.9 | ❌ | ❌ | ❌ | Probably impossible to support. |
+| 1.6.4 | ✅ | 🤔 | ✅ | |
+| 1.7.10 | ✅ | 🤔 | ✅ | Sound is broken.<br>Mappings are outdated (need to support MCPBot exports). |
+| >=1.8.9 | ❌ | ❌ | ❌ | Out of scope. |
 
 # Documentation / help
 

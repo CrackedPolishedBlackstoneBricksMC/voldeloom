@@ -70,4 +70,4 @@ Forge 1.6.4-9.11.1.1345 using Gradle 7.6.
 
 Forge 1.7.10-10.13.4.1614-1.7.10 (yes it says 1.7.10 twice) using Gradle 7.6.
 
-~~**FUBARd.**, mainly because the `-sources` artifact on their Maven is fake and it's actually the mod development kit, lol~~ Downloading Forge sources from github: **Everything is busted**, SRGs are there but MCP names are missing, access transformers seem to go unused, game crashes due to `aji$4` illegal access error, a million other things. At the very least binpatches are working
+**Works, no sound**. Mappings are very incomplete and full of SRGs (I was informed the currently-used ones from the Forge 1.7.10 sources repo are outdated, but don't have a mechanism to work with the newer-format mappings yet. Blocked on the hypothetical Good Mappings System...)

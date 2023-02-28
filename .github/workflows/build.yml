@@ -33,7 +33,7 @@ jobs:
     needs: build
     strategy:
       matrix:
-        sample: [ "1.3.2", "1.4.7", "1.4.7-gradle8", "1.5.2", "1.6.4" ]
+        sample: [ "1.3.2", "1.4.7", "1.4.7-gradle8", "1.5.2", "1.6.4", "1.7.10" ]
         java_version: [ "8", "17" ]
         include:
           - sample: "1.4.7-gradle4"
