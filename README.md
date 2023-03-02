@@ -88,7 +88,7 @@ Using the latest version of Minecraft Forge for each Minecraft version.
 | --: | :-: | :-: | :-: | :-- |
 | 1.0 | ❌ | ❌ | ❌ | Predates `files.minecraftforge.net`. |
 | 1.1 | ❌ | ❌ | ❌ | I don't think there is much interest in modding for this version. |
-| 1.2.5 | ❌ | ❌ | ❌ | Dev workspace crashes, remapping for release is dummied out. |
+| 1.2.5 | ❌ | ❌ | ❌ | Mods don't load.<br>Remapping for release is dummied out. |
 | 1.3.2 | ✅ | 🤔 | ✅ | |
 | 1.4.7 | ✅ | ✅ | ✅ | **Has received the most testing.**<br>Used for several production mods. |
 | 1.5.2 | ✅ | ✅ | ✅ | |
