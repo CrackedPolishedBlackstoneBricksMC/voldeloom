@@ -30,6 +30,7 @@ volde {
 	runs {
 		client {
 			programArg "quaternary"
+			runDir = "run"
 		}
 	}
 }

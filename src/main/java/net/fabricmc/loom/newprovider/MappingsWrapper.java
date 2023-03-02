@@ -28,11 +28,12 @@ import java.util.Collections;
  * TODO: more than just MCP!
  */
 public class MappingsWrapper extends ResolvedConfigElementWrapper {
-	public MappingsWrapper(Project project, LoomGradleExtension extension, Configuration config) throws Exception {
+	public MappingsWrapper(Project project, LoomGradleExtension extension, Configuration config, String srgFile) throws Exception {
 		super(project, config);
 		Logger log = project.getLogger();
 		
 		//TODO: REMOVE this hack
+		if(!"joined.srg".equals(srgFile)) mappingDiscriminant += "-" + srgFile.replace(".srg", "");
 		if(extension.forgeCapabilities.srgsAsFallback.get()) mappingDiscriminant += "-srgfallback";
 		
 		mappingsDepString = getDepString() + mappingDiscriminant;
@@ -58,21 +59,8 @@ public class MappingsWrapper extends ResolvedConfigElementWrapper {
 				}
 				log.info("] Mappings root detected to be '{}'", conf);
 				
-				log.info("|-> Reading joined.srg...");
-				if(Files.exists(conf.resolve("joined.srg"))) {
-					joined = new Srg().read(conf.resolve("joined.srg"), strings);
-				} else {
-					//just assume we're manually merging a client and server srg
-					//TODO: newids?
-					log.info("\\-> No joined.srg exists. Reading client.srg...");
-					Srg client = new Srg().read(conf.resolve("client.srg"), strings);
-					
-					log.info("\\-> Reading server.srg...");
-					Srg server = new Srg().read(conf.resolve("server.srg"), strings);
-					
-					log.info("\\-> Manually joining srgs...");
-					joined = client.mergeWith(server);
-				}
+				log.info("|-> Reading {}...", srgFile);
+				joined = new Srg().read(conf.resolve(srgFile), strings);
 				
 				//TODO YEET this into the stratosphere
 				for(String deleteThis : extension.hackHackHackDontMapTheseClasses) {

@@ -55,28 +55,20 @@ public class GradleSupport {
 	public static String compileOrImplementation;
 	public static String runtimeOrRuntimeOnly;
 	
-	//(VOLDELOOM-DISASTER) Gradle 7 decided to rename "compile" to "implementation" and "runtime" to "runtimeOnly"
+	//(VOLDELOOM-DISASTER) Gradle 7 decided to rename "compile" to "implementation" and "runtime" to "runtimeOnly".
 	//They're basically the same thing, so we can just swap out the names as-appropriate.
 	public static void init(Project project) {
 		Set<String> names = project.getConfigurations().getNames();
 		
-		if(names.contains("compile")) {
-			compileOrImplementation = "compile";
-		} else if(names.contains("implementation")) {
-			compileOrImplementation = "implementation";
-		} else {
-			throw new IllegalStateException("Not sure what the name of the compilation configuration is (apparently not `compile` or `implementation`)");
-		}
+		if(names.contains("compile")) compileOrImplementation = "compile";
+		else if(names.contains("implementation")) compileOrImplementation = "implementation";
+		else throw new IllegalStateException("Not sure what the name of the compilation configuration is (apparently not `compile` or `implementation`)");
 		
-		if(names.contains("runtime")) {
-			runtimeOrRuntimeOnly = "runtime";
-		} else if(names.contains("runtimeOnly")) {
-			runtimeOrRuntimeOnly = "runtimeOnly";
-		} else {
-			throw new IllegalStateException("Not sure what the name of the runtime-only configuration is (apparently not `runtime` or `runtimeOnly`)");
-		}
+		if(names.contains("runtime")) runtimeOrRuntimeOnly = "runtime";
+		else if(names.contains("runtimeOnly")) runtimeOrRuntimeOnly = "runtimeOnly";
+		else throw new IllegalStateException("Not sure what the name of the runtime-only configuration is (apparently not `runtime` or `runtimeOnly`)");
 		
-		project.getLogger().info("We're on a '" + compileOrImplementation + "'-flavored Gradle; slight aftertaste of '" + runtimeOrRuntimeOnly + "'.");
+		project.getLogger().info("We're on a '{}'-flavored Gradle; slight aftertaste of {}'.", compileOrImplementation, runtimeOrRuntimeOnly);
 	}
 	
 	public static Configuration getCompileOrImplementationConfiguration(ConfigurationContainer configurations) {
@@ -99,7 +91,7 @@ public class GradleSupport {
 				return (RegularFileProperty) getAccessibleMethod(layout.getClass(), "fileProperty")
 					.invoke(layout);
 			} catch (Exception cantLegacy) {
-				RuntimeException ball = new RuntimeException("Unable to figure out how to get a file property", cantLegacy);
+				RuntimeException ball = new RuntimeException("Couldn't get a RegularFileProperty from a Project", cantLegacy);
 				ball.addSuppressed(cantModern);
 				throw ball;
 			}
@@ -113,10 +105,11 @@ public class GradleSupport {
 		try {
 			contentMethod = repo.getClass().getMethod("content", Action.class);
 		} catch (NoSuchMethodException e) {
-			//We expect this in gradle 4.x.
+			//Expected in Gradle 4, the mavenContent filter doesn't exist yet.
 			return;
 		}
 		
+		//Gradle 7
 		try {
 			Action<Object> erasedAction = (obj) -> {
 				try {
@@ -128,7 +121,7 @@ public class GradleSupport {
 			contentMethod.setAccessible(true);
 			contentMethod.invoke(repo, erasedAction);
 		} catch (ReflectiveOperationException e) {
-			throw new RuntimeException(e);
+			throw new RuntimeException("Couldn't set content->includeGroup on an ArtifactRepository", e);
 		}
 	}
 	
@@ -155,11 +148,13 @@ public class GradleSupport {
 	@SuppressWarnings({"UnstableApiUsage", "RedundantSuppression", "unchecked"})
 	public static void setClassifier(AbstractArchiveTask task, String classifier) {
 		try {
+			//Gradle 7
 			((Property<String>) getAccessibleMethod(task.getClass(), "getArchiveClassifier")
 				.invoke(task))
 				.set(classifier);
 		} catch (ReflectiveOperationException cantModern) {
 			try {
+				//Gradle 4
 				getAccessibleMethod(task.getClass(), "setClassifier", String.class)
 					.invoke(task, classifier);
 			} catch (ReflectiveOperationException cantLegacy) {
@@ -173,11 +168,13 @@ public class GradleSupport {
 	@SuppressWarnings({"UnstableApiUsage", "RedundantSuppression", "unchecked"})
 	public static File getArchiveFile(AbstractArchiveTask task) {
 		try {
+			//Gradle 7
 			return ((Provider<RegularFile>) getAccessibleMethod(task.getClass(), "getArchiveFile")
 				.invoke(task))
 				.get().getAsFile();
 		} catch (ReflectiveOperationException cantModern) {
 			try {
+				//Gradle 4
 				return (File) getAccessibleMethod(task.getClass(), "getArchivePath")
 					.invoke(task);
 			} catch (ReflectiveOperationException cantLegacy) {
@@ -209,8 +206,9 @@ public class GradleSupport {
 			javaToolchainSpecClass = Class.forName("org.gradle.jvm.toolchain.JavaToolchainSpec");
 		} catch (ClassNotFoundException e) {
 			task.getLogger().info("\\-> Just kidding, looks like this version of Gradle doesn't have all the necessary toolchain bits. ({})", e.getMessage());
-			return false; //Doesn't support toolchains
+			return false; //Doesn't support toolchains (Gradle <=5)
 		}
+		//Gradle >=6
 		
 		try {
 			Object javaToolchainSpec = task.getProject().getObjects().newInstance(defaultToolchainSpecClass);
@@ -270,7 +268,6 @@ public class GradleSupport {
 		
 		throw new IllegalArgumentException("[Voldeloom GradleSupport] Not sure how to parse this " + o.getClass() + " as a JVM vendor.");
 	}
-	
 	
 	//Property<> is incubating in Gradle 4 but got stabilized as-is in 7,
 	//so when i'm using Gradle 4, the UnstableApiUsage warning is redundant.

@@ -14,9 +14,13 @@ Not actually a sample project; contains some definitely-legal-to-redistribute mo
 
 Forge 1.2.5-3.4.9.171 using Gradle 7.6.
 
-**Completely broken.** Buildscript hangs on `MergedProvider`.
+**Broken.**
 
-It will require significant effort to properly deal with split "client" and "server" jars that are two real, separate codebases.
+You get vanilla, and (somehow) two Forges, but the mod under development doesn't load.
+
+Remapping the jar for release doesn't work, it's dummied out while I figure out a better system more conducive to split jars.
+
+Project will require some big edits to *properly* (i.e. not slapped-together) support the split jars, ideally with an environment that's "nice" (client/server source sets like Loom 1?)
 
 ### 1.3.2
 

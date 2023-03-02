@@ -116,9 +116,13 @@ public class RunTask extends JavaExec implements LoomTaskExt {
 		GradleSupport.setMainClass(this, config.getMainClass());
 
 		//Pwd
-		Path runDir = getProject().getRootDir().toPath().resolve(config.getRunDir());
-		Files.createDirectories(runDir);
-		setWorkingDir(runDir);
+		Path runDir = config.resolveRunDir().toAbsolutePath();
+		Path realRunDir = getLoomGradleExtension().forgeCapabilities.minecraftRealPath.get().apply(runDir);
+		Files.createDirectories(realRunDir);
+		setWorkingDir(realRunDir);
+		
+		//TODO: horrible kludge for 1.2.5 on Windows lol (it reads APPDATA environment variable)
+		environment("APPDATA", runDir.toString());
 		
 		//Stdin
 		setStandardInput(System.in);

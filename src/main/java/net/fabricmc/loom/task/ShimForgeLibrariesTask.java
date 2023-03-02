@@ -1,6 +1,7 @@
 package net.fabricmc.loom.task;
 
 import net.fabricmc.loom.Constants;
+import net.fabricmc.loom.RunConfig;
 import net.fabricmc.loom.util.LoomTaskExt;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.tasks.OutputDirectories;
@@ -35,7 +36,11 @@ public class ShimForgeLibrariesTask extends DefaultTask implements LoomTaskExt {
 	
 	@OutputDirectories
 	public Collection<Path> getLibraryDirectories() {
-		return getLoomGradleExtension().runConfigs.stream().map(cfg -> cfg.resolveRunDir().resolve("lib")).collect(Collectors.toList());
+		return getLoomGradleExtension().runConfigs.stream()
+			.map(RunConfig::resolveRunDir)
+			.map(getLoomGradleExtension().forgeCapabilities.minecraftRealPath.get())
+			.map(p -> p.resolve("lib"))
+			.collect(Collectors.toList());
 	}
 	
 	private Set<File> getLibs() {

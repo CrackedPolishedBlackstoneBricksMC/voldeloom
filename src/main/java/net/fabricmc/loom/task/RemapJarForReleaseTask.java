@@ -46,8 +46,8 @@ import java.util.stream.Collectors;
  * 
  * TODO: Investigate...
  */
-public class RemapJarTask extends Jar {
-	public RemapJarTask() {
+public class RemapJarForReleaseTask extends Jar {
+	public RemapJarForReleaseTask() {
 		setGroup(Constants.TASK_GROUP_PLUMBING);
 		setDescription("Remaps the mod under development into the distribution naming scheme, ready for publishing.");
 	}
@@ -58,6 +58,12 @@ public class RemapJarTask extends Jar {
 	public void doTask() throws Throwable {
 		Project project = getProject();
 		LoomGradleExtension extension = project.getExtensions().getByType(LoomGradleExtension.class);
+		
+		if(extension.getProviderGraph().tinyTree == null) {
+			for(int i = 0; i < 10; i++) getLogger().error("[Voldeloom] RELEASE REMAPPING FOR SPLIT JARS (1.2.5) IS CURRENTLY BROKEN!!!!!!! SORRY!!!");
+			return;
+		}
+		
 		Path input = this.getInput().getAsFile().get().toPath();
 		Path output = this.getArchivePath().toPath();
 		
@@ -78,7 +84,7 @@ public class RemapJarTask extends Jar {
 			.setLogger(getLogger()::lifecycle)
 			.run();
 
-		if (Files.notExists(output)) {
+		if(Files.notExists(output)) {
 			throw new RuntimeException("Failed to remap " + input + " to " + output + " - file missing!");
 		}
 	}

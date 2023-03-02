@@ -118,7 +118,10 @@ public class RunConfig implements Named {
 		//TODO!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 		RunConfig copy = copy();
 		if(getEnvironment().equals("client")) {
+			//1.3+
 			copy.property("minecraft.applet.TargetDirectory", resolveRunDir().toAbsolutePath().toString());
+			//1.2.5 (should probably gate this one)
+			copy.property("user.home", resolveRunDir().toAbsolutePath().getParent().toString()); //Not Windows
 			
 			String nativeLibsDir = ext.getProviderGraph().mcNativesDir.toAbsolutePath().toString();
 			copy.property("java.library.path", nativeLibsDir);

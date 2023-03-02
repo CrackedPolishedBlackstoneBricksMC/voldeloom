@@ -2,6 +2,7 @@ package net.fabricmc.loom.task;
 
 import net.fabricmc.loom.Constants;
 import net.fabricmc.loom.LoomGradleExtension;
+import net.fabricmc.loom.RunConfig;
 import net.fabricmc.loom.util.LoomTaskExt;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.tasks.OutputDirectories;
@@ -32,7 +33,9 @@ public class ShimResourcesTask extends DefaultTask implements LoomTaskExt {
 	public Collection<Path> getResourceTargetDirectories() {
 		return getLoomGradleExtension().runConfigs.stream()
 			.filter(cfg -> "client".equals(cfg.getEnvironment()))
-			.map(cfg -> cfg.resolveRunDir().resolve("resources"))
+			.map(RunConfig::resolveRunDir)
+			.map(getLoomGradleExtension().forgeCapabilities.minecraftRealPath.get())
+			.map(p -> p.resolve("resources"))
 			.collect(Collectors.toList());
 	}
 	

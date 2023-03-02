@@ -1,12 +1,15 @@
 package net.fabricmc.loom;
 
 import com.google.common.base.Suppliers;
+import net.fabricmc.loom.util.OperatingSystem;
 import org.gradle.api.Project;
 import org.gradle.api.logging.Logger;
 
+import java.nio.file.Path;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 public class ForgeCapabilities {
@@ -111,8 +114,9 @@ public class ForgeCapabilities {
 		int minor = guessMinecraftMinorVersion();
 		
 		if(minor <= 2) {
-			log.info("|-> [ForgeCapabilities guess] I think this Forge version filters classes starting with 'argo' when remapping?");
-			return Collections.singleton("argo");
+			//ODD: the Ant scripts from this era did have an argo filter, but in practice the game noclassdefs with an argo filter
+			log.info("|-> [ForgeCapabilities guess] I don't think this Forge version filters any classes when remapping?");
+			return Collections.emptySet();
 		} else if(minor <= 7) {
 			log.info("|-> [ForgeCapabilities guess] I think this Forge version filters classes starting with 'argo' and 'org' when remapping?");
 			
@@ -266,6 +270,37 @@ public class ForgeCapabilities {
 		} else {
 			log.info("|-> [ForgeCapabilities guess] Guessing that this Forge version had '{}'-named access transformers?", Constants.PROGUARDED_NAMING_SCHEME);
 			return false;
+		}
+	}
+	
+	@SuppressWarnings("unused") //gradle api
+	public ForgeCapabilities mappedAccessTransformersSupplier(boolean mappedAccessTransformers) {
+		this.mappedAccessTransformers = () -> mappedAccessTransformers;
+		return this;
+	}
+	
+	@SuppressWarnings("unused") //gradle api
+	public ForgeCapabilities mappedAccessTransformersSupplier(Supplier<Boolean> mappedAccessTransformers) {
+		this.mappedAccessTransformers = mappedAccessTransformers;
+		return this;
+	}
+	
+	public Supplier<Function<Path, Path>> minecraftRealPath = Suppliers.memoize(this::guessMinecraftRealPath);
+	
+	public Function<Path, Path> guessMinecraftRealPath() {
+		checkConfigured("guessMinecraftRealPath");
+		
+		if(guessMinecraftMinorVersion() <= 2) {
+			if(OperatingSystem.getOS().contains("osx")) {
+				log.info("|-> [ForgeCapabilities guess] Guessing that this Minecraft version appends 'minecraft' to the user-specified path (without a dot character, because this is a Mac)");
+				return p -> p.resolve("minecraft");
+			} else {
+				log.info("|-> [ForgeCapabilities guess] Guessing that this Minecraft version appends '.minecraft' to the user-specified run dir");
+				return p -> p.resolve(".minecraft");
+			}
+		} else {
+			log.info("|-> [ForgeCapabilities guess] Guessing that this Minecraft version leaves the run dir unchanged");
+			return Function.identity();
 		}
 	}
 }

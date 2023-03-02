@@ -27,7 +27,7 @@ package net.fabricmc.loom;
 import groovy.util.Node;
 import net.fabricmc.loom.task.ConfigurationDebugTask;
 import net.fabricmc.loom.task.GenSourcesTask;
-import net.fabricmc.loom.task.RemapJarTask;
+import net.fabricmc.loom.task.RemapJarForReleaseTask;
 import net.fabricmc.loom.task.RemappedConfigEntryFolderCopyTask;
 import net.fabricmc.loom.task.RunTask;
 import net.fabricmc.loom.task.ShimForgeLibrariesTask;
@@ -266,12 +266,11 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		TaskContainer tasks = project.getTasks();
 		
 		//Remapping artifacts:
-		tasks.register("remapJar", RemapJarTask.class);
-		
-		//genSources:
-		tasks.register("genSources", GenSourcesTask.class);
+		tasks.register("remapJarForRelease", RemapJarForReleaseTask.class, t -> t.dependsOn(tasks.named("jar")));
+		tasks.named("build").configure(t -> t.dependsOn(tasks.named("remapJarForRelease")));
 		
 		//IDE integration:
+		tasks.register("genSources", GenSourcesTask.class);
 		tasks.register("genEclipseRuns", GenEclipseRunsTask.class);
 		tasks.register("genIdeaRuns", GenIdeaRunConfigsTask.class);
 		tasks.register("genIdeaWorkspace", GenIdeaProjectTask.class);
@@ -326,40 +325,21 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		//their settings in LoomGradleExtension, but before we're not allowed to mutate the project dependencies anymore".
 		extension.getProviderGraph().trySetup();
 		
-		//TODO(VOLDELOOM-DISASTER): This is configurable for basically no reason lol
-		//Enables the default mod remapper
+		//Configure the for-release remapper
 		AbstractArchiveTask jarTask = (AbstractArchiveTask) project.getTasks().getByName("jar");
-		if(extension.remapMod) {
-			RemapJarTask remapJarTask = (RemapJarTask) project.getTasks().findByName("remapJar");
-			
-			if (!remapJarTask.getInput().isPresent()) {
-				GradleSupport.setClassifier(jarTask, "dev");
-				GradleSupport.setClassifier(remapJarTask, "");
-				remapJarTask.getInput().set(GradleSupport.getArchiveFile(jarTask));
-			}
-			
-			extension.addUnmappedMod(GradleSupport.getArchiveFile(jarTask).toPath());
-			
-			project.getArtifacts().add("archives", remapJarTask);
-			remapJarTask.dependsOn(jarTask);
-			project.getTasks().getByName("build").dependsOn(remapJarTask);
-			
-//			//And configure source remapping, to get a -sources-dev jar or something.
-//			//TODO add this back :(
-//			try {
-//				AbstractArchiveTask sourcesTask = (AbstractArchiveTask) project.getTasks().getByName("sourcesJar");
-//				RemapSourcesJarTask remapSourcesJarTask = (RemapSourcesJarTask) project.getTasks().findByName("remapSourcesJar");
-//				remapSourcesJarTask.setInput(GradleSupport.getArchiveFile(sourcesTask)); //TODO: are you sure about that
-//				remapSourcesJarTask.setOutput(GradleSupport.getArchiveFile(sourcesTask));
-//				remapSourcesJarTask.doLast(task -> project.getArtifacts().add("archives", remapSourcesJarTask.getOutput()));
-//				remapSourcesJarTask.dependsOn("sourcesJar");
-//				project.getTasks().getByName("build").dependsOn(remapSourcesJarTask);
-//			} catch (UnknownTaskException e) {
-//				// pass
-//			}
-		} else {
-			extension.addUnmappedMod(GradleSupport.getArchiveFile(jarTask).toPath());
+		RemapJarForReleaseTask remapJarForReleaseTask = (RemapJarForReleaseTask) project.getTasks().findByName("remapJarForRelease");
+		
+		if(!remapJarForReleaseTask.getInput().isPresent()) {
+			//unless you configured it otherwise, move the regular jar to having the -dev classifier,
+			//and the remapped-for-release one to have no classifier
+			GradleSupport.setClassifier(jarTask, "dev");
+			GradleSupport.setClassifier(remapJarForReleaseTask, "");
+			remapJarForReleaseTask.getInput().set(GradleSupport.getArchiveFile(jarTask));
 		}
+		project.getArtifacts().add("archives", remapJarForReleaseTask);
+		
+		//add to classpath for runClient (TODO do this a different way? configurations? artifacts?)
+		extension.addUnmappedMod(GradleSupport.getArchiveFile(jarTask).toPath());
 		
 		//Configure a few Maven publishing settings. I (quat)'m not familiar with maven publishing so idk
 		//I think this adds stuff declared in the modCompile, modImplementation etc configurations into the maven pom

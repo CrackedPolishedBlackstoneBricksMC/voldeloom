@@ -60,6 +60,9 @@ public class Srg {
 				// (This is accurate to the actual contents of the SRG, btw, there are duplicates)
 				if(to.name.equals("func_130000_a") && from.descriptor.equals("(Lof;DDDFF)V")) continue;
 				else if(to.name.equals("func_82408_c") && from.descriptor.equals("(Lof;IF)V")) continue;
+				//TODO: KLUDGE for 1.2.5 client
+				else if(to.name.equals("func_319_i") && from.descriptor.equals("(Lxd;III)V")) continue;
+				else if(to.name.equals("func_35199_b") && from.descriptor.equals("(Laan;I)V")) continue;
 				
 				methodMappingsByOwningClass.computeIfAbsent(from.owningClass, __ -> new LinkedHashMap<>())
 					.put(from, to);
@@ -71,19 +74,19 @@ public class Srg {
 		return this;
 	}
 	
-	public Srg mergeWith(Srg other) {
-		other.classMappings.forEach(classMappings::putIfAbsent);
-		
-		other.fieldMappingsByOwningClass.forEach((owningClass, otherFieldMaps) -> 
-			fieldMappingsByOwningClass.computeIfAbsent(owningClass, __ -> new LinkedHashMap<>())
-				.putAll(otherFieldMaps));
-		
-		other.methodMappingsByOwningClass.forEach((owningClass, otherMethodMaps) ->
-			methodMappingsByOwningClass.computeIfAbsent(owningClass, __ -> new LinkedHashMap<>())
-				.putAll(otherMethodMaps));
-		
-		return this;
-	}
+//	public Srg mergeWith(Srg other) {
+//		other.classMappings.forEach(classMappings::putIfAbsent);
+//		
+//		other.fieldMappingsByOwningClass.forEach((owningClass, otherFieldMaps) -> 
+//			fieldMappingsByOwningClass.computeIfAbsent(owningClass, __ -> new LinkedHashMap<>())
+//				.putAll(otherFieldMaps));
+//		
+//		other.methodMappingsByOwningClass.forEach((owningClass, otherMethodMaps) ->
+//			methodMappingsByOwningClass.computeIfAbsent(owningClass, __ -> new LinkedHashMap<>())
+//				.putAll(otherMethodMaps));
+//		
+//		return this;
+//	}
 	
 	public void unmapClass(String classs) {
 		classMappings.remove(classs);

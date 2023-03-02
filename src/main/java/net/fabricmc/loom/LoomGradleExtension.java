@@ -85,14 +85,6 @@ public class LoomGradleExtension {
 	public boolean warnOnProbablyWrongConfigurationNames = true;
 	
 	/**
-	 * If this is set to `false`, your mod won't get remapped to proguard names upon distribution.
-	 * TODO: Not sure why you'd want this when the `-dev` jars do the same thing, lol
-	 *  I heard Loom was initially developed under the assumption parts would be split off into other games (perhaps games that didn't use remapping),
-	 *  so this is possibly vestige from then
-	 */
-	public boolean remapMod = true;
-	
-	/**
 	 * If nonnull, this URL will be contacted to download the Minecraft per-version manifest, instead of reading from version_manifest.json. 
 	 */
 	public String customManifestUrl = null;

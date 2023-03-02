@@ -28,7 +28,11 @@ public class RemappedConfigEntryFolderCopyTask extends DefaultTask implements Lo
 	
 	@Internal
 	public Collection<Path> getRunDirectories() {
-		return getLoomGradleExtension().runConfigs.stream().map(RunConfig::resolveRunDir).collect(Collectors.toList());
+		return getLoomGradleExtension().runConfigs
+			.stream()
+			.map(RunConfig::resolveRunDir)
+			.map(getLoomGradleExtension().forgeCapabilities.minecraftRealPath.get())
+			.collect(Collectors.toList());
 	}
 	
 	@TaskAction

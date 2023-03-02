@@ -7,8 +7,8 @@ Gradle plugin for ~~Fabric~~ ancient versions of Forge.
 ### If you're interested in the history:
 
 * Based off prerelease version of Fabric Loom 0.4 by [Loom contributors](https://github.com/TwilightFlower/fabric-loom/graphs/contributors) Aug 2016 - Jun 2020.
-* Forked by [TwilightFlower](https://github.com/TwilightFlower/) May 2020 for the release of [Retro Tater](https://github.com/TwilightFlower/retro-tater); she did lots of the initial architecture work.
-* Tweaked, maintained, and additional version support by [unascribed](https://github.com/unascribed/) May 2021 - May 2022 for the release of [Ears](https://git.sleeping.town/unascribed/Ears/src/branch/trunk/platform-forge-1.4) and other Forge mods.
+* [Forked](https://github.com/TwilightFlower/fabric-loom/) by [TwilightFlower](https://github.com/TwilightFlower/) May 2020 for the release of [Retro Tater](https://github.com/TwilightFlower/retro-tater); she did lots of the initial architecture work.
+* [Tweaked, maintained, and additional version support](https://github.com/unascribed/voldeloom/) by [unascribed](https://github.com/unascribed/) May 2021 - May 2022 for the release of [Ears](https://git.sleeping.town/unascribed/Ears/src/branch/trunk/platform-forge-1.4) and other Forge mods.
 * Minor tweak by [quaternary](https://github.com/quat1024) Jul 2022 for the release of [Hopper](https://github.com/quat1024/hoppers).
 
 And because you're on the `disaster-time` branch.
@@ -88,7 +88,7 @@ Using the latest version of Minecraft Forge for each Minecraft version.
 | --: | :-: | :-: | :-: | :-- |
 | 1.0 | ❌ | ❌ | ❌ | Predates `files.minecraftforge.net`. |
 | 1.1 | ❌ | ❌ | ❌ | I don't think there is much interest in modding for this version. |
-| 1.2.5 | ❌ | ❌ | ❌ | The client and server are fully split jars.<br>Right now the toolchain can't handle that. |
+| 1.2.5 | ❌ | ❌ | ❌ | Dev workspace crashes, remapping for release is dummied out. |
 | 1.3.2 | ✅ | 🤔 | ✅ | |
 | 1.4.7 | ✅ | ✅ | ✅ | **Has received the most testing.**<br>Used for several production mods. |
 | 1.5.2 | ✅ | ✅ | ✅ | |

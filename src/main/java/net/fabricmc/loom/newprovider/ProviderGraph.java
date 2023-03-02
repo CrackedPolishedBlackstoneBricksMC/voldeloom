@@ -37,18 +37,15 @@ public class ProviderGraph {
 	public Path mcNativesDir;
 	//called from ShimAssetsTask, client run configs need to invoke it, not invoked here because assets aren't needed on the server/in CI
 	public AssetDownloader assets;
-	//used by RemapJarTask
-	public TinyTree tinyTree;
-	
 	//package of data used by GenSources
 	public final List<GenSourcesTask.SourceGenerationJob> sourceGenerationJobs = new ArrayList<>();
+	
+	//used by RemapJarTask TODO: FIX, it's not 1.2.5 clean, but I dont know the right way to do it
+	public TinyTree tinyTree;
 	
 	public void setup() throws Exception {
 		log.lifecycle("# Wrapping basic dependencies...");
 		mc = new ConfigElementWrapper(project, project.getConfigurations().getByName(Constants.MINECRAFT));
-		
-		log.lifecycle("# Parsing mappings...");
-		MappingsWrapper mappings = new MappingsWrapper(project, extension, project.getConfigurations().getByName(Constants.MAPPINGS));
 		
 		log.lifecycle("# Fetching vanilla jars and indexes...");
 		String mcPrefix = "minecraft-" + mc.getFilenameSafeVersion();
@@ -78,6 +75,9 @@ public class ProviderGraph {
 		if(!project.getConfigurations().getByName(Constants.FORGE).isEmpty()) {
 			//unified jar (1.3+)
 			ResolvedConfigElementWrapper forge = new ResolvedConfigElementWrapper(project, project.getConfigurations().getByName(Constants.FORGE));
+			
+			log.lifecycle("# Parsing mappings...");
+			MappingsWrapper mappings = new MappingsWrapper(project, extension, project.getConfigurations().getByName(Constants.MAPPINGS), "joined.srg");
 			
 			log.lifecycle("# Binpatching?");
 			Path binpatchedClient, binpatchedServer;
@@ -270,23 +270,30 @@ public class ProviderGraph {
 			Jarmodder serverJarmodder = jarrr.apply(forgeServer, vanillaJars.getServerJar(), jarmoddedServerPrefix)
 				.patch();
 			
-			//TODO: You can't join mapmings like this, i need separate client and server mappings
-			log.lifecycle("# Converting mappings to tinyv2...");
-			Tinifier tinifier = new Tinifier(project, extension)
-				.superProjectmapped(clientJarmodder.isProjectmapped() || serverJarmodder.isProjectmapped())
-				.scanJars(clientJarmodder.getJarmoddedJar(), serverJarmodder.getJarmoddedJar())
-				.mappings(mappings)
-				.useSrgsAsFallback(extension.forgeCapabilities.srgsAsFallback.get())
-				.tinify();
-			Path tinyMappingsFile = tinifier.getMappingsFile();
-			tinyTree = tinifier.getTinyTree();
+			//TODO this sucks, don't parse twice please
+			log.lifecycle("# Parsing client mappings...");
+			MappingsWrapper clientMappings = new MappingsWrapper(project, extension, project.getConfigurations().getByName(Constants.MAPPINGS), "client.srg");
+			log.lifecycle("# Parsing server mappings...");
+			MappingsWrapper serverMappings = new MappingsWrapper(project, extension, project.getConfigurations().getByName(Constants.MAPPINGS), "server.srg");
+			
+			ThrowyFunction.Bi<MappingsWrapper, Jarmodder, Tinifier, Exception> mapper = (mappings, jarmodder) ->
+				new Tinifier(project, extension)
+					.superProjectmapped(jarmodder.isProjectmapped())
+					.scanJars(jarmodder.getJarmoddedJar())
+					.mappings(mappings)
+					.useSrgsAsFallback(extension.forgeCapabilities.srgsAsFallback.get())
+					.tinify();
+			log.lifecycle("# Converting client mappings to tinyv2...");
+			Tinifier clientTiny = mapper.apply(clientMappings, clientJarmodder);
+			log.lifecycle("# Converting server mappings to tinyv2...");
+			Tinifier serverTiny = mapper.apply(serverMappings, serverJarmodder);
 			
 			//TODO: ATs (dont think forge had them yet)
 			
-			ThrowyFunction.Bi<Path, String, Remapper, Exception> remapperFactory = (jar, prefix) ->
+			ThrowyFunction.Quad<Path, String, MappingsWrapper, Tinifier, Remapper, Exception> remapperFactory = (jar, prefix, mappings, tinifier) ->
 				new Remapper(project, extension)
-					.superProjectmapped(false) //TODO
-					.tinyTree(tinyTree)
+					.superProjectmapped(tinifier.isProjectmapped()) //TODO
+					.tinyTree(tinifier.getTinyTree())
 					.mappingsDepString(mappings.getFilenameSafeDepString())
 					.nonNativeLibs(vanillaDeps.getNonNativeLibraries_Todo())
 					.deletedPrefixes(extension.forgeCapabilities.classFilter.get())
@@ -294,17 +301,39 @@ public class ProviderGraph {
 					.addOutputJar(Constants.INTERMEDIATE_NAMING_SCHEME, prefix + "-" + Constants.INTERMEDIATE_NAMING_SCHEME + ".jar")
 					.addOutputJar(Constants.MAPPED_NAMING_SCHEME, prefix + "-" + Constants.MAPPED_NAMING_SCHEME + ".jar");
 			
-			Remapper clientRemapper = remapperFactory.apply(clientJarmodder.getJarmoddedJar(), jarmoddedClientPrefix)
+			log.lifecycle("# Remapping client...");
+			Remapper clientRemapper = remapperFactory.apply(clientJarmodder.getJarmoddedJar(), jarmoddedClientPrefix, clientMappings, clientTiny)
 				.remap();
-			Remapper serverRemapper = remapperFactory.apply(serverJarmodder.getJarmoddedJar(), jarmoddedServerPrefix)
+			log.lifecycle("# Remapping server...");
+			Remapper serverRemapper = remapperFactory.apply(serverJarmodder.getJarmoddedJar(), jarmoddedServerPrefix, serverMappings, serverTiny)
 				.remap();
 			
 			project.getDependencies().add(Constants.MINECRAFT_NAMED, project.files(clientRemapper.getMappedJar(Constants.MAPPED_NAMING_SCHEME)));
 			project.getDependencies().add(Constants.MINECRAFT_NAMED, project.files(serverRemapper.getMappedJar(Constants.MAPPED_NAMING_SCHEME)));
+			
+			//TODO: Mod dependencies
+			
+			log.lifecycle("# Initializing source generation jobs...");
+			GenSourcesTask.SourceGenerationJob clientJob = new GenSourcesTask.SourceGenerationJob();
+			clientJob.mappedJar = clientRemapper.getMappedJar(Constants.MAPPED_NAMING_SCHEME);
+			clientJob.sourcesJar = LoomGradlePlugin.replaceExtension(clientJob.mappedJar, "-sources-unlinemapped.jar");
+			clientJob.linemapFile = LoomGradlePlugin.replaceExtension(clientJob.mappedJar, "-linemap.lmap");
+			clientJob.finishedJar = LoomGradlePlugin.replaceExtension(clientJob.mappedJar, "-sources.jar");
+			clientJob.libraries = vanillaDeps.getNonNativeLibraries_Todo();
+			clientJob.tinyMappingsFile = clientTiny.getMappingsFile();
+			sourceGenerationJobs.add(clientJob);
+			
+			GenSourcesTask.SourceGenerationJob serverJob = new GenSourcesTask.SourceGenerationJob();
+			serverJob.mappedJar = serverRemapper.getMappedJar(Constants.MAPPED_NAMING_SCHEME);
+			serverJob.sourcesJar = LoomGradlePlugin.replaceExtension(serverJob.mappedJar, "-sources-unlinemapped.jar");
+			serverJob.linemapFile = LoomGradlePlugin.replaceExtension(serverJob.mappedJar, "-linemap.lmap");
+			serverJob.finishedJar = LoomGradlePlugin.replaceExtension(serverJob.mappedJar, "-sources.jar");
+			serverJob.libraries = vanillaDeps.getNonNativeLibraries_Todo();
+			serverJob.tinyMappingsFile = serverTiny.getMappingsFile();
+			sourceGenerationJobs.add(serverJob);
 		}
 		
 		log.lifecycle("# Thank you for flying Voldeloom.");
-		
 	}
 	
 	public void trySetup() {
