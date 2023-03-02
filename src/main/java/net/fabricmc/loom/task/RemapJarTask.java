@@ -49,7 +49,7 @@ import java.util.stream.Collectors;
 public class RemapJarTask extends Jar {
 	public RemapJarTask() {
 		setGroup(Constants.TASK_GROUP_PLUMBING);
-		setDescription("Remaps the mod under development into official names, for release purposes.");
+		setDescription("Remaps the mod under development into the distribution naming scheme, ready for publishing.");
 	}
 	
 	private final RegularFileProperty input = GradleSupport.getRegularFileProperty(getProject());

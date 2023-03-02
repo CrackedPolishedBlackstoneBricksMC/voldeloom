@@ -2,18 +2,17 @@ package net.fabricmc.loom.newprovider;
 
 import net.fabricmc.loom.Constants;
 import net.fabricmc.loom.LoomGradleExtension;
+import net.fabricmc.loom.LoomGradlePlugin;
+import net.fabricmc.loom.task.GenSourcesTask;
 import net.fabricmc.loom.util.ThrowyFunction;
-import net.fabricmc.loom.util.VersionManifest;
 import net.fabricmc.mapping.tree.TinyTree;
 import org.gradle.api.Project;
 import org.gradle.api.logging.Logger;
 
 import javax.annotation.Nullable;
 import java.nio.file.Path;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Supplier;
 
 /**
@@ -29,30 +28,27 @@ public class ProviderGraph {
 	private final Project project;
 	private final Logger log;
 	private final LoomGradleExtension extension;
-	private final Map<Class<? extends NewProvider<?>>, NewProvider<?>> newProviders = new HashMap<>();
 	
-	//for better or for worse, "globals". these ones get set early,
+	//"globals", accessible outside this class for various reasons. i try to keep this surface as small as possible
+	
+	//couple places would like access to the minecraft version number
 	public ConfigElementWrapper mc;
-	public MappingsWrapper mappings;
-	
-	//and these ones get set a little later, but still within the setup() method. so they should be ok to use from outside.
-	public VersionManifest versionManifest;
+	//run configs would like to know where this directory is
 	public Path mcNativesDir;
-	public Collection<Path> mcNonNativeDependencies_Todo;
-	
-	public Path tinyMappingsFile;
+	//called from ShimAssetsTask, client run configs need to invoke it, not invoked here because assets aren't needed on the server/in CI
+	public AssetDownloader assets;
+	//used by RemapJarTask
 	public TinyTree tinyTree;
 	
-	public AssetDownloader assets;
+	//package of data used by GenSources
+	public final List<GenSourcesTask.SourceGenerationJob> sourceGenerationJobs = new ArrayList<>();
 	
-	public Path finishedJar; //TODO it's not 1.2.5-clean
-	
-	public ProviderGraph setup() throws Exception {
+	public void setup() throws Exception {
 		log.lifecycle("# Wrapping basic dependencies...");
 		mc = new ConfigElementWrapper(project, project.getConfigurations().getByName(Constants.MINECRAFT));
 		
 		log.lifecycle("# Parsing mappings...");
-		mappings = new MappingsWrapper(project, extension, project.getConfigurations().getByName(Constants.MAPPINGS));
+		MappingsWrapper mappings = new MappingsWrapper(project, extension, project.getConfigurations().getByName(Constants.MAPPINGS));
 		
 		log.lifecycle("# Fetching vanilla jars and indexes...");
 		String mcPrefix = "minecraft-" + mc.getFilenameSafeVersion();
@@ -62,26 +58,25 @@ public class ProviderGraph {
 			.clientFilename(mcPrefix + "-client.jar")
 			.serverFilename(mcPrefix + "-server.jar")
 			.fetch();
-		versionManifest = vanillaJars.getVersionManifest();
 		
 		log.lifecycle("# Fetching vanilla dependencies...");
 		VanillaDependencyFetcher vanillaDeps = new VanillaDependencyFetcher(project, extension)
 			.superProjectmapped(vanillaJars.isProjectmapped())
-			.manifest(versionManifest)
+			.manifest(vanillaJars.getVersionManifest())
 			.librariesBaseUrl(extension.librariesBaseUrl)
 			.nativesDirname(mc.getFilenameSafeVersion())
 			.fetch()
 			.installDependenciesToProject(Constants.MINECRAFT_DEPENDENCIES, project.getDependencies());
 		mcNativesDir = vanillaDeps.getNativesDir();
-		mcNonNativeDependencies_Todo = vanillaDeps.getNonNativeLibraries_Todo();
 		
 		log.lifecycle("# Configuring asset downloader...");
 		assets = new AssetDownloader(project, extension)
-			.versionManifest(versionManifest)
+			.versionManifest(vanillaJars.getVersionManifest())
 			.resourcesBaseUrl(extension.resourcesBaseUrl)
 			.prepare();
 		
 		if(!project.getConfigurations().getByName(Constants.FORGE).isEmpty()) {
+			//unified jar (1.3+)
 			ResolvedConfigElementWrapper forge = new ResolvedConfigElementWrapper(project, project.getConfigurations().getByName(Constants.FORGE));
 			
 			log.lifecycle("# Binpatching?");
@@ -148,7 +143,7 @@ public class ProviderGraph {
 				.mappings(mappings)
 				.useSrgsAsFallback(extension.forgeCapabilities.srgsAsFallback.get())
 				.tinify();
-			tinyMappingsFile = tinifier.getMappingsFile();
+			Path tinyMappingsFile = tinifier.getMappingsFile();
 			tinyTree = tinifier.getTinyTree();
 			
 			log.lifecycle("# Preparing ATs...");
@@ -163,9 +158,10 @@ public class ProviderGraph {
 				.superProjectmapped(transformer.isProjectmapped() | tinifier.isProjectmapped() | jarmod.isProjectmapped())
 				.tinyTree(tinyTree)
 				.mappingsDepString(mappings.getFilenameSafeDepString())
-				.nonNativeLibs(mcNonNativeDependencies_Todo)
+				.nonNativeLibs(vanillaDeps.getNonNativeLibraries_Todo())
 				.deletedPrefixes(extension.forgeCapabilities.classFilter.get());
 			
+			Path mappedJar;
 			if(extension.forgeCapabilities.mappedAccessTransformers.get()) { //1.7-style
 				transformer.mappedAccessTransformers(true);
 				//The ATs are presented using SRG names.
@@ -191,7 +187,7 @@ public class ProviderGraph {
 					.addOutputJar(Constants.MAPPED_NAMING_SCHEME, jarmoddedPrefix + atdSuffix + "-" + Constants.MAPPED_NAMING_SCHEME + ".jar")
 					.remap();
 				
-				finishedJar = toNamedRemapper.getMappedJar(Constants.MAPPED_NAMING_SCHEME);
+				mappedJar = toNamedRemapper.getMappedJar(Constants.MAPPED_NAMING_SCHEME);
 			} else {
 				transformer.mappedAccessTransformers(false);
 				//The ATs are presented with proguarded names.
@@ -209,12 +205,12 @@ public class ProviderGraph {
 					.addOutputJar(Constants.MAPPED_NAMING_SCHEME, jarmoddedPrefix + atdSuffix + "-" + Constants.MAPPED_NAMING_SCHEME + ".jar")
 					.remap();
 				
-				finishedJar = remapper.getMappedJar(Constants.MAPPED_NAMING_SCHEME);
+				mappedJar = remapper.getMappedJar(Constants.MAPPED_NAMING_SCHEME);
 			}
-			project.getDependencies().add(Constants.MINECRAFT_NAMED, project.files(finishedJar));
+			project.getDependencies().add(Constants.MINECRAFT_NAMED, project.files(mappedJar));
 			
 			log.lifecycle("# Remapping mod dependencies...");
-			DependencyRemapper dependencyRemapper = new DependencyRemapper(project, extension)
+			new DependencyRemapper(project, extension)
 				.superProjectmapped(tinifier.isProjectmapped() | transformer.isProjectmapped() | vanillaDeps.isProjectmapped())
 				.mappingsSuffix(mappings.getFilenameSafeDepString())
 				.tinyTree(tinyTree)
@@ -224,7 +220,18 @@ public class ProviderGraph {
 				.addToRemapClasspath(vanillaDeps.getNonNativeLibraries_Todo())
 				.remapDependencies()
 				.installDependenciesToProject(project.getDependencies());
+			
+			log.lifecycle("# Initializing source generation job...");
+			GenSourcesTask.SourceGenerationJob job = new GenSourcesTask.SourceGenerationJob();
+			job.mappedJar = mappedJar;
+			job.sourcesJar = LoomGradlePlugin.replaceExtension(mappedJar, "-sources-unlinemapped.jar");
+			job.linemapFile = LoomGradlePlugin.replaceExtension(mappedJar, "-linemap.lmap");
+			job.finishedJar = LoomGradlePlugin.replaceExtension(mappedJar, "-sources.jar");
+			job.libraries = vanillaDeps.getNonNativeLibraries_Todo();
+			job.tinyMappingsFile = tinyMappingsFile;
+			sourceGenerationJobs.add(job);
 		} else {
+			//split jar (1.2.5-)
 			ResolvedConfigElementWrapper forgeClient = new ResolvedConfigElementWrapper(project, project.getConfigurations().getByName(Constants.FORGE_CLIENT));
 			ResolvedConfigElementWrapper forgeServer = new ResolvedConfigElementWrapper(project, project.getConfigurations().getByName(Constants.FORGE_SERVER));
 			
@@ -271,7 +278,7 @@ public class ProviderGraph {
 				.mappings(mappings)
 				.useSrgsAsFallback(extension.forgeCapabilities.srgsAsFallback.get())
 				.tinify();
-			tinyMappingsFile = tinifier.getMappingsFile();
+			Path tinyMappingsFile = tinifier.getMappingsFile();
 			tinyTree = tinifier.getTinyTree();
 			
 			//TODO: ATs (dont think forge had them yet)
@@ -281,7 +288,7 @@ public class ProviderGraph {
 					.superProjectmapped(false) //TODO
 					.tinyTree(tinyTree)
 					.mappingsDepString(mappings.getFilenameSafeDepString())
-					.nonNativeLibs(mcNonNativeDependencies_Todo)
+					.nonNativeLibs(vanillaDeps.getNonNativeLibraries_Todo())
 					.deletedPrefixes(extension.forgeCapabilities.classFilter.get())
 					.inputJar(Constants.PROGUARDED_NAMING_SCHEME, jar)
 					.addOutputJar(Constants.INTERMEDIATE_NAMING_SCHEME, prefix + "-" + Constants.INTERMEDIATE_NAMING_SCHEME + ".jar")
@@ -294,36 +301,17 @@ public class ProviderGraph {
 			
 			project.getDependencies().add(Constants.MINECRAFT_NAMED, project.files(clientRemapper.getMappedJar(Constants.MAPPED_NAMING_SCHEME)));
 			project.getDependencies().add(Constants.MINECRAFT_NAMED, project.files(serverRemapper.getMappedJar(Constants.MAPPED_NAMING_SCHEME)));
-			
-			//TODO: multiple jars
-			finishedJar = clientRemapper.getMappedJar(Constants.MAPPED_NAMING_SCHEME);
 		}
 		
 		log.lifecycle("# Thank you for flying Voldeloom.");
 		
-		return this;
 	}
 	
-	public ProviderGraph trySetup() {
+	public void trySetup() {
 		try {
-			return setup();
+			setup();
 		} catch (Exception e) {
 			throw new RuntimeException("Exception setting up Voldeloom: " + e.getMessage(), e);
 		}
-	}
-	
-	//TODO: Deprecate this too - expose only the needful things to tasks, and keep providers as an implementation detail...
-	// Mainly I'm thinking about 1.2.5 here, which will have parallel versions of the remapping pipeline for client and server,
-	// there isn't really a meaning behind "get *the* minecraft jar from *the* remapping manager" - there are two of them
-	@Deprecated
-	@SuppressWarnings("unchecked")
-	private void makeAvailableToTasks(NewProvider<?>... deps) {
-		for(NewProvider<?> dep : deps)	newProviders.put((Class<? extends NewProvider<?>>) dep.getClass(), dep);
-	}
-	
-	@Deprecated
-	@SuppressWarnings("unchecked")
-	public <T extends NewProvider<T>> T get(Class<T> type) {
-		return (T) Objects.requireNonNull(newProviders.get(type));
 	}
 }

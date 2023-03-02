@@ -1,7 +1,6 @@
 package net.fabricmc.loom.task;
 
 import net.fabricmc.loom.Constants;
-import net.fabricmc.loom.LoomGradlePlugin;
 import net.fabricmc.loom.task.fernflower.ForkedFFExecutor;
 import net.fabricmc.loom.util.GradleSupport;
 import net.fabricmc.loom.util.LineNumberRemapper;
@@ -33,80 +32,87 @@ public class GenSourcesTask extends DefaultTask implements LoomTaskExt {
 	
 	private int numThreads = Math.max(1, Runtime.getRuntime().availableProcessors() - 1);
 	
+	public static class SourceGenerationJob {
+		public Path mappedJar;
+		public Path sourcesJar;
+		public Path linemapFile;
+		public Path finishedJar;
+		public Collection<Path> libraries;
+		public Path tinyMappingsFile;
+	}
+	
 	@TaskAction
 	public void doIt() throws Exception {
-		Path mappedJar = getLoomGradleExtension().getProviderGraph().finishedJar;
-		Collection<Path> libraries = getLoomGradleExtension().getProviderGraph().mcNonNativeDependencies_Todo;
-		
-		/// fernflower ///
-		getLogger().lifecycle("|-> 1. Fernflower.");
-		
-		Path sourcesJar = LoomGradlePlugin.replaceExtension(mappedJar, "-sources-no-linemap.jar");
-		Path linemapFile = LoomGradlePlugin.replaceExtension(mappedJar, "-sources.lmap");
-		
-		Files.deleteIfExists(sourcesJar);
-		Files.deleteIfExists(linemapFile);
-		
-		getLogger().lifecycle("] sources jar target: {}", sourcesJar);
-		getLogger().lifecycle("] linemap file target: {}", linemapFile);
-		
-		getLogger().lifecycle("|-> Configuring Fernflower...");
-		List<String> args = new ArrayList<>();
-		
-		//fernflower options
-		args.add("-" + IFernflowerPreferences.DECOMPILE_GENERIC_SIGNATURES + "=1");
-		args.add("-" + IFernflowerPreferences.BYTECODE_SOURCE_MAPPING + "=1");
-		args.add("-" + IFernflowerPreferences.REMOVE_SYNTHETIC + "=1");
-		args.add("-" + IFernflowerPreferences.LOG_LEVEL + "=warn");
-		args.add("-" + IFernflowerPreferences.THREADS + "=" + getNumThreads());
-		
-		//ForkedFFExecutor wrapper options
-		args.add("-input=" + mappedJar.toAbsolutePath());
-		args.add("-output=" + sourcesJar.toAbsolutePath());
-		libraries.forEach(f -> args.add("-library=" + f.toAbsolutePath()));
-		if(getLoomGradleExtension().getProviderGraph().tinyMappingsFile != null) {
-			args.add("-mappings=" + getLoomGradleExtension().getProviderGraph().tinyMappingsFile.toAbsolutePath());
-		}
-		args.add("-linemap=" + linemapFile.toAbsolutePath());
-		if(getProject().hasProperty("voldeloom.saferFernflower")) args.add("-safer-bytecode-provider");
-		
-		getLogger().lifecycle("|-> Starting ForkedFFExector...");
-		getLogging().captureStandardOutput(LogLevel.LIFECYCLE);
-		ExecResult result = forkedJavaexec(spec -> {
-			GradleSupport.setMainClass(spec, ForkedFFExecutor.class.getName());
+		List<SourceGenerationJob> jobs = getLoomGradleExtension().getProviderGraph().sourceGenerationJobs;
+		for(SourceGenerationJob job : jobs) {
+			Path mappedJar = job.mappedJar; //input
+			Path fernflowerOutput = job.sourcesJar; //intermediary product
+			Path linemapFile = job.linemapFile; //intermediary product
+			Collection<Path> libraries = job.libraries; //resource
+			Path tinyMappingsFile = job.tinyMappingsFile; //resource
+			Path finishedSourcesJar = job.finishedJar; //output
 			
-			//spec.jvmArgs("-Xms200m", "-Xmx3G"); //the defaults work on my machine :tm: and this version of minecraft is so small and cute
-			spec.setArgs(args);
-			spec.setErrorOutput(System.err);
-			spec.setStandardOutput(System.out);
-		});
-		getLogger().lifecycle("|-> Exec finished?");
-		result.rethrowFailure();
-		result.assertNormalExitValue();
-		getLogger().lifecycle("|-> Exec success!");
-		
-		/// linemapping ///
-		getLogger().lifecycle("|-> 2. Line number remapping.");
-		
-		Path linemappedJar = LoomGradlePlugin.replaceExtension(mappedJar, "-sources.jar");
-		
-		Files.deleteIfExists(linemappedJar);
-		
-		getLogger().lifecycle("] linemapped jar target: {}", linemappedJar);
-		
-		getLogger().lifecycle("|-> Configuring LineNumberRemapper...");
-		LineNumberRemapper remapper = new LineNumberRemapper();
-		remapper.readMappings(linemapFile.toFile());
-		
-		getLogger().lifecycle("|-> Remapping line numbers...");
-		try (FileSystem in = FileSystems.newFileSystem(URI.create("jar:" + sourcesJar.toUri()), Collections.emptyMap());
-		     FileSystem out = FileSystems.newFileSystem(URI.create("jar:" + linemappedJar.toUri()), Collections.singletonMap("create", "true"))) {
-			remapper.process(getLogger(), in.getPath("/"), out.getPath("/"));
-		} catch (IOException e) {
-			throw new RuntimeException(e);
+			Files.deleteIfExists(fernflowerOutput);
+			Files.deleteIfExists(linemapFile);
+			Files.deleteIfExists(finishedSourcesJar);
+			if(fernflowerOutput.getParent() != null) Files.createDirectories(fernflowerOutput.getParent());
+			if(linemapFile.getParent() != null) Files.createDirectories(linemapFile.getParent());
+			if(finishedSourcesJar.getParent() != null) Files.createDirectories(finishedSourcesJar.getParent());
+			getLogger().lifecycle("] fernflower target: {}", fernflowerOutput);
+			getLogger().lifecycle("] linemap file target: {}", linemapFile);
+			getLogger().lifecycle("] finished jar target: {}", finishedSourcesJar);
+			
+			/// fernflower ///
+			getLogger().lifecycle("|-> Configuring Fernflower...");
+			List<String> args = new ArrayList<>();
+			
+			//fernflower options
+			args.add("-" + IFernflowerPreferences.DECOMPILE_GENERIC_SIGNATURES + "=1");
+			args.add("-" + IFernflowerPreferences.BYTECODE_SOURCE_MAPPING + "=1");
+			args.add("-" + IFernflowerPreferences.REMOVE_SYNTHETIC + "=1");
+			args.add("-" + IFernflowerPreferences.LOG_LEVEL + "=warn");
+			args.add("-" + IFernflowerPreferences.THREADS + "=" + getNumThreads());
+			
+			//ForkedFFExecutor wrapper options
+			args.add("-input=" + mappedJar.toAbsolutePath());
+			args.add("-output=" + fernflowerOutput.toAbsolutePath());
+			libraries.forEach(f -> args.add("-library=" + f.toAbsolutePath()));
+			if(tinyMappingsFile != null) args.add("-mappings=" + tinyMappingsFile.toAbsolutePath());
+			args.add("-linemap=" + linemapFile.toAbsolutePath());
+			if(getProject().hasProperty("voldeloom.saferFernflower")) args.add("-safer-bytecode-provider");
+			
+			getLogger().lifecycle("|-> Starting ForkedFFExector...");
+			getLogging().captureStandardOutput(LogLevel.LIFECYCLE);
+			ExecResult result = forkedJavaexec(spec -> {
+				GradleSupport.setMainClass(spec, ForkedFFExecutor.class.getName());
+				//spec.jvmArgs("-Xms200m", "-Xmx3G"); //the defaults work on my machine :tm: and this version of minecraft is so small and cute
+				spec.setArgs(args);
+				spec.setErrorOutput(System.err);
+				spec.setStandardOutput(System.out);
+			});
+			getLogger().lifecycle("|-> Exec finished?");
+			result.rethrowFailure();
+			result.assertNormalExitValue();
+			getLogger().lifecycle("|-> Exec success!");
+			
+			/// linemapping ///
+			
+			getLogger().lifecycle("|-> Configuring LineNumberRemapper...");
+			LineNumberRemapper remapper = new LineNumberRemapper();
+			remapper.readMappings(linemapFile.toFile());
+			
+			getLogger().lifecycle("|-> Remapping line numbers...");
+			try (FileSystem in = FileSystems.newFileSystem(URI.create("jar:" + fernflowerOutput.toUri()), Collections.emptyMap());
+			     FileSystem out = FileSystems.newFileSystem(URI.create("jar:" + finishedSourcesJar.toUri()), Collections.singletonMap("create", "true"))) {
+				remapper.process(getLogger(), in.getPath("/"), out.getPath("/"));
+			} catch (IOException e) {
+				throw new RuntimeException(e);
+			}
 		}
 		
-		getLogger().lifecycle("|-> Done. Finished sources jar is at {} - enjoy", linemappedJar);
+		int n = jobs.size();
+		getLogger().lifecycle("|-> Created {} sources jar{}.", n, n == 1 ? "" : "s");
+		for(SourceGenerationJob job : jobs) getLogger().lifecycle("- {}", job.finishedJar);
 	}
 	
 	@Input
