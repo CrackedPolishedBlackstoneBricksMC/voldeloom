@@ -2,22 +2,31 @@ Running changelog document, will be added to as I commit things.
 
 # Next version: 2.2 (`agency.highlysuspect:voldeloom:2.2-SNAPSHOT`)
 
-## (Roadmap...)
+### (Roadmap...)
 
 * fixing generated run configs
-* fixing 1.2, fixing 1.7
+* fixing 1.2.5 :pray:
 * the fabled "Good Mappings System"
 
 ## New
 
 * Preliminary support for Gradle 8
-  * "preliminary" as in "I don't know if it's super busted but at least the basics work"
-* The 1.3.2 development environment works now
-* The 1.6.4 development environment works now (maybe)
+  * "preliminary" as in "I don't know if it's super busted, but at least the basics work"
+* The 1.3.2, 1.6.4, and 1.7.10 development environments work
+  * 1.3.2 is ok but there is a wall of warnings about Minecraft being in the `net.minecraft.src` namespace, i think they're harmless(?)
+  * 1.6.4 i'm a bit unsure about (just because binpatches are pretty weird to deal with) but it looks ok
+  * 1.7.10 has janky unfinished MCP mappings because we are entering the MCPBot era now, and it can't read MCPBot exports just yet
 
 ## Changes
 
-* The `genSourcesDecompile` and `genSourcesRemapLineNumbers` plumbing tasks have been removed and their functionality merged into the top-level `genSources` task. There wasn't much of a reason to split them in the first place.
+* Dependency on Stitch removed
+  * It was used only for `JarMerger`, and i now use a modified version (that doesn't need to "remap annotations" from `Environment` to `SideOnly`)
+* Removed `remapSources` and `migrateMappings` (and removed their dependencies, Mercury and `lorenz-tiny`). They might return later, but they're a maintenance burden while i prepare for the new mappings system, and there are no other mappings to migrate to other than MCP lol
+* Updated fabricmc fernflower.
+  * This version can use multiple CPU cores to make it even faster. I didnt implement this, blame covers i think.
+  * (i made it default to processor count minus 1, so u can actually use your computer in the mean time lmao)
+* The `genSourcesDecompile` and `genSourcesRemapLineNumbers` plumbing tasks have been removed and merged into the regular `genSources` task
+  * this alone somehow melted away like 5 zillion lines of complexity in afterEvaluate
 
 # 2.1 (`agency.highlysuspect:voldeloom:2.1`)
 
