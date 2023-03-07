@@ -4,7 +4,6 @@ import net.fabricmc.loom.Constants;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.util.mcp.McpMappings;
 import net.fabricmc.loom.util.mcp.Members;
-import net.fabricmc.loom.util.mcp.Packages;
 import net.fabricmc.loom.util.mcp.Srg;
 import org.gradle.api.Project;
 import org.gradle.api.artifacts.Configuration;
@@ -80,10 +79,6 @@ public class MappingsWrapper extends ResolvedConfigElementWrapper {
 	
 	public Srg getServer() {
 		return mappings.server;
-	}
-	
-	public Packages getPackages() {
-		return mappings.packages;
 	}
 	
 	public Members getFields() {

@@ -109,7 +109,6 @@ public class Tinifier extends NewProvider<Tinifier> {
 					.srg(uglyhack_whichSrg.apply(mappingsWrapper))
 					.fields(mappingsWrapper.getFields())
 					.methods(mappingsWrapper.getMethods())
-					.packages(mappingsWrapper.getPackages())
 					.srgsAsFallback(useSrgsAsFallback)
 					.jarScanData(scanData)
 					.write();

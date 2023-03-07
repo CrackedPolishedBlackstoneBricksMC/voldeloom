@@ -70,7 +70,8 @@ public class TinyJavadocProvider implements IFabricJavadocProvider {
 			if(classDef.getComment() != null) classComments.put(className, classDef.getComment());
 			
 			for(FieldDef fieldDef : classDef.getFields()) {
-				if(fieldDef.getComment() != null) fieldComments.put(new EntryTriple(className, fieldDef.getName(namespace), fieldDef.getDescriptor(namespace)), fieldDef.getComment());
+				//Using empty string for field descriptor (MCP data doesn't have them -> McpTinyv2Writer writes junk to the tinyfile field descriptor slot)
+				if(fieldDef.getComment() != null) fieldComments.put(new EntryTriple(className, fieldDef.getName(namespace), ""), fieldDef.getComment());
 			}
 
 			for(MethodDef methodDef : classDef.getMethods()) {
@@ -86,7 +87,8 @@ public class TinyJavadocProvider implements IFabricJavadocProvider {
 
 	@Override
 	public String getFieldDoc(StructClass structClass, StructField structField) {
-		return fieldComments.get(new EntryTriple(structClass.qualifiedName, structField.getName(), structField.getDescriptor()));
+		//Using empty string for field descriptor
+		return fieldComments.get(new EntryTriple(structClass.qualifiedName, structField.getName(), ""));
 	}
 
 	@Override

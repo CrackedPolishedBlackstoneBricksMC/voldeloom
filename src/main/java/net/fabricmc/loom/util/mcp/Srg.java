@@ -16,9 +16,21 @@ import java.util.Objects;
  * Shouldn't break on the 1.6-format SRGs with the #c and #s tags.
  */
 public class Srg {
-	public final Map<String, String> classMappings = new LinkedHashMap<>();
-	public final Map<String, Map<FieldEntry, FieldEntry>> fieldMappingsByOwningClass = new LinkedHashMap<>();
-	public final Map<String, Map<MethodEntry, MethodEntry>> methodMappingsByOwningClass = new LinkedHashMap<>();
+	public Srg() {
+		classMappings = new LinkedHashMap<>();
+		fieldMappingsByOwningClass = new LinkedHashMap<>();
+		methodMappingsByOwningClass = new LinkedHashMap<>();
+	}
+	
+	public Srg(Map<String, String> classMappings, Map<String, Map<String, String>> fieldMappingsByOwningClass, Map<String, Map<MethodEntry, MethodEntry>> methodMappingsByOwningClass) {
+		this.classMappings = classMappings;
+		this.fieldMappingsByOwningClass = fieldMappingsByOwningClass;
+		this.methodMappingsByOwningClass = methodMappingsByOwningClass;
+	}
+	
+	public final Map<String, String> classMappings;
+	public final Map<String, Map<String, String>> fieldMappingsByOwningClass;
+	public final Map<String, Map<MethodEntry, MethodEntry>> methodMappingsByOwningClass;
 	
 	public Srg read(Path path, StringInterner mem) throws IOException {
 		List<String> lines = Files.readAllLines(path);
@@ -33,39 +45,55 @@ public class Srg {
 				continue;
 			}
 			
-			mem.internArray(split);
-			
 			if("CL:".equals(split[0])) {
 				//Example class line:
 				// CL: abk net/minecraft/src/WorldGenDeadBush
-				classMappings.put(split[1], split[2]);
+				classMappings.put(mem.intern(split[1]), mem.intern(split[2]));
 			} else if("FD:".equals(split[0])) {
 				//Example field line:
 				// FD: abk/a net/minecraft/src/WorldGenDeadBush/field_76516_a
-				FieldEntry from = FieldEntry.parse(split[1], mem);
-				FieldEntry to = FieldEntry.parse(split[2], mem);
-				fieldMappingsByOwningClass.computeIfAbsent(from.owningClass, __ -> new LinkedHashMap<>())
-					.put(from, to);
+				//
+				//In fields 1 and 2, the name of the field is attached to the owning class with a `/`.
+				int fstSlash = split[1].lastIndexOf('/');
+				String fromOwningClass = split[1].substring(0, fstSlash);
+				String fromName = split[1].substring(fstSlash + 1);
+				
+				int sndSlash = split[2].lastIndexOf('/');
+				String toName = split[2].substring(sndSlash + 1);
+				
+				fieldMappingsByOwningClass.computeIfAbsent(fromOwningClass, __ -> new LinkedHashMap<>())
+					.put(mem.intern(fromName), mem.intern(toName));
 			} else if("MD:".equals(split[0])) {
 				//Example method line:
 				// MD: acn/b (Lacn;)V net/minecraft/src/StructureBoundingBox/func_78888_b (Lnet/minecraft/src/StructureBoundingBox;)V
+				//
+				//In fields 1 and 3, the name of the method is also attached to the owning class with a `/`.
+				//Fields 2 and 4 are the descriptors of the method. Field 4 is simply a conveniently-remapped version of field 2.
+				//(note/todo: field 4 does not exist in the TSRG format. i dont really use it anyway though)
 				if(split.length < 5) {
 					System.err.println("line " + lineNo + " is too short for method descriptor: " + line);
 					continue;
 				}
-				MethodEntry from = MethodEntry.parse(split[1], split[2], mem);
-				MethodEntry to = MethodEntry.parse(split[3], split[4], mem);
 				
-				//TODO: KLUDGE for 1.6.4, need to debug. Naming conflicts
+				int fstSlash = split[1].lastIndexOf('/');
+				String fromOwningClass = split[1].substring(0, fstSlash);
+				String fromName = split[1].substring(fstSlash + 1);
+				String fromDesc = split[2];
+				
+				int trdSlash = split[3].lastIndexOf('/');
+				String toName = split[3].substring(trdSlash + 1);
+				String toDesc = split[4];
+				
+				//TODO: KLUDGE for 1.6.4, need to debug. Naming conflicts. May be less of an issue after switching off tiny-remapper?
 				// (This is accurate to the actual contents of the SRG, btw, there are duplicates)
-				if(to.name.equals("func_130000_a") && from.descriptor.equals("(Lof;DDDFF)V")) continue;
-				else if(to.name.equals("func_82408_c") && from.descriptor.equals("(Lof;IF)V")) continue;
+				if(toName.equals("func_130000_a") && fromDesc.equals("(Lof;DDDFF)V")) continue;
+				else if(toName.equals("func_82408_c") && fromDesc.equals("(Lof;IF)V")) continue;
 				//TODO: KLUDGE for 1.2.5 client
-				else if(to.name.equals("func_319_i") && from.descriptor.equals("(Lxd;III)V")) continue;
-				else if(to.name.equals("func_35199_b") && from.descriptor.equals("(Laan;I)V")) continue;
+				else if(toName.equals("func_319_i") && fromDesc.equals("(Lxd;III)V")) continue;
+				else if(toName.equals("func_35199_b") && fromDesc.equals("(Laan;I)V")) continue;
 				
-				methodMappingsByOwningClass.computeIfAbsent(from.owningClass, __ -> new LinkedHashMap<>())
-					.put(from, to);
+				methodMappingsByOwningClass.computeIfAbsent(fromOwningClass, __ -> new LinkedHashMap<>())
+					.put(new MethodEntry(mem.intern(fromName), mem.intern(fromDesc)), new MethodEntry(mem.intern(toName), mem.intern(toDesc)));
 			} else if(!"PK:".equals(split[0])) { //We acknowledge PK lines but they're useless to us, more to do with the source-based toolchain i think
 				System.err.println("line " + lineNo + " has unknown type (not CL/FD/MD/PK): " + line);
 			}
@@ -74,19 +102,35 @@ public class Srg {
 		return this;
 	}
 	
-//	public Srg mergeWith(Srg other) {
-//		other.classMappings.forEach(classMappings::putIfAbsent);
-//		
-//		other.fieldMappingsByOwningClass.forEach((owningClass, otherFieldMaps) -> 
-//			fieldMappingsByOwningClass.computeIfAbsent(owningClass, __ -> new LinkedHashMap<>())
-//				.putAll(otherFieldMaps));
-//		
-//		other.methodMappingsByOwningClass.forEach((owningClass, otherMethodMaps) ->
-//			methodMappingsByOwningClass.computeIfAbsent(owningClass, __ -> new LinkedHashMap<>())
-//				.putAll(otherMethodMaps));
-//		
-//		return this;
-//	}
+	//TODO: if a class is proguarded, does it never need to be repackaged. that would eliminate a lot of the annoying stuff lol
+	public Srg repackage(Packages packages) {
+		StringInterner mem = new StringInterner();
+		
+		Map<String, String> repackagedClasses = new LinkedHashMap<>();
+		classMappings.forEach((prg, srg) -> repackagedClasses.put(
+			mem.intern(packages.repackage(prg)),
+			mem.intern(packages.repackage(srg))
+		));
+		
+		Map<String, Map<String, String>> repackagedFields = new LinkedHashMap<>();
+		fieldMappingsByOwningClass.forEach((prg, fields) -> repackagedFields.put(
+			mem.intern(packages.repackage(prg)),
+			fields
+		));
+		
+		Map<String, Map<MethodEntry, MethodEntry>> repackagedMethods = new LinkedHashMap<>();
+		methodMappingsByOwningClass.forEach((prg, methods) -> {
+			Map<MethodEntry, MethodEntry> newMethods = new LinkedHashMap<>();
+			methods.forEach((prgM, srgM) -> newMethods.put(
+				prgM.repackage(packages, mem),
+				srgM.repackage(packages, mem)
+			));
+			
+			repackagedMethods.put(mem.intern(packages.repackageDescriptor(prg)), newMethods);
+		});
+		
+		return new Srg(repackagedClasses, repackagedFields, repackagedMethods);
+	}
 	
 	public void unmapClass(String classs) {
 		classMappings.remove(classs);
@@ -94,75 +138,35 @@ public class Srg {
 		methodMappingsByOwningClass.remove(classs);
 	}
 	
-	public static class FieldEntry {
-		public FieldEntry(String owningClass, String name, StringInterner mem) {
-			this.owningClass = mem.intern(owningClass);
-			this.name = mem.intern(name);
-		}
-		
-		public final String owningClass; //"internal name" format, with slashes
-		public final String name;
-		
-		public static FieldEntry parse(String unsplit, StringInterner mem) {
-			//SRGs store field entries like this:
-			//net/minecraft/src/PathPoint/field_75839_a
-			//The name of the field is attached to the owning class with a `/`.
-			int i = unsplit.lastIndexOf('/');
-			return new FieldEntry(unsplit.substring(0, i), unsplit.substring(i + 1), mem);
-		}
-		
-		@Override
-		public boolean equals(Object o) {
-			if(this == o) return true;
-			if(o == null || getClass() != o.getClass()) return false;
-			FieldEntry that = (FieldEntry) o;
-			return owningClass.equals(that.owningClass) && name.equals(that.name);
-		}
-		
-		@Override
-		public int hashCode() {
-			return Objects.hash(owningClass, name);
-		}
-		
-		@Override
-		public String toString() {
-			return owningClass + "/" + name;
-		}
-	}
-	
 	public static class MethodEntry {
-		public MethodEntry(String owningClass, String name, String descriptor, StringInterner mem) {
-			this.owningClass = mem.intern(owningClass);
-			this.name = mem.intern(name);
-			this.descriptor = mem.intern(descriptor);
+		public MethodEntry(String name, String descriptor) {
+			this.name = name;
+			this.descriptor = descriptor;
 		}
 		
-		public final String owningClass;
 		public final String name;
 		public final String descriptor;
-		
-		public static MethodEntry parse(String unsplit, String descriptor, StringInterner mem) {
-			//Method names are stored the same way as field names, attached with a `/`
-			int i = unsplit.lastIndexOf('/');
-			return new MethodEntry(unsplit.substring(0, i), unsplit.substring(i + 1), descriptor, mem);
-		}
 		
 		@Override
 		public boolean equals(Object o) {
 			if(this == o) return true;
 			if(o == null || getClass() != o.getClass()) return false;
 			MethodEntry that = (MethodEntry) o;
-			return owningClass.equals(that.owningClass) && name.equals(that.name) && descriptor.equals(that.descriptor);
+			return name.equals(that.name) && descriptor.equals(that.descriptor);
 		}
 		
 		@Override
 		public int hashCode() {
-			return Objects.hash(owningClass, name, descriptor);
+			return Objects.hash(name, descriptor);
 		}
 		
 		@Override
 		public String toString() {
-			return owningClass + "/" + name + " " + descriptor;
+			return name + " " + descriptor;
+		}
+		
+		public MethodEntry repackage(Packages packages, StringInterner mem) {
+			return new MethodEntry(name, mem.intern(packages.repackageDescriptor(descriptor)));
 		}
 	}
 }

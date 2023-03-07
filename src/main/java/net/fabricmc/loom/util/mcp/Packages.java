@@ -8,6 +8,8 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Parser for Forge's packages.csv.
@@ -47,5 +49,31 @@ public class Packages {
 		
 		//lookup
 		return packages.getOrDefault(srgClassNameOnly, srgClass);
+	}
+	
+	// L([\/\w]*);
+	//Matches a capital L, followed by word-characters-or-slashes, followed by a semicolon (which is how class types are encoded in descriptors).
+	//Capturing group 1 is set to just the stuff inside the L; brackets for convenience.
+	@SuppressWarnings("RegExpRedundantEscape") //regexr.com (PCRE) seems to complain about unescaped *forward*-slashes in patterns
+	private static final Pattern classNamesFromDescriptorSoup = Pattern.compile("L([\\/\\w]*);");
+	public String repackageDescriptor(String descriptor) {
+		if(descriptor.indexOf('L') == -1) return descriptor; //No class names in this descriptor (fast path)
+		
+		//N.B. if I wasn't targeting Java 8, Matcher.replaceAll would make quick work of this task
+		String work = descriptor;
+		while(true) {
+			Matcher m = classNamesFromDescriptorSoup.matcher(work);
+			
+			if(m.find()) {
+				String beforeMatch = work.substring(0, m.start());
+				String match = m.group(1);
+				String afterMatch = work.substring(m.end());
+				
+				//don't replace it with an L yet - the matcher will find it again next time round and infinitely loop
+				work = beforeMatch + "\ud83d\udc09" + repackage(match) + ";" + afterMatch;
+			} else break;
+		}
+		
+		return work.replace("\ud83d\udc09", "L");
 	}
 }

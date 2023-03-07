@@ -29,27 +29,58 @@ public class McpMappings {
 	public Srg server = new Srg();
 	public Members fields = new Members();
 	public Members methods = new Members();
-	public Packages packages = new Packages();
 	
 	public McpMappings importFromZip(Logger log, FileSystem fs) throws IOException {
 		McpMappings mcp = new McpMappings();
 		StringInterner mem = new StringInterner();
 		
-		Files.walkFileTree(fs.getPath("/"), new SimpleFileVisitor<Path>() {
-			@Override
-			public FileVisitResult visitFile(Path path, BasicFileAttributes attrs) throws IOException {
-				switch(path.getFileName().toString()) {
-					case "joined.srg":   log.info("\\-> Reading {}", path); mcp.joined.read(path, mem);   break;
-					case "client.srg":   log.info("\\-> Reading {}", path); mcp.client.read(path, mem);   break;
-					case "server.srg":   log.info("\\-> Reading {}", path); mcp.server.read(path, mem);   break;
-					case "fields.csv":   log.info("\\-> Reading {}", path); mcp.fields.read(path, mem);   break;
-					case "methods.csv":  log.info("\\-> Reading {}", path); mcp.methods.read(path, mem);  break;
-					case "packages.csv": log.info("\\-> Reading {}", path); mcp.packages.read(path, mem); break;
-				}
-				
-				return FileVisitResult.CONTINUE;
+		//look for all the relevant files inside the jar
+		FindingVisitor v = new FindingVisitor();
+		Files.walkFileTree(fs.getPath("/"), v);
+		
+		//load packaging transformation (if one exists)
+		Packages packages;
+		if(v.packagesPath == null) {
+			log.info("\\-> No packaging transformation.");
+			packages = null;
+		} else {
+			log.info("\\-> Reading {}", v.packagesPath);
+			packages = new Packages().read(v.packagesPath, mem);
+		}
+		
+		//parse the THINGS
+		if(v.joinedPath != null) {
+			log.info("\\-> Reading {}", v.joinedPath);
+			mcp.joined = new Srg().read(v.joinedPath, mem);
+			if(packages != null) {
+				log.info("\\-> Repackaging {}", v.joinedPath);
+				mcp.joined = mcp.joined.repackage(packages);
 			}
-		});
+		}
+		if(v.clientPath != null) {
+			log.info("\\-> Reading {}", v.clientPath);
+			mcp.client = new Srg().read(v.clientPath, mem);
+			if(packages != null) {
+				log.info("\\-> Repackaging {}", v.clientPath);
+				mcp.client = mcp.client.repackage(packages);
+			}
+		}
+		if(v.serverPath != null) {
+			log.info("\\-> Reading {}", v.serverPath);
+			mcp.server = new Srg().read(v.serverPath, mem);
+			if(packages != null) {
+				log.info("\\-> Repackaging {}", v.serverPath);
+				mcp.server = mcp.server.repackage(packages);
+			}
+		}
+		if(v.fieldsPath != null) {
+			log.info("\\-> Reading {}", v.fieldsPath);
+			mcp.fields = new Members().read(v.fieldsPath, mem);
+		}
+		if(v.methodsPath != null) {
+			log.info("\\-> Reading {}", v.methodsPath);
+			mcp.methods = new Members().read(v.methodsPath, mem);
+		}
 		
 		return mcp;
 	}
@@ -57,6 +88,24 @@ public class McpMappings {
 	public McpMappings importFromZip(Logger log, Path zip) throws IOException {
 		try(FileSystem fs = FileSystems.newFileSystem(URI.create("jar:" + zip.toUri()), Collections.emptyMap())) {
 			return importFromZip(log, fs);
+		}
+	}
+	
+	private static class FindingVisitor extends SimpleFileVisitor<Path> {
+		private Path joinedPath, clientPath, serverPath, fieldsPath, methodsPath, packagesPath;
+		
+		@Override
+		public FileVisitResult visitFile(Path path, BasicFileAttributes attrs) {
+			switch(path.getFileName().toString()) {
+				case "joined.srg":   joinedPath = path;   break;
+				case "client.srg":   clientPath = path;   break;
+				case "server.srg":   serverPath = path;   break;
+				case "fields.csv":   fieldsPath = path;   break;
+				case "methods.csv":  methodsPath = path;  break;
+				case "packages.csv": packagesPath = path; break;
+			}
+			
+			return FileVisitResult.CONTINUE;
 		}
 	}
 }

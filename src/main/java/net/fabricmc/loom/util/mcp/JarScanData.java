@@ -3,7 +3,6 @@ package net.fabricmc.loom.util.mcp;
 import com.google.common.base.Preconditions;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
-import org.objectweb.asm.FieldVisitor;
 import org.objectweb.asm.Opcodes;
 
 import java.io.BufferedInputStream;
@@ -28,7 +27,6 @@ import java.util.Set;
  * Walks a jar and reads all the field types from it.
  */
 public class JarScanData {
-	public final Map<String, String> fieldDescs = new HashMap<>();
 	public final Map<String, Set<String>> innerClasses = new HashMap<>();
 	
 	public void scan(Path jar) throws IOException {
@@ -58,11 +56,6 @@ public class JarScanData {
 		
 		public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
 			visiting = name;
-		}
-		
-		public FieldVisitor visitField(int access, String name, String descriptor, String signature, Object value) {
-			fieldDescs.put(visiting + "/" + name, descriptor);
-			return null;
 		}
 		
 		//classes keep a little table of the inner classes they contain, asm calls this for every entry in the table

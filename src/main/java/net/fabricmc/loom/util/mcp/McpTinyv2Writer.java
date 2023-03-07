@@ -14,7 +14,6 @@ public class McpTinyv2Writer {
 	private Srg srg;
 	private Members fields;
 	private Members methods;
-	private Packages packages;
 	
 	private boolean srgsAsFallback = false;
 	private JarScanData jarScanData;
@@ -31,11 +30,6 @@ public class McpTinyv2Writer {
 	
 	public McpTinyv2Writer methods(Members methods) {
 		this.methods = methods;
-		return this;
-	}
-	
-	public McpTinyv2Writer packages(Packages packages) {
-		this.packages = packages;
 		return this;
 	}
 	
@@ -66,32 +60,25 @@ public class McpTinyv2Writer {
 		
 		//for each class:
 		srg.classMappings.forEach((classProguard, classSrg) -> {
-			//apply packaging transformation
-			String classSrgRepackage = packages.repackage(classSrg);
-			
 			//write class name
-			lines.add("c\t" + classProguard + "\t" + classSrgRepackage + "\t" + classSrgRepackage); //srg class names == named class names
+			lines.add("c\t" + classProguard + "\t" + classSrg + "\t" + classSrg); //srg class names == named class names
 			
 			//for each field in the class:
-			Map<Srg.FieldEntry, Srg.FieldEntry> fieldMappings = srg.fieldMappingsByOwningClass.get(classProguard);
-			if(fieldMappings != null) fieldMappings.forEach((fieldProguard, fieldSrg) -> {
-				//try to guess the field type (because srgs don't natively include them!)
-				String fieldType = "Ljava/lang/Void;";
-				String knownFieldType = jarScanData.fieldDescs.get(fieldProguard.owningClass + "/" + fieldProguard.name);
-				if(knownFieldType == null) {
-					System.err.println("Mappings define '" + fieldProguard + " -> " + fieldSrg + "', but the type of " + fieldProguard + " was not found while scanning the unmapped JAR.");
-				} else {
-					fieldType = knownFieldType;
-				}
-				
+			Map<String, String> fieldMappings = srg.fieldMappingsByOwningClass.get(classProguard);
+			if(fieldMappings != null) fieldMappings.forEach((fieldProguard, fieldMapped) -> {
 				//find the remapped name of the field
-				Members.Entry fieldNamed = fields.remapSrg(fieldSrg.name);
+				Members.Entry fieldNamed = fields.remapSrg(fieldMapped);
 				String fieldName;
 				if(fieldNamed != null) fieldName = fieldNamed.remappedName;
-				else fieldName = chooseName(fieldProguard.name, fieldSrg.name);
+				else fieldName = chooseName(fieldProguard, fieldMapped);
 				
-				//write mapping
-				lines.add("\tf\t" + fieldType + "\t" + fieldProguard.name + "\t" + fieldSrg.name + "\t" + fieldName);
+				//write mapping.
+				//There used to be a bit of code that tried to detect a proper field type and write that in to the file, instead of hardcoding
+				//this obviously incorrect Ljava/lang/Void;. I didn't know that you could tell tiny-remapper to ignore field descriptors, though, so i enabled that.
+				//MCP doesn't include field type information in the files; the only way we can get it is using JarScanData, which is brittle.
+				//In practice this is fine because Mojang was nice and didn't name-clash fields (which is valid bytecode if the types are different, but not valid java).
+				//We must insert *some* field type into the file, though, because the tinyv2 file format demands it.
+				lines.add("\tf\tLjava/lang/Void;\t" + fieldProguard + "\t" + fieldMapped + "\t" + fieldName);
 				
 				//write javadoc comment
 				if(fieldNamed != null && fieldNamed.comment != null) {
@@ -135,13 +122,13 @@ public class McpTinyv2Writer {
 				String inventedMapping;
 				int dollarIndex = childClassName.indexOf("$");
 				if(dollarIndex == -1) {
-					inventedMapping = classSrgRepackage + "$" + weirdInventedMapping++ + "_voldeloom_invented";
-					System.err.println("The class '" + childClassName + "' was found to be an inner class of " + classProguard + " (" + classSrgRepackage + ") through jar scanning,");
+					inventedMapping = classSrg + "$" + weirdInventedMapping++ + "_voldeloom_invented";
+					System.err.println("The class '" + childClassName + "' was found to be an inner class of " + classProguard + " (" + classSrg + ") through jar scanning,");
 					System.err.println("but there's no mapping defined for it, and it doesn't contain a dollar character.");
 					System.err.println("Inventing the name " + inventedMapping + " for it.");
 				} else {
 					//remap "amq$1" the same as how "amq" is mapped, but with a "$1"
-					inventedMapping = classSrgRepackage + childClassName.substring(dollarIndex);
+					inventedMapping = classSrg + childClassName.substring(dollarIndex);
 				}
 				
 				lines.add("c\t" + childClassName + "\t" + inventedMapping + "\t" + inventedMapping);
