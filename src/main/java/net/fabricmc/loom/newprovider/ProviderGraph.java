@@ -5,6 +5,7 @@ import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.LoomGradlePlugin;
 import net.fabricmc.loom.task.GenSourcesTask;
 import net.fabricmc.loom.util.ThrowyFunction;
+import net.fabricmc.loom.util.mcp.Srg;
 import net.fabricmc.mapping.tree.TinyTree;
 import org.gradle.api.Project;
 import org.gradle.api.logging.Logger;
@@ -13,6 +14,7 @@ import javax.annotation.Nullable;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 /**
@@ -77,7 +79,7 @@ public class ProviderGraph {
 			ResolvedConfigElementWrapper forge = new ResolvedConfigElementWrapper(project, project.getConfigurations().getByName(Constants.FORGE));
 			
 			log.lifecycle("# Parsing mappings...");
-			MappingsWrapper mappings = new MappingsWrapper(project, extension, project.getConfigurations().getByName(Constants.MAPPINGS), "joined.srg");
+			MappingsWrapper mappings = new MappingsWrapper(project, extension, project.getConfigurations().getByName(Constants.MAPPINGS), null);
 			
 			log.lifecycle("# Binpatching?");
 			Path binpatchedClient, binpatchedServer;
@@ -272,21 +274,22 @@ public class ProviderGraph {
 			
 			//TODO this sucks, don't parse twice please
 			log.lifecycle("# Parsing client mappings...");
-			MappingsWrapper clientMappings = new MappingsWrapper(project, extension, project.getConfigurations().getByName(Constants.MAPPINGS), "client.srg");
+			MappingsWrapper clientMappings = new MappingsWrapper(project, extension, project.getConfigurations().getByName(Constants.MAPPINGS), "client");
 			log.lifecycle("# Parsing server mappings...");
-			MappingsWrapper serverMappings = new MappingsWrapper(project, extension, project.getConfigurations().getByName(Constants.MAPPINGS), "server.srg");
+			MappingsWrapper serverMappings = new MappingsWrapper(project, extension, project.getConfigurations().getByName(Constants.MAPPINGS), "server");
 			
-			ThrowyFunction.Bi<MappingsWrapper, Jarmodder, Tinifier, Exception> mapper = (mappings, jarmodder) ->
+			ThrowyFunction.Tri<MappingsWrapper, Jarmodder, Function<MappingsWrapper, Srg>, Tinifier, Exception> mapper = (mappings, jarmodder, whichSrg) ->
 				new Tinifier(project, extension)
 					.superProjectmapped(jarmodder.isProjectmapped())
 					.scanJars(jarmodder.getJarmoddedJar())
 					.mappings(mappings)
+					.uglyhack_whichSrg(whichSrg)
 					.useSrgsAsFallback(extension.forgeCapabilities.srgsAsFallback.get())
 					.tinify();
 			log.lifecycle("# Converting client mappings to tinyv2...");
-			Tinifier clientTiny = mapper.apply(clientMappings, clientJarmodder);
+			Tinifier clientTiny = mapper.apply(clientMappings, clientJarmodder, MappingsWrapper::getClient);
 			log.lifecycle("# Converting server mappings to tinyv2...");
-			Tinifier serverTiny = mapper.apply(serverMappings, serverJarmodder);
+			Tinifier serverTiny = mapper.apply(serverMappings, serverJarmodder, MappingsWrapper::getServer);
 			
 			//TODO: ATs (dont think forge had them yet)
 			

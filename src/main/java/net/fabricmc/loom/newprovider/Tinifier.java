@@ -28,6 +28,7 @@ import com.google.common.base.Preconditions;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.util.mcp.JarScanData;
 import net.fabricmc.loom.util.mcp.McpTinyv2Writer;
+import net.fabricmc.loom.util.mcp.Srg;
 import net.fabricmc.loom.util.terrible.TreeSquisher;
 import net.fabricmc.mapping.tree.TinyMappingFactory;
 import net.fabricmc.mapping.tree.TinyTree;
@@ -41,6 +42,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.function.Function;
 
 /**
  * Converts mappings from {@code RawMappingsProvider} into a tinyfile.
@@ -52,7 +54,8 @@ public class Tinifier extends NewProvider<Tinifier> {
 	
 	//inputs
 	private final Collection<Path> jarsToScan = new ArrayList<>(4);
-	private MappingsWrapper mappings;
+	private MappingsWrapper mappingsWrapper;
+	private Function<MappingsWrapper, Srg> uglyhack_whichSrg = MappingsWrapper::getJoined;
 	private boolean useSrgsAsFallback = false;
 	
 	public Tinifier scanJars(Path... jars) {
@@ -61,7 +64,12 @@ public class Tinifier extends NewProvider<Tinifier> {
 	}
 	
 	public Tinifier mappings(MappingsWrapper mappings) {
-		this.mappings = mappings;
+		this.mappingsWrapper = mappings;
+		return this;
+	}
+	
+	public Tinifier uglyhack_whichSrg(Function<MappingsWrapper, Srg> uglyhack_whichSrg) {
+		this.uglyhack_whichSrg = uglyhack_whichSrg;
 		return this;
 	}
 	
@@ -76,9 +84,9 @@ public class Tinifier extends NewProvider<Tinifier> {
 	
 	//procedure
 	public Tinifier tinify() throws Exception {
-		Preconditions.checkNotNull(mappings, "mappings");
+		Preconditions.checkNotNull(mappingsWrapper, "mappings");
 		
-		mappingsFile = getCacheDir().resolve("mappings").resolve(mappings.getPath().getFileName() + mappings.getMappingDiscriminant() + ".tiny");
+		mappingsFile = getCacheDir().resolve("mappings").resolve(mappingsWrapper.getPath().getFileName() + mappingsWrapper.getMappingDiscriminant() + ".tiny");
 		log.lifecycle("] mappings destination: {}", mappingsFile);
 		
 		cleanOnRefreshDependencies(mappingsFile);
@@ -86,9 +94,9 @@ public class Tinifier extends NewProvider<Tinifier> {
 			log.info("|-> Mappings file does not exist, writing...");
 			Files.createDirectories(mappingsFile.getParent());
 			
-			if(mappings.isAlreadyTinyv2()) {
+			if(mappingsWrapper.isAlreadyTinyv2()) {
 				//TODO: its the TINY PASSTHROUGH HACK !!
-				Files.copy(mappings.getPath(), mappingsFile);
+				Files.copy(mappingsWrapper.getPath(), mappingsFile);
 			} else {
 				JarScanData scanData = new JarScanData();
 				for(Path jar : jarsToScan) {
@@ -98,10 +106,10 @@ public class Tinifier extends NewProvider<Tinifier> {
 				
 				log.info("|-> Computing tinyv2 mappings...");
 				List<String> tinyv2 = new McpTinyv2Writer()
-					.srg(mappings.getJoined())
-					.fields(mappings.getFields())
-					.methods(mappings.getMethods())
-					.packages(mappings.getPackages())
+					.srg(uglyhack_whichSrg.apply(mappingsWrapper))
+					.fields(mappingsWrapper.getFields())
+					.methods(mappingsWrapper.getMethods())
+					.packages(mappingsWrapper.getPackages())
 					.srgsAsFallback(useSrgsAsFallback)
 					.jarScanData(scanData)
 					.write();
