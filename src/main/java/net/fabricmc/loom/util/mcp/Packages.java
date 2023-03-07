@@ -70,10 +70,10 @@ public class Packages {
 				String afterMatch = work.substring(m.end());
 				
 				//don't replace it with an L yet - the matcher will find it again next time round and infinitely loop
-				work = beforeMatch + "\ud83d\udc09" + repackage(match) + ";" + afterMatch;
+				work = beforeMatch + "%" + repackage(match) + ";" + afterMatch;
 			} else break;
 		}
 		
-		return work.replace("\ud83d\udc09", "L");
+		return work.replace("%", "L");
 	}
 }
