@@ -1,4 +1,4 @@
-package net.fabricmc.loom.util.mcp;
+package net.fabricmc.loom.mcp;
 
 import net.fabricmc.loom.util.StringInterner;
 import org.gradle.api.logging.Logger;

@@ -1,4 +1,4 @@
-package net.fabricmc.loom.util.mcp.layer;
+package net.fabricmc.loom.mcp.layer;
 
 import net.fabricmc.loom.WellKnownLocations;
 import net.fabricmc.loom.util.Checksum;

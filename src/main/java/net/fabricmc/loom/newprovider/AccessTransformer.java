@@ -5,7 +5,7 @@ import com.google.common.hash.Hasher;
 import com.google.common.hash.Hashing;
 import net.fabricmc.loom.Constants;
 import net.fabricmc.loom.LoomGradleExtension;
-import net.fabricmc.loom.util.mcp.ForgeAccessTransformerSet;
+import net.fabricmc.loom.mcp.ForgeAccessTransformerSet;
 import org.gradle.api.Project;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;

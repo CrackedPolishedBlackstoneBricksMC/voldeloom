@@ -1,6 +1,6 @@
-package net.fabricmc.loom.util.mcp.layer;
+package net.fabricmc.loom.mcp.layer;
 
-import net.fabricmc.loom.util.mcp.McpMappings;
+import net.fabricmc.loom.mcp.McpMappings;
 import org.gradle.api.logging.Logger;
 
 import java.security.MessageDigest;

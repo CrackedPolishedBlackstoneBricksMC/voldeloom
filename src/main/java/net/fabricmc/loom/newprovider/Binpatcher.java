@@ -2,7 +2,7 @@ package net.fabricmc.loom.newprovider;
 
 import com.google.common.base.Preconditions;
 import net.fabricmc.loom.LoomGradleExtension;
-import net.fabricmc.loom.util.mcp.Binpatch;
+import net.fabricmc.loom.mcp.Binpatch;
 import org.gradle.api.Project;
 
 import java.io.IOException;

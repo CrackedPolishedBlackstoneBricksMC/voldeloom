@@ -24,9 +24,8 @@
 
 package net.fabricmc.loom;
 
-import net.fabricmc.loom.newprovider.ProviderGraph;
 import net.fabricmc.loom.util.GradleSupport;
-import net.fabricmc.loom.util.mcp.layer.LayeredMcpMappings;
+import net.fabricmc.loom.mcp.layer.LayeredMcpMappings;
 import org.gradle.api.Action;
 import org.gradle.api.JavaVersion;
 import org.gradle.api.NamedDomainObjectContainer;

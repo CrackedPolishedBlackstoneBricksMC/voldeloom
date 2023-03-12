@@ -26,9 +26,9 @@ package net.fabricmc.loom.newprovider;
 
 import com.google.common.base.Preconditions;
 import net.fabricmc.loom.LoomGradleExtension;
-import net.fabricmc.loom.util.mcp.JarScanData;
-import net.fabricmc.loom.util.mcp.McpTinyv2Writer;
-import net.fabricmc.loom.util.mcp.Srg;
+import net.fabricmc.loom.mcp.JarScanData;
+import net.fabricmc.loom.mcp.McpTinyv2Writer;
+import net.fabricmc.loom.mcp.Srg;
 import net.fabricmc.loom.util.terrible.TreeSquisher;
 import net.fabricmc.mapping.tree.TinyMappingFactory;
 import net.fabricmc.mapping.tree.TinyTree;

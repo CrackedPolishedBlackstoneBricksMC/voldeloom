@@ -2,6 +2,7 @@ package net.fabricmc.loom.newprovider;
 
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.LoomGradlePlugin;
+import net.fabricmc.loom.ProviderGraph;
 import net.fabricmc.loom.WellKnownLocations;
 import net.fabricmc.loom.util.DownloadSession;
 import org.gradle.api.Project;

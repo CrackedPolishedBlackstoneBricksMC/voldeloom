@@ -1,4 +1,4 @@
-package net.fabricmc.loom.util.mcp;
+package net.fabricmc.loom.mcp;
 
 import com.google.common.base.Preconditions;
 import org.objectweb.asm.ClassReader;

@@ -2,9 +2,9 @@ package net.fabricmc.loom.newprovider;
 
 import net.fabricmc.loom.Constants;
 import net.fabricmc.loom.LoomGradleExtension;
-import net.fabricmc.loom.util.mcp.McpMappings;
-import net.fabricmc.loom.util.mcp.Members;
-import net.fabricmc.loom.util.mcp.Srg;
+import net.fabricmc.loom.mcp.McpMappings;
+import net.fabricmc.loom.mcp.Members;
+import net.fabricmc.loom.mcp.Srg;
 import org.gradle.api.Project;
 import org.gradle.api.artifacts.Configuration;
 import org.gradle.api.logging.Logger;

@@ -1,4 +1,4 @@
-package net.fabricmc.loom.util.mcp;
+package net.fabricmc.loom.mcp;
 
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.FieldVisitor;

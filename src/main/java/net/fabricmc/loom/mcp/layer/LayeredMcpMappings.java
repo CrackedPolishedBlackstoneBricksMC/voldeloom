@@ -1,8 +1,8 @@
-package net.fabricmc.loom.util.mcp.layer;
+package net.fabricmc.loom.mcp.layer;
 
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.WellKnownLocations;
-import net.fabricmc.loom.util.mcp.McpMappings;
+import net.fabricmc.loom.mcp.McpMappings;
 import org.gradle.api.Project;
 import org.gradle.api.artifacts.Dependency;
 import org.gradle.api.artifacts.FileCollectionDependency;

@@ -1,4 +1,4 @@
-package net.fabricmc.loom.util.mcp;
+package net.fabricmc.loom.mcp;
 
 import org.apache.commons.compress.compressors.lzma.LZMACompressorInputStream;
 import org.apache.commons.compress.compressors.pack200.Pack200CompressorInputStream;

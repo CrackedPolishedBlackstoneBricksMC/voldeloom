@@ -26,7 +26,6 @@ package net.fabricmc.loom;
 
 import net.fabricmc.loom.newprovider.AccessTransformer;
 import net.fabricmc.loom.newprovider.DependencyRemapper;
-import net.fabricmc.loom.newprovider.ProviderGraph;
 import net.fabricmc.loom.newprovider.Tinifier;
 
 /**

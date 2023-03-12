@@ -1,4 +1,4 @@
-package net.fabricmc.loom.util.mcp;
+package net.fabricmc.loom.mcp;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
