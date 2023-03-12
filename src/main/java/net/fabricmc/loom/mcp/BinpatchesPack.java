@@ -1,8 +1,8 @@
 package net.fabricmc.loom.mcp;
 
-import org.apache.commons.compress.compressors.lzma.LZMACompressorInputStream;
 import org.apache.commons.compress.compressors.pack200.Pack200CompressorInputStream;
 import org.gradle.api.logging.Logger;
+import org.tukaani.xz.LZMAInputStream;
 
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
@@ -22,7 +22,7 @@ public class BinpatchesPack {
 	
 	public BinpatchesPack read(Logger log, Path binpatchesPackLzma) {
 		try(InputStream binpatchesPackLzmaIn = new BufferedInputStream(Files.newInputStream(binpatchesPackLzma));
-		    InputStream lzmaDecompressor = new LZMACompressorInputStream(binpatchesPackLzmaIn);
+		    InputStream lzmaDecompressor = new LZMAInputStream(binpatchesPackLzmaIn);
 		    InputStream pack200Decompressor = new Pack200CompressorInputStream(new OpenSesameInputStream(lzmaDecompressor));
 		    ByteArrayOutputStream binpatchesJarBytes = new ByteArrayOutputStream()) {
 			

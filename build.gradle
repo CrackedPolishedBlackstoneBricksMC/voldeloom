@@ -67,9 +67,9 @@ dependencies {
 	//decompilers
 	implementation "org.jetbrains:intellij-fernflower:1.2.1.16"
 	
-	//forge 1.6's binpatches.pack.lzma
-	implementation "org.apache.commons:commons-compress:1.22"
-	implementation "org.tukaani:xz:1.9" //commons-compress LZMA support
+	//forge 1.6's binpatches.pack.lzma:
+	implementation "org.tukaani:xz:1.9" //lzma decompression
+	implementation "org.apache.commons:commons-compress:1.22" //pack200 decompression
 	
 	//implementation ("net.fabricmc:lorenz-tiny:1.0.0+build.1") { transitive = false } //TODO: only used by MigrateMappingsTask
 	//implementation "org.cadixdev:mercury:0.1.0.fabric-SNAPSHOT" //TODO: only used by RemapSourcesJar
