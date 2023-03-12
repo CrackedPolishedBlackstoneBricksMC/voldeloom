@@ -116,7 +116,7 @@ public class VanillaJarFetcher extends NewProvider<VanillaJarFetcher> {
 			.dest(clientJar)
 			.etag(true)
 			.gzip(false)
-			.skipIfExists()
+			//.skipIfExists()
 			.skipIfSha1Equals(versionManifest.downloads.get("client").sha1) //TODO: kinda subsumed by skipIfExists lol
 			.download();
 		
@@ -125,7 +125,7 @@ public class VanillaJarFetcher extends NewProvider<VanillaJarFetcher> {
 			.dest(serverJar)
 			.etag(true)
 			.gzip(false)
-			.skipIfExists()
+			//.skipIfExists()
 			.skipIfSha1Equals(versionManifest.downloads.get("server").sha1)
 			.download();
 		

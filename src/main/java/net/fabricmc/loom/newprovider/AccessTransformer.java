@@ -1,11 +1,10 @@
 package net.fabricmc.loom.newprovider;
 
 import com.google.common.base.Preconditions;
-import com.google.common.hash.Hasher;
-import com.google.common.hash.Hashing;
 import net.fabricmc.loom.Constants;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.mcp.ForgeAccessTransformerSet;
+import net.fabricmc.loom.util.Checksum;
 import org.gradle.api.Project;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
@@ -15,7 +14,6 @@ import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.math.BigInteger;
 import java.net.URI;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
@@ -24,6 +22,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.security.MessageDigest;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
@@ -90,7 +89,12 @@ public class AccessTransformer extends NewProvider<AccessTransformer> {
 		
 		if(!customAccessTransformers.isEmpty()) {
 			log.lifecycle("] Found {} custom access transformer files.", customAccessTransformers.size());
-			customAccessTransformerHash = customAccessTransformerHash();
+			MessageDigest readersDigest = Checksum.SHA256.get();
+			for(Path path : customAccessTransformers) {
+				readersDigest.update(Files.readAllBytes(path));
+				readersDigest.update((byte) 0);
+			}
+			customAccessTransformerHash = Checksum.toHexStringPrefix(readersDigest.digest(), 8);
 		}
 		
 		setProjectmapped(!customAccessTransformers.isEmpty());
@@ -194,15 +198,4 @@ public class AccessTransformer extends NewProvider<AccessTransformer> {
 		return this;
 	}
 	
-	@SuppressWarnings("UnstableApiUsage")
-	private String customAccessTransformerHash() throws Exception {
-		Hasher digest = Hashing.sha256().newHasher();
-		for(Path path : customAccessTransformers) {
-			digest.putBytes(Files.readAllBytes(path));
-			digest.putByte((byte) 0);
-		}
-		
-		String digestString = String.format("%040x", new BigInteger(1, digest.hash().asBytes()));
-		return digestString.substring(0, 8);
-	}
 }

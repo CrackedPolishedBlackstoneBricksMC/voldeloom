@@ -24,60 +24,92 @@
 
 package net.fabricmc.loom.util;
 
-import com.google.common.hash.HashCode;
-import com.google.common.hash.Hashing;
-import com.google.common.io.MoreFiles;
-import org.gradle.api.logging.Logger;
-import org.gradle.api.logging.Logging;
-
 import java.io.IOException;
-import java.math.BigInteger;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.function.Supplier;
 
 /**
- * Utilities for comparing file hashes.
+ * Utilities for hashing things, comparing hashes of files, etc
  */
 public class Checksum {
-	private static final Logger log = Logging.getLogger(Checksum.class);
-
-	@SuppressWarnings({
-		"BooleanMethodIsAlwaysInverted", //yeah i mean. you typically wanna do things when the hashes are *different*
-		"UnstableApiUsage", //Guava hashing
-		"deprecation" //Not my fault Mojang uses SHA-1
-	})
-	public static boolean compareSha1(Path path, String knownDigest) {
-		if(path == null || knownDigest == null || knownDigest.length() != 40) {
-			return false;
-		}
-		
-		try {
-			if(Files.notExists(path)) return false;
-			
-			HashCode digest = MoreFiles.asByteSource(path).hash(Hashing.sha1());
-			String digestString = String.format("%040x", new BigInteger(1, digest.asBytes()));
-			
-			log.info("Checksum check: '" + digestString + "' == '" + knownDigest + "'?");
-			return digestString.equals(knownDigest);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		return false;
+	public static final Supplier<MessageDigest> SHA1 = () -> newMessageDigest("SHA-1");
+	public static final Supplier<MessageDigest> SHA256 = () -> newMessageDigest("SHA-256");
+	
+	/**
+	 * Compares the hash of the file with the known hash. Returns {@code true} if the file exists and the hash matches.
+	 * @return {@code true} if the file exists <i>and</i> the hash matches, {@code false} if the file does not exist or if its hash is different
+	 */
+	@SuppressWarnings("BooleanMethodIsAlwaysInverted") //yeah i mean. you typically wanna do things when the hashes are *different*
+	public static boolean compareFileHexHash(Path path, String knownDigest, MessageDigest alg) throws IOException {
+		if(path == null || knownDigest == null || knownDigest.length() != (alg.getDigestLength() * 2) || Files.notExists(path)) return false;
+		else return fileHexHash(path, alg).equalsIgnoreCase(knownDigest);
 	}
 	
-	//todo use messagedigest in the other helper method as well
-	public static String hexSha256Digest(byte[] digest) {
-		MessageDigest readersDigest;
-		try {
-			readersDigest = MessageDigest.getInstance("SHA-256");
-		} catch (NoSuchAlgorithmException javaMoment) {
-			//Truly a bummer that type safety here is simply impossible ! Ah well, Nevertheless,
-			throw new RuntimeException("Apparently your JVM violates the Java Security Standard Algorithm Names document", javaMoment);
+	/**
+	 * Runs the file through the specified hashing function, and returns the hash as a string in hexadecimal format.
+	 */
+	public static String fileHexHash(Path path, MessageDigest alg) throws IOException {
+		return bytesHexHash(Files.readAllBytes(path), alg);
+	}
+	
+	/**
+	 * Runs the character string through the specified hashing function, and returns the hash as a string in hexadecimal format.
+	 */
+	public static String stringHexHash(String s, MessageDigest alg) {
+		return bytesHexHash(s.getBytes(StandardCharsets.UTF_8), alg);
+	}
+	
+	/**
+	 * Runs the byte array through the specified hashing function, and returns the hash as a string in hexadecimal format.
+	 */
+	public static String bytesHexHash(byte[] bytes, MessageDigest alg) {
+		alg.update(bytes);
+		return toHexString(alg.digest());
+	}
+	
+	/**
+	 * Converts a byte array into hexadecimal form, the familiar format used to present hashes to people.
+	 * The string will have twice as many characters as the byte array, so it covers the entire hash.
+	 */
+	public static String toHexString(byte[] data) {
+		return toHexStringPrefix(data, data.length * 2);
+	}
+	
+	/**
+	 * Converts the start of a byte array into hexadecimal form, the familiar format used to present hashes to people.
+	 * The string will have up-to as many characters as {@code prefixLength}, with one byte in the hash corresponding
+	 * to two characters of the string. Subsequent bytes will be skipped.
+	 */
+	public static String toHexStringPrefix(byte[] data, int prefixLength) {
+		StringBuilder out = new StringBuilder(prefixLength);
+		for(byte b : data) {
+			if(out.length() == prefixLength) return out.toString();
+			
+			int hi = (b & 0xF0) >>> 4;
+			if(hi <= 9) out.append((char) ('0' + hi));
+			else out.append((char) ('a' + hi - 10));
+			
+			if(out.length() == prefixLength) return out.toString();
+			
+			int lo = (b & 0x0F);
+			if(lo <= 9) out.append((char) ('0' + lo));
+			else out.append((char) ('a' + lo - 10));
 		}
-		
-		readersDigest.update(digest);
-		return String.format("%08x", new BigInteger(1, readersDigest.digest()));
+		return out.toString();
+	}
+	
+	/**
+	 * Helper for obtaining a {@code MessageDigest} instance without worrying about java's goofy ass checked exception
+	 */
+	public static MessageDigest newMessageDigest(String type) {
+		try {
+			return MessageDigest.getInstance(type);
+		} catch (NoSuchAlgorithmException e) {
+			throw new RuntimeException(e);
+		}
 	}
 }

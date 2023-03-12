@@ -93,7 +93,7 @@ public class AssetDownloader extends NewProvider<AssetDownloader> {
 			.etag(true)
 			.gzip(true)
 			.skipIfSha1Equals(versionManifest.assetIndexReference.sha1) //TODO: kinda subsumed by skipIfExists lol
-			.skipIfExists()
+			//.skipIfExists()
 			.download();
 		
 		//parse it as json

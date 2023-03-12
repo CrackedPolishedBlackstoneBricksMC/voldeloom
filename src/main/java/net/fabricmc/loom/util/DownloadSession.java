@@ -115,7 +115,7 @@ public class DownloadSession {
 				info("Not connecting to {} because {} exists.", url, dest);
 				return;
 			}
-			if(skipIfSha1 != null && Checksum.compareSha1(dest, skipIfSha1)) {
+			if(skipIfSha1 != null && Checksum.compareFileHexHash(dest, skipIfSha1, Checksum.SHA1.get())) {
 				info("Not connecting to {} because {} exists and has correct SHA-1 hash ({}).", url, dest, skipIfSha1);
 				return;
 			}

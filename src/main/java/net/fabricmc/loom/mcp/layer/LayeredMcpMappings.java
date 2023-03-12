@@ -16,7 +16,6 @@ import org.gradle.api.tasks.TaskDependency;
 
 import javax.annotation.Nullable;
 import java.io.File;
-import java.math.BigInteger;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystem;
@@ -24,7 +23,6 @@ import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -86,7 +84,7 @@ public class LayeredMcpMappings {
 				Path cache = WellKnownLocations.getLayeredMappingsCache(project).resolve("downloads");
 				Files.createDirectories(cache);
 				
-				String hashedUrl = Checksum.hexSha256Digest(s.getBytes(StandardCharsets.UTF_8)).substring(0, 16);
+				String hashedUrl = Checksum.stringHexHash(s, Checksum.SHA256.get()).substring(0, 16);
 				
 				//for debugging purposes, note the URL in a user-readable sidecar file, because the filename is
 				//hashed from the url (max_path, weird characters, etc)
@@ -115,7 +113,14 @@ public class LayeredMcpMappings {
 			}
 			
 			Path cache = WellKnownLocations.getLayeredMappingsCache(project);
-			Path filename = cache.resolve(hash() + ".zip");
+			
+			MessageDigest readersDigest = Checksum.SHA256.get();
+			for(Layer layer : layers) {
+				layer.updateHasher(readersDigest);
+				readersDigest.update((byte) 0);
+			}
+			String hash = Checksum.toHexStringPrefix(readersDigest.digest(), 8);
+			Path filename = cache.resolve(hash + ".zip");
 			
 			project.getLogger().lifecycle("] Using layered mappings, output: {}", filename);
 			
@@ -140,54 +145,39 @@ public class LayeredMcpMappings {
 				project.getLogger().lifecycle("|-> Done.");
 			}
 			
-			return new GradleDep(project, filename);
+			return new GradleDep(project, filename, hash);
 		} catch (Exception e) {
 			throw new RuntimeException("problem creating layered mappings ! " + e.getMessage(), e);
 		}
 	}
 	
-	private String hash() throws Exception {
-		//create messagedigest
-		MessageDigest readersDigest;
-		try {
-			readersDigest = MessageDigest.getInstance("SHA-256");
-		} catch (NoSuchAlgorithmException javaMoment) {
-			//Truly a bummer that type safety here is simply impossible ! Ah well, Nevertheless,
-			throw new RuntimeException("Apparently your JVM violates the Java Security Standard Algorithm Names document", javaMoment);
-		}
-		
-		//visit its way through the mapping layers
-		for(Layer layer : layers) {
-			layer.updateHasher(readersDigest);
-			readersDigest.update((byte) 0); //so two layers outputting [AB][C] doesn't hash to the same thing as [A][BC]
-		}
-		
-		//format in hex
-		return String.format("%08x", new BigInteger(1, readersDigest.digest())).substring(0, 8); //magical incantation
-	}
-	
 	//glue code to shove it into gradle, really
 	//Some shit explodes if i don't use SelfResolvingDependencyInternal (gradle blind-casts) so fuckit whatever
 	public static class GradleDep implements FileCollectionDependency, SelfResolvingDependencyInternal {
-		public GradleDep(Project project, Path path) {
+		public GradleDep(Project project, Path path, String hash) {
 			this.fileCollection = project.files(path);
 			this.path = path;
+			this.version = "0.0+" + hash; //you're telling me a semantic versioned this dependency?
 		}
 		
 		private final FileCollection fileCollection;
 		private final Path path;
+		private final String version;
 		
+		//SelfResolvingDependencyInternal (again idk why its used)
 		@Nullable
 		@Override
 		public ComponentIdentifier getTargetComponentId() {
 			return () -> "Voldeloom layered mappings";
 		}
 		
+		//FileCollectionDependency
 		@Override
 		public FileCollection getFiles() {
 			return fileCollection;
 		}
 		
+		//SelfResolvingDependency
 		@Override
 		public Set<File> resolve() {
 			return Collections.singleton(path.toFile());
@@ -217,7 +207,7 @@ public class LayeredMcpMappings {
 		@Nullable
 		@Override
 		public String getVersion() {
-			return path.getFileName().toString(); //i guess?
+			return version;
 		}
 		
 		@Override
