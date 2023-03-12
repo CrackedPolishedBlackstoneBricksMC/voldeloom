@@ -1,8 +1,8 @@
 package net.fabricmc.loom.newprovider;
 
-import com.google.common.base.Preconditions;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.mcp.Binpatch;
+import net.fabricmc.loom.util.Check;
 import org.gradle.api.Project;
 
 import java.io.IOException;
@@ -55,8 +55,8 @@ public class Binpatcher extends NewProvider<Binpatcher> {
 	
 	//procedure
 	public Binpatcher patch() throws Exception {
-		Preconditions.checkNotNull(input, "binpatch input");
-		Preconditions.checkNotNull(binpatches, "binpatches");
+		Check.notNull(input, "binpatch input");
+		Check.notNull(binpatches, "binpatches");
 		
 		cleanOnRefreshDependencies(output);
 		

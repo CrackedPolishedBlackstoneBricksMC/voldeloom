@@ -52,15 +52,13 @@ repositories {
 dependencies {
 	implementation gradleApi() //the currently-running version of Gradle
 	
-	//general java crap
+	//jason....!
 	implementation "com.google.code.gson:gson:2.8.5"
-	implementation "com.google.guava:guava:28.0-jre"
 	
 	//bytecode
 	implementation "org.ow2.asm:asm:9.1"
 	implementation "org.ow2.asm:asm-commons:9.1"
 	implementation "org.ow2.asm:asm-tree:9.1"
-	implementation "org.ow2.asm:asm-util:9.1"
 	
 	//mappings
 	implementation "net.fabricmc:tiny-mappings-parser:0.3.0+build.17"

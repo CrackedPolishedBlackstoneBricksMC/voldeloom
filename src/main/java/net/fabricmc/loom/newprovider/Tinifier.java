@@ -24,11 +24,11 @@
 
 package net.fabricmc.loom.newprovider;
 
-import com.google.common.base.Preconditions;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.mcp.JarScanData;
 import net.fabricmc.loom.mcp.McpTinyv2Writer;
 import net.fabricmc.loom.mcp.Srg;
+import net.fabricmc.loom.util.Check;
 import net.fabricmc.loom.util.terrible.TreeSquisher;
 import net.fabricmc.mapping.tree.TinyMappingFactory;
 import net.fabricmc.mapping.tree.TinyTree;
@@ -84,7 +84,7 @@ public class Tinifier extends NewProvider<Tinifier> {
 	
 	//procedure
 	public Tinifier tinify() throws Exception {
-		Preconditions.checkNotNull(mappingsWrapper, "mappings");
+		Check.notNull(mappingsWrapper, "mappings");
 		
 		mappingsFile = getCacheDir().resolve("mappings").resolve(mappingsWrapper.getPath().getFileName() + mappingsWrapper.getMappingDiscriminant() + ".tiny");
 		log.lifecycle("] mappings destination: {}", mappingsFile);

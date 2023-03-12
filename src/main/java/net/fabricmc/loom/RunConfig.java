@@ -24,10 +24,9 @@
 
 package net.fabricmc.loom;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.common.io.ByteStreams;
 import net.fabricmc.loom.util.GradleSupport;
 import net.fabricmc.loom.util.OperatingSystem;
+import net.fabricmc.loom.util.ZipUtil;
 import org.gradle.api.JavaVersion;
 import org.gradle.api.Named;
 import org.gradle.api.Project;
@@ -42,6 +41,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -337,7 +337,7 @@ public class RunConfig implements Named {
 		try(InputStream input = RunConfig.class.getClassLoader().getResourceAsStream(template)) {
 			if(input == null) throw new IllegalArgumentException("Couldn't find template " + template + " in " + RunConfig.class.getClassLoader());
 			try {
-				templatedConfig = new String(ByteStreams.toByteArray(input), StandardCharsets.UTF_8);
+				templatedConfig = new String(ZipUtil.readFully(input), StandardCharsets.UTF_8);
 			} catch (IOException e) {
 				throw new IllegalStateException("Problem reading template " + template + " to string in " + RunConfig.class.getClassLoader());
 			}
@@ -371,7 +371,9 @@ public class RunConfig implements Named {
 	
 	//TODO: Untested, and also gradle project import works fine, so I'm not sure why this exists
 	public Element addRunConfigsToIntellijProjectFile(Element doc) {
-		Element root = addChildNode(doc, "component", ImmutableMap.of("name", "ProjectRunConfigurationManager"));
+		Map<String, String> map = new HashMap<>();
+		map.put("name", "ProjectRunConfigurationManager");
+		Element root = addChildNode(doc, "component", map);
 //		root = addChildNode(root, "configuration", ImmutableMap.of("default", "false", "name", getConfigName(), "type", "Application", "factoryName", "Application"));
 //		
 //		addChildNode(root, "module", ImmutableMap.of("name", getProjectName()));

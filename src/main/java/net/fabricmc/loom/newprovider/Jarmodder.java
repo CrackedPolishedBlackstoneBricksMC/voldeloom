@@ -1,7 +1,7 @@
 package net.fabricmc.loom.newprovider;
 
-import com.google.common.base.Preconditions;
 import net.fabricmc.loom.LoomGradleExtension;
+import net.fabricmc.loom.util.Check;
 import org.gradle.api.Project;
 
 import java.io.IOException;
@@ -53,8 +53,8 @@ public class Jarmodder extends NewProvider<Jarmodder> {
 	}
 	
 	public Jarmodder patch() throws Exception {
-		Preconditions.checkNotNull(base, "jarmod base");
-		Preconditions.checkNotNull(overlay, "jarmod overlay");
+		Check.notNull(base, "jarmod base");
+		Check.notNull(overlay, "jarmod overlay");
 		
 		cleanOnRefreshDependencies(jarmodded);
 		

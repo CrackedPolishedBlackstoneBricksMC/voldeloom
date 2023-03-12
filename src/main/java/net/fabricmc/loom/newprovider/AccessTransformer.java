@@ -1,9 +1,9 @@
 package net.fabricmc.loom.newprovider;
 
-import com.google.common.base.Preconditions;
 import net.fabricmc.loom.Constants;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.mcp.ForgeAccessTransformerSet;
+import net.fabricmc.loom.util.Check;
 import net.fabricmc.loom.util.Checksum;
 import org.gradle.api.Project;
 import org.objectweb.asm.ClassReader;
@@ -102,8 +102,8 @@ public class AccessTransformer extends NewProvider<AccessTransformer> {
 	}
 	
 	public AccessTransformer transform() throws Exception {
-		Preconditions.checkNotNull(forgeJar, "forge version");
-		Preconditions.checkNotNull(inputJar, "jarmod");
+		Check.notNull(forgeJar, "forge version");
+		Check.notNull(inputJar, "jarmod");
 		
 		log.lifecycle("] access-transformed jar: {}", outputJar);
 		cleanOnRefreshDependencies(outputJar);

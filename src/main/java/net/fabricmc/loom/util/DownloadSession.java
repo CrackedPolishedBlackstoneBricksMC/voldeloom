@@ -1,6 +1,5 @@
 package net.fabricmc.loom.util;
 
-import com.google.common.base.Preconditions;
 import net.fabricmc.loom.LoomGradleExtension;
 import org.gradle.api.Project;
 
@@ -96,8 +95,8 @@ public class DownloadSession {
 	}
 	
 	public void download() throws IOException {
-		Preconditions.checkNotNull(url, "url");
-		Preconditions.checkNotNull(dest, "dest");
+		Check.notNull(url, "url");
+		Check.notNull(dest, "dest");
 		
 		boolean destExists = Files.exists(dest);
 		

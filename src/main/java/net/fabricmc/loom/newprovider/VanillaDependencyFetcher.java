@@ -1,7 +1,7 @@
 package net.fabricmc.loom.newprovider;
 
-import com.google.common.base.Preconditions;
 import net.fabricmc.loom.LoomGradleExtension;
+import net.fabricmc.loom.util.Check;
 import net.fabricmc.loom.util.VersionManifest;
 import net.fabricmc.loom.util.ZipUtil;
 import org.gradle.api.Project;
@@ -62,9 +62,9 @@ public class VanillaDependencyFetcher extends NewProvider<VanillaDependencyFetch
 	
 	//process
 	public VanillaDependencyFetcher fetch() throws Exception {
-		Preconditions.checkNotNull(nativesDir, "natives directory");
-		Preconditions.checkNotNull(manifest, "minecraft version manifest");
-		Preconditions.checkNotNull(librariesBaseUrl, "libraries base URL");
+		Check.notNull(nativesDir, "natives directory");
+		Check.notNull(manifest, "minecraft version manifest");
+		Check.notNull(librariesBaseUrl, "libraries base URL");
 		
 		log.lifecycle("] native libraries directory: {}", nativesDir);
 		

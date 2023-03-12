@@ -1,8 +1,8 @@
 package net.fabricmc.loom.newprovider;
 
-import com.google.common.base.Preconditions;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.mcp.BinpatchesPack;
+import net.fabricmc.loom.util.Check;
 import org.gradle.api.Project;
 
 import java.net.URI;
@@ -41,7 +41,7 @@ public class BinpatchLoader extends NewProvider<BinpatchLoader> {
 	
 	//procedure
 	public BinpatchLoader load() throws Exception {
-		Preconditions.checkNotNull(forgeJar, "forge jar");
+		Check.notNull(forgeJar, "forge jar");
 		
 		log.info("|-> Examining {} for binpatches.", forgeJar);
 		

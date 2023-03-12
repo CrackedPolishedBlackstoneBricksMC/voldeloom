@@ -1,6 +1,6 @@
 package net.fabricmc.loom.mcp;
 
-import com.google.common.base.Preconditions;
+import net.fabricmc.loom.util.Check;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.Opcodes;
@@ -81,7 +81,7 @@ public class JarScanData {
 				actualOuterName = outerName;
 			} else {
 				if(Objects.equals(name, visiting)) return; //case 2 above; this is spurious
-				Preconditions.checkNotNull(visiting, "visiting == outerName == null, name " + name + " innerName " + innerName);
+				Check.notNull(visiting, "visiting == outerName == null, name " + name + " innerName " + innerName);
 				actualOuterName = visiting;
 			}
 			

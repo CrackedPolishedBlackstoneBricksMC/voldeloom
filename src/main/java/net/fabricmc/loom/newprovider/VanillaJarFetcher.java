@@ -1,7 +1,7 @@
 package net.fabricmc.loom.newprovider;
 
-import com.google.common.base.Preconditions;
 import net.fabricmc.loom.LoomGradleExtension;
+import net.fabricmc.loom.util.Check;
 import net.fabricmc.loom.util.ManifestIndex;
 import net.fabricmc.loom.util.VersionManifest;
 import org.gradle.api.Project;
@@ -63,7 +63,7 @@ public class VanillaJarFetcher extends NewProvider<VanillaJarFetcher> {
 	
 	//process
 	public VanillaJarFetcher fetch() throws Exception {
-		Preconditions.checkNotNull(mc, "minecraft version");
+		Check.notNull(mc, "minecraft version");
 		
 		Path versionManifestIndexJson = getCacheDir().resolve("version_manifest.json");
 		Path thisVersionManifestJson = getCacheDir().resolve("minecraft-" + mc.getFilenameSafeVersion() + "-info.json");

@@ -1,9 +1,9 @@
 package net.fabricmc.loom.newprovider;
 
-import com.google.common.base.Preconditions;
 import net.fabricmc.loom.Constants;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.RemappedConfigurationEntry;
+import net.fabricmc.loom.util.Check;
 import net.fabricmc.loom.util.TinyRemapperSession;
 import net.fabricmc.mapping.tree.TinyTree;
 import org.gradle.api.Project;
@@ -89,10 +89,10 @@ public class DependencyRemapper extends NewProvider<DependencyRemapper> {
 	private final List<RemappingJob> finishedRemaps = new ArrayList<>();
 	
 	public DependencyRemapper remapDependencies() throws Exception {
-		Preconditions.checkNotNull(mappingsSuffix, "mappings suffix");
-		Preconditions.checkNotNull(tinyTree, "tiny tree");
-		Preconditions.checkNotNull(remappedConfigurationEntries, "remapped configuration entries");
-		Preconditions.checkNotNull(distributionNamingScheme, "distribution naming scheme");
+		Check.notNull(mappingsSuffix, "mappings suffix");
+		Check.notNull(tinyTree, "tiny tree");
+		Check.notNull(remappedConfigurationEntries, "remapped configuration entries");
+		Check.notNull(distributionNamingScheme, "distribution naming scheme");
 		
 		List<RemappingJob> jobs = new ArrayList<>();
 		

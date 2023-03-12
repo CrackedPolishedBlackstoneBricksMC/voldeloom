@@ -24,8 +24,8 @@
 
 package net.fabricmc.loom.newprovider;
 
-import com.google.common.base.Preconditions;
 import net.fabricmc.loom.LoomGradleExtension;
+import net.fabricmc.loom.util.Check;
 import net.fabricmc.loom.util.TinyRemapperSession;
 import net.fabricmc.mapping.tree.TinyTree;
 import org.gradle.api.Project;
@@ -96,9 +96,9 @@ public class Remapper extends NewProvider<Remapper> {
 	
 	//procedure
 	public Remapper remap() throws Exception {
-		Preconditions.checkNotNull(tinyTree, "tiny tree");
-		Preconditions.checkNotNull(inputJar, "input jar");
-		Preconditions.checkNotNull(nonNativeLibs, "nonNativeLibs"); // ?
+		Check.notNull(tinyTree, "tiny tree");
+		Check.notNull(inputJar, "input jar");
+		Check.notNull(nonNativeLibs, "nonNativeLibs"); // ?
 		
 		boolean allExist = true;
 		for(Map.Entry<String, Path> yeah : new HashMap<>(outputJars).entrySet()) {

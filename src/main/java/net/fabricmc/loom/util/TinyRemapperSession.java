@@ -24,7 +24,6 @@
 
 package net.fabricmc.loom.util;
 
-import com.google.common.base.Preconditions;
 import net.fabricmc.mapping.tree.TinyTree;
 import net.fabricmc.tinyremapper.OutputConsumerPath;
 import net.fabricmc.tinyremapper.TinyRemapper;
@@ -100,13 +99,13 @@ public class TinyRemapperSession {
 	}
 	
 	public void run() throws IOException {
-		Preconditions.checkNotNull(mappings, "mappings");
-		Preconditions.checkNotNull(inputJar, "inputJar");
-		Preconditions.checkNotNull(inputNamingScheme, "inputNamingScheme");
-		Preconditions.checkNotNull(inputClasspath, "inputClasspath");
-		Preconditions.checkNotNull(outputFilter, "filter");
-		Preconditions.checkNotNull(logger, "logger");
-		Preconditions.checkState(!outputJarsByNamingScheme.isEmpty(), "outputJarsByNamingScheme has something to do");
+		Check.notNull(mappings, "mappings");
+		Check.notNull(inputJar, "inputJar");
+		Check.notNull(inputNamingScheme, "inputNamingScheme");
+		Check.notNull(inputClasspath, "inputClasspath");
+		Check.notNull(outputFilter, "filter");
+		Check.notNull(logger, "logger");
+		Check.isFalse(outputJarsByNamingScheme.isEmpty(), "outputJarsByNamingScheme.isEmpty()");
 		
 		if (Files.notExists(inputJar)) throw new FileNotFoundException("Missing input jar " + inputJar + ", can't remap");
 		
