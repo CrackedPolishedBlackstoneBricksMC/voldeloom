@@ -3,7 +3,10 @@ package net.fabricmc.loom.mcp.layer;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.WellKnownLocations;
 import net.fabricmc.loom.mcp.McpMappings;
+import net.fabricmc.loom.util.Checksum;
+import net.fabricmc.loom.util.DownloadSession;
 import org.gradle.api.Project;
+import org.gradle.api.artifacts.Configuration;
 import org.gradle.api.artifacts.Dependency;
 import org.gradle.api.artifacts.FileCollectionDependency;
 import org.gradle.api.artifacts.component.ComponentIdentifier;
@@ -15,6 +18,7 @@ import javax.annotation.Nullable;
 import java.io.File;
 import java.math.BigInteger;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
@@ -39,7 +43,7 @@ public class LayeredMcpMappings {
 	public List<Layer> layers = new ArrayList<>();
 	
 	public LayeredMcpMappings baseZip(Object thing) {
-		layers.add(new BaseZipLayer(LayerInput.create(project, thing).get()));
+		layers.add(new BaseZipLayer(realizeToPath(thing)));
 		return this;
 	}
 	
@@ -51,6 +55,57 @@ public class LayeredMcpMappings {
 	public LayeredMcpMappings unmapClass(Collection<String> unmap) {
 		layers.add(new ClassUnmappingLayer(unmap));
 		return this;
+	}
+	
+	private Path resolveOne(Dependency dep) {
+		Configuration detatched = project.getConfigurations().detachedConfiguration(dep);
+		//detatched.resolutionStrategy(ResolutionStrategy::failOnNonReproducibleResolution); //TODO: missing Gradle 4
+		return detatched.getSingleFile().toPath();
+	}
+	
+	private Path realizeToPath(Object thing) {
+		project.getLogger().info("\t-- (realizeToPath) wonder what this '{}' ({}) is? --", thing, thing.getClass().getName());
+		
+		if(thing instanceof Path) {
+			project.getLogger().info("\t-- looks like a Path --");
+			return (Path) thing;
+		} else if(thing instanceof File) {
+			project.getLogger().info("\t-- looks like a File --");
+			return ((File) thing).toPath();
+		} else if(thing instanceof Dependency) {
+			project.getLogger().info("\t-- looks like a Dependency --");
+			return resolveOne((Dependency) thing);
+		}
+		
+		//just blindly assume toString makes sense (catches things like groovy GStringImpl)
+		String s = thing.toString();
+		
+		if(s.startsWith("http:/") || s.startsWith("https:/")) {
+			project.getLogger().info("\t-- looks like a stringified URL --");
+			try {
+				Path cache = WellKnownLocations.getLayeredMappingsCache(project).resolve("downloads");
+				Files.createDirectories(cache);
+				
+				String hashedUrl = Checksum.hexSha256Digest(s.getBytes(StandardCharsets.UTF_8)).substring(0, 16);
+				
+				//for debugging purposes, note the URL in a user-readable sidecar file, because the filename is
+				//hashed from the url (max_path, weird characters, etc)
+				Path info = cache.resolve(hashedUrl + ".info");
+				Files.write(info, ("Downloaded from " + s + "\n").getBytes(StandardCharsets.UTF_8));
+				
+				Path dest = cache.resolve(hashedUrl);
+				new DownloadSession(s, project)
+					.dest(dest)
+					.skipIfExists()
+					.gzip(true)
+					.download();
+				
+				return dest;
+			} catch (Exception e) { throw new RuntimeException(e); }
+		} else {
+			project.getLogger().info("\t-- looks like a Maven coordinate (or unknown) --");
+			return resolveOne(project.getDependencies().create(thing));
+		}
 	}
 	
 	public Dependency createDependency() {
