@@ -6,7 +6,6 @@ Running changelog document, will be added to as I commit things.
 
 * fixing generated run configs
 * fixing 1.2.5 :pray:
-* the fabled "Good Mappings System"
 
 ## New
 
@@ -16,6 +15,20 @@ Running changelog document, will be added to as I commit things.
   * 1.3.2 is ok but there is a wall of warnings about Minecraft being in the `net.minecraft.src` namespace, i think they're harmless(?)
   * 1.6.4 i'm a bit unsure about (just because binpatches are pretty weird to deal with) but it looks ok
   * 1.7.10 has janky unfinished MCP mappings because we are entering the MCPBot era now, and it can't read MCPBot exports just yet
+* Preliminary "layered mappings system"
+  * Access with `mappings volde.layered { ... }`.
+  * Available commands:
+    * `baseZip(Object)`, which parses the mappings through... the exact same mappings parsing system used before (look i said it was preliminary)
+    * `unmapClass(String)` and `unmapClass(Collection<String>)`, which remove class mappings
+      * functionally replaces `hackHackHackDontMapTheseClasses`
+  * conceptually, a blank MCP mappings set is created, then each command visits it top-to-bottom
+  * commands that take `Object` can accept:
+    * `File` or `Path` arguments
+    * `Dependency` objects from gradle
+    * `String`s:
+      * if it "looks like a URL" (starts with `http:/` or `https:/`), it will be automatically downloaded (to `(project dir)/.gradle/voldeloom-cache/layered-mappings/downloads`)
+      * if not, it will be treated as a maven coordinate
+  * computed mappings go in `(project dir)/.gradle/voldeloom-cache/layered-mappings/(hash).zip`, where `hash` is computed from the settings on each layer (ideally you shouldn't have to manually cachebust mappings when messing around with the settings)
 
 ## Changes
 

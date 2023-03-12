@@ -86,15 +86,15 @@ Using the latest version of Minecraft Forge for each Minecraft version.
 
 |  | Compile? | Release? | Deobf? | |
 | --: | :-: | :-: | :-: | :-- |
-| 1.0 | ❌ | ❌ | ❌ | Predates `files.minecraftforge.net`. |
+| <=1.0 | ❌ | ❌ | ❌ | Predates `files.minecraftforge.net`. |
 | 1.1 | ❌ | ❌ | ❌ | I don't think there is much interest in modding for this version. |
-| 1.2.5 | ❌ | ❌ | ❌ | Mods don't load.<br>Remapping for release is dummied out. |
+| 1.2.5 | ❌ | ❌ | ❌ | Mods don't load in dev.<br>Remapping for release is dummied out. |
 | 1.3.2 | ✅ | 🤔 | ✅ | |
 | 1.4.7 | ✅ | ✅ | ✅ | **Has received the most testing.**<br>Used for several production mods. |
 | 1.5.2 | ✅ | ✅ | ✅ | |
 | 1.6.4 | ✅ | 🤔 | ✅ | |
 | 1.7.10 | ✅ | 🤔 | ✅ | Sound is broken.<br>Mappings are outdated (need to support MCPBot exports). |
-| >=1.8.9 | ❌ | ❌ | ❌ | Out of scope. |
+| >=1.8 | ❌ | ❌ | ❌ | Out of scope. |
 
 # Documentation / help
 

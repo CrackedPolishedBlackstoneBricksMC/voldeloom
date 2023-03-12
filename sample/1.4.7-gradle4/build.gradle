@@ -29,14 +29,16 @@ volde {
 			programArg "quaternary"
 		}
 	}
-	
-	hackHackHackDontMapTheseClasses += ["bar", "bas"] //for Ears
 }
 
 dependencies {
 	minecraft "com.mojang:minecraft:${minecraftVersion}"
 	forge "net.minecraftforge:forge:${forgeVersion}:universal@zip"
-	mappings "net.minecraftforge:forge:${forgeVersion}:src@zip"
+	
+	mappings volde.layered {
+		baseZip "net.minecraftforge:forge:${forgeVersion}:src@zip"
+		unmapClass(["bar", "bas"])
+	}
 	
 	coremodCompile files("../dep_testin/ears-forge-1.4-1.4.5_01.jar")
 	modCompile files("../dep_testin/buildcraft-A-1.4.7-3.4.4.jar")

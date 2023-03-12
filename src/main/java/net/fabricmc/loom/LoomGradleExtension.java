@@ -26,18 +26,18 @@ package net.fabricmc.loom;
 
 import net.fabricmc.loom.newprovider.ProviderGraph;
 import net.fabricmc.loom.util.GradleSupport;
+import net.fabricmc.loom.util.mcp.layer.LayeredMcpMappings;
 import org.gradle.api.Action;
 import org.gradle.api.JavaVersion;
 import org.gradle.api.NamedDomainObjectContainer;
 import org.gradle.api.Project;
+import org.gradle.api.artifacts.Dependency;
 import org.gradle.internal.Pair;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 /**
  * A Gradle extension. When you write <code>minecraft {</code> in a project's build.gradle, you get access to one of these.
@@ -49,6 +49,7 @@ import java.util.Set;
  */
 public class LoomGradleExtension {
 	public LoomGradleExtension(Project project) { //Gradle reflectively finds this ctor
+		this.project = project;
 		runConfigs = project.container(RunConfig.class, name -> new RunConfig(project, name));
 		remappedConfigurationEntries = project.container(RemappedConfigurationEntry.class, inputName -> new RemappedConfigurationEntry(project, inputName));
 		providers = new ProviderGraph(project, this);
@@ -76,6 +77,8 @@ public class LoomGradleExtension {
 			project.getLogger().lifecycle("!! Enabling Voldeloom's refreshDependencies mode because a `voldeloom.refreshDependencies` project property exists");
 		} else refreshDependencies = false;
 	}
+	
+	private final Project project;
 	
 	/**
 	 * A common error when updating to Gradle 7 is forgetting to switch `compile` to `implementation`.
@@ -176,15 +179,6 @@ public class LoomGradleExtension {
 	 */
 	public boolean refreshDependencies;
 	
-	//TODO: Yeet this into stratosphere
-	//Basically ThreadDownloadResources is actually an anonymous class in minecraft proper. Proguard stripped the inner class part,
-	//so it's private in remapped mc jars. Ears uses `Class.forName("bas")` instead of a class literal because of the privateness.
-	//This worked during Ears dev, because at the time 1.4 dev environments didn't exist, and the mod was tested by always compiling and remapping to proguard
-	//But oops, some nutjob is coming along and inventing 1.4 dev environments. What an idiot.
-	//If I go ahead and forcibly unmap this class, the release Ears binary remapped to a named workspace does work.
-	//Need this hack because remapping can't see into string literals passed into Class.forName
-	public Set<String> hackHackHackDontMapTheseClasses = new HashSet<>();
-	
 	/**
 	 * Callbacks for more precision than "afterEvaluate"
 	 */
@@ -207,6 +201,13 @@ public class LoomGradleExtension {
 	
 	public ProviderGraph getProviderGraph() {
 		return providers;
+	}
+	
+	@SuppressWarnings("unused") //Gradle api
+	public Dependency layered(Action<LayeredMcpMappings> action) {
+		LayeredMcpMappings layered = new LayeredMcpMappings(project, this);
+		action.execute(layered);
+		return layered.createDependency();
 	}
 	
 	@SuppressWarnings("unused") //Gradle api

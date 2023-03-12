@@ -44,15 +44,6 @@ public class MappingsWrapper extends ResolvedConfigElementWrapper {
 				alreadyTinyv2 = true;
 			} else {
 				mappings = new McpMappings().importFromZip(log, mcpZipFs);
-				
-				//TODO YEET this into the stratosphere
-				// replace with layered mappings
-				for(String deleteThis : extension.hackHackHackDontMapTheseClasses) {
-					mappings.joined.unmapClass(deleteThis);
-					mappings.client.unmapClass(deleteThis);
-					mappings.server.unmapClass(deleteThis);
-				}
-				
 				log.info("|-> Done!");
 			}
 		}

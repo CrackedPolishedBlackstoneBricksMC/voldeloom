@@ -3,7 +3,10 @@ package net.fabricmc.loom.util.mcp;
 import net.fabricmc.loom.util.StringInterner;
 
 import javax.annotation.Nullable;
+import java.io.BufferedOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
@@ -57,6 +60,34 @@ public class Members {
 		}
 		
 		return this;
+	}
+	
+	public void writeTo(Path path) throws IOException {
+		try(
+			OutputStream o = new BufferedOutputStream(Files.newOutputStream(path));
+			OutputStreamWriter w = new OutputStreamWriter(o)
+		) {
+			write(w);
+			o.flush();
+		}
+	}
+	
+	public void write(OutputStreamWriter o) throws IOException {
+		o.write("searge,name,side,desc\n");
+		for(Map.Entry<String, Entry> e : members.entrySet()) {
+			o.write(e.getKey());
+			o.write(',');
+			o.write(e.getValue().remappedName);
+			o.write(',');
+			o.write(Integer.toString(e.getValue().side));
+			o.write(',');
+			String comment = e.getValue().comment; if(comment != null) o.write(comment);
+			o.write('\n');
+		}
+	}
+	
+	public boolean isEmpty() {
+		return members.isEmpty();
 	}
 	
 	public @Nullable Entry remapSrg(String srg) {

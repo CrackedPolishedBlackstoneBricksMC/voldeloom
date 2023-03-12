@@ -31,7 +31,6 @@ public class McpMappings {
 	public Members methods = new Members();
 	
 	public McpMappings importFromZip(Logger log, FileSystem fs) throws IOException {
-		McpMappings mcp = new McpMappings();
 		StringInterner mem = new StringInterner();
 		
 		//look for all the relevant files inside the jar
@@ -49,40 +48,41 @@ public class McpMappings {
 		}
 		
 		//parse the THINGS
+		//TODO: doesn't interact suuuper great if you call importFromZip twice on the same McpMappings object
 		if(v.joinedPath != null) {
 			log.info("\\-> Reading {}", v.joinedPath);
-			mcp.joined = new Srg().read(v.joinedPath, mem);
+			joined.read(v.joinedPath, mem);
 			if(packages != null) {
 				log.info("\\-> Repackaging {}", v.joinedPath);
-				mcp.joined = mcp.joined.repackage(packages);
+				joined = joined.repackage(packages);
 			}
 		}
 		if(v.clientPath != null) {
 			log.info("\\-> Reading {}", v.clientPath);
-			mcp.client = new Srg().read(v.clientPath, mem);
+			client.read(v.clientPath, mem);
 			if(packages != null) {
 				log.info("\\-> Repackaging {}", v.clientPath);
-				mcp.client = mcp.client.repackage(packages);
+				client = client.repackage(packages);
 			}
 		}
 		if(v.serverPath != null) {
 			log.info("\\-> Reading {}", v.serverPath);
-			mcp.server = new Srg().read(v.serverPath, mem);
+			server.read(v.serverPath, mem);
 			if(packages != null) {
 				log.info("\\-> Repackaging {}", v.serverPath);
-				mcp.server = mcp.server.repackage(packages);
+				server = server.repackage(packages);
 			}
 		}
 		if(v.fieldsPath != null) {
 			log.info("\\-> Reading {}", v.fieldsPath);
-			mcp.fields = new Members().read(v.fieldsPath, mem);
+			fields.read(v.fieldsPath, mem);
 		}
 		if(v.methodsPath != null) {
 			log.info("\\-> Reading {}", v.methodsPath);
-			mcp.methods = new Members().read(v.methodsPath, mem);
+			methods.read(v.methodsPath, mem);
 		}
 		
-		return mcp;
+		return this;
 	}
 	
 	public McpMappings importFromZip(Logger log, Path zip) throws IOException {

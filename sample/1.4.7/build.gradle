@@ -27,17 +27,16 @@ volde {
 			programArg "quaternary"
 		}
 	}
-	
-	//Fake custom manifest url for testing projectmapping minecraft
-	//customManifestUrl = "https://launchermeta.mojang.com/v1/packages/7aa8e9aeacf4e1076bfd81c096f78de9b883ebe6/1.4.7.json"
-	
-	hackHackHackDontMapTheseClasses += ["bar", "bas"] //for Ears
 }
 
 dependencies {
 	minecraft "com.mojang:minecraft:${minecraftVersion}"
 	forge "net.minecraftforge:forge:${forgeVersion}:universal@zip"
-	mappings "net.minecraftforge:forge:${forgeVersion}:src@zip"
+	
+	mappings volde.layered {
+		baseZip "net.minecraftforge:forge:${forgeVersion}:src@zip"
+		unmapClass(["bar", "bas"])
+	}
 	
 	//accessTransformers files("./src/main/resources/good_cool_ats.cfg")
 	

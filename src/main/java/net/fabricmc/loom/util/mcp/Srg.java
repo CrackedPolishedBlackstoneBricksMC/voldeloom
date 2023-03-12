@@ -2,7 +2,10 @@ package net.fabricmc.loom.util.mcp;
 
 import net.fabricmc.loom.util.StringInterner;
 
+import java.io.BufferedOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.LinkedHashMap;
@@ -100,6 +103,55 @@ public class Srg {
 		}
 		
 		return this;
+	}
+	
+	public void writeTo(Path path) throws IOException {
+		try(
+			OutputStream o = new BufferedOutputStream(Files.newOutputStream(path));
+			OutputStreamWriter w = new OutputStreamWriter(o)
+		) {
+			write(w);
+			o.flush();
+		}
+	}
+	
+	public void write(OutputStreamWriter o) throws IOException {
+		for(Map.Entry<String, String> classMapping : classMappings.entrySet()) {
+			o.write("CL: ");
+			o.write(classMapping.getKey());
+			o.write(' ');
+			o.write(classMapping.getValue());
+			o.write('\n');
+		}
+		
+		for(Map.Entry<String, Map<String, String>> bleh : fieldMappingsByOwningClass.entrySet()) {
+			String owningClass = bleh.getKey();
+			String mappedOwningClass = classMappings.getOrDefault(owningClass, owningClass);
+			for(Map.Entry<String, String> fieldMapping : bleh.getValue().entrySet()) {
+				o.write("FD: ");
+				o.write(owningClass); o.write('/'); o.write(fieldMapping.getKey());
+				o.write(' ');
+				o.write(mappedOwningClass); o.write('/'); o.write(fieldMapping.getValue());
+				o.write('\n');
+			}
+		}
+		
+		for(Map.Entry<String, Map<MethodEntry, MethodEntry>> bleh : methodMappingsByOwningClass.entrySet()) {
+			String owningClass = bleh.getKey();
+			String mappedOwningClass = classMappings.getOrDefault(owningClass, owningClass);
+			for(Map.Entry<MethodEntry, MethodEntry> methodMapping : bleh.getValue().entrySet()) {
+				o.write("MD: ");
+				o.write(owningClass); o.write('/'); o.write(methodMapping.getKey().name); o.write(' '); o.write(methodMapping.getKey().descriptor);
+				o.write(' ');
+				o.write(mappedOwningClass); o.write('/'); o.write(methodMapping.getValue().name); o.write(' '); o.write(methodMapping.getValue().descriptor);
+				o.write('\n');
+			}
+		}
+	}
+	
+	public boolean isEmpty() {
+		//strictly speaking, mappings would be considered nonempty if a fieldMappingsByOwningClass entry existed even if it points to an empty collection
+		return classMappings.isEmpty() && fieldMappingsByOwningClass.isEmpty() && methodMappingsByOwningClass.isEmpty();
 	}
 	
 	//TODO: if a class is proguarded, does it never need to be repackaged. that would eliminate a lot of the annoying stuff lol

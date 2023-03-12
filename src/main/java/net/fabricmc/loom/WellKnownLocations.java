@@ -10,21 +10,22 @@ import java.nio.file.Path;
  * Various file paths used throughout the plugin. (These used to be on LoomGradleExtension.)
  */
 public class WellKnownLocations {
+	private static Path mkdirs(Path path) {
+		try {
+			Files.createDirectories(path);
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+		return path;
+	}
+	
 	/**
 	 * The user-global cache for Voldeloom items. Used for items that have completely standard dependencies, like
 	 * vanilla Minecraft, regular Forge, no custom mappings or access transformers, etc.
 	 * @return A path that should only contain artifacts with no special dependencies on the current project.
 	 */
 	public static Path getUserCache(Project project) {
-		Path userCache = project.getGradle().getGradleUserHomeDir().toPath().resolve("caches").resolve("voldeloom");
-		
-		try {
-			Files.createDirectories(userCache);
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
-		
-		return userCache;
+		return mkdirs(project.getGradle().getGradleUserHomeDir().toPath().resolve("caches").resolve("voldeloom"));
 	}
 	
 	/**
@@ -33,15 +34,12 @@ public class WellKnownLocations {
 	 * @return A path that may contain artifacts that may contain special dependencies on the current project.
 	 */
 	public static Path getProjectCache(Project project) {
-		Path projectCache = project.file(".gradle").toPath().resolve("voldeloom-cache");
-		
-		try {
-			Files.createDirectories(projectCache);
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
-		
-		return projectCache;
+		return mkdirs(project.file(".gradle").toPath().resolve("voldeloom-cache"));
+	}
+	
+	//always use the project-local cache; layered mappings are created in the buildscript, so they're effectively always "projectmapped"
+	public static Path getLayeredMappingsCache(Project project) {
+		return mkdirs(getProjectCache(project).resolve("layered-mappings"));
 	}
 	
 	public static Path getRootProjectCache(Project project) {
@@ -50,15 +48,7 @@ public class WellKnownLocations {
 	
 	//TODO: Should this use getProjectCache instead of getRootProjectCache
 	public static Path getRemappedModCache(Project project) {
-		Path remappedModCache = getRootProjectCache(project).resolve("remapped-mods");
-		
-		try {
-			Files.createDirectories(remappedModCache);
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
-		
-		return remappedModCache;
+		return mkdirs(getRootProjectCache(project).resolve("remapped-mods"));
 	}
 	
 	public static Path getCache(Project project, boolean projectmapped) {

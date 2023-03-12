@@ -34,6 +34,8 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 
 /**
  * Utilities for comparing file hashes.
@@ -63,5 +65,19 @@ public class Checksum {
 			e.printStackTrace();
 		}
 		return false;
+	}
+	
+	//todo use messagedigest in the other helper method as well
+	public static String hexSha256Digest(byte[] digest) {
+		MessageDigest readersDigest;
+		try {
+			readersDigest = MessageDigest.getInstance("SHA-256");
+		} catch (NoSuchAlgorithmException javaMoment) {
+			//Truly a bummer that type safety here is simply impossible ! Ah well, Nevertheless,
+			throw new RuntimeException("Apparently your JVM violates the Java Security Standard Algorithm Names document", javaMoment);
+		}
+		
+		readersDigest.update(digest);
+		return String.format("%08x", new BigInteger(1, readersDigest.digest()));
 	}
 }

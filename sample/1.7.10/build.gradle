@@ -36,19 +36,12 @@ volde {
 	}
 }
 
-//TODO: una told me the MCP mappings in the Forge zip are not actually used, and i should use mcpbot exports instead
-File hilariousFunnyForge = new File("./work/hilarious-funny-forge.zip")
-if(!hilariousFunnyForge.exists()) {
-	println "!! Downloading 1.7.10's sources to '" + hilariousFunnyForge + "' (forge's maven is broken and doesn't host them)"
-	hilariousFunnyForge.getParentFile().mkdirs()
-	hilariousFunnyForge.withOutputStream {
-		it << new URL("https://github.com/MinecraftForge/MinecraftForge/archive/refs/heads/1.7.10.zip").openStream()
-	}
-}
-
 dependencies {
 	minecraft "com.mojang:minecraft:${minecraftVersion}"
 	forge "net.minecraftforge:forge:${forgeVersion}:universal"
-	//mappings "net.minecraftforge:forge:${forgeVersion}:src@zip" // OOPS! This is actually the MDK
-	mappings files("./work/hilarious-funny-forge.zip")
+	
+	//TODO: una told me the MCP mappings in the Forge zip are not actually used, and i should use mcpbot exports instead
+	mappings volde.layered {
+		baseZip("https://github.com/MinecraftForge/MinecraftForge/archive/refs/heads/1.7.10.zip")
+	}
 }
