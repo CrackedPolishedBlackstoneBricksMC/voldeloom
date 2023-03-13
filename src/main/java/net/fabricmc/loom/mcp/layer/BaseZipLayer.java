@@ -19,7 +19,7 @@ public class BaseZipLayer implements Layer {
 	public void visit(Logger log, McpMappings mappings) throws Exception {
 		log.info("\t-- (BaseZipLayer) Importing mappings from {} --", zipPath);
 		
-		mappings.importFromZip(log, zipPath);
+		mappings.importFromZip(log::info, zipPath);
 	}
 	
 	@Override

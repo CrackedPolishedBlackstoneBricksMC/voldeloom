@@ -83,8 +83,8 @@ public class ForkedFFExecutor {
 					output = new File(arg.substring("-output=".length()));
 				} else if (arg.startsWith("-linemap=")) {
 					lineMap = new File(arg.substring("-linemap=".length()));
-				} else if (arg.startsWith("-mappings=")) {
-					options.put(IFabricJavadocProvider.PROPERTY_NAME, new TinyJavadocProvider(Paths.get(arg.substring("-mappings=".length()))));
+				} else if (arg.startsWith("-mcpmappings=")) {
+					options.put(IFabricJavadocProvider.PROPERTY_NAME, new McpJavadocProvider(Paths.get(arg.substring("-mcpmappings=".length()))));
 				} else if(arg.equals("-safer-bytecode-provider")) {
 					bytecodeProviderProvider = (__) -> SAFER_BUT_SLOWER_BYTECODE_PROVIDER;
 				} else if(arg.startsWith("-input=")){

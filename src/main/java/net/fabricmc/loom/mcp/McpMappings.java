@@ -1,7 +1,6 @@
 package net.fabricmc.loom.mcp;
 
 import net.fabricmc.loom.util.StringInterner;
-import org.gradle.api.logging.Logger;
 
 import java.io.IOException;
 import java.net.URI;
@@ -13,6 +12,7 @@ import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Collections;
+import java.util.function.Consumer;
 
 /**
  * "MCP mappings" is a loose name for a collection of these files:
@@ -30,7 +30,7 @@ public class McpMappings {
 	public Members fields = new Members();
 	public Members methods = new Members();
 	
-	public McpMappings importFromZip(Logger log, FileSystem fs) throws IOException {
+	public McpMappings importFromZip(Consumer<String> log, FileSystem fs) throws IOException {
 		StringInterner mem = new StringInterner();
 		
 		//look for all the relevant files inside the jar
@@ -40,52 +40,52 @@ public class McpMappings {
 		//load packaging transformation (if one exists)
 		Packages packages;
 		if(v.packagesPath == null) {
-			log.info("\\-> No packaging transformation.");
+			log.accept("\\-> No packaging transformation.");
 			packages = null;
 		} else {
-			log.info("\\-> Reading {}", v.packagesPath);
+			log.accept("\\-> Reading " + v.packagesPath);
 			packages = new Packages().read(v.packagesPath, mem);
 		}
 		
 		//parse the THINGS
 		//TODO: doesn't interact suuuper great if you call importFromZip twice on the same McpMappings object
 		if(v.joinedPath != null) {
-			log.info("\\-> Reading {}", v.joinedPath);
+			log.accept("\\-> Reading " + v.joinedPath);
 			joined.read(v.joinedPath, mem);
 			if(packages != null) {
-				log.info("\\-> Repackaging {}", v.joinedPath);
+				log.accept("\\-> Repackaging " + v.joinedPath);
 				joined = joined.repackage(packages);
 			}
 		}
 		if(v.clientPath != null) {
-			log.info("\\-> Reading {}", v.clientPath);
+			log.accept("\\-> Reading " + v.clientPath);
 			client.read(v.clientPath, mem);
 			if(packages != null) {
-				log.info("\\-> Repackaging {}", v.clientPath);
+				log.accept("\\-> Repackaging " + v.clientPath);
 				client = client.repackage(packages);
 			}
 		}
 		if(v.serverPath != null) {
-			log.info("\\-> Reading {}", v.serverPath);
+			log.accept("\\-> Reading " + v.serverPath);
 			server.read(v.serverPath, mem);
 			if(packages != null) {
-				log.info("\\-> Repackaging {}", v.serverPath);
+				log.accept("\\-> Repackaging " + v.serverPath);
 				server = server.repackage(packages);
 			}
 		}
 		if(v.fieldsPath != null) {
-			log.info("\\-> Reading {}", v.fieldsPath);
+			log.accept("\\-> Reading " + v.fieldsPath);
 			fields.read(v.fieldsPath, mem);
 		}
 		if(v.methodsPath != null) {
-			log.info("\\-> Reading {}", v.methodsPath);
+			log.accept("\\-> Reading " + v.methodsPath);
 			methods.read(v.methodsPath, mem);
 		}
 		
 		return this;
 	}
 	
-	public McpMappings importFromZip(Logger log, Path zip) throws IOException {
+	public McpMappings importFromZip(Consumer<String> log, Path zip) throws IOException {
 		try(FileSystem fs = FileSystems.newFileSystem(URI.create("jar:" + zip.toUri()), Collections.emptyMap())) {
 			return importFromZip(log, fs);
 		}

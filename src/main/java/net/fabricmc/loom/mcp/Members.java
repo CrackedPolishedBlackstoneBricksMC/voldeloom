@@ -18,7 +18,7 @@ import java.util.Objects;
  * Parser for fields.csv and methods.csv (they have the same format).
  */
 public class Members {
-	private final Map<String, Entry> members = new HashMap<>();
+	public final Map<String, Entry> members = new HashMap<>();
 	
 	public Members read(Path path, StringInterner mem) throws IOException {
 		List<String> lines = Files.readAllLines(path);

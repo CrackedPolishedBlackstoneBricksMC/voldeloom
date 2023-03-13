@@ -31,7 +31,6 @@ public class MappingsWrapper extends ResolvedConfigElementWrapper {
 		
 		//TODO: REMOVE this hack
 		if(discrim != null) mappingDiscriminant += "-" + discrim;
-		if(extension.forgeCapabilities.srgsAsFallback.get()) mappingDiscriminant += "-srgfallback";
 		
 		log.lifecycle("] mappings source: {}", getPath());
 		
@@ -43,7 +42,7 @@ public class MappingsWrapper extends ResolvedConfigElementWrapper {
 				log.warn("MAPPINGS ALREADY TINYv2 I THINK!!!!! Fyi it should probably contain {} {} {} headers", Constants.PROGUARDED_NAMING_SCHEME, Constants.INTERMEDIATE_NAMING_SCHEME, Constants.MAPPED_NAMING_SCHEME);
 				alreadyTinyv2 = true;
 			} else {
-				mappings = new McpMappings().importFromZip(log, mcpZipFs);
+				mappings = new McpMappings().importFromZip(log::info, mcpZipFs);
 				log.info("|-> Done!");
 			}
 		}

@@ -38,7 +38,7 @@ public class GenSourcesTask extends DefaultTask implements LoomTaskExt {
 		public Path linemapFile;
 		public Path finishedJar;
 		public Collection<Path> libraries;
-		public Path tinyMappingsFile;
+		public Path mcpMappingsZip;
 	}
 	
 	@TaskAction
@@ -48,9 +48,9 @@ public class GenSourcesTask extends DefaultTask implements LoomTaskExt {
 			Path mappedJar = job.mappedJar; //input
 			Path fernflowerOutput = job.sourcesJar; //intermediary product
 			Path linemapFile = job.linemapFile; //intermediary product
-			Collection<Path> libraries = job.libraries; //resource
-			Path tinyMappingsFile = job.tinyMappingsFile; //resource
 			Path finishedSourcesJar = job.finishedJar; //output
+			Collection<Path> libraries = job.libraries; //resource
+			Path mcpMappingsZip = job.mcpMappingsZip;
 			
 			Files.deleteIfExists(fernflowerOutput);
 			Files.deleteIfExists(linemapFile);
@@ -77,7 +77,7 @@ public class GenSourcesTask extends DefaultTask implements LoomTaskExt {
 			args.add("-input=" + mappedJar.toAbsolutePath());
 			args.add("-output=" + fernflowerOutput.toAbsolutePath());
 			libraries.forEach(f -> args.add("-library=" + f.toAbsolutePath()));
-			if(tinyMappingsFile != null) args.add("-mappings=" + tinyMappingsFile.toAbsolutePath());
+			if(mcpMappingsZip != null) args.add("-mcpmappings=" + mcpMappingsZip.toAbsolutePath());
 			args.add("-linemap=" + linemapFile.toAbsolutePath());
 			if(getProject().hasProperty("voldeloom.saferFernflower")) args.add("-safer-bytecode-provider");
 			

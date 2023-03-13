@@ -1,8 +1,6 @@
 package net.fabricmc.loom;
 
-import net.fabricmc.loom.Constants;
-import net.fabricmc.loom.LoomGradleExtension;
-import net.fabricmc.loom.LoomGradlePlugin;
+import net.fabricmc.loom.mcp.Srg;
 import net.fabricmc.loom.newprovider.AccessTransformer;
 import net.fabricmc.loom.newprovider.AssetDownloader;
 import net.fabricmc.loom.newprovider.BinpatchLoader;
@@ -20,7 +18,6 @@ import net.fabricmc.loom.newprovider.VanillaDependencyFetcher;
 import net.fabricmc.loom.newprovider.VanillaJarFetcher;
 import net.fabricmc.loom.task.GenSourcesTask;
 import net.fabricmc.loom.util.ThrowyFunction;
-import net.fabricmc.loom.mcp.Srg;
 import net.fabricmc.mapping.tree.TinyTree;
 import org.gradle.api.Project;
 import org.gradle.api.logging.Logger;
@@ -245,7 +242,7 @@ public class ProviderGraph {
 			job.linemapFile = LoomGradlePlugin.replaceExtension(mappedJar, "-linemap.lmap");
 			job.finishedJar = LoomGradlePlugin.replaceExtension(mappedJar, "-sources.jar");
 			job.libraries = vanillaDeps.getNonNativeLibraries_Todo();
-			job.tinyMappingsFile = tinyMappingsFile;
+			job.mcpMappingsZip = mappings.getPath();
 			sourceGenerationJobs.add(job);
 		} else {
 			//split jar (1.2.5-)
@@ -338,7 +335,7 @@ public class ProviderGraph {
 			clientJob.linemapFile = LoomGradlePlugin.replaceExtension(clientJob.mappedJar, "-linemap.lmap");
 			clientJob.finishedJar = LoomGradlePlugin.replaceExtension(clientJob.mappedJar, "-sources.jar");
 			clientJob.libraries = vanillaDeps.getNonNativeLibraries_Todo();
-			clientJob.tinyMappingsFile = clientTiny.getMappingsFile();
+			clientJob.mcpMappingsZip = clientMappings.getPath();
 			sourceGenerationJobs.add(clientJob);
 			
 			GenSourcesTask.SourceGenerationJob serverJob = new GenSourcesTask.SourceGenerationJob();
@@ -347,7 +344,7 @@ public class ProviderGraph {
 			serverJob.linemapFile = LoomGradlePlugin.replaceExtension(serverJob.mappedJar, "-linemap.lmap");
 			serverJob.finishedJar = LoomGradlePlugin.replaceExtension(serverJob.mappedJar, "-sources.jar");
 			serverJob.libraries = vanillaDeps.getNonNativeLibraries_Todo();
-			serverJob.tinyMappingsFile = serverTiny.getMappingsFile();
+			serverJob.mcpMappingsZip = serverMappings.getPath();
 			sourceGenerationJobs.add(serverJob);
 		}
 		
