@@ -1,6 +1,7 @@
 package net.fabricmc.loom.mcp;
 
 import net.fabricmc.loom.util.StringInterner;
+import net.fabricmc.tinyremapper.IMappingProvider;
 
 import java.io.IOException;
 import java.net.URI;
@@ -13,6 +14,7 @@ import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Collections;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
  * "MCP mappings" is a loose name for a collection of these files:
@@ -89,6 +91,36 @@ public class McpMappings {
 		try(FileSystem fs = FileSystems.newFileSystem(URI.create("jar:" + zip.toUri()), Collections.emptyMap())) {
 			return importFromZip(log, fs);
 		}
+	}
+	
+	public IMappingProvider toTinyRemapper(Function<McpMappings, Srg> whichSrg, boolean toNamed) {
+		Srg srg = whichSrg.apply(this);
+		
+		return acceptor -> {
+			srg.classMappings.forEach(acceptor::acceptClass);
+			
+			srg.fieldMappingsByOwningClass.forEach((owningClass, fieldMappings) ->
+				fieldMappings.forEach((oldName, newName) -> {
+					if(toNamed) {
+						Members.Entry remapped = fields.remapSrg(newName);
+						if(remapped != null) newName = remapped.remappedName;
+					}
+					
+					//make up a field desc
+					acceptor.acceptField(new IMappingProvider.Member(owningClass, oldName, "Ljava/lang/Void;"), newName);
+				}));
+			
+			srg.methodMappingsByOwningClass.forEach((owningClass, methodMappings) -> 
+				methodMappings.forEach((oldMethod, newMethod) -> {
+					String newMethodName = newMethod.name;
+					if(toNamed) {
+						Members.Entry remapped = methods.remapSrg(newMethod.name);
+						if(remapped != null) newMethodName = remapped.remappedName;
+					}
+					
+					acceptor.acceptMethod(new IMappingProvider.Member(owningClass, oldMethod.name, oldMethod.descriptor), newMethodName);
+				}));
+		};
 	}
 	
 	private static class FindingVisitor extends SimpleFileVisitor<Path> {
