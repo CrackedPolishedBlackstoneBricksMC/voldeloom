@@ -2,7 +2,7 @@
 
 Let's take a good look at the contents of `mcp726a.zip` and see what they do.
 
-## what's in the box
+# what's in the box
 
 * `conf`: MCP data files, like the `srg`s. I wrote a full document about these in `csvs and srgs.md`.
 * `docs`:
@@ -43,7 +43,7 @@ This version of MCP expects:
 * server jar to exist at `jars/minecraft_server.jar` and to have the md5 `f69ac4bfce2dfbce03fe872518f75a05`
 * client jar to exist at `jars/bin/minecraft.jar` and to have the md5 `8e80fb01b321c6b3c7efca397a3eea35`
 
-## usage
+# usage
 
 `README-MCP.txt` goes over how to create a jarmod using MCP:
 
@@ -56,20 +56,20 @@ This version of MCP expects:
 6. When you are done, run `reobfuscate.bat`
 7. Collect the classes from `reobf/minecraft` and `reobf/minecraft_server`, package them into a jar, and distribute your jarmod
 
-## how does each script work
+# how does each script work
 
-### `commands.py`
+Generally:
 
-* Library used by many of the commands
-* most entries in `conf/mcp.cfg` map to fields on `commands.py`, thanks to `readconf` (so if you see some magic variable pulled out of thin air, check that file)
-* Lots of the low level business logic (like "executing a java program") have their implementations in commands.py, with individual scripts mainly being the CLI frontend
-* It also has an update checker for mcp itself
+* `commands.py` contains low-level plumbling tasks
+  * also a "library functions" junk-drawer
+  * most entries in `conf/mcp.cfg` map to fields on `commands.py`, thanks to `readconf()` (so if you see a magic variable pulled out of thin air, check that file)
+  * Lots of the low level business logic (like "how to execute a java program") have their implementations in commands.py
+  * It also has an update checker for mcp itself? Lol
+* `pylibs/` contains more plumbing tasks, generally more specialized, or taking up enough space to justify splitting them to their own file
+* `mcp.py` implements higher-level goals, usually they orchestrate a bunch of tasks from commands.py in sequence (like "do all the decompiling stuff")
+* scripts that correspond to a frontend script (like `decompile.bat` -> `decompile.py`) are nicer CLI wrappers for functions in mcp.py or commands.py
 
-### `mcp.py`
-
-* Driver
-
-### `decompile.py`
+## `decompile.py`
 
 * `--client` and `--server` to only do half the work
 * `-j` uses JAD even when Fernflower is available (legacy option by this point, fernflower has been in the tool since 7.0a)
@@ -91,13 +91,13 @@ or in other words
 * then run `decompile_side` in mcp.py
 * if recompilation is requested, also run `updatemd5_side` in mcp.py
 
-#### Well Then What does `decompile_side` do
+### Well Then What does `decompile_side` do
 
 Are You Ready to go down the rabbit hole
 
-Making the above simplifying assumptions, and also assuming none of the `no_`/`strip_` options are enabled:
+Making the above simplifying assumptions, assuming none of the `no_`/`strip_` options are enabled, and with the understanding that this stuff happens again on the server too:
 
-* (some time before this, not sure when): `creatergcfg`
+* (earlier, in decompile.py): `creatergcfg`
   * reobf = `False` here.
   * `rgconfig_file`: `temp/retroguard.cfg` (RETROGUARD/RetroConf)
     * (Writes a bunch of options into the file)
@@ -125,7 +125,8 @@ Making the above simplifying assumptions, and also assuming none of the `no_`/`s
   * `rgcmd`: `%s -cp "{classpath}" RetroGuard -searge {conffile}`
   * Format `rgcmd` where %s points to the appropriate `java -jar` command, `{classpath}` is `rgcplk` plus Retroguard, and `conffile` is `rgconflk`.
   * Run the command.
-  * Because `reobf = false` here, after running Retroguard, copy `rgdeoblog` to `deobsrg` and to `reobsrg`
+  * Because `reobf = false` here, after running Retroguard, copy `rgdeoblog` to `deobsrg` (and also to `reobsrg`)
+    * `reobsrg` will be overwritten way later, in `mcp.updatenames_side`
 * Applying MCInjector: `applyexceptor`
   * `excinput`: rgclientout, `temp/minecraft_rg.jar` (RETROGUARD/ClientOut)
   * `excoutput`: xclientout, `temp/minecraft_exc.jar` (EXCEPTOR/XClientOut)
@@ -195,7 +196,7 @@ Making the above simplifying assumptions, and also assuming none of the `no_`/`s
       * things matching `p_[\w]+_\d+_` are parameter names
     * Find-replace performed on all `.java` files, as well as on reoblk
 
-#### while we're looking at mcp.py, what about `reobfuscate_side`
+### while we're looking at mcp.py, what about `reobfuscate_side`
 
 Its like 4am but this isnt conceptually very difficult
 
@@ -213,3 +214,19 @@ Its like 4am but this isnt conceptually very difficult
 * unpackreobfclasses
   * Unpacks classes from the retroguarded jar again
   * If the class also exists on the vanilla client, it is not unpacked if it's not different from vanilla
+
+# remapping techniques in summary  !
+
+Deobf:
+
+* **RetroGuard** is used to go from proguard names -> SRG names
+  * Definitely pays attention to method descriptors
+* **Regular expressions** are used to go from SRG names -> MCP names
+  * Does not pay attention to field/method descriptors at all
+  * Remaps everything, including string constants (see `Start.java`, which references an srg field name)
+
+Im not entirely clear on what happens during reobf yet, but i know some things are involved:
+
+* RetroGuard is invoked with `-notch` instead of `-searge`, and a different configuration file is used (XXX: in what way is it different)
+* Regex is also used on the `client_ro.srg` file, which puts MCP names in the left column instad of SRG names
+  * All MCP field and method names must be unique (!)
