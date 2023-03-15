@@ -52,7 +52,7 @@ This version of MCP expects:
 2. Copy the `bin` and `resources` folders from `%APPDATA%/.minecraft` into the `jars` folder
 3. Run `decompile.bat`
 4. A `src/minecraft` and `src/minecraft_server` folder will be created
-5. Have fun jarmodding. Use `startclient.bat` and `startserver.bat` to play.
+5. Have fun jarmodding. Use `recompile.bat` to rebuild and `startclient.bat`/`startserver.bat` to play.
 6. When you are done, run `reobfuscate.bat`
 7. Collect the classes from `reobf/minecraft` and `reobf/minecraft_server`, package them into a jar, and distribute your jarmod
 
@@ -219,14 +219,51 @@ Its like 4am but this isnt conceptually very difficult
 
 Deobf:
 
-* **RetroGuard** is used to go from proguard names -> SRG names
+* **RetroGuard** is used to go from proguarded class files -> SRG named class files
   * Definitely pays attention to method descriptors
-* **Regular expressions** are used to go from SRG names -> MCP names
+* **Decompilation** goes from SRG named class files -> SRG named java files 
+* **Regular expressions** are used to go from SRG named java files -> MCP named java files
   * Does not pay attention to field/method descriptors at all
   * Remaps everything, including string constants (see `Start.java`, which references an srg field name)
 
-Im not entirely clear on what happens during reobf yet, but i know some things are involved:
+Reobf:
+
+* (during deobf) **Regular expressions** are used to create reversed versions of the csv file, which goes from MCP names -> SRG names
+* **Regular expressions** are used over the source code to create SRG-named java files
+* **Compilation** goes from SRG-named java files to SRG-named class files
+* **RetroGuard** goes from SRG-named class files to proguarded class files
+
+This means:
+
+* creating a method with the same name as *any* MCP method will end up getting it found-and-replaced to
 
 * RetroGuard is invoked with `-notch` instead of `-searge`, and a different configuration file is used (XXX: in what way is it different)
 * Regex is also used on the `client_ro.srg` file, which puts MCP names in the left column instad of SRG names
   * All MCP field and method names must be unique (!)
+
+# (for curiosity) Running original MCP in 2k23 without too much trouble
+
+Probably Windows only (because the weird version of Python is shipped with it), unless you can locate Python ~2.7 for your OS.
+
+The Java version is located in `commands.py` `checkjava()`. This is kind of an ordeal (it checks the Windows registry, `C:/Program Files`, etc in very nonstandard ways, and doesn't use the JAVA_HOME environment variable) so in practice, the command always falls back to `javac`. You know better, so it's not hard to modify the method to hardcode the path:
+
+```python
+def checkjava(self):    
+    self.cmdjava = '"C:\\Users\\quat\\scoop\\apps\\temurin8-jdk\\current\\bin\\java.exe"'
+    self.cmdjavac = '"C:\\Users\\quat\\scoop\\apps\\temurin8-jdk\\current\\bin\\javac.exe"'
+    return
+```
+
+(In practice, Java 17 seems to work surprisingly well? Recompiling fails, but it can be "fixed" by setting `-source 1.8 -target 1.8` in `conf/mcp.cfg` `CmdRecomp`.) I also recommend setting `verify = True` at the top of `__init__`, which causes more information about the paths to various programs to be printed to `logs/mcp.log`. In general that log file contains a lot of useful information.
+
+I harvested the files MCP wants out of my Gradle cache, these files exist because i've ran `runClient` on a voldeloom 1.4.7 project at least once. If you're not using voldeloom you can probably also find them in your launcher's files, or go dig around on piston-meta. (The DLLs will be distributed contained inside other jars and must be extracted)
+
+* copy `~/.gradle/caches/voldeloom/minecraft-1.4.7-client.jar` to `(mcp root)/jars/bin/minecraft.jar`
+* copy `~/.gradle/caches/voldeloom/minecraft-1.4.7-server.jar` to `(mcp root)/jars/minecraft_server.jar`
+* copy `~/.gradle/caches/modules-2/files-2.1/net.java.jinput/jinput/2.0.5/39c7 [...]/jinput-2.0.5.jar` to `(mcp root)/jars/bin/jinput.jar`
+* copy `~/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl/2.9.0/565d [...]/lwjgl-2.9.0.jar` to `(mcp root)/jars/bin/lwjgl.jar`
+* copy `~/.gradle/caches/modules-2/files-2.1/org.lwjgl.lwjgl/lwjgl_util/2.9.0/a778 [...]/lwjgl_util-2.9.0.jar` to `(mcp root)/jars/bin/lwjgl_util.jar`
+* (optional, only to *run* the client) copy `.dll`s from `~/.gradle/caches/voldeloom/natives/1.4.7/` to `(mcp root)/jars/bin/natives/`
+    * ignore the "jars" folder in there, it doesn't contain the right lwjgl jar for this purpose
+
+Give it time, this version of Fernflower is really slow.
