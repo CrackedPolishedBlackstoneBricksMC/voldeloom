@@ -1,6 +1,7 @@
 package net.fabricmc.loom.mcp;
 
 import net.fabricmc.loom.util.StringInterner;
+import net.fabricmc.tinyremapper.IMappingProvider;
 
 import java.io.BufferedOutputStream;
 import java.io.IOException;
@@ -150,8 +151,24 @@ public class Srg {
 	}
 	
 	public boolean isEmpty() {
-		//strictly speaking, mappings would be considered nonempty if a fieldMappingsByOwningClass entry existed even if it points to an empty collection
+		//strictly speaking, mappings would be considered nonempty if a fieldMappingsByOwningClass entry existed, even if it points to an empty collection?
+		//my advice for that situation: don't do that
 		return classMappings.isEmpty() && fieldMappingsByOwningClass.isEmpty() && methodMappingsByOwningClass.isEmpty();
+	}
+	
+	public IMappingProvider toMappingProvider() {
+		return acceptor -> {
+			classMappings.forEach(acceptor::acceptClass);
+			
+			fieldMappingsByOwningClass.forEach((owningClass, fieldMappings) ->
+				fieldMappings.forEach((oldName, newName) ->
+					//make up a field desc; tiny-remapper is put into a mode that ignores field descriptors
+					acceptor.acceptField(new IMappingProvider.Member(owningClass, oldName, "Ljava/lang/Void;"), newName)));
+			
+			methodMappingsByOwningClass.forEach((owningClass, methodMappings) ->
+				methodMappings.forEach((oldMethod, newMethod) ->
+					acceptor.acceptMethod(new IMappingProvider.Member(owningClass, oldMethod.name, oldMethod.descriptor), newMethod.name)));
+		};
 	}
 	
 	//TODO: if a class is proguarded, does it never need to be repackaged. that would eliminate a lot of the annoying stuff lol

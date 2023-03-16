@@ -215,31 +215,172 @@ Its like 4am but this isnt conceptually very difficult
   * Unpacks classes from the retroguarded jar again
   * If the class also exists on the vanilla client, it is not unpacked if it's not different from vanilla
 
+# RetroGuard
+
+RetroGuard is a Java obfuscator and treeshaker by Mark Welsh, started in 1998. (You might be familiar with "ProGuard", which is an unrelated obfuscator [written referencing it around 2002](https://github.com/Guardsquare/proguard/blob/aa1835fb9314c3f6309d099808e803c48de1672f/docs/md/manual/releasenotes.md#version-10-jun-2002).) MCP uses a forked version available [here](https://github.com/ModCoderPack/Retroguard) and in `docs/source/retroguard_src.zip` with many modifications, mostly by Searge and fesh0r. Something to keep in mind is that what RetroGuard refers to as "log files" are machine-parseable and used for more than debugging. The RG site is down but [here's an archive of the documentation.](https://web.archive.org/web/20090708133033/http://www.retrologic.com/retroguard-docs.html). fesh0r removed most of the tree-shaker functionality and other stuff irrelevant to MCP's goals.
+
+MCP RetroGuard is invoked with `-searge {conffile}` for deobfuscating or `-notch {conffile}` for reobfuscating, where `{conffile}` is substituted with `temp/client_rg.cfg` for deobf and `temp/client_ro.cfg` for reobf.
+
+<details><summary>client_rg.cfg</summary>
+
+```
+input = jars\bin\minecraft.jar
+output = temp\minecraft_rg.jar
+reobinput = temp\client_recomp.jar
+reoboutput = temp\client_reobf.jar
+script = temp\retroguard.cfg
+log = logs\client_rg.log
+deob = temp\client_rg.srg
+reob = temp\client_ro.srg
+nplog = logs\client_deob.log
+rolog = logs\client_reob.log
+verbose = 0
+quiet = 1
+fullmap = 0
+startindex = 0
+protectedpackage = paulscode
+protectedpackage = com/jcraft
+protectedpackage = isom
+protectedpackage = ibxm
+protectedpackage = de/matthiasmann/twl
+protectedpackage = org/xmlpull
+protectedpackage = javax/xml
+```
+
+</details>
+
+<details><summary>client_ro.cfg</summary>
+
+```
+input = jars\bin\minecraft.jar
+output = temp\minecraft_rg.jar
+reobinput = temp\client_recomp.jar
+reoboutput = temp\client_reobf.jar
+script = temp\retroguard_ro.cfg
+log = logs\client_ro.log
+deob = temp\client_rg.srg
+reob = temp\client_ro.srg
+nplog = logs\client_deob.log
+rolog = logs\client_reob.log
+verbose = 0
+quiet = 1
+fullmap = 0
+startindex = 0
+protectedpackage = paulscode
+protectedpackage = com/jcraft
+protectedpackage = isom
+protectedpackage = ibxm
+protectedpackage = de/matthiasmann/twl
+protectedpackage = org/xmlpull
+protectedpackage = javax/xml
+```
+
+</details>
+
+## NameProvider
+
+This class is added by MCP's patches. As a kind of blunt patch, it receives the entire command line arguments, then returns a new list of command line arguments that regular RetroGuard consumes.
+
+There are four NameProvider "modes":
+
+0. `CLASSIC_MODE`: The default mode. assigns unique names to each class, method, method parameter, and field as they're encountered. SRG names actually
+   * These days the SRG file is the source of this mapping
+1. `CHANGE_NOTHING_MODE`: does not modify names
+2. `DEOBFUSCATION_MODE`: proguard -> srg
+3. `REOBFUSCATION_MODE`: ??? -> proguard
+
+If you pass `-searge` or `-notch`, execution flows into `parseNameSheetModeArgs`, which sets `NameProvider` to `DEOBFUSCATION_MODE` or `REOBFUSCATION_MODE` respectively. Otherwise `CLASSIC_MODE` is used, and the fifth command line argument is the starting number for its numbering scheme.
+
+`parseNameSheetModeArgs` reads a config file in a custom ini format. Keys read:
+
+* `input`, `output`, `script`, and `log` map to RetroGuard's [first, second, third, and fourth command line arguments](https://web.archive.org/web/20090708090608/http://www.retrologic.com/rg-docs-running.html)
+  * `input`: "the original, unobfuscated jar file"
+  * `output`: "the filename that will be used for the obfuscated jar file"
+  * `script`: "the filename of the RetroGuard script file"
+  * `logfile`: "the filename that will be used for the text log of this obfuscation run"
+* if `reobinput`/`reoboutput` are set and we're in `REOBFUSCATION_MODE` (`-notch`), they override whatever was set for `input`/`output` (!)
+* `deob`, `packages`, `classes`, `methods`, `fields` add the file to the `NameProvider.obfFiles` set
+  * Only `deob` is used in practice
+* `reob` adds to the `NameProvider.reobFiles` set
+* `nplog` sets the `NameProvider.nplog` field (ignored if file doesn't exist)
+* `rolog` sets the `NameProvider.rolog` field (ignored if file doesn't exist)
+* `startindex` sets `NameProvider.uniqueStart` (same as the handling of the fifth command line argument) (probably unused because that's only used in CLASSIC_MODE)
+* `protectedpackage` adds the string to the `NameProvider.protectedPackages` set
+* several boolean options: `quiet`, `oldhash`, `fixshadowed` (defaults to true), `incremental` (defaults to true, actually sets `repackage`), `multipass` (defaults to true), `verbose`, `fullmap`
+  * setting to something starting with `1`, `t`, or `y` will enable them
+  * setting to something starting with `0`, `f`, or `n` will disable them
+  * `quiet` and `verbose` change log output
+  * `oldhash` switches random RetroGuard data structures to use a `Hashtable` instead of a `HashMap` - probably relevant to `CLASSIC_MODE` ordering
+  * normally RetroGuard will look inside parent classes for a field/method with the same name/signature in order to remap it correctly, but will skip doing that if the item is `private` - if `fixShadowed` is set, it will also skip if the item is `static` or `final`
+  * `incremental` - not sure
+  * `multipass` seems to change the behavior of `NameProvider.retainFromSRG` somehow (maybe making the obfuscation log more complete?)
+  * `fullmap` seems to call `setOutput` on a bunch of stuff, maybe making the obfuscation log more complete?
+
+Next, SRGs are read. In deobf mode, we read all SRG files in the `obfFiles` set, and in reobf mode, we read all SRG files in the `reobFiles` set. (only usage of these sets.) Data is entered into `NameProvider.{packages,classes,methods,fields}{Obf2Deobf,Deobf2Obf}` fields.
+
+After that, control flows back into RetroGuard. Various sites throughout RetroGuard have added calls into `NameProvider`.
+
+When a class is written, calls to `NameProvider` have been inserted that dump the used mappings into the `nplog` file (in deobfuscating mode) or `rolog` (in reobfuscating mode). This looks the same as the input SRG file, but due to the encounter order, you get "classes followed by their members" instead of "all the calsses, then all the fields"
+
+Renaming is done by inserting calls to `NameProvider.getNew{TreeItem,Package,Class,Method,Field}Name`. In `CHANGE_NOTHING_MODE` this returns `null`. In `CLASSIC_MODE` a unique name is created. In `DEOBFUSCATION_MODE` the `Obf2Deobf` maps are consulted, and in `REOBFUSCATION_MODE` the `Deobf2Obf` maps are. The only complication is because ProGuard seems to treat package names separably from class names, so there's some toodoo about "class name" vs "full class name" but its not a big deal
+
+```
+CL: b net/minecraft/src/CallableMinecraftVersion
+FD: b/a net/minecraft/src/CallableMinecraftVersion/field_71494_a
+MD: b/a ()Ljava/lang/String; net/minecraft/src/CallableMinecraftVersion/func_71493_a ()Ljava/lang/String;
+MD: b/call ()Ljava/lang/Object; net/minecraft/src/CallableMinecraftVersion/call ()Ljava/lang/Object;
+CL: c net/minecraft/src/CallableOSInfo
+FD: c/a net/minecraft/src/CallableOSInfo/field_71496_a
+MD: c/a ()Ljava/lang/String; net/minecraft/src/CallableOSInfo/func_71495_a ()Ljava/lang/String;
+MD: c/call ()Ljava/lang/Object; net/minecraft/src/CallableOSInfo/call ()Ljava/lang/Object;
+CL: abc net/minecraft/src/ChunkProviderEnd
+```
+
+## Deobf/reobf in practice
+
+Deobfing invocation:
+
+* RetroGuard invoked with `-searge`, which
+  * (effectively) causes `deob`-related config entries to be read and `reob`-ones to be skipped
+  * treats the left column of mappings as "from", and the right column as "to"
+* Reads the file mentioned in `deob` setting, `temp/client_rg.srg` (which is a copy of `cfg/client.srg`), as srg mappings
+* While remapping, writes to the file mentioned in the `nplog` setting, `logs/client_deob.log`
+  * This is effectively a shuffled copy of `client_rg.srg`, but only contains classes that were actually encountered in the jar
+
+Python scripts:
+
+* copy `logs/client_deob.log` into `temp/client_ro.srg` (which is the file the *reobfing* invocation of RetroGuard will invoke)
+* uses regex remapping on all the `field_12345_a` and `func_12346_a` entries in the SRG (does this while remapping the source code)
+
+Reobfing invocation:
+
+* RetroGuard invoked with `-notch`, which
+  * (effectively) causes `deob`-related config entries to be skipped and `reob`-ones to be read
+  * treats the *right* column of mappings as "from", and the *left* column as "to"
+  * ignores the config file's `input` and `output` settings in favor of `reobinput` and `reoboutput`
+* Reads the file mentioned in `reob` setting, `temp/client_ro.srg` (which is a file the Python scripts stomped on), as srg mappings
+* (It also writes a reoblog but it's not used for anything)
+
 # remapping techniques in summary  !
 
 Deobf:
 
-* **RetroGuard** is used to go from proguarded class files -> SRG named class files
+* **RetroGuard** is invoked with `-searge` to go from proguarded class files -> SRG named class files
   * Definitely pays attention to method descriptors
 * **Decompilation** goes from SRG named class files -> SRG named java files 
 * **Regular expressions** are used to go from SRG named java files -> MCP named java files
   * Does not pay attention to field/method descriptors at all
   * Remaps everything, including string constants (see `Start.java`, which references an srg field name)
 
+Preparing for reobf:
+
+* Deobfing **RetroGuard** invocation outputs the proguarded -> SRG entries that were actually used while deobfing
+* **Regular expressions** convert this to a proguarded -> MCP-named mapping set
+
 Reobf:
 
-* (during deobf) **Regular expressions** are used to create reversed versions of the csv file, which goes from MCP names -> SRG names
-* **Regular expressions** are used over the source code to create SRG-named java files
-* **Compilation** goes from SRG-named java files to SRG-named class files
-* **RetroGuard** goes from SRG-named class files to proguarded class files
-
-This means:
-
-* creating a method with the same name as *any* MCP method will end up getting it found-and-replaced to
-
-* RetroGuard is invoked with `-notch` instead of `-searge`, and a different configuration file is used (XXX: in what way is it different)
-* Regex is also used on the `client_ro.srg` file, which puts MCP names in the left column instad of SRG names
-  * All MCP field and method names must be unique (!)
+* **Compilation** goes from MCP-named java files to MCP-named class files
+* **RetroGuard** is invoked with `-notch`, reads the prepared remapped mappings *in reverse*, and goes from MCP-named class files to proguarded class files
 
 # (for curiosity) Running original MCP in 2k23 without too much trouble
 
