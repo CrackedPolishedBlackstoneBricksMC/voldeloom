@@ -1,11 +1,20 @@
 Running changelog document, will be added to as I commit things.
 
-# Next version: 2.2 (`agency.highlysuspect:voldeloom:2.2-SNAPSHOT`)
+# 2.3
 
-### (Roadmap...)
+## Roadmap
 
-* fixing generated run configs
-* fixing 1.2.5 :pray:
+* Fix 1.2.5 and make it nice
+* Complete the accuracy-focused remapping rewrite, which deemphasizes `tiny-remapper`
+* Add more to the `volde.layered` system
+
+## Known bugs
+
+`amq$1` crash is back (inner class remapping nonsense)
+
+# 2.2 (`agency.highlysuspect:voldeloom:2.2-SNAPSHOT`)
+
+Remapping is in a bit of a weird state, but i'm about to do massive breaking changes to the system, so this is a release cut in haste
 
 ## New
 

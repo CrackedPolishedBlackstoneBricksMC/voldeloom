@@ -53,7 +53,7 @@ public class MappingsWrapper extends ResolvedConfigElementWrapper {
 	//TODO: It's Bad!
 	private boolean alreadyTinyv2 = false; //Also Bad!
 	
-	private McpMappings mappings;
+	public McpMappings mappings;
 	
 	public String getMappingDiscriminant() {
 		return mappingDiscriminant;

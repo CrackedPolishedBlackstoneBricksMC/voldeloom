@@ -33,7 +33,7 @@ Voldeloom contains a forked copy of some code from [FabricMC/stitch](https://git
 
 # Usage
 
-Start with this `build.gradle`. I would *strongly* suggest using modern tech - Java 17 and Gradle 7.6, to be specific. (Gradle 8 might work too, if you use version `2.2-SNAPSHOT`.)
+Start with this `build.gradle`. I would *strongly* suggest using modern tech - Java 17 and Gradle 7.6, to be specific. (Gradle 8 might work too, if you use version `2.2-SNAPSHOT` or later.)
 
 ```groovy
 buildscript {
@@ -43,7 +43,7 @@ buildscript {
 		maven { url "https://repo.sleeping.town" }
 	}
 	dependencies {
-		classpath "agency.highlysuspect:voldeloom:2.1" //or "2.2-SNAPSHOT" for the cutting-edge 
+		classpath "agency.highlysuspect:voldeloom:2.1" //or "2.3-SNAPSHOT" for the cutting-edge 
 	}
 }
 
@@ -83,6 +83,8 @@ Using the latest version of Minecraft Forge for each Minecraft version.
 * "Deobf" -> A working `runClient` with full MCP names, that you can use to test your mod without needing to build a release jar and copy it into a real Minecraft launcher.
 	* Yes it's possible to develop mods like that. It's not very fun, but it's possible.
 * 🤔 -> I think it's possible, i just haven't tested it yet.
+
+***version `2.3-SNAPSHOT`: dev workspaces temporarily broken, big rewrites inc***
 
 |  | Compile? | Release? | Deobf? | |
 | --: | :-: | :-: | :-: | :-- |

@@ -36,8 +36,8 @@ public class RemapperMcp extends NewProvider<RemapperMcp> {
 		return this;
 	}
 	
-	public RemapperMcp outputSrgJar(String outputIntermediaryName) {
-		this.output = getCacheDir().resolve("mappedmcp").resolve(mappingsDepString).resolve(outputIntermediaryName);
+	public RemapperMcp outputSrgJar(String outputName) {
+		this.output = getCacheDir().resolve("mappedmcp").resolve(mappingsDepString).resolve(outputName);
 		return this;
 	}
 	
@@ -56,6 +56,10 @@ public class RemapperMcp extends NewProvider<RemapperMcp> {
 		return this;
 	}
 	
+	public Path getOutputSrgJar() {
+		return output;
+	}
+	
 	public RemapperMcp remap() throws Exception {
 		Check.notNull(input, "input jar");
 		Check.notNull(output, "output jar");
@@ -72,7 +76,7 @@ public class RemapperMcp extends NewProvider<RemapperMcp> {
 			.renameInvalidLocals(true)
 			.rebuildSourceFilenames(true)
 			.ignoreFieldDesc(true) //MCP doesn't have them
-			.skipLocalVariableMapping(false)
+			.skipLocalVariableMapping(true)
 			.withMappings(srg.toMappingProvider())
 			.build();
 		
