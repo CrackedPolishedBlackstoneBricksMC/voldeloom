@@ -93,10 +93,12 @@ Using the latest version of Minecraft Forge for each Minecraft version.
 | 1.2.5 | ❌ | ❌ | ❌ | Mods don't load in dev.<br>Remapping for release is dummied out. |
 | 1.3.2 | ✅ | 🤔 | ✅ | |
 | 1.4.7 | ✅ | ✅ | ✅ | **Has received the most testing.**<br>Used for several production mods. |
-| 1.5.2 | ✅ | ✅ | ✅ | |
-| 1.6.4 | ✅ | 🤔 | ✅ | |
-| 1.7.10 | ✅ | 🤔 | ✅ | Sound is broken.<br>Mappings are outdated (need to support MCPBot exports). |
+| 1.5.2 | ✅ | ✅* | ✅ | |
+| 1.6.4 | ✅ | 🤔* | ✅ | |
+| 1.7.10 | ✅ | 🤔* | ✅ | Sound is broken.<br>Mappings are outdated (need to support MCPBot exports). |
 | >=1.8 | ❌ | ❌ | ❌ | Out of scope. |
+
+\*Reobf-to-SRG is currently broken in `2.3-SNAPSHOT`. Workin on it.
 
 # Documentation / help
 
