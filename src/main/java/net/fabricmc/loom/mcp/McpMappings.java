@@ -91,6 +91,14 @@ public class McpMappings {
 		}
 	}
 	
+	public McpMappings augment(JarScanData jarScanData) {
+		if(!joined.isEmpty()) joined.augment(jarScanData);
+		if(!client.isEmpty()) client.augment(jarScanData);
+		if(!server.isEmpty()) server.augment(jarScanData);
+		
+		return this;
+	}
+	
 	private static class FindingVisitor extends SimpleFileVisitor<Path> {
 		private Path joinedPath, clientPath, serverPath, fieldsPath, methodsPath, packagesPath;
 		

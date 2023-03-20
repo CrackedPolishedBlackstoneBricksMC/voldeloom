@@ -84,8 +84,6 @@ Using the latest version of Minecraft Forge for each Minecraft version.
 	* Yes it's possible to develop mods like that. It's not very fun, but it's possible.
 * 🤔 -> I think it's possible, i just haven't tested it yet.
 
-***version `2.3-SNAPSHOT`: dev workspaces temporarily broken, big rewrites inc***
-
 |  | Compile? | Release? | Deobf? | |
 | --: | :-: | :-: | :-: | :-- |
 | <=1.0 | ❌ | ❌ | ❌ | Predates `files.minecraftforge.net`. |

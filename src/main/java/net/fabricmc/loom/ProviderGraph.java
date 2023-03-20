@@ -160,6 +160,11 @@ public class ProviderGraph {
 			.jarmoddedFilename(jarmoddedPrefix + "-jarmod.jar")
 			.patch();
 		
+		log.lifecycle("# ({}) Parsing mappings...", side);
+		//the jarscandata comes from the jarmodded jar, not the vanilla one, because some inner-class relations i need to know about
+		//are added by forge
+		MappingsWrapper mappings = new MappingsWrapper(project, extension, project.getConfigurations().getByName(Constants.MAPPINGS), jarmod.getJarmoddedJar());
+		
 		log.lifecycle("# ({}) Preparing ATs...", side);
 		AccessTransformer transformer = new AccessTransformer(project, extension)
 			.superProjectmapped(jarmod.isProjectmapped())
@@ -167,9 +172,6 @@ public class ProviderGraph {
 			.loadCustomAccessTransformers();
 		@Nullable String atHash = transformer.getCustomAccessTransformerHash();
 		String atdSuffix = "-atd" + (atHash == null ? "" : "-" + atHash);
-		
-		log.lifecycle("# ({}) Parsing mappings...", side);
-		MappingsWrapper mappings = new MappingsWrapper(project, extension, project.getConfigurations().getByName(Constants.MAPPINGS));
 		
 		log.lifecycle("# ({}) Preparing SRG remapper...", side);
 		RemapperMcp remapperMcp = new RemapperMcp(project, extension)

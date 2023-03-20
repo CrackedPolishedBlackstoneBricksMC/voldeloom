@@ -24,12 +24,12 @@ import java.util.Objects;
 import java.util.Set;
 
 /**
- * Walks a jar and reads all the field types from it.
+ * Walks a jar and reads all the inner-class relations from it.
  */
 public class JarScanData {
-	public final Map<String, Set<String>> innerClasses = new HashMap<>();
+	public final Map<String, Set<String>> innerClassData = new HashMap<>();
 	
-	public void scan(Path jar) throws IOException {
+	public JarScanData scan(Path jar) throws IOException {
 		try(FileSystem jarFs = FileSystems.newFileSystem(URI.create("jar:" + jar.toUri()), Collections.emptyMap())) {
 			ClassVisitor loader = new InfoLoadingClassVisitor();
 			
@@ -45,13 +45,15 @@ public class JarScanData {
 				}
 			});
 		}
+		
+		return this;
 	}
 	
 	private /* non-static */ class InfoLoadingClassVisitor extends ClassVisitor {
 		private String visiting;
 		
 		public InfoLoadingClassVisitor() {
-			super(Opcodes.ASM7);
+			super(Opcodes.ASM9);
 		}
 		
 		public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
@@ -85,7 +87,7 @@ public class JarScanData {
 				actualOuterName = visiting;
 			}
 			
-			innerClasses.computeIfAbsent(actualOuterName, __ -> new HashSet<>()).add(name);
+			innerClassData.computeIfAbsent(actualOuterName, __ -> new HashSet<>()).add(name);
 		}
 	}
 }

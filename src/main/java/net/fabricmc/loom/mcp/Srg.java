@@ -147,6 +147,38 @@ public class Srg {
 		}
 	}
 	
+	public void augment(JarScanData data) {
+		int[] thinAirId = new int[] { 0 }; //FINAL OR EFFECTIVELY FINAL
+		
+		data.innerClassData.forEach((outerClass, innerClasses) ->
+			innerClasses.forEach(innerClass -> {
+				if(classMappings.containsKey(outerClass) && !classMappings.containsKey(innerClass)) {
+					//`innerClass` is an inner class of `outerClass`, and there's a mapping for `outerClass`,
+					//but none for `innerClass`. If we remap now, `innerClass` will be left where it is,
+					//but `outerClass` will be moved. This will probably lead to runtime crashes; the JVM
+					//really really wants outer classes and their inner classes to stick together.
+					//We could fix this by augmenting the remapper, but currently it's off-the-shelf tiny-remapper.
+					//Instead, let's invent a mapping for this class.
+					
+					//If there's a mapping "amq -> net/minecraft/block/Block", and I'm inventing a mapping for the
+					//class "amq$1", I want to map it the same way "amq" is mapped, but keep the $1 suffix.
+					//So ideally I want net/minecraft/block/Block$1.
+					
+					String suffix;
+					
+					int dollarIndex = innerClass.indexOf('$');
+					if(dollarIndex == -1) {
+						//Well that sucks. Let's just make something up
+						suffix = "$voldeloom_invented$" + thinAirId[0]++; 
+					} else {
+						suffix = innerClass.substring(dollarIndex); //the part after/including the dollar sig
+					}
+					
+					classMappings.put(innerClass, classMappings.get(outerClass) + suffix);
+				}
+			}));
+	}
+	
 	public IMappingProvider toMappingProvider() {
 		return acceptor -> {
 			classMappings.forEach(acceptor::acceptClass);
