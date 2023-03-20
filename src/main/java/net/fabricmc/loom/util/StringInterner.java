@@ -26,7 +26,7 @@ public class StringInterner implements Closeable {
 	 * @return deduplicated version of the string
 	 */
 	public String intern(String s) {
-		if(s == null) return s;
+		if(s == null) return null;
 		
 		if(strings.containsKey(s)) return strings.get(s);
 		

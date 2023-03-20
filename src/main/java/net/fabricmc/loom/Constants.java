@@ -25,8 +25,7 @@
 package net.fabricmc.loom;
 
 import net.fabricmc.loom.newprovider.AccessTransformer;
-import net.fabricmc.loom.newprovider.DependencyRemapper;
-import net.fabricmc.loom.newprovider.Tinifier;
+import net.fabricmc.loom.newprovider.DependencyRemapperMcp;
 
 /**
  * Values that do not change across an invocation of the plugin, such as the names of Gradle configurations.
@@ -48,7 +47,7 @@ public class Constants {
 	 * The Gradle configuration containing all <i>incoming</i> mod dependencies, e.g. {@code modCompileOnly},
 	 * which are mods that haven't been remapped to the user's current working mappings yet.
 	 * 
-	 * @see DependencyRemapper
+	 * @see DependencyRemapperMcp
 	 */
 	public static final String EVERY_UNMAPPED_MOD = "everyUnmappedMod";
 	
@@ -61,7 +60,7 @@ public class Constants {
 	/**
 	 * The Gradle configuration containing the user's specified mappings input file.
 	 *
-	 * @see Tinifier
+	 * @see net.fabricmc.loom.newprovider.MappingsWrapper
 	 */
 	public static final String MAPPINGS = "mappings";
 	

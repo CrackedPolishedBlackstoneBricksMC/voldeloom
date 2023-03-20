@@ -46,6 +46,7 @@ import java.util.List;
  * Originally (in Loom 0.4) this contained a million things. I am trying to strip it back to mainly be a thin configuration dsl for Gradle.
  * Obvious exception is anything relating to getDependencyManager.
  */
+@SuppressWarnings("CanBeFinal") //settable from buildscript
 public class LoomGradleExtension {
 	public LoomGradleExtension(Project project) { //Gradle reflectively finds this ctor
 		this.project = project;

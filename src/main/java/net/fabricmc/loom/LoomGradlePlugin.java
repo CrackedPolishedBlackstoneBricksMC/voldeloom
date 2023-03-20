@@ -27,7 +27,7 @@ package net.fabricmc.loom;
 import groovy.util.Node;
 import net.fabricmc.loom.task.ConfigurationDebugTask;
 import net.fabricmc.loom.task.GenSourcesTask;
-import net.fabricmc.loom.task.RemapJarForReleaseTask;
+import net.fabricmc.loom.task.ReobfJarTask;
 import net.fabricmc.loom.task.RemappedConfigEntryFolderCopyTask;
 import net.fabricmc.loom.task.RunTask;
 import net.fabricmc.loom.task.ShimForgeLibrariesTask;
@@ -266,7 +266,7 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		TaskContainer tasks = project.getTasks();
 		
 		//Remapping artifacts:
-		tasks.register("remapJarForRelease", RemapJarForReleaseTask.class, t -> t.dependsOn(tasks.named("jar")));
+		tasks.register("remapJarForRelease", ReobfJarTask.class, t -> t.dependsOn(tasks.named("jar")));
 		tasks.named("build").configure(t -> t.dependsOn(tasks.named("remapJarForRelease")));
 		
 		//IDE integration:
@@ -327,16 +327,16 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		
 		//Configure the for-release remapper
 		AbstractArchiveTask jarTask = (AbstractArchiveTask) project.getTasks().getByName("jar");
-		RemapJarForReleaseTask remapJarForReleaseTask = (RemapJarForReleaseTask) project.getTasks().findByName("remapJarForRelease");
+		ReobfJarTask reobfJarTask = (ReobfJarTask) project.getTasks().findByName("remapJarForRelease");
 		
-		if(!remapJarForReleaseTask.getInput().isPresent()) {
+		if(!reobfJarTask.getInput().isPresent()) {
 			//unless you configured it otherwise, move the regular jar to having the -dev classifier,
 			//and the remapped-for-release one to have no classifier
 			GradleSupport.setClassifier(jarTask, "dev");
-			GradleSupport.setClassifier(remapJarForReleaseTask, "");
-			remapJarForReleaseTask.getInput().set(GradleSupport.getArchiveFile(jarTask));
+			GradleSupport.setClassifier(reobfJarTask, "");
+			reobfJarTask.getInput().set(GradleSupport.getArchiveFile(jarTask));
 		}
-		project.getArtifacts().add("archives", remapJarForReleaseTask);
+		project.getArtifacts().add("archives", reobfJarTask);
 		
 		//add to classpath for runClient (TODO do this a different way? configurations? artifacts?)
 		extension.addUnmappedMod(GradleSupport.getArchiveFile(jarTask).toPath());

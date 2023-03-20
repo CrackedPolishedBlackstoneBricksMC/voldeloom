@@ -10,12 +10,4 @@ public class Check {
 		if(thing == null) throw new NullPointerException(why + " is null!");
 		return thing;
 	}
-	
-	public static void isTrue(boolean thing, String why) {
-		if(!thing) throw new IllegalStateException(why + " is false, should be true!");
-	}
-	
-	public static void isFalse(boolean thing, String why) {
-		if(thing) throw new IllegalStateException(why + " is true, should be false!");
-	}
 }

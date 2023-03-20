@@ -135,9 +135,4 @@ public abstract class NewProvider<SELF extends NewProvider<SELF>> {
 	protected final FileCollection files(Object... paths) {
 		return project.files(paths);
 	}
-	
-	@SuppressWarnings("SameParameterValue") //i will overengineer if i want
-	protected final boolean projectHasProperty(String prop) {
-		return project.hasProperty(prop);
-	}
 }

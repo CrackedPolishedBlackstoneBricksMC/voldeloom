@@ -25,8 +25,7 @@ public class ManifestIndex {
 		}
 	}
 	
-	@SerializedName("versions")
-	public List<VersionData> versionList = new ArrayList<>();
+	@SerializedName("versions") public List<VersionData> versionList = new ArrayList<>();
 	public transient Map<String, VersionData> versions = new HashMap<>();
 	
 	public static class VersionData {

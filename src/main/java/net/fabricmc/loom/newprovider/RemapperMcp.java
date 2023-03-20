@@ -10,6 +10,7 @@ import org.gradle.api.Project;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Set;
 
 public class RemapperMcp extends NewProvider<RemapperMcp> {
@@ -21,10 +22,8 @@ public class RemapperMcp extends NewProvider<RemapperMcp> {
 	private Srg srg;
 	private Path output;
 	
-	private String mappingsDepString;
-	
 	private Set<String> deletedPrefixes;
-	private Collection<Path> nonNativeLibs;
+	private final Set<Path> remapClasspath = new HashSet<>();
 	
 	public RemapperMcp inputJar(Path inputJar) {
 		this.input = inputJar;
@@ -36,13 +35,14 @@ public class RemapperMcp extends NewProvider<RemapperMcp> {
 		return this;
 	}
 	
-	public RemapperMcp outputSrgJar(String outputName) {
+	public RemapperMcp outputSrgJar(String mappingsDepString, String outputName) {
 		this.output = getCacheDir().resolve("mappedmcp").resolve(mappingsDepString).resolve(outputName);
 		return this;
 	}
 	
-	public RemapperMcp mappingsDepString(String mappingsDepString) {
-		this.mappingsDepString = mappingsDepString;
+	//TODO: this is used in places that don't care about NewProvider abstractions, which is probably a bad idea in the general case
+	public RemapperMcp outputSrgJar_Generic(Path path) {
+		this.output = path;
 		return this;
 	}
 	
@@ -51,8 +51,8 @@ public class RemapperMcp extends NewProvider<RemapperMcp> {
 		return this;
 	}
 	
-	public RemapperMcp nonNativeLibs(Collection<Path> nonNativeLibs) {
-		this.nonNativeLibs = nonNativeLibs;
+	public RemapperMcp addToRemapClasspath(Collection<Path> nonNativeLibs) {
+		this.remapClasspath.addAll(nonNativeLibs);
 		return this;
 	}
 	
@@ -82,9 +82,12 @@ public class RemapperMcp extends NewProvider<RemapperMcp> {
 		
 		log.lifecycle("\\-> Performing remap");
 		
-		try(OutputConsumerPath oc = new OutputConsumerPath.Builder(output).filter(s -> !deletedPrefixes.contains(s.split("/", 2)[0])).build()) {
+		OutputConsumerPath.Builder buildybuild = new OutputConsumerPath.Builder(output);
+		if(deletedPrefixes != null && !deletedPrefixes.isEmpty()) buildybuild.filter(s -> !deletedPrefixes.contains(s.split("/", 2)[0]));
+		
+		try(OutputConsumerPath oc = buildybuild.build()) {
 			oc.addNonClassFiles(input);
-			remapper.readClassPath(nonNativeLibs.toArray(new Path[0]));
+			remapper.readClassPath(remapClasspath.toArray(new Path[0]));
 			remapper.readInputs(input);
 			remapper.apply(oc);
 		} finally {

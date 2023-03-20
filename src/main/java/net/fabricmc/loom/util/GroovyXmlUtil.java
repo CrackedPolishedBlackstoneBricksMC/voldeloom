@@ -59,8 +59,8 @@ public final class GroovyXmlUtil {
 		return Optional.empty();
 	}
 
+	@SuppressWarnings({"unchecked", "rawtypes"})
 	public static Stream<Node> childrenNodesStream(Node node) {
-		//noinspection unchecked
 		return (Stream<Node>) (Stream) (((List<Object>) node.children()).stream().filter((i) -> i instanceof Node));
 	}
 

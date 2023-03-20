@@ -38,18 +38,21 @@ public class LayeredMcpMappings {
 	private final Project project;
 	private final LoomGradleExtension ext;
 	
-	public List<Layer> layers = new ArrayList<>();
+	public final List<Layer> layers = new ArrayList<>();
 	
+	@SuppressWarnings("unused") //gradle api
 	public LayeredMcpMappings baseZip(Object thing) {
 		layers.add(new BaseZipLayer(realizeToPath(thing)));
 		return this;
 	}
 	
+	@SuppressWarnings("unused") //gradle api
 	public LayeredMcpMappings unmapClass(String unmapOne) {
 		layers.add(new ClassUnmappingLayer(Collections.singleton(unmapOne)));
 		return this;
 	}
 	
+	@SuppressWarnings("unused") //gradle api
 	public LayeredMcpMappings unmapClass(Collection<String> unmap) {
 		layers.add(new ClassUnmappingLayer(unmap));
 		return this;

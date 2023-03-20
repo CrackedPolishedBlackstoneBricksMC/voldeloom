@@ -26,8 +26,8 @@ package net.fabricmc.loom.task;
 
 import net.fabricmc.loom.Constants;
 import net.fabricmc.loom.LoomGradleExtension;
+import net.fabricmc.loom.newprovider.RemapperMcp;
 import net.fabricmc.loom.util.GradleSupport;
-import net.fabricmc.loom.util.TinyRemapperSession;
 import org.gradle.api.Project;
 import org.gradle.api.file.RegularFileProperty;
 import org.gradle.api.plugins.JavaPlugin;
@@ -46,8 +46,8 @@ import java.util.stream.Collectors;
  * 
  * TODO: Investigate...
  */
-public class RemapJarForReleaseTask extends Jar {
-	public RemapJarForReleaseTask() {
+public class ReobfJarTask extends Jar {
+	public ReobfJarTask() {
 		setGroup(Constants.TASK_GROUP_PLUMBING);
 		setDescription("Remaps the mod under development into the distribution naming scheme, ready for publishing.");
 	}
@@ -59,14 +59,15 @@ public class RemapJarForReleaseTask extends Jar {
 		Project project = getProject();
 		LoomGradleExtension extension = project.getExtensions().getByType(LoomGradleExtension.class);
 		
-		if(extension.getProviderGraph().tinyTree == null) {
+		if(extension.getProviderGraph().reobfSrg == null) {
 			for(int i = 0; i < 10; i++) getLogger().error("[Voldeloom] RELEASE REMAPPING FOR SPLIT JARS (1.2.5) IS CURRENTLY BROKEN!!!!!!! SORRY!!!");
 			return;
 		}
 		
 		Path input = this.getInput().getAsFile().get().toPath();
-		Path output = this.getArchivePath().toPath();
+		Path output = this.getArchivePath().toPath(); //TODO: deprecated and think it's missing in gradle 4 (needs GradleSupport reflection hell)
 		
+		//TODO: correct?
 		Set<Path> remapClasspath = project.getConfigurations()
 			.getByName(JavaPlugin.COMPILE_CLASSPATH_CONFIGURATION_NAME)
 			.getFiles()
@@ -75,14 +76,14 @@ public class RemapJarForReleaseTask extends Jar {
 			.filter((p) -> !input.equals(p) && Files.exists(p))
 			.collect(Collectors.toSet());
 		
-		new TinyRemapperSession()
-			.setMappings(extension.getProviderGraph().tinyTree)
-			.setInputJar(input)
-			.setInputNamingScheme(Constants.MAPPED_NAMING_SCHEME)
-			.setInputClasspath(remapClasspath)
-			.addOutputJar(extension.forgeCapabilities.distributionNamingScheme.get(), output)
-			.setLogger(getLogger()::lifecycle)
-			.run();
+		//TODO: includes NewProvider baggage
+		Files.deleteIfExists(output);
+		new RemapperMcp(project, extension)
+			.inputJar(input)
+			.outputSrgJar_Generic(output)
+			.addToRemapClasspath(remapClasspath)
+			.srg(extension.getProviderGraph().reobfSrg)
+			.remap();
 
 		if(Files.notExists(output)) {
 			throw new RuntimeException("Failed to remap " + input + " to " + output + " - file missing!");

@@ -9,10 +9,6 @@ public class NaiveTextualSrgRenamer {
 		this.methods = methods;
 	}
 	
-	public NaiveTextualSrgRenamer(McpMappings mappings) {
-		this(mappings.fields, mappings.methods);
-	}
-	
 	private final Members fields, methods;
 	
 	private static final Pattern FUNC = Pattern.compile("func_[0-9]+_[a-zA-Z_]+");

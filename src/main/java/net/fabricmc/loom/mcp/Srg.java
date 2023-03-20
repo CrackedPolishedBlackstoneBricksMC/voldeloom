@@ -73,7 +73,7 @@ public class Srg {
 				//
 				//In fields 1 and 3, the name of the method is also attached to the owning class with a `/`.
 				//Fields 2 and 4 are the descriptors of the method. Field 4 is simply a conveniently-remapped version of field 2.
-				//(note/todo: field 4 does not exist in the TSRG format. i dont really use it anyway though)
+				//(note/todo: field 4 does not exist in the TSRG format)
 				if(split.length < 5) {
 					System.err.println("line " + lineNo + " is too short for method descriptor: " + line);
 					continue;
@@ -98,7 +98,7 @@ public class Srg {
 				
 				methodMappingsByOwningClass.computeIfAbsent(fromOwningClass, __ -> new LinkedHashMap<>())
 					.put(new MethodEntry(mem.intern(fromName), mem.intern(fromDesc)), new MethodEntry(mem.intern(toName), mem.intern(toDesc)));
-			} else if(!"PK:".equals(split[0])) { //We acknowledge PK lines but they're useless to us, more to do with the source-based toolchain i think
+			} else if(!"PK:".equals(split[0])) { //We acknowledge PK lines but they're useless to us, retroguard stuff
 				System.err.println("line " + lineNo + " has unknown type (not CL/FD/MD/PK): " + line);
 			}
 		}
@@ -107,12 +107,9 @@ public class Srg {
 	}
 	
 	public void writeTo(Path path) throws IOException {
-		try(
-			OutputStream o = new BufferedOutputStream(Files.newOutputStream(path));
-			OutputStreamWriter w = new OutputStreamWriter(o)
-		) {
+		try(OutputStream o = new BufferedOutputStream(Files.newOutputStream(path)); OutputStreamWriter w = new OutputStreamWriter(o)) {
 			write(w);
-			o.flush();
+			o.flush(); //(SFX: toilet flushing)
 		}
 	}
 	
@@ -150,12 +147,6 @@ public class Srg {
 		}
 	}
 	
-	public boolean isEmpty() {
-		//strictly speaking, mappings would be considered nonempty if a fieldMappingsByOwningClass entry existed, even if it points to an empty collection?
-		//my advice for that situation: don't do that
-		return classMappings.isEmpty() && fieldMappingsByOwningClass.isEmpty() && methodMappingsByOwningClass.isEmpty();
-	}
-	
 	public IMappingProvider toMappingProvider() {
 		return acceptor -> {
 			classMappings.forEach(acceptor::acceptClass);
@@ -171,14 +162,17 @@ public class Srg {
 		};
 	}
 	
-	//TODO: if a class is proguarded, does it never need to be repackaged. that would eliminate a lot of the annoying stuff lol
+	/**
+	 * Applies the "packaging transformation"; this renames most of the fully-qualified class names.
+	 * Class names, owners of fields, owners of methods, and method descriptors are affected.
+	 */
 	public Srg repackage(Packages packages) {
 		StringInterner mem = new StringInterner();
 		
 		Map<String, String> repackagedClasses = new LinkedHashMap<>();
-		classMappings.forEach((prg, srg) -> repackagedClasses.put(
-			mem.intern(packages.repackage(prg)),
-			mem.intern(packages.repackage(srg))
+		classMappings.forEach((proguardClass, srgClass) -> repackagedClasses.put(
+			mem.intern(packages.repackage(proguardClass)),
+			mem.intern(packages.repackage(srgClass))
 		));
 		
 		Map<String, Map<String, String>> repackagedFields = new LinkedHashMap<>();
@@ -195,16 +189,98 @@ public class Srg {
 				srgM.repackage(packages, mem)
 			));
 			
-			repackagedMethods.put(mem.intern(packages.repackageDescriptor(prg)), newMethods);
+			repackagedMethods.put(mem.intern(packages.repackage(prg)), newMethods);
 		});
 		
 		return new Srg(repackagedClasses, repackagedFields, repackagedMethods);
 	}
 	
+	/**
+	 * emulates the "rename the SRG using find-and-replace" step of official tools.
+	 * Anywhere an SRG name could appear, it is fed through the fields/methods csvs.
+	 * 
+	 * @param srgAsFallback if {@code true} and an MCP field name doesn't exist, the srg name will be used,
+	 *                      if not, the proguarded name will be used. same for method names.
+	 *                      mainly because this method is for reobf, so it should match what's in the dev workspace
+	 */
+	public Srg named(Members fields, Members methods, boolean srgAsFallback) {
+		Map<String, Map<String, String>> renamedFieldMappings = new LinkedHashMap<>();
+		fieldMappingsByOwningClass.forEach((proguardClass, fieldMappings) -> {
+			Map<String, String> namedFields = new LinkedHashMap<>();
+			fieldMappings.forEach((proguard, srg) -> {
+				Members.Entry entry = fields.remapSrg(srg);
+				
+				String name;
+				if(entry != null) name = entry.remappedName;
+				else if(srgAsFallback) name = srg;
+				else name = proguard;
+				
+				namedFields.put(proguard, name);
+			});
+			
+			renamedFieldMappings.put(proguardClass, namedFields);
+		});
+		
+		Map<String, Map<MethodEntry, MethodEntry>> renamedMethodMappings = new LinkedHashMap<>();
+		methodMappingsByOwningClass.forEach((proguardClass, methodMappings) -> {
+			Map<MethodEntry, MethodEntry> namedMethods = new LinkedHashMap<>();
+			methodMappings.forEach((proguard, srg) -> {
+				Members.Entry entry = methods.remapSrg(srg.name);
+				
+				String name;
+				if(entry != null) name = entry.remappedName;
+				else if(srgAsFallback) name = srg.name;
+				else name = proguard.name;
+				
+				namedMethods.put(proguard, new MethodEntry(name, srg.descriptor));
+			});
+			
+			renamedMethodMappings.put(proguardClass, namedMethods);
+		});
+		
+		return new Srg(new LinkedHashMap<>(classMappings), renamedFieldMappings, renamedMethodMappings);
+	}
+	
+	/**
+	 * Puts the thing down, flips it, and reverses it.
+	 */
+	public Srg inverted() {
+		Map<String, String> flipClasses = invert(classMappings);
+		
+		Map<String, Map<String, String>> flipFields = new LinkedHashMap<>();
+		fieldMappingsByOwningClass.forEach((proguardClass, fieldMappings) ->
+			flipFields.put(classMappings.getOrDefault(proguardClass, proguardClass), invert(fieldMappings)));
+		
+		Map<String, Map<MethodEntry, MethodEntry>> flipMethods = new LinkedHashMap<>();
+		methodMappingsByOwningClass.forEach((proguardClass, methodMappings) ->
+			flipMethods.put(classMappings.getOrDefault(proguardClass, proguardClass), invert(methodMappings)));
+		
+		return new Srg(flipClasses, flipFields, flipMethods);
+	}
+	
+	private <T> Map<T, T> invert(Map<T, T> in) {
+		Map<T, T> inverted = new LinkedHashMap<>();
+		in.forEach((key, value) -> inverted.put(value, key));
+		return inverted;
+	}
+	
+	/**
+	 * Simply deletes a class from the mappings.
+	 * This is maiiinly here to cheat with Ears, because it looks up a class at runtime using its proguarded name.
+	 * Making it work in a dev workspace involves making sure that class exists under its proguarded name.
+	 */
 	public void unmapClass(String classs) {
 		classMappings.remove(classs);
 		fieldMappingsByOwningClass.remove(classs);
 		methodMappingsByOwningClass.remove(classs);
+	}
+	
+	public boolean isEmpty() {
+		//handles the pathological case, where a mapping from X -> Y exists, but Y is itself an empty collection
+		//probably Point less:tm:
+		boolean fieldEmpty = fieldMappingsByOwningClass.isEmpty() || fieldMappingsByOwningClass.values().stream().allMatch(Map::isEmpty);
+		boolean methodEmpty = methodMappingsByOwningClass.isEmpty() || methodMappingsByOwningClass.values().stream().allMatch(Map::isEmpty);
+		return classMappings.isEmpty() && fieldEmpty && methodEmpty;
 	}
 	
 	public static class MethodEntry {

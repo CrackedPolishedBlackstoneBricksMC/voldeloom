@@ -119,7 +119,7 @@ public class ThreadSafeResultSaver implements IResultSaver, IFabricResultSaver {
 				}
 
 				lineMapWriter.println(qualifiedName + "\t" + maxLine + "\t" + maxLineDest);
-				lineMapWriter.println(builder.toString());
+				lineMapWriter.println(builder);
 			}
 		});
 	}

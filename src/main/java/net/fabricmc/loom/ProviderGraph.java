@@ -7,7 +7,7 @@ import net.fabricmc.loom.newprovider.AssetDownloader;
 import net.fabricmc.loom.newprovider.BinpatchLoader;
 import net.fabricmc.loom.newprovider.Binpatcher;
 import net.fabricmc.loom.newprovider.ConfigElementWrapper;
-import net.fabricmc.loom.newprovider.DependencyRemapper;
+import net.fabricmc.loom.newprovider.DependencyRemapperMcp;
 import net.fabricmc.loom.newprovider.ForgeDependencyFetcher;
 import net.fabricmc.loom.newprovider.Jarmodder;
 import net.fabricmc.loom.newprovider.MappingsWrapper;
@@ -15,11 +15,9 @@ import net.fabricmc.loom.newprovider.Merger;
 import net.fabricmc.loom.newprovider.NaiveRenamer;
 import net.fabricmc.loom.newprovider.RemapperMcp;
 import net.fabricmc.loom.newprovider.ResolvedConfigElementWrapper;
-import net.fabricmc.loom.newprovider.Tinifier;
 import net.fabricmc.loom.newprovider.VanillaDependencyFetcher;
 import net.fabricmc.loom.newprovider.VanillaJarFetcher;
 import net.fabricmc.loom.task.GenSourcesTask;
-import net.fabricmc.mapping.tree.TinyTree;
 import org.gradle.api.Project;
 import org.gradle.api.logging.Logger;
 
@@ -54,8 +52,8 @@ public class ProviderGraph {
 	//package of data used by GenSources
 	public final List<GenSourcesTask.SourceGenerationJob> sourceGenerationJobs = new ArrayList<>();
 	
-	//used by RemapJarTask TODO: FIX, it's not 1.2.5 clean
-	public TinyTree tinyTree;
+	//used by ReobfJarTask TODO: FIX, it's not 1.2.5 clean
+	public Srg reobfSrg;
 	
 	public void setup() throws Exception {
 		log.lifecycle("# Wrapping basic dependencies...");
@@ -162,32 +160,22 @@ public class ProviderGraph {
 			.jarmoddedFilename(jarmoddedPrefix + "-jarmod.jar")
 			.patch();
 		
-		log.lifecycle("# ({}) Parsing mappings...", side);
-		MappingsWrapper mappings = new MappingsWrapper(project, extension, project.getConfigurations().getByName(Constants.MAPPINGS), side);
-		
-		log.lifecycle("# ({}) Annoying tinyv2 crap i will remove...", side);
-		Tinifier tinifier = new Tinifier(project, extension)
-			.superProjectmapped(jarmod.isProjectmapped())
-			.scanJars(jarmod.getJarmoddedJar())
-			.mappings(mappings)
-			.useSrgsAsFallback(extension.forgeCapabilities.srgsAsFallback.get())
-			.tinify();
-		tinyTree = tinifier.getTinyTree(); //TODO yeet into the sun
-		
 		log.lifecycle("# ({}) Preparing ATs...", side);
 		AccessTransformer transformer = new AccessTransformer(project, extension)
-			.superProjectmapped(tinifier.isProjectmapped())
+			.superProjectmapped(jarmod.isProjectmapped())
 			.regularForgeJar(forge.getPath())
 			.loadCustomAccessTransformers();
 		@Nullable String atHash = transformer.getCustomAccessTransformerHash();
 		String atdSuffix = "-atd" + (atHash == null ? "" : "-" + atHash);
 		
+		log.lifecycle("# ({}) Parsing mappings...", side);
+		MappingsWrapper mappings = new MappingsWrapper(project, extension, project.getConfigurations().getByName(Constants.MAPPINGS));
+		
 		log.lifecycle("# ({}) Preparing SRG remapper...", side);
 		RemapperMcp remapperMcp = new RemapperMcp(project, extension)
 			.srg(srgGetter.apply(mappings.mappings))
 			.setProjectmapped(transformer.isProjectmapped())
-			.mappingsDepString(mappings.getFilenameSafeDepString())
-			.nonNativeLibs(vanillaDeps.getNonNativeLibraries_Todo())
+			.addToRemapClasspath(vanillaDeps.getNonNativeLibraries_Todo())
 			.deletedPrefixes(extension.forgeCapabilities.classFilter.get());
 		
 		Path srgAtdJar;
@@ -195,7 +183,7 @@ public class ProviderGraph {
 			log.lifecycle("# ({}) Remapping to SRG with tiny-remapper...", side);
 			remapperMcp
 				.inputJar(jarmod.getJarmoddedJar())
-				.outputSrgJar(jarmoddedPrefix + "-srg.jar")
+				.outputSrgJar(mappings.getFilenameSafeDepString(), jarmoddedPrefix + "-srg.jar")
 				.remap();
 			
 			log.lifecycle("# ({}) Applying (mapped) access transformers...", side);
@@ -216,7 +204,7 @@ public class ProviderGraph {
 			log.lifecycle("# ({}) Remapping to SRG with tiny-remapper...", side);
 			remapperMcp
 				.inputJar(transformer.getTransformedJar())
-				.outputSrgJar(jarmoddedPrefix + atdSuffix + "-srg.jar")
+				.outputSrgJar(mappings.getFilenameSafeDepString(), jarmoddedPrefix + atdSuffix + "-srg.jar")
 				.remap();
 			
 			srgAtdJar = remapperMcp.getOutputSrgJar();
@@ -233,19 +221,22 @@ public class ProviderGraph {
 		
 		project.getDependencies().add(Constants.MINECRAFT_NAMED, project.files(naive.getOutput()));
 		
-		log.lifecycle("# Remapping mod dependencies...");
-		new DependencyRemapper(project, extension)
-			.superProjectmapped(tinifier.isProjectmapped() | transformer.isProjectmapped() | vanillaDeps.isProjectmapped())
-			.mappingsSuffix(mappings.getFilenameSafeDepString())
-			.tinyTree(tinyTree)
+		//TODO: does this belong inside the per-side stuff, or outside
+		// probably inside? but i need better delineation of client and server workspace mods...
+		log.lifecycle("# ({}) Remapping mod dependencies...", side);
+		new DependencyRemapperMcp(project, extension)
+			.superProjectmapped(naive.isProjectmapped())
+			.mappingsDepString(mappings.getFilenameSafeDepString())
+			.srg(srgGetter.apply(mappings.mappings))
+			.fields(mappings.mappings.fields)
+			.methods(mappings.mappings.methods)
 			.remappedConfigurationEntries(extension.remappedConfigurationEntries)
 			.distributionNamingScheme(extension.forgeCapabilities.distributionNamingScheme.get())
 			.addToRemapClasspath(jarmod.getJarmoddedJar())
 			.addToRemapClasspath(vanillaDeps.getNonNativeLibraries_Todo())
-			.remapDependencies()
-			.installDependenciesToProject(project.getDependencies());
+			.doIt(project.getDependencies());
 		
-		log.lifecycle("# Initializing source generation job...");
+		log.lifecycle("# ({}) Initializing source generation job...", side);
 		GenSourcesTask.SourceGenerationJob job = new GenSourcesTask.SourceGenerationJob();
 		job.mappedJar = naive.getOutput();
 		job.sourcesJar = LoomGradlePlugin.replaceExtension(naive.getOutput(), "-sources-unlinemapped.jar");
@@ -254,6 +245,14 @@ public class ProviderGraph {
 		job.libraries = vanillaDeps.getNonNativeLibraries_Todo();
 		job.mcpMappingsZip = mappings.getPath();
 		sourceGenerationJobs.add(job);
+		
+		//TODO: oops all leaky abstraction again
+		if(side.equals("joined")) {
+			log.lifecycle("# ({}) Initializing reobf mappings...", side);
+			reobfSrg = srgGetter.apply(mappings.mappings)
+				.named(mappings.mappings.fields, mappings.mappings.methods, extension.forgeCapabilities.srgsAsFallback.get())
+				.inverted();
+		}
 	}
 	
 	public void trySetup() {

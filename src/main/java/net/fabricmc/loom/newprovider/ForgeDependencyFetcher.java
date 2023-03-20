@@ -40,7 +40,7 @@ public class ForgeDependencyFetcher extends NewProvider<ForgeDependencyFetcher> 
 	private final Collection<String> sniffedLibDownloaderJarNames = new ArrayList<>();
 	private final Collection<Path> resolvedLibDownloaderJars = new ArrayList<>();
 	
-	private Collection<String> sniffedMavenDepNames = new ArrayList<>();
+	private final Collection<String> sniffedMavenDepNames = new ArrayList<>();
 	
 	public ForgeDependencyFetcher forgeJar(Path forgeJar) {
 		this.forgeJar = forgeJar;

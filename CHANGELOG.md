@@ -1,18 +1,30 @@
 Running changelog document, will be added to as I commit things.
 
-# 2.3
+# Next version: 2.3 (`agency.highlysuspect:voldeloom:2.3-SNAPSHOT`)
+
+## Changes
+
+* Rewrote basically all of the mappings guts
+  * I researched how MCP actually works, instead of simply throwing `tiny-remapper` at everything
+  * the goal is to use `tiny-remapper` where MCP uses RetroGuard, and an in-house `NaiveRenamer` tool where MCP uses regular expressions over the source code
+    * `tiny-remapper` and RetroGuard are similar, modulo the mappings input format.
+    * The main difference is that `NaiveRenamer` also operates over Java bytecode as well as source code, but uses the same "just find-and-replace" algorithm that ignores things like method descriptors.
+    * deobf: `tiny-remapper` is used for the initial deobfuscation to SRG names, `NaiveRenamer` takes it the rest of the way to named
+    * reobf: the SRG is extended to cover MCP names instead of just SRGs (mirroring a find-replace step in MCP), inverted, and `tiny-remapper` is used
+  * Side effect: maybe improves `--refresh-dependencies` performance a bit, `NaiveRenamer` is very fast (because it doesn't do much) 
+  * Deleted lots of tiny-remapper stuff that fell unused due to this change
 
 ## Roadmap
 
-* Fix 1.2.5 and make it nice
-* Complete the accuracy-focused remapping rewrite, which deemphasizes `tiny-remapper`
+* Fix 1.2.5 and make it "nice" (split sourcesets etc)
+* Fix the inevitable growing pains from the new mapping system lol
 * Add more to the `volde.layered` system
 
 ## Known bugs
 
 `amq$1` crash is back (inner class remapping nonsense)
 
-# 2.2 (`agency.highlysuspect:voldeloom:2.2-SNAPSHOT`)
+# 2.2 (`agency.highlysuspect:voldeloom:2.2`)
 
 Remapping is in a bit of a weird state, but i'm about to do massive breaking changes to the system, so this is a release cut in haste
 

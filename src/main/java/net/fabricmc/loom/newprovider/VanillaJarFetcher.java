@@ -86,7 +86,7 @@ public class VanillaJarFetcher extends NewProvider<VanillaJarFetcher> {
 		log.info("|-> Parsing manifest index...");
 		ManifestIndex versionManifestIndex = ManifestIndex.read(versionManifestIndexJson);
 		
-		ManifestIndex.VersionData selectedVersion = null;
+		ManifestIndex.VersionData selectedVersion;
 		if(customManifestUrl != null) {
 			log.lifecycle("!! Using custom Minecraft per-version manifest at URL: {}", customManifestUrl);
 			selectedVersion = new ManifestIndex.VersionData();
