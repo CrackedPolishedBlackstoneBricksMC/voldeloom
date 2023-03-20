@@ -2,7 +2,9 @@
 
 Gradle plugin for ~~Fabric~~ ancient versions of Forge.
 
-**Current stable:** `2.1` (manually posted) / **Current snapshot:** `2.2-SNAPSHOT` (from CI every commit)
+* **Latest stable**: `2.2`
+* **Latest stable** that actually works good (long story): `2.1`
+* **Latest snapshot**: `2.3-SNAPSHOT` (from CI every commit)
 
 ### If you're interested in the history:
 
