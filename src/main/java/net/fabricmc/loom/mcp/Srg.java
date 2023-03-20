@@ -162,16 +162,18 @@ public class Srg {
 					
 					//If there's a mapping "amq -> net/minecraft/block/Block", and I'm inventing a mapping for the
 					//class "amq$1", I want to map it the same way "amq" is mapped, but keep the $1 suffix.
-					//So ideally I want net/minecraft/block/Block$1.
+					//So ideally I want net/minecraft/block/Block$1. We don't really have a choice; Forge binpatches
+					//will refer to the class by this name.
 					
 					String suffix;
 					
 					int dollarIndex = innerClass.indexOf('$');
-					if(dollarIndex == -1) {
-						//Well that sucks. Let's just make something up
-						suffix = "$voldeloom_invented$" + thinAirId[0]++; 
+					if(dollarIndex != -1) {
+						//Grab the part after/including the dollar sign.
+						suffix = innerClass.substring(dollarIndex);
 					} else {
-						suffix = innerClass.substring(dollarIndex); //the part after/including the dollar sig
+						//Well that sucks. Let's just make something up.
+						suffix = "$voldeloom_invented$" + thinAirId[0]++; 
 					}
 					
 					classMappings.put(innerClass, classMappings.get(outerClass) + suffix);
@@ -185,7 +187,7 @@ public class Srg {
 			
 			fieldMappingsByOwningClass.forEach((owningClass, fieldMappings) ->
 				fieldMappings.forEach((oldName, newName) ->
-					//make up a field desc; tiny-remapper is put into a mode that ignores field descriptors
+					//make up a field desc; tiny-remapper is put into a mode that ignores field descriptors anyway
 					acceptor.acceptField(new IMappingProvider.Member(owningClass, oldName, "Ljava/lang/Void;"), newName)));
 			
 			methodMappingsByOwningClass.forEach((owningClass, methodMappings) ->
