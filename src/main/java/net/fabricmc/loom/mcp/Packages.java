@@ -56,14 +56,12 @@ public class Packages {
 		else return lookup + "/" + srgClassNameOnly;
 	}
 	
-	// L([^.;\[]*);
-	//Matches a capital L, followed by a Java class internal name, followed by a semicolon (how class types are encoded in descriptors).
-	//Capturing group 1 is set to just the stuff inside the L; brackets.
-	//See JVMS section 4.2.1, 4.2.2 for a definition of "legal class name". This regex deviates from the standard in two ways that I know of:
-	//* it will match empty classes (L;).
-	//* it will match classes with empty path segments (Lagency/highlysuspect//nothing;).
-	//This is fixable but, we're not being fed pathological class names, so I'll take the simpler regex.
-	public static final Pattern CLASS_NAMES_FROM_DESCRIPTOR_SOUP = Pattern.compile("L([^.;\\[]*);");
+	// L([^;]*);
+	//Matches nonnested brackets delimited on the left by a capital L and on the right by a semicolon. This is how class types are encoded in descriptors.
+	//Capturing group 1 is set to the stuff inside the brackets.
+	//See JVMS section 4.2.1, 4.2.2 for a definition of "legal class name". Basically any character is permissible except for ";", which terminates
+	//the class name, and a few other characters (.[) that I don't expect to see because we're not being fed pathological class names.
+	public static final Pattern CLASS_NAMES_FROM_DESCRIPTOR_SOUP = Pattern.compile("L([^;]*);");
 	
 	/**
 	 * Calls {@code repackage} on all internal-format class names it can find in the descriptor.
