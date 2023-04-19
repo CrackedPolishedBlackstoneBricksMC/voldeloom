@@ -76,14 +76,9 @@ public class ReobfJarTask extends Jar {
 			.filter((p) -> !input.equals(p) && Files.exists(p))
 			.collect(Collectors.toSet());
 		
-		//TODO: includes NewProvider baggage
+		//TODO: weird
 		Files.deleteIfExists(output);
-		new RemapperMcp(project, extension)
-			.inputJar(input)
-			.outputSrgJar_Generic(output)
-			.addToRemapClasspath(remapClasspath)
-			.srg(extension.getProviderGraph().reobfSrg)
-			.remap();
+		RemapperMcp.doIt(input, output, extension.getProviderGraph().reobfSrg, getLogger(), null, remapClasspath);
 
 		if(Files.notExists(output)) {
 			throw new RuntimeException("Failed to remap " + input + " to " + output + " - file missing!");

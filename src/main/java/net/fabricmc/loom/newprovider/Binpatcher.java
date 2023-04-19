@@ -84,7 +84,7 @@ public class Binpatcher extends NewProvider<Binpatcher> {
 			if(Files.exists(binpatchesPath)) {
 				log.lifecycle("|-> Yes, this version of Forge does contain binpatches.");
 				props.put("has-binpatches", "yes");
-				binpatchesSupplier = Suppliers.memoize(() -> {
+				binpatchesSupplier = Suppliers.memoize(() -> { //<- memoized!
 					log.lifecycle("\\-> Parsing binpatches...");
 					return new BinpatchesPack().read(log, binpatchesPath);
 				});
@@ -98,8 +98,8 @@ public class Binpatcher extends NewProvider<Binpatcher> {
 				binpatchedClient = client;
 				binpatchedServer = server;
 			} else {
-				binpatchedClient = getOrCreate(props.substFilename(getCacheDir().resolve(binpatchedClientName)), dest -> doPatch(dest, true, binpatchesSupplier));
-				binpatchedServer = getOrCreate(props.substFilename(getCacheDir().resolve(binpatchedServerName)), dest -> doPatch(dest, false, binpatchesSupplier));
+				binpatchedClient = getOrCreate(getCacheDir().resolve(props.subst(binpatchedClientName)), dest -> doPatch(dest, true, binpatchesSupplier));
+				binpatchedServer = getOrCreate(getCacheDir().resolve(props.subst(binpatchedServerName)), dest -> doPatch(dest, false, binpatchesSupplier));
 			}
 		}
 		

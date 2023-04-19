@@ -17,10 +17,10 @@ import net.fabricmc.loom.newprovider.ResolvedConfigElementWrapper;
 import net.fabricmc.loom.newprovider.VanillaDependencyFetcher;
 import net.fabricmc.loom.newprovider.VanillaJarFetcher;
 import net.fabricmc.loom.task.GenSourcesTask;
+import net.fabricmc.loom.util.Props;
 import org.gradle.api.Project;
 import org.gradle.api.logging.Logger;
 
-import javax.annotation.Nullable;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -110,21 +110,29 @@ public class ProviderGraph {
 				.merge();
 			
 			//and the rest is the same
-			setupSide("joined", merger.getMergedJar(), vanillaDeps, mcPrefix, forge, mappings -> mappings.joined);
+			setupSide("joined", merger.getMergedJar(), merger.props, vanillaDeps, mcPrefix, forge, mappings -> mappings.joined);
 		} else {
 			//split jar (1.2.5-)
 			ResolvedConfigElementWrapper forgeClient = new ResolvedConfigElementWrapper(project, project.getConfigurations().getByName(Constants.FORGE_CLIENT));
 			ResolvedConfigElementWrapper forgeServer = new ResolvedConfigElementWrapper(project, project.getConfigurations().getByName(Constants.FORGE_SERVER));
-			setupSide("client", vanillaJars.getClientJar(), vanillaDeps, mcPrefix + "-client", forgeClient, mappings -> mappings.client);
-			setupSide("server", vanillaJars.getServerJar(), vanillaDeps, mcPrefix + "-server", forgeServer, mappings -> mappings.server);
+			setupSide("client", vanillaJars.getClientJar(), vanillaJars.props, vanillaDeps, mcPrefix + "-client", forgeClient, mappings -> mappings.client);
+			setupSide("server", vanillaJars.getServerJar(), vanillaJars.props, vanillaDeps, mcPrefix + "-server", forgeServer, mappings -> mappings.server);
 		}
 		
 		log.lifecycle("# Thank you for flying Voldeloom.");
 	}
 	
-	private void setupSide(String side, Path vanillaJar, VanillaDependencyFetcher vanillaDeps, String mcPrefix, ResolvedConfigElementWrapper forge, Function<McpMappings, Srg> srgGetter) throws Exception {
+	private void setupSide(
+		String side,
+		Path vanillaJar,
+		Props vanillaJarProps,
+		VanillaDependencyFetcher vanillaDeps,
+		String mcPrefix,
+		ResolvedConfigElementWrapper forge,
+		Function<McpMappings, Srg> srgGetter
+	) throws Exception {
 		log.lifecycle("# ({}) Fetching Forge dependencies...", side);
-		new ForgeDependencyFetcher(project, extension)
+		ForgeDependencyFetcher forgeDeps = new ForgeDependencyFetcher(project, extension)
 			.forgeJar(forge.getPath())
 			.fmlLibrariesBaseUrl(extension.fmlLibrariesBaseUrl)
 			.libDownloaderDir(forge.getFilenameSafeDepString())
@@ -136,22 +144,20 @@ public class ProviderGraph {
 		log.lifecycle("# ({}) Jarmodding...", side);
 		String jarmoddedPrefix = mcPrefix + "-forge-" + forge.getFilenameSafeVersion();
 		Jarmodder jarmod = new Jarmodder(project, extension)
+			.superProps(vanillaJarProps)
 			.base(vanillaJar)
 			.overlay(forge.getPath())
-			.jarmoddedFilename(jarmoddedPrefix + "-jarmod.jar")
+			.jarmoddedFilename(jarmoddedPrefix + "-jarmod-{HASH}.jar")
 			.patch();
 		
 		log.lifecycle("# ({}) Parsing mappings...", side);
-		//the jarscandata comes from the jarmodded jar, not the vanilla one, because some inner-class relations i need to know about
-		//are added by forge
+		//the jarscandata comes from the jarmodded jar, not the vanilla one, because some inner-class relations i need to know about are added by forge
 		MappingsWrapper mappings = new MappingsWrapper(project, extension, project.getConfigurations().getByName(Constants.MAPPINGS), jarmod.getJarmoddedJar());
 		
 		log.lifecycle("# ({}) Preparing ATs...", side);
 		AccessTransformer transformer = new AccessTransformer(project, extension)
 			.regularForgeJar(forge.getPath())
 			.loadCustomAccessTransformers();
-		@Nullable String atHash = transformer.getCustomAccessTransformerHash();
-		String atdSuffix = "-atd" + (atHash == null ? "" : "-" + atHash);
 		
 		log.lifecycle("# ({}) Preparing SRG remapper...", side);
 		RemapperMcp remapperMcp = new RemapperMcp(project, extension)
@@ -160,44 +166,49 @@ public class ProviderGraph {
 			.deletedPrefixes(extension.forgeCapabilities.classFilter.get());
 		
 		Path srgAtdJar;
-		if(extension.forgeCapabilities.mappedAccessTransformers.get()) {
+		if(extension.forgeCapabilities.mappedAccessTransformers.get()) { //1.7 and above
 			log.lifecycle("# ({}) Remapping to SRG with tiny-remapper...", side);
-			remapperMcp
+			remapperMcp = remapperMcp
+				.superProps(jarmod)
 				.inputJar(jarmod.getJarmoddedJar())
-				.outputSrgJar(mappings.getFilenameSafeDepString(), jarmoddedPrefix + "-srg.jar")
+				.outputSrgJar(mappings.getFilenameSafeDepString(), jarmoddedPrefix + "-srg-{HASH}.jar")
 				.remap();
 			
 			log.lifecycle("# ({}) Applying (mapped) access transformers...", side);
-			transformer
+			transformer = transformer
+				.superProps(remapperMcp)
 				.mappedAccessTransformers(true)
 				.inputJar(remapperMcp.getOutputSrgJar())
-				.transformedFilename(jarmoddedPrefix + "-srg-" + atdSuffix + ".jar")
+				.transformedFilename(jarmoddedPrefix + "-srg-atd-{HASH}.jar")
 				.transform();
 			
 			srgAtdJar = transformer.getTransformedJar();
-		} else {
+		} else { //1.6 and below
 			log.lifecycle("# ({}) Applying (unmapped) access transformers...", side);
-			transformer
+			transformer = transformer
+				.superProps(jarmod)
 				.inputJar(jarmod.getJarmoddedJar())
-				.transformedFilename(jarmoddedPrefix + atdSuffix + ".jar")
+				.transformedFilename(jarmoddedPrefix + "-atd-{HASH}.jar")
 				.transform();
 			
 			log.lifecycle("# ({}) Remapping to SRG with tiny-remapper...", side);
-			remapperMcp
+			remapperMcp = remapperMcp
+				.superProps(transformer)
 				.inputJar(transformer.getTransformedJar())
-				.outputSrgJar(mappings.getFilenameSafeDepString(), jarmoddedPrefix + atdSuffix + "-srg.jar")
+				.outputSrgJar(mappings.getFilenameSafeDepString(), jarmoddedPrefix + "-atd-srg-{HASH}.jar")
 				.remap();
 			
 			srgAtdJar = remapperMcp.getOutputSrgJar();
 		}
 		
-		//Remap to named using a naive remapper
 		log.lifecycle("# ({}) Applying field and method names with NaiveRenamer...", side);
 		NaiveRenamer naive = new NaiveRenamer(project, extension)
+			.superProps(transformer, remapperMcp)
 			.input(srgAtdJar)
-			.output(srgAtdJar.resolveSibling(srgAtdJar.getFileName() + "-named.jar")) //TODO
-			.mappings(mappings.mappings) //mappings
-			.doIt();
+			.outputFilename(mappings.getFilenameSafeDepString(), jarmoddedPrefix + "-named-{HASH}.jar")
+			.fields(mappings.mappings.fields)
+			.methods(mappings.mappings.methods)
+			.rename();
 		
 		project.getDependencies().add(Constants.MINECRAFT_NAMED, project.files(naive.getOutput()));
 		
@@ -205,6 +216,7 @@ public class ProviderGraph {
 		// probably inside? but i need better delineation of client and server workspace mods...
 		log.lifecycle("# ({}) Remapping mod dependencies...", side);
 		new DependencyRemapperMcp(project, extension)
+			.superProps(naive)
 			.mappingsDepString(mappings.getFilenameSafeDepString())
 			.srg(srgGetter.apply(mappings.mappings))
 			.fields(mappings.mappings.fields)

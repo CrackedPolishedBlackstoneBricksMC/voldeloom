@@ -29,9 +29,7 @@ public class Jarmodder extends NewProvider<Jarmodder> {
 	
 	//inputs
 	private Path base, overlay;
-	
-	//outputs
-	private Path jarmodded;
+	private String jarmoddedFilename;
 	
 	public Jarmodder base(Path base) {
 		this.base = base;
@@ -44,9 +42,12 @@ public class Jarmodder extends NewProvider<Jarmodder> {
 	}
 	
 	public Jarmodder jarmoddedFilename(String jarmoddedFilename) {
-		this.jarmodded = getCacheDir().resolve(jarmoddedFilename);
+		this.jarmoddedFilename = jarmoddedFilename;
 		return this;
 	}
+	
+	//outputs
+	private Path jarmodded;
 	
 	public Path getJarmoddedJar() {
 		return jarmodded;
@@ -56,17 +57,13 @@ public class Jarmodder extends NewProvider<Jarmodder> {
 		Check.notNull(base, "jarmod base");
 		Check.notNull(overlay, "jarmod overlay");
 		
-		cleanOnRefreshDependencies(jarmodded);
-		
-		log.lifecycle("] jarmodded: {}", jarmodded);
-		
-		if(Files.notExists(jarmodded)) {
-			log.lifecycle("|-> Jarmodded jar does not exist, performing jarmod...");
-			Files.createDirectories(jarmodded.getParent());
+		jarmodded = getOrCreate(getCacheDir().resolve(props.subst(jarmoddedFilename)), dest -> {
+			log.lifecycle("|-> Performing jarmod...");
+			Files.createDirectories(dest.getParent());
 			
 			try(FileSystem baseFs    = FileSystems.newFileSystem(URI.create("jar:" + base.toUri()),    Collections.emptyMap());
 			    FileSystem overlayFs = FileSystems.newFileSystem(URI.create("jar:" + overlay.toUri()), Collections.emptyMap());
-			    FileSystem patchedFs = FileSystems.newFileSystem(URI.create("jar:" + jarmodded.toUri()), Collections.singletonMap("create", "true"))) {
+			    FileSystem patchedFs = FileSystems.newFileSystem(URI.create("jar:" + dest.toUri()), Collections.singletonMap("create", "true"))) {
 				log.lifecycle("|-> Copying base into patched jar...");
 				Files.walkFileTree(baseFs.getPath("/"), new SimpleFileVisitor<Path>() {
 					@Override
@@ -116,7 +113,8 @@ public class Jarmodder extends NewProvider<Jarmodder> {
 			
 			log.lifecycle("|-> Deleting META-INF... (just kidding, i didn't copy it in the first place)");
 			log.lifecycle("|-> Jarmod success!");
-		}
+		});
+		log.lifecycle("] jarmodded: {}", jarmodded);
 		
 		return this;
 	}

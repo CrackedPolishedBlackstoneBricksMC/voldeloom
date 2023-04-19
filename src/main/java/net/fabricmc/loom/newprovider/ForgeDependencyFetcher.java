@@ -35,13 +35,6 @@ public class ForgeDependencyFetcher extends NewProvider<ForgeDependencyFetcher> 
 	private String fmlLibrariesBaseUrl;
 	private boolean bouncycastleCheat;
 	
-	//outputs
-	private Path libDownloaderDir;
-	private final Collection<String> sniffedLibDownloaderJarNames = new ArrayList<>();
-	private final Collection<Path> resolvedLibDownloaderJars = new ArrayList<>();
-	
-	private final Collection<String> sniffedMavenDepNames = new ArrayList<>();
-	
 	public ForgeDependencyFetcher forgeJar(Path forgeJar) {
 		this.forgeJar = forgeJar;
 		return this;
@@ -56,6 +49,13 @@ public class ForgeDependencyFetcher extends NewProvider<ForgeDependencyFetcher> 
 		this.bouncycastleCheat = bouncycastleCheat;
 		return this;
 	}
+	
+	//outputs
+	private Path libDownloaderDir;
+	
+	private final Collection<String> sniffedLibDownloaderJarNames = new ArrayList<>();
+	private final Collection<Path> resolvedLibDownloaderJars = new ArrayList<>();
+	private final Collection<String> sniffedMavenDepNames = new ArrayList<>();
 	
 	public ForgeDependencyFetcher libDownloaderDir(String extractedLibrariesDirname) {
 		this.libDownloaderDir = getCacheDir().resolve("forgeLibs").resolve(extractedLibrariesDirname);

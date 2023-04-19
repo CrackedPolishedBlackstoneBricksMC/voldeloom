@@ -31,6 +31,7 @@ import net.fabricmc.loom.util.VersionManifest;
 import org.gradle.api.Project;
 
 import java.io.BufferedReader;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -51,6 +52,7 @@ public class AssetDownloader extends NewProvider<AssetDownloader> {
 	
 	//outputs
 	private Path assetIndexJson;
+	private Path finishedFlag;
 	private Path assetsDir;
 	private boolean legacyLayout;
 	
@@ -80,11 +82,11 @@ public class AssetDownloader extends NewProvider<AssetDownloader> {
 		Path assetsCache = getCacheDir().resolve("assets");
 		
 		assetIndexJson = assetsCache.resolve("indexes").resolve(versionManifest.assetIndexReference.id + ".json");
+		finishedFlag = assetIndexJson.resolveSibling(assetIndexJson.getFileName().toString() + ".volde-dl-finished");
 		
 		//Let's not delete the assets themselves on refreshDependencies.
 		//They're rarely the problem, and take a long time to download.
 		//That's why i check freshAssetIndex before deleting it on refreshDependencies.
-		freshAssetIndex = Files.notExists(assetIndexJson);
 		cleanOnRefreshDependencies(assetIndexJson);
 		
 		//download asset index
@@ -116,7 +118,7 @@ public class AssetDownloader extends NewProvider<AssetDownloader> {
 	}
 	
 	public AssetDownloader downloadAssets() throws Exception {
-		if(!freshAssetIndex) return this; //Nothing to do
+		if(Files.exists(finishedFlag)) return this; //nothing to do
 		
 		log.lifecycle("|-> Downloading assets to {}...", assetsDir);
 		JsonObject objects = assets.getAsJsonObject("objects");
@@ -156,6 +158,8 @@ public class AssetDownloader extends NewProvider<AssetDownloader> {
 			//</logging>
 		}
 		log.info("|-> Done!");
+		
+		Files.write(finishedFlag, "The presence of this file tells Voldeloom that it's finished downloading assets.".getBytes(StandardCharsets.UTF_8));
 		
 		return this;
 	}

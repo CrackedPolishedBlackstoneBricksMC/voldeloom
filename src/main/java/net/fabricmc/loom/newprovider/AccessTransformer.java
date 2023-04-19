@@ -9,7 +9,6 @@ import org.gradle.api.Project;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
 
-import javax.annotation.Nullable;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.IOException;
@@ -44,12 +43,8 @@ public class AccessTransformer extends NewProvider<AccessTransformer> {
 	//inputs
 	private Path forgeJar;
 	private Path inputJar;
+	private String transformedFilename;
 	private boolean mappedAccessTransformers;
-	
-	//outputs
-	private Set<Path> customAccessTransformers = new HashSet<>();
-	private @Nullable String customAccessTransformerHash;
-	private Path outputJar;
 	
 	public AccessTransformer regularForgeJar(Path forge) {
 		this.forgeJar = forge;
@@ -62,7 +57,7 @@ public class AccessTransformer extends NewProvider<AccessTransformer> {
 	}
 	
 	public AccessTransformer transformedFilename(String transformedFilename) {
-		this.outputJar = getCacheDir().resolve(transformedFilename);
+		this.transformedFilename = transformedFilename;
 		return this;
 	}
 	
@@ -71,13 +66,12 @@ public class AccessTransformer extends NewProvider<AccessTransformer> {
 		return this;
 	}
 	
-	@Nullable
-	public String getCustomAccessTransformerHash() {
-		return customAccessTransformerHash;
-	}
+	//outputs
+	private Set<Path> customAccessTransformers = new HashSet<>();
+	private Path transformedJar;
 	
 	public Path getTransformedJar() {
-		return outputJar;
+		return transformedJar;
 	}
 	
 	public AccessTransformer loadCustomAccessTransformers() throws Exception {
@@ -94,7 +88,8 @@ public class AccessTransformer extends NewProvider<AccessTransformer> {
 				readersDigest.update(Files.readAllBytes(path));
 				readersDigest.update((byte) 0);
 			}
-			customAccessTransformerHash = Checksum.toHexStringPrefix(readersDigest.digest(), 8);
+			
+			props.put("accesstransformerhash", Checksum.toHexString(readersDigest.digest()));
 		}
 		
 		return this;
@@ -104,10 +99,7 @@ public class AccessTransformer extends NewProvider<AccessTransformer> {
 		Check.notNull(forgeJar, "forge version");
 		Check.notNull(inputJar, "jarmod");
 		
-		log.lifecycle("] access-transformed jar: {}", outputJar);
-		cleanOnRefreshDependencies(outputJar);
-		
-		if(Files.notExists(outputJar)) {
+		transformedJar = getOrCreate(getCacheDir().resolve(props.subst(transformedFilename)), dest -> {
 			log.lifecycle("|-> Access-transformed jar does not exist, parsing Forge's access transformers...");
 			
 			//Read forge ats
@@ -147,7 +139,7 @@ public class AccessTransformer extends NewProvider<AccessTransformer> {
 			
 			try(
 				FileSystem unAccessTransformedFs = FileSystems.newFileSystem(URI.create("jar:" + inputJar.toUri()), Collections.emptyMap());
-				FileSystem accessTransformedFs = FileSystems.newFileSystem(URI.create("jar:" + outputJar.toUri()), Collections.singletonMap("create", "true"))) {
+				FileSystem accessTransformedFs = FileSystems.newFileSystem(URI.create("jar:" + dest.toUri()), Collections.singletonMap("create", "true"))) {
 				Files.walkFileTree(unAccessTransformedFs.getPath("/"), new SimpleFileVisitor<Path>() {
 					@Override
 					public FileVisitResult visitFile(Path srcPath, BasicFileAttributes attrs) throws IOException {
@@ -192,9 +184,9 @@ public class AccessTransformer extends NewProvider<AccessTransformer> {
 				log.warn("|-> Found {} unused access transformers.", unusedAtsReport.size());
 				unusedAtsReport.forEach(log::warn);
 			}
-		}
+		});
+		log.lifecycle("] access-transformed jar: {}", transformedJar);
 		
 		return this;
 	}
-	
 }

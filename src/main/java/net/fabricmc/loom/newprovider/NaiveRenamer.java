@@ -1,11 +1,11 @@
 package net.fabricmc.loom.newprovider;
 
 import net.fabricmc.loom.LoomGradleExtension;
-import net.fabricmc.loom.mcp.McpMappings;
 import net.fabricmc.loom.mcp.Members;
 import net.fabricmc.loom.mcp.NaiveAsmSrgRenamer;
 import net.fabricmc.loom.mcp.NaiveTextualSrgRenamer;
 import org.gradle.api.Project;
+import org.gradle.api.logging.Logger;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
 
@@ -28,7 +28,9 @@ public class NaiveRenamer extends NewProvider<NaiveRenamer> {
 		super(project, extension);
 	}
 	
-	private Path input, output;
+	//input
+	private Path input;
+	private String outputDirectory, outputFilename;
 	private Members fields, methods;
 	
 	public NaiveRenamer input(Path input) {
@@ -36,8 +38,9 @@ public class NaiveRenamer extends NewProvider<NaiveRenamer> {
 		return this;
 	}
 	
-	public NaiveRenamer output(Path output) {
-		this.output = output;
+	public NaiveRenamer outputFilename(String outputDirectory, String outputFilename) {
+		this.outputDirectory = outputDirectory;
+		this.outputFilename = outputFilename;
 		return this;
 	}
 	
@@ -51,24 +54,25 @@ public class NaiveRenamer extends NewProvider<NaiveRenamer> {
 		return this;
 	}
 	
-	public NaiveRenamer mappings(McpMappings mappings) {
-		return fields(mappings.fields).methods(mappings.methods);
-	}
+	//output
+	private Path output;
 	
 	public Path getOutput() {
 		return output;
 	}
 	
-	public NaiveRenamer doIt() throws Exception {
-		log.info("] naive renamer input: {}", input);
-		log.info("] naive renamer output: {}", output);
+	public NaiveRenamer rename() throws Exception {
+		//kludge: putting it next to the output of RemapperMcp
+		output = getOrCreate(getCacheDir().resolve("mapped").resolve(outputDirectory).resolve(props.subst(outputFilename)), dest -> {
+			Files.createDirectories(dest.getParent());
+			doIt(input, dest, log, fields, methods);
+		});
 		
-		cleanOnRefreshDependencies(output);
-		
-		if(Files.exists(output)) return this;
-		
-		log.info("|-> Performing naive renaming...");
-		Files.createDirectories(output.getParent());
+		return this;
+	}
+	
+	public static void doIt(Path input, Path output, Logger log, Members fields, Members methods) throws Exception {
+		log.warn("NaiveRenamer.doIt; input: {}, output: {}", input, output);
 		
 		try(FileSystem srcFs = FileSystems.newFileSystem(URI.create("jar:" + input.toUri()), Collections.emptyMap());
 		    FileSystem dstFs = FileSystems.newFileSystem(URI.create("jar:" + output.toUri()), Collections.singletonMap("create", "true"))) {
@@ -105,7 +109,5 @@ public class NaiveRenamer extends NewProvider<NaiveRenamer> {
 		}
 		
 		log.info("|-> Done.");
-		
-		return this;
 	}
 }

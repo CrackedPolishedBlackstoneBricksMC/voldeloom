@@ -3,6 +3,7 @@ package net.fabricmc.loom.newprovider;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.util.Check;
 import net.fabricmc.loom.util.ManifestIndex;
+import net.fabricmc.loom.util.Props;
 import net.fabricmc.loom.util.VersionManifest;
 import org.gradle.api.Project;
 
@@ -64,10 +65,12 @@ public class VanillaJarFetcher extends NewProvider<VanillaJarFetcher> {
 	public VanillaJarFetcher fetch() throws Exception {
 		Check.notNull(mc, "minecraft version");
 		
-		Path versionManifestIndexJson = getOrCreate(props.substFilename(getCacheDir().resolve("version_manifest_{HASH}.json")), dest3 -> {
-			log.info("|-> Downloading manifest index to {}...", dest3);
+		//TODO: skipIfNewerThan doesn't work inside getOrCreate
+		Props indexProps = props.copy().remove("mcversion"); //Manifest is independent of the minecraft version.
+		Path versionManifestIndexJson = getOrCreate(getCacheDir().resolve(indexProps.subst("version_manifest_{HASH}.json")), dest -> {
+			log.info("|-> Downloading manifest index to {}...", dest);
 			newDownloadSession("https://launchermeta.mojang.com/mc/game/version_manifest.json")
-				.dest(dest3)
+				.dest(dest)
 				.etag(true)
 				.gzip(true)
 				.skipIfNewerThan(Period.ofDays(14))
@@ -91,10 +94,10 @@ public class VanillaJarFetcher extends NewProvider<VanillaJarFetcher> {
 			}
 		}
 		
-		Path thisVersionManifestJson = getOrCreate(props.substFilename(getCacheDir().resolve("minecraft-" + mc.getFilenameSafeVersion() + "-info-{HASH}.json")), dest2 -> {
-			log.info("|-> Found URL for Minecraft {} per-version manifest, downloading to {}...", mc.getVersion(), dest2);
+		Path thisVersionManifestJson = getOrCreate(getCacheDir().resolve(props.subst("minecraft-" + mc.getFilenameSafeVersion() + "-info-{HASH}.json")), dest -> {
+			log.info("|-> Found URL for Minecraft {} per-version manifest, downloading to {}...", mc.getVersion(), dest);
 			newDownloadSession(selectedVersion.url)
-				.dest(dest2)
+				.dest(dest)
 				.gzip(true)
 				.etag(true)
 				.download();
@@ -104,17 +107,17 @@ public class VanillaJarFetcher extends NewProvider<VanillaJarFetcher> {
 		log.info("|-> Parsing per-version manifest...");
 		versionManifest = VersionManifest.read(thisVersionManifestJson);
 		
-		clientJar = getOrCreate(props.substFilename(getCacheDir().resolve(clientFilename)), dest1 -> {
-			log.info("|-> Downloading Minecraft {} client jar to {}...", mc.getVersion(), dest1);
+		clientJar = getOrCreate(getCacheDir().resolve(props.subst(clientFilename)), dest -> {
+			log.info("|-> Downloading Minecraft {} client jar to {}...", mc.getVersion(), dest);
 			newDownloadSession(versionManifest.downloads.get("client").url)
-				.dest(dest1)
+				.dest(dest)
 				.etag(true)
 				.gzip(false)
 				.download();
 		});
 		log.lifecycle("] client jar: {}", clientJar);
 		
-		serverJar = getOrCreate(props.substFilename(getCacheDir().resolve(serverFilename)), dest -> {
+		serverJar = getOrCreate(getCacheDir().resolve(props.subst(serverFilename)), dest -> {
 			log.info("|-> Downloading Minecraft {} server jar to {}...", mc.getVersion(), dest);
 			newDownloadSession(versionManifest.downloads.get("server").url)
 				.dest(dest)

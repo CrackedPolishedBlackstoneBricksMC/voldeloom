@@ -53,7 +53,7 @@ public class Merger extends NewProvider<Merger> {
 		Check.notNull(client, "client jar");
 		Check.notNull(server, "server jar");
 		
-		merged = getOrCreate(props.substFilename(getCacheDir().resolve(mergedFilename)), dest -> {
+		merged = getOrCreate(getCacheDir().resolve(props.subst(mergedFilename)), dest -> {
 			Files.createDirectories(dest.getParent());
 			
 			log.lifecycle("|-> Target does not exist. Merging with JarMergerCooler to {}", dest);

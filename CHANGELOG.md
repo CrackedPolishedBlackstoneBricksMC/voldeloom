@@ -28,10 +28,6 @@ Running changelog document, will be added to as I commit things.
 * Fix the inevitable growing pains from the new mapping system lol
 * Add more to the `volde.layered` system
 
-## Known bugs
-
-`amq$1` crash is back (inner class remapping nonsense)
-
 # 2.2 (`agency.highlysuspect:voldeloom:2.2`)
 
 Remapping is in a bit of a weird state, but i'm about to do massive breaking changes to the system, so this is a release cut in haste

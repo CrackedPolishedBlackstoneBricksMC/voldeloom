@@ -10,6 +10,7 @@ import org.gradle.api.artifacts.Configuration;
 import org.gradle.api.artifacts.dsl.DependencyHandler;
 
 import java.io.File;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collection;
@@ -88,41 +89,33 @@ public class DependencyRemapperMcp extends NewProvider<DependencyRemapperMcp> {
 				log.info("|-> Found a mod dependency at {}", unmappedPath);
 				log.info("\\-> Need to remap to {}", mappedPath);
 				
-				//If mods are distributed proguarded, first run them through tiny-remapper to apply srg names
-				Path srgMappedPath;
-				if(distributionNamingScheme.equals(Constants.INTERMEDIATE_NAMING_SCHEME)) {
-					log.info("\\-> distributionNamingScheme == Constants.INTERMEDIATE_NAMING_SCHEME, not applying tiny-remapper");
-					srgMappedPath = unmappedPath;
-				} else if(distributionNamingScheme.equals(Constants.PROGUARDED_NAMING_SCHEME)) {
-					srgMappedPath = remappedModCache.resolve(unmappedPath.getFileName().toString() + "-srg-" + mappingsDepString + ".jar");
-					
-					log.info("\\-> First, mapping to SRG using tiny-remapper at {}", srgMappedPath);
-					
-					//add the other mod dependencies to the remap classpath
-					Set<Path> remapClasspathIncludingOtherMods = new HashSet<>(remapClasspath);
-					for(File file : getConfigurationByName(Constants.EVERY_UNMAPPED_MOD).getFiles()) {
-						Path p = file.toPath();
-						if(!p.equals(unmappedPath)) remapClasspathIncludingOtherMods.add(p);
+				if(Files.notExists(mappedPath)) {
+					//If mods are distributed proguarded, first run them through tiny-remapper to apply srg names
+					Path srgMappedPath;
+					if(distributionNamingScheme.equals(Constants.INTERMEDIATE_NAMING_SCHEME)) {
+						log.info("\\-> distributionNamingScheme == Constants.INTERMEDIATE_NAMING_SCHEME, not applying tiny-remapper");
+						srgMappedPath = unmappedPath;
+					} else if(distributionNamingScheme.equals(Constants.PROGUARDED_NAMING_SCHEME)) {
+						srgMappedPath = remappedModCache.resolve(unmappedPath.getFileName().toString() + "-srg-" + mappingsDepString + ".jar");
+						
+						log.info("\\-> First, mapping to SRG using tiny-remapper at {}", srgMappedPath);
+						
+						//add the other mod dependencies to the remap classpath
+						Set<Path> remapClasspathIncludingOtherMods = new HashSet<>(remapClasspath);
+						for(File file : getConfigurationByName(Constants.EVERY_UNMAPPED_MOD).getFiles()) {
+							Path p = file.toPath();
+							if(!p.equals(unmappedPath)) remapClasspathIncludingOtherMods.add(p);
+						}
+						
+						RemapperMcp.doIt(unmappedPath, srgMappedPath, srg, log, null, remapClasspathIncludingOtherMods);
+					} else {
+						throw new IllegalArgumentException("Unknown distributionNamingScheme... i should make than an enum");
 					}
 					
-					tinyRemapperFactory.get()
-						.inputJar(unmappedPath)
-						.srg(srg)
-						.outputSrgJar_Generic(srgMappedPath)
-						.addToRemapClasspath(remapClasspathIncludingOtherMods)
-						.remap();
-				} else {
-					throw new IllegalArgumentException("i should make than an enum");
+					//Then apply the fields.csv and methods.csv transformation, just like vanilla
+					log.info("\\-> Applying NaiveRenamer...");
+					NaiveRenamer.doIt(srgMappedPath, mappedPath, log, fields, methods);
 				}
-				
-				//Then apply the fields.csv and methods.csv transformation, just like vanilla
-				log.info("\\-> Applying NaiveRenamer...");
-				naiveRenamerFactory.get()
-					.fields(fields)
-					.methods(methods)
-					.input(srgMappedPath)
-					.output(mappedPath)
-					.doIt();
 				
 				//Finally, install this jar to the dependencies (TODO break this out into a separate pass, i'm lazy)
 				log.info("\\-> Installing to {} configuration", outputConfig.getName());
