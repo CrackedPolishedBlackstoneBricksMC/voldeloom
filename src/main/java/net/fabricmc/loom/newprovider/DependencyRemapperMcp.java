@@ -20,8 +20,6 @@ import java.util.function.Supplier;
 public class DependencyRemapperMcp extends NewProvider<DependencyRemapperMcp> {
 	public DependencyRemapperMcp(Project project, LoomGradleExtension extension) {
 		super(project, extension);
-		setProjectmapped(true); //all dependencies are project-local
-		
 		tinyRemapperFactory = () -> new RemapperMcp(project, extension);
 		naiveRenamerFactory = () -> new NaiveRenamer(project, extension);
 	}

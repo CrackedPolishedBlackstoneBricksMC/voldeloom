@@ -36,6 +36,10 @@ public class ZipUtil {
 	 * @param filter If this returns anything other than {@code FileVisitResult.CONTINUE}, the file will not be extracted.
 	 */
 	public static void unpack(Path inZip, Path destRoot, SimpleFileVisitor<Path> filter) {
+		Check.notNull(inZip, "inZip");
+		Check.notNull(destRoot, "destRoot");
+		Check.notNull(filter, "filter");
+		
 		try(FileSystem zipFs = FileSystems.newFileSystem(URI.create("jar:" + inZip.toUri()), Collections.emptyMap())) {
 			Files.walkFileTree(zipFs.getPath("/"), new SimpleFileVisitor<Path>() {
 				@Override

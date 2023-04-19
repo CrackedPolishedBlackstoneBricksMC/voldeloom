@@ -5,13 +5,14 @@ import net.fabricmc.loom.LoomGradlePlugin;
 import net.fabricmc.loom.ProviderGraph;
 import net.fabricmc.loom.WellKnownLocations;
 import net.fabricmc.loom.util.DownloadSession;
+import net.fabricmc.loom.util.Props;
 import org.gradle.api.Project;
 import org.gradle.api.artifacts.Configuration;
 import org.gradle.api.file.FileCollection;
 import org.gradle.api.logging.Logger;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 
@@ -42,60 +43,58 @@ public abstract class NewProvider<SELF extends NewProvider<SELF>> {
 	private final LoomGradleExtension extension;
 	
 	protected final Logger log;
+	public final Props props = new Props();
 	
-	private boolean projectmapped = false;
-	
-	//since "projectmapped" is just a bool that can be set either way at any time,
-	//this flag gets set to `true` as a safety interlock - after reading the projectmapped
-	//flag (and possibly making a decision based off of it) you're not allowed to change it again
-	private boolean leveragedProjectmappiness = false;
-	
-	/**
-	 * Whether this provider has been configured in such a way that should disqualify
-	 * it from being put in the global Gradle cache, a state known as "being projectmapped".
-	 * <p>
-	 * I think this term stems from Loom specifically handling cusotm *mappings*, but
-	 * I'm sticking with the term even in a more general sense of things other than mappings.
-	 */
-	public boolean isProjectmapped() {
-		leveragedProjectmappiness = true;
-		return projectmapped;
+	//TODO: is the type-polymorphism here necessary?
+	@SuppressWarnings("unchecked")
+	public SELF superProps(Object... others) {
+		for(Object other : others) {
+			if(other instanceof NewProvider<?>) props.putAll(((NewProvider<?>) other).props);
+			else if(other instanceof Props) props.putAll((Props) other);
+			else throw new IllegalArgumentException("Unknown object " + other.getClass() + " passed to superProps");
+		}
+		return (SELF) this;
 	}
 	
-	@SuppressWarnings("unchecked")
-	public SELF setProjectmapped(boolean projectmapped) {
-		if(leveragedProjectmappiness) {
-			throw new IllegalStateException("Cannot set projectmappiness after already having leveraged it, this might put things in an inconsistent state.");
+	/**
+	 * If refresh-dependencies mode is enabled, deletes the file or directory at {@code path}.<br>
+	 * Then, if {@code path} does not exist, the {@code fileCreator} is invoked with the path as an argument.
+	 * This procedure is expected to create a nonempty file or a directory at that location.
+	 * Returns {@code path}.
+	 */
+	protected final Path getOrCreate(Path path, ThrowyConsumer<Path> fileCreator) throws Exception {
+		if(extension.refreshDependencies) {
+			project.getLogger().warn("Ignoring " + path + " because refresh-dependencies mode is set");
+			LoomGradlePlugin.delete(project, path);
 		}
 		
-		this.projectmapped |= projectmapped;
+		if(Files.notExists(path)) {
+			project.getLogger().info("Creating file at " + path);
+			
+			fileCreator.accept(path);
+			//check that the file creator actually did create the file, and it's not empty
+			if(Files.notExists(path)) throw new IllegalStateException("Runnable " + fileCreator + " should have created a file at " + path);
+			if(!Files.isDirectory(path) && Files.size(path) == 0) throw new IllegalStateException("Runnable " + fileCreator + " created a zero-byte file at " + path);
+			
+			//TODO: write props to a file in user-readable form, just for debugging?
+		} else {
+			project.getLogger().info("Cache hit at " + path);
+		}
 		
-		return (SELF) this;
+		return path;
 	}
 	
-	/**
-	 * Set to {@code true} if a dependent provider is projectmapped. Uses the "curiously recurring
-	 * template pattern", so you can interleave this method into the provider's other builder methods.
-	 */
-	@SuppressWarnings("unchecked")
-	public SELF superProjectmapped(boolean projectmapped) {
-		this.projectmapped |= projectmapped;
-		
-		return (SELF) this;
-	}
-	
-	/**
-	 * Returns a directory that files can be stashed in. It's project-local if the provider
-	 * is projectmapped, and the global per-user gradle cache if not.
-	 */
+	//TODO: reimpl projectmappiness? Shouldn't be too hard, read off the Props
 	public final Path getCacheDir() {
-		return WellKnownLocations.getCache(project, isProjectmapped());
+		return WellKnownLocations.getUserCache(project);
 	}
 	
 	/**
 	 * Delete these paths if the refresh-dependency mode is enabled.
 	 * @param paths varargs list of paths to delete
+	 * @deprecated Use the getOrCreate method instead if possible  
 	 */
+	@Deprecated
 	protected final void cleanOnRefreshDependencies(Path... paths) {
 		cleanOnRefreshDependencies(Arrays.asList(paths));
 	}
@@ -103,20 +102,14 @@ public abstract class NewProvider<SELF extends NewProvider<SELF>> {
 	/**
 	 * Delete these paths if the refresh-dependency mode is enabled.
 	 * @param paths collection of paths to delete
+	 * @deprecated Use the getOrCreate method instead 
 	 */
+	@Deprecated
 	protected final void cleanOnRefreshDependencies(Collection<Path> paths) {
 		if(extension.refreshDependencies) {
 			log.lifecycle("!! Deleting outputs of " + getClass().getSimpleName() + " because of refreshDependencies mode");
 			LoomGradlePlugin.delete(project, paths);
 		}
-	}
-	
-	protected final Collection<Path> andEtags(Collection<Path> in) {
-		ArrayList<Path> out = new ArrayList<>(in);
-		for(Path i : in) {
-			out.add(i.resolveSibling(i.getFileName().toString() + ".etag"));
-		}
-		return out;
 	}
 	
 	//Trying to keep the provider stuff pretty separate from most Gradle wizardry, but I do need to poke a few holes:
@@ -134,5 +127,11 @@ public abstract class NewProvider<SELF extends NewProvider<SELF>> {
 	
 	protected final FileCollection files(Object... paths) {
 		return project.files(paths);
+	}
+	
+	///
+	
+	public interface ThrowyConsumer<T> {
+		void accept(T thing) throws Exception;
 	}
 }

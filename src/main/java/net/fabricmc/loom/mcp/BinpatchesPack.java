@@ -17,6 +17,7 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 public class BinpatchesPack {
+	//Keys are classes in "internal name" format.
 	public final Map<String, Binpatch> clientBinpatches = new LinkedHashMap<>();
 	public final Map<String, Binpatch> serverBinpatches = new LinkedHashMap<>();
 	

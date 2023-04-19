@@ -23,50 +23,45 @@ public class Merger extends NewProvider<Merger> {
 	}
 	
 	//inputs
-	private Path clientJar, serverJar;
-	
-	//outputs
-	private Path mergedJar;
+	private Path client, server;
+	private String mergedFilename;
 	
 	public Merger client(Path clientJar) {
-		this.clientJar = clientJar;
+		this.client = clientJar;
 		return this;
 	}
 	
 	public Merger server(Path serverJar) {
-		this.serverJar = serverJar;
+		this.server = serverJar;
 		return this;
 	}
 	
 	public Merger mergedFilename(String mergedFilename) {
-		this.mergedJar = getCacheDir().resolve(mergedFilename);
+		this.mergedFilename = mergedFilename;
 		return this;
 	}
 	
+	//outputs
+	private Path merged;
+	
 	public Path getMergedJar() {
-		return mergedJar;
+		return merged;
 	}
 	
 	//procedure
 	public Merger merge() throws Exception {
-		Check.notNull(clientJar, "client jar");
-		Check.notNull(serverJar, "server jar");
+		Check.notNull(client, "client jar");
+		Check.notNull(server, "server jar");
 		
-		cleanOnRefreshDependencies(mergedJar);
-		
-		log.info("] merge client: {}", clientJar);
-		log.info("] merge server: {}", serverJar);
-		log.lifecycle("] merge target: {}", mergedJar);
-		
-		if(Files.notExists(mergedJar)) {
-			Files.createDirectories(mergedJar.getParent());
+		merged = getOrCreate(props.substFilename(getCacheDir().resolve(mergedFilename)), dest -> {
+			Files.createDirectories(dest.getParent());
 			
-			log.lifecycle("|-> Target does not exist. Merging with JarMergerCooler to {}", mergedJar);
+			log.lifecycle("|-> Target does not exist. Merging with JarMergerCooler to {}", dest);
 			
-			try(FileSystem clientFs = FileSystems.newFileSystem(URI.create("jar:" + clientJar.toUri()), Collections.emptyMap());
-			    FileSystem serverFs = FileSystems.newFileSystem(URI.create("jar:" + serverJar.toUri()), Collections.emptyMap());
-			    FileSystem mergedFs = FileSystems.newFileSystem(URI.create("jar:" + mergedJar.toUri()), Collections.singletonMap("create", "true"));
-			    JarMergerCooler jm = new JarMergerCooler(clientFs, serverFs, mergedFs)) {
+			try(FileSystem clientFs = FileSystems.newFileSystem(URI.create("jar:" + client.toUri()), Collections.emptyMap());
+			    FileSystem serverFs = FileSystems.newFileSystem(URI.create("jar:" + server.toUri()), Collections.emptyMap());
+			    FileSystem destFs = FileSystems.newFileSystem(URI.create("jar:" + dest.toUri()), Collections.singletonMap("create", "true"));
+			    JarMergerCooler jm = new JarMergerCooler(clientFs, serverFs, destFs)) {
 				//jm.enableSyntheticParamsOffset();
 				jm.merge(new ClassMergerCooler()
 					.sideEnum("Lcpw/mods/fml/relauncher/Side;")
@@ -74,7 +69,8 @@ public class Merger extends NewProvider<Merger> {
 			}
 			
 			log.lifecycle("|-> Merged.");
-		}
+		});
+		log.lifecycle("] merged jar: {}", merged);
 		
 		return this;
 	}

@@ -94,7 +94,7 @@ public class DownloadSession {
 		return this;
 	}
 	
-	public void download() throws IOException {
+	public Path download() throws IOException {
 		Check.notNull(url, "url");
 		Check.notNull(dest, "dest");
 		
@@ -104,7 +104,7 @@ public class DownloadSession {
 		if(extension.offline) {
 			if(destExists) {
 				info("Not connecting to {} because {} exists and we're in offline mode.", url, dest);
-				return;
+				return dest;
 			} else throw new IllegalStateException("Need to download " + url + " to " + dest + ", but Gradle was started in offline mode. Aborting."); 
 		}
 		
@@ -112,15 +112,15 @@ public class DownloadSession {
 		if(destExists && !extension.refreshDependencies) {
 			if(skipIfExists) {
 				info("Not connecting to {} because {} exists.", url, dest);
-				return;
+				return dest;
 			}
 			if(skipIfSha1 != null && Checksum.compareFileHexHash(dest, skipIfSha1, Checksum.SHA1.get())) {
 				info("Not connecting to {} because {} exists and has correct SHA-1 hash ({}).", url, dest, skipIfSha1);
-				return;
+				return dest;
 			}
 			if(skipIfNewerThan != null && Files.getLastModifiedTime(dest).toInstant().isAfter(Instant.now().minus(skipIfNewerThan))) {
 				info("Not connecting to {} because {} exists and was downloaded within {}.", url, dest, skipIfNewerThan);
-				return;
+				return dest;
 			}
 		}
 		
@@ -146,7 +146,7 @@ public class DownloadSession {
 		int code = conn.getResponseCode();
 		if(code == HttpURLConnection.HTTP_NOT_MODIFIED) {
 			lifecycle("\\-> Not Modified (etag match)"); //The server *shouldn't* send a 304 if we didn't send an etag?
-			return;
+			return dest;
 		} else if(code / 100 != 2) {
 			throw new IOException("Got " + code + " " + conn.getResponseMessage() + " from connection to " + url);
 		}
@@ -168,6 +168,8 @@ public class DownloadSession {
 			info("\\-> Saving etag to {} ", etagFile);
 			Files.write(etagFile, srvEtag.getBytes(StandardCharsets.UTF_8));
 		}
+		
+		return dest;
 	}
 	
 	private void info(String x, Object... fmt) {

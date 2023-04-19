@@ -13,6 +13,14 @@ Running changelog document, will be added to as I commit things.
     * reobf: the SRG is extended to cover MCP names instead of just SRGs (mirroring a find-replace step in MCP), inverted, and `tiny-remapper` is used
   * Side effect: maybe improves `--refresh-dependencies` performance a bit, `NaiveRenamer` is very fast (because it doesn't do much) 
   * Deleted lots of tiny-remapper stuff that fell unused due to this change
+* Working on cache soundness...
+  * Most files in your Gradle cache will now end in an 8-character hash of some metadata about their *provenance*. For example, `version_manifest_{HASH}.json`'s filename now carries the URL that the manifest was downloaded from (if using the customManifestUrl feature).
+  * The metadata trickles into files derived from it, so `minecraft-1.4.7-client-{HASH}.jar`'s filename includes the same information, and so does the binpatched client, and the merged jar...
+  * This fixes longstanding cache-coherency bugs, where changing the configuration of a file at the top of the tree would leave stale cache entries downstream from it, requiring a `--refresh-dependencies` to fix.
+  * This is WIP:
+    * Not all files include a hash
+    * The actual, not-hashed metadata is not exposed to users (I'd like to store them somewhere, just for debugging's sake)
+* (performance) Forge binpatches now aren't re-parsed on every single Gradle invocation...
 
 ## Roadmap
 

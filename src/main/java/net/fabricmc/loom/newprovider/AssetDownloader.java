@@ -116,46 +116,46 @@ public class AssetDownloader extends NewProvider<AssetDownloader> {
 	}
 	
 	public AssetDownloader downloadAssets() throws Exception {
-		if(freshAssetIndex) {
-			log.lifecycle("|-> Downloading assets to {}...", assetsDir);
-			JsonObject objects = assets.getAsJsonObject("objects");
+		if(!freshAssetIndex) return this; //Nothing to do
+		
+		log.lifecycle("|-> Downloading assets to {}...", assetsDir);
+		JsonObject objects = assets.getAsJsonObject("objects");
+		
+		//<logging>
+		int assetCount = objects.size();
+		log.lifecycle("|-> Found {} assets to download.", assetCount);
+		int downloadedCount = 0, nextLogCount = 0, logCount = 0;
+		//</logging>
+		
+		for(String filename : objects.keySet()) {
+			String sha1 = objects.get(filename).getAsJsonObject().get("hash").getAsString();
+			String sh = sha1.substring(0, 2);
+			String shsha1 = sh + '/' + sha1;
+			
+			Path destFile = legacyLayout ?
+				assetsDir.resolve(filename) :
+				assetsDir.resolve(sh).resolve(sha1);
+			
+			if(Files.notExists(destFile)) {
+				newDownloadSession(resourcesBaseUrl + shsha1)
+					.quiet()
+					.dest(destFile)
+					.gzip(true)
+					.etag(false) //we're hopefully not gonna be redownloading these
+					.skipIfExists()
+					.download();
+			}
 			
 			//<logging>
-			int assetCount = objects.size();
-			log.lifecycle("|-> Found {} assets to download.", assetCount);
-			int downloadedCount = 0, nextLogAssetCount = 0, logCount = 0;
-			//</logging>
-			
-			for(String filename : objects.keySet()) {
-				String sha1 = objects.get(filename).getAsJsonObject().get("hash").getAsString();
-				String sh = sha1.substring(0, 2);
-				String shsha1 = sh + '/' + sha1;
-				
-				Path destFile = legacyLayout ?
-					assetsDir.resolve(filename) :
-					assetsDir.resolve(sh).resolve(sha1);
-				
-				if(Files.notExists(destFile)) {
-					newDownloadSession(resourcesBaseUrl + shsha1)
-						.quiet()
-						.dest(destFile)
-						.gzip(true)
-						.etag(false) //we're hopefully not gonna be redownloading these
-						.skipIfExists()
-						.download();
-				}
-				
-				//<logging>
-				downloadedCount++;
-				if(downloadedCount >= nextLogAssetCount) {
-					log.lifecycle("\\-> " + logCount * 10 + "%...");
-					logCount++;
-					nextLogAssetCount = logCount * assetCount / 10;
-				}
-				//</logging>
+			downloadedCount++;
+			if(downloadedCount >= nextLogCount) {
+				log.lifecycle("\\-> " + logCount * 10 + "%...");
+				logCount++;
+				nextLogCount = logCount * assetCount / 10;
 			}
-			log.info("|-> Done!");
+			//</logging>
 		}
+		log.info("|-> Done!");
 		
 		return this;
 	}

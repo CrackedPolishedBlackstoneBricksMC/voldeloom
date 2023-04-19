@@ -11,7 +11,7 @@ public class Binpatch {
 	public String name;
 	public String sourceClassName;
 	public String targetClassName;
-	public boolean existsAtTarget;
+	public boolean existsAtTarget; //<- if `false`, the patch expects to be applied to a zero-byte input and creates a brand new file at sourceClassName
 	public int checksum;
 	public int patchLength;
 	public byte[] patchBytes;

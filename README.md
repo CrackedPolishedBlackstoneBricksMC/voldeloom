@@ -15,7 +15,7 @@ Gradle plugin for ~~Fabric~~ ancient versions of Forge.
 
 And because you're on the `disaster-time` branch.
 
-* Rewritten by quaternary Dec 2022 - Mar 2023.
+* Rewritten by quaternary Dec 2022 - Apr 2023.
 
 This branch is my playground and my domain. Here be dragons (it's me. I'm the dragon)
 

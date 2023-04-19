@@ -7,7 +7,6 @@ import net.fabricmc.loom.util.ZipUtil;
 import org.gradle.api.Project;
 import org.gradle.api.artifacts.dsl.DependencyHandler;
 
-import java.nio.charset.StandardCharsets;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -25,25 +24,28 @@ public class VanillaDependencyFetcher extends NewProvider<VanillaDependencyFetch
 	//inputs
 	private VersionManifest manifest;
 	private String librariesBaseUrl;
-	
-	//outputs
-	private Path nativesDir;
-	private final Collection<String> mavenDependencies = new ArrayList<>();
+	private String nativesDirName;
 	
 	public VanillaDependencyFetcher manifest(VersionManifest manifest) {
 		this.manifest = manifest;
+		props.put("manifest-id", manifest.id); //Probably redundant
 		return this;
 	}
 	
 	public VanillaDependencyFetcher librariesBaseUrl(String librariesBaseUrl) {
 		this.librariesBaseUrl = librariesBaseUrl;
+		props.put("librariesBaseUrl", librariesBaseUrl); //Changing the URL should redownload libraries
 		return this;
 	}
 	
 	public VanillaDependencyFetcher nativesDirname(String nativesDirname) {
-		this.nativesDir = getCacheDir().resolve("natives").resolve(nativesDirname);
+		this.nativesDirName = nativesDirname;
 		return this;
 	}
+	
+	//outputs
+	private Path nativesDir;
+	private final Collection<String> mavenDependencies = new ArrayList<>();
 	
 	public Path getNativesDir() {
 		return nativesDir;
@@ -55,6 +57,8 @@ public class VanillaDependencyFetcher extends NewProvider<VanillaDependencyFetch
 	
 	//TODO: Upstream Voldeloom had a bug where it didn't actually write anything to this collection lol
 	// Returning an empty collection here to maintain the buggy behavior. Later I will analyze the impact
+	//  HEY IT's me from the future. I'm not seeing any issue, and there's no code to maintain this collection anyway
+	// (it was the realized files inside the mavenDependencies collection)
 	public Collection<Path> getNonNativeLibraries_Todo() {
 		//return nonNativeLibs;
 		return Collections.emptyList();
@@ -62,80 +66,43 @@ public class VanillaDependencyFetcher extends NewProvider<VanillaDependencyFetch
 	
 	//process
 	public VanillaDependencyFetcher fetch() throws Exception {
-		Check.notNull(nativesDir, "natives directory");
+		Check.notNull(nativesDirName, "natives directory name");
 		Check.notNull(manifest, "minecraft version manifest");
 		Check.notNull(librariesBaseUrl, "libraries base URL");
 		
-		log.lifecycle("] native libraries directory: {}", nativesDir);
-		
-		cleanOnRefreshDependencies(nativesDir);
-		
-		Path nativesJarStore = nativesDir.resolve("jars");
-		Files.createDirectories(nativesJarStore);
-		
-		int nativeDepCount = 0;
-		
-		for(VersionManifest.Library library : manifest.libraries) {
-			if(!library.allowed()) continue;
+		nativesDir = getOrCreate(getCacheDir().resolve("natives").resolve(props.subst(nativesDirName)), dest -> {
+			log.info("|-> Downloading native libraries into {}", dest);
+			Files.createDirectories(dest);
 			
-			if(library.isNative()) {
-				log.info("Found minecraft native dependency {}", library.getArtifactName());
-				nativeDepCount++;
-				
-				Path libJarFile = library.getPath(nativesJarStore);
+			for(VersionManifest.Library library : manifest.libraries) {
+				if(!library.allowed() || !library.isNative()) continue;
 				
 				//download the natives jar
-				newDownloadSession(librariesBaseUrl + library.getURLSuffix())
-					.dest(libJarFile)
-					.etag(true)
-					.gzip(false)
-					.skipIfExists()
-					.skipIfSha1Equals(library.getSha1())
+				Path libJar = newDownloadSession(librariesBaseUrl + library.getURLSuffix())
+					.dest(library.getPath(dest.resolve("jars")))
+					.etag(false) //no need to save etag, this directory is fresh.
+					.gzip(true)
 					.download();
 				
-				//unpack it?
-				Path unpackFlag = libJarFile.resolveSibling(libJarFile.getFileName().toString() + ".unpack-flag");
-				if(!Files.exists(unpackFlag)) {
-					//yes, needs to be unpacked.
-					ZipUtil.unpack(libJarFile, nativesDir, new SimpleFileVisitor<Path>() {
-						@Override
-						public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
-							if(dir.endsWith("META-INF")) return FileVisitResult.SKIP_SUBTREE;
-							else return FileVisitResult.CONTINUE;
-						}
-					});
-					
-					//create the unpack-flag file, so i don't have to do this again next time
-					//(partially because the files are in-use by running copies of the Minecraft client, so they can't be overwritten while one is open,
-					//and partially because this gets hit every time you launch the game, so i shouldn't do work i can skip :) )
-					Files.write(unpackFlag, "Presence of this file tells Voldeloom that the corresponding native library JAR was already extracted to the filesystem.\n".getBytes(StandardCharsets.UTF_8));
-				}
-			} else {
-				String depToAdd = library.getArtifactName();
-				
-				//TODO: Launchwrapper is not used with the `direct` launch method, which is intended to be the voldeloom default.
-				// If a launchwrapper-based launch method is used, note that lw requires ASM 4 to be on the classpath.
-				// (I might be able to get away with using the same version Forge requests, but I'm currently allowing
-				//  Forge to load its own libraries instead of trying to shove them on the classpath myself.)
-				// I'm currently not using lw because the version requested for 1.4 does not support --assetIndex
-				// with the stock tweaker, which means bothering with lw does not provide much of a value-add.
-				// It might also be possible to update LW to version 1.12 (which has targetCompatibility 6), but that
-				// requires ASM 5 to run.
-//				if(library.getArtifactName().equals("net.minecraft:launchwrapper:1.5")) {
-//					continue;
-//				} else {
-//					depToAdd = library.getArtifactName();
-//				}
-				
-				//It appears downloading the library manually is not necessary, since the minecraft info .json
-				//gives maven coordinates which Gradle can resolve the usual way off of mojang's maven
-				
-				log.info("|-> Found Minecraft maven-style dependency {}", depToAdd);
-				mavenDependencies.add(depToAdd);
+				//extract them all onto each other in nativesDir - n.b., the file visitor here is used as a "filter" argument
+				ZipUtil.unpack(libJar, dest, new SimpleFileVisitor<Path>() {
+					@Override
+					public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
+						if(dir.endsWith("META-INF")) return FileVisitResult.SKIP_SUBTREE;
+						else return FileVisitResult.CONTINUE;
+					}
+				});
 			}
-		}
+		});
+		log.lifecycle("] native libraries directory: {}", nativesDir);
 		
-		log.info("] found {} native libraries and {} maven dependencies", nativeDepCount, mavenDependencies.size());
+		for(VersionManifest.Library library : manifest.libraries) {
+			if(!library.allowed() || library.isNative()) continue;
+			//It appears downloading the library manually is not necessary since the json
+			//gives maven coordinates which Gradle can resolve the usual way off of mojang's maven
+			log.info("|-> Found Minecraft maven-style dependency {}", library.getArtifactName());
+			mavenDependencies.add(library.getArtifactName());
+		}
 		
 		return this;
 	}

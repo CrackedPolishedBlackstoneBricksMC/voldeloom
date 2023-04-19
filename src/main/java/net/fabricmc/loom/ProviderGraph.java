@@ -4,7 +4,6 @@ import net.fabricmc.loom.mcp.McpMappings;
 import net.fabricmc.loom.mcp.Srg;
 import net.fabricmc.loom.newprovider.AccessTransformer;
 import net.fabricmc.loom.newprovider.AssetDownloader;
-import net.fabricmc.loom.newprovider.BinpatchLoader;
 import net.fabricmc.loom.newprovider.Binpatcher;
 import net.fabricmc.loom.newprovider.ConfigElementWrapper;
 import net.fabricmc.loom.newprovider.DependencyRemapperMcp;
@@ -29,6 +28,8 @@ import java.util.function.Function;
 
 /**
  * Manages the tangle of DependencyProviders.
+ * 
+ * You should note that all of this stuff runs on every Gradle invocation, in afterEvaluate - caching is really important...
  */
 public class ProviderGraph {
 	public ProviderGraph(Project project, LoomGradleExtension extension) {
@@ -64,16 +65,16 @@ public class ProviderGraph {
 		VanillaJarFetcher vanillaJars = new VanillaJarFetcher(project, extension)
 			.mc(mc)
 			.customManifestUrl(extension.customManifestUrl)
-			.clientFilename(mcPrefix + "-client.jar")
-			.serverFilename(mcPrefix + "-server.jar")
+			.clientFilename(mcPrefix + "-client-{HASH}.jar")
+			.serverFilename(mcPrefix + "-server-{HASH}.jar")
 			.fetch();
 		
 		log.lifecycle("# Fetching vanilla dependencies...");
 		VanillaDependencyFetcher vanillaDeps = new VanillaDependencyFetcher(project, extension)
-			.superProjectmapped(vanillaJars.isProjectmapped())
+			.superProps(vanillaJars)
 			.manifest(vanillaJars.getVersionManifest())
 			.librariesBaseUrl(extension.librariesBaseUrl)
-			.nativesDirname(mc.getFilenameSafeVersion())
+			.nativesDirname(mc.getFilenameSafeVersion() + "-{HASH}")
 			.fetch()
 			.installDependenciesToProject(Constants.MINECRAFT_DEPENDENCIES, project.getDependencies());
 		mcNativesDir = vanillaDeps.getNativesDir();
@@ -88,59 +89,40 @@ public class ProviderGraph {
 			//unified jar (1.3+)
 			ResolvedConfigElementWrapper forge = new ResolvedConfigElementWrapper(project, project.getConfigurations().getByName(Constants.FORGE));
 			
-			//first do binpatches (they're done on the unmerged jars)
-			log.lifecycle("# Binpatching?");
-			Path binpatchedClient, binpatchedServer;
-			BinpatchLoader binpatchLoader = new BinpatchLoader(project, extension)
-				.forgeJar(forge.getPath())
-				.load();
+			//first do binpatches (they're done on unmerged jars, and this passes through if forge doesn't use binpatches)
+			log.lifecycle("# Binpatching...");
+			Binpatcher binpatcher = new Binpatcher(project, extension)
+				.superProps(vanillaJars)
+				.client(vanillaJars.getClientJar())
+				.server(vanillaJars.getServerJar())
+				.forge(forge.getPath())
+				.binpatchedClientName(mcPrefix + "-client-binpatched-{HASH}")
+				.binpatchedServerName(mcPrefix + "-server-binpatched-{HASH}")
+				.binpatch();
 			
-			if(binpatchLoader.hasBinpatches()) {
-				log.lifecycle("## Binpatching.");
-				binpatchedClient = new Binpatcher(project, extension)
-					.superProjectmapped(vanillaJars.isProjectmapped() | binpatchLoader.isProjectmapped())
-					.input(vanillaJars.getClientJar())
-					.outputFilename(mcPrefix + "-client-binpatched.jar")
-					.binpatches(binpatchLoader.getBinpatches().clientBinpatches)
-					.patch()
-					.getOutput();
-				
-				binpatchedServer = new Binpatcher(project, extension)
-					.superProjectmapped(vanillaJars.isProjectmapped() | binpatchLoader.isProjectmapped())
-					.input(vanillaJars.getServerJar())
-					.outputFilename(mcPrefix + "-server-binpatched.jar")
-					.binpatches(binpatchLoader.getBinpatches().serverBinpatches)
-					.patch()
-					.getOutput();
-			} else {
-				log.lifecycle("## Nope.");
-				binpatchedClient = vanillaJars.getClientJar();
-				binpatchedServer = vanillaJars.getServerJar();
-			}
-			
-			//then merge the jars
+			//then merge jars
 			log.lifecycle("# Joining client and server...");
 			Merger merger = new Merger(project, extension)
-				.superProjectmapped(vanillaJars.isProjectmapped() | binpatchLoader.isProjectmapped())
-				.client(binpatchedClient)
-				.server(binpatchedServer)
-				.mergedFilename(mcPrefix + "-merged.jar")
+				.superProps(binpatcher)
+				.client(binpatcher.getBinpatchedClient())
+				.server(binpatcher.getBinpatchedServer())
+				.mergedFilename(mcPrefix + "-merged-{HASH}.jar")
 				.merge();
 			
 			//and the rest is the same
-			setupSide("joined", merger.getMergedJar(), vanillaDeps, mcPrefix, merger.isProjectmapped(), forge, mappings -> mappings.joined);
+			setupSide("joined", merger.getMergedJar(), vanillaDeps, mcPrefix, forge, mappings -> mappings.joined);
 		} else {
 			//split jar (1.2.5-)
 			ResolvedConfigElementWrapper forgeClient = new ResolvedConfigElementWrapper(project, project.getConfigurations().getByName(Constants.FORGE_CLIENT));
 			ResolvedConfigElementWrapper forgeServer = new ResolvedConfigElementWrapper(project, project.getConfigurations().getByName(Constants.FORGE_SERVER));
-			setupSide("client", vanillaJars.getClientJar(), vanillaDeps, mcPrefix + "-client", vanillaJars.isProjectmapped(), forgeClient, mappings -> mappings.client);
-			setupSide("server", vanillaJars.getServerJar(), vanillaDeps, mcPrefix + "-server", vanillaJars.isProjectmapped(), forgeServer, mappings -> mappings.server);
+			setupSide("client", vanillaJars.getClientJar(), vanillaDeps, mcPrefix + "-client", forgeClient, mappings -> mappings.client);
+			setupSide("server", vanillaJars.getServerJar(), vanillaDeps, mcPrefix + "-server", forgeServer, mappings -> mappings.server);
 		}
 		
 		log.lifecycle("# Thank you for flying Voldeloom.");
 	}
 	
-	private void setupSide(String side, Path vanillaJar, VanillaDependencyFetcher vanillaDeps, String mcPrefix, boolean superProjectmapped, ResolvedConfigElementWrapper forge, Function<McpMappings, Srg> srgGetter) throws Exception {
+	private void setupSide(String side, Path vanillaJar, VanillaDependencyFetcher vanillaDeps, String mcPrefix, ResolvedConfigElementWrapper forge, Function<McpMappings, Srg> srgGetter) throws Exception {
 		log.lifecycle("# ({}) Fetching Forge dependencies...", side);
 		new ForgeDependencyFetcher(project, extension)
 			.forgeJar(forge.getPath())
@@ -154,7 +136,6 @@ public class ProviderGraph {
 		log.lifecycle("# ({}) Jarmodding...", side);
 		String jarmoddedPrefix = mcPrefix + "-forge-" + forge.getFilenameSafeVersion();
 		Jarmodder jarmod = new Jarmodder(project, extension)
-			.superProjectmapped(superProjectmapped)
 			.base(vanillaJar)
 			.overlay(forge.getPath())
 			.jarmoddedFilename(jarmoddedPrefix + "-jarmod.jar")
@@ -167,7 +148,6 @@ public class ProviderGraph {
 		
 		log.lifecycle("# ({}) Preparing ATs...", side);
 		AccessTransformer transformer = new AccessTransformer(project, extension)
-			.superProjectmapped(jarmod.isProjectmapped())
 			.regularForgeJar(forge.getPath())
 			.loadCustomAccessTransformers();
 		@Nullable String atHash = transformer.getCustomAccessTransformerHash();
@@ -176,7 +156,6 @@ public class ProviderGraph {
 		log.lifecycle("# ({}) Preparing SRG remapper...", side);
 		RemapperMcp remapperMcp = new RemapperMcp(project, extension)
 			.srg(srgGetter.apply(mappings.mappings))
-			.setProjectmapped(transformer.isProjectmapped())
 			.addToRemapClasspath(vanillaDeps.getNonNativeLibraries_Todo())
 			.deletedPrefixes(extension.forgeCapabilities.classFilter.get());
 		
@@ -215,7 +194,6 @@ public class ProviderGraph {
 		//Remap to named using a naive remapper
 		log.lifecycle("# ({}) Applying field and method names with NaiveRenamer...", side);
 		NaiveRenamer naive = new NaiveRenamer(project, extension)
-			.setProjectmapped(transformer.isProjectmapped() || remapperMcp.isProjectmapped())
 			.input(srgAtdJar)
 			.output(srgAtdJar.resolveSibling(srgAtdJar.getFileName() + "-named.jar")) //TODO
 			.mappings(mappings.mappings) //mappings
@@ -227,7 +205,6 @@ public class ProviderGraph {
 		// probably inside? but i need better delineation of client and server workspace mods...
 		log.lifecycle("# ({}) Remapping mod dependencies...", side);
 		new DependencyRemapperMcp(project, extension)
-			.superProjectmapped(naive.isProjectmapped())
 			.mappingsDepString(mappings.getFilenameSafeDepString())
 			.srg(srgGetter.apply(mappings.mappings))
 			.fields(mappings.mappings.fields)

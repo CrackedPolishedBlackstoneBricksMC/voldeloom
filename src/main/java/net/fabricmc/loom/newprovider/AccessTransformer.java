@@ -97,7 +97,6 @@ public class AccessTransformer extends NewProvider<AccessTransformer> {
 			customAccessTransformerHash = Checksum.toHexStringPrefix(readersDigest.digest(), 8);
 		}
 		
-		setProjectmapped(!customAccessTransformers.isEmpty());
 		return this;
 	}
 	

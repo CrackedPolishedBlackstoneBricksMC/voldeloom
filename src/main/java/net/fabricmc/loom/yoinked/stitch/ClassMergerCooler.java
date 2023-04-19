@@ -100,10 +100,10 @@ public class ClassMergerCooler {
 				if (entryClient != null && entryServer != null) {
 					list.add(entryClient);
 				} else if (entryClient != null) {
-					applySide(entryClient, "CLIENT");
+					applySide(entryClient, "CLIENT"); //the name of the enum constant in `sideEnum`; should probably be configurable
 					list.add(entryClient);
 				} else {
-					applySide(entryServer, "SERVER");
+					applySide(entryServer, "SERVER"); //the name of the enum constant in `sideEnum`; should probably be configurable
 					list.add(entryServer);
 				}
 			}

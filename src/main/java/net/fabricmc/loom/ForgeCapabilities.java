@@ -1,6 +1,7 @@
 package net.fabricmc.loom;
 
 import net.fabricmc.loom.util.OperatingSystem;
+import net.fabricmc.loom.util.Suppliers;
 import org.gradle.api.Project;
 import org.gradle.api.logging.Logger;
 
@@ -39,28 +40,12 @@ public class ForgeCapabilities {
 		}
 	}
 	
-	private <T> Supplier<T> memoize(Supplier<T> in) {
-		return new Supplier<T>() {
-			boolean init = false;
-			T thing;
-			
-			@Override
-			public T get() {
-				if(!init) {
-					thing = in.get();
-					init = true;
-				}
-				return thing;
-			}
-		};
-	}
-	
 	/**
 	 * What naming scheme that this Forge version expects to find mods in.
 	 * <p>
 	 * By default, this evaluates to 'intermediary' since 1.5, and 'official' before it.
 	 */
-	public Supplier<String> distributionNamingScheme = memoize(this::guessDistributionNamingScheme);
+	public Supplier<String> distributionNamingScheme = Suppliers.memoize(this::guessDistributionNamingScheme);
 	
 	public String guessDistributionNamingScheme() {
 		checkConfigured("guessDistributionNamingScheme");
@@ -88,7 +73,7 @@ public class ForgeCapabilities {
 	 * By default, this evaluates to 'true' since 1.5, and 'false' before it.
 	 * TODO: is this even a good idea?
 	 */
-	public Supplier<Boolean> srgsAsFallback = memoize(this::guessSrgsAsFallback);
+	public Supplier<Boolean> srgsAsFallback = Suppliers.memoize(this::guessSrgsAsFallback);
 	
 	public boolean guessSrgsAsFallback() {
 		checkConfigured("guessSrgsAsFallback");
@@ -121,7 +106,7 @@ public class ForgeCapabilities {
 	 * <p>
 	 * Example: https://github.com/MinecraftForge/FML/blob/8e7956397dd80902f7ca69c466e833047dfa5010/build.xml#L295-L298
 	 */
-	public Supplier<Set<String>> classFilter = memoize(this::guessClassFilter);
+	public Supplier<Set<String>> classFilter = Suppliers.memoize(this::guessClassFilter);
 	
 	public Set<String> guessClassFilter() {
 		checkConfigured("guessClassFilter");
@@ -161,7 +146,7 @@ public class ForgeCapabilities {
 	/**
 	 * TODO: write javadoc when its not 4am
 	 */
-	public Supplier<Boolean> bouncycastleCheat = memoize(this::guessBouncycastleCheat);
+	public Supplier<Boolean> bouncycastleCheat = Suppliers.memoize(this::guessBouncycastleCheat);
 	
 	public boolean guessBouncycastleCheat() {
 		checkConfigured("guessBouncycastleCheat");
@@ -187,7 +172,7 @@ public class ForgeCapabilities {
 		return this;
 	}
 	
-	public Supplier<Boolean> requiresLaunchwrapper = memoize(this::guessRequiresLaunchwrapper);
+	public Supplier<Boolean> requiresLaunchwrapper = Suppliers.memoize(this::guessRequiresLaunchwrapper);
 	
 	public boolean guessRequiresLaunchwrapper() {
 		checkConfigured("guessSupportsAssetIndex");
@@ -218,7 +203,7 @@ public class ForgeCapabilities {
 		DEAD,
 		CONFIGURABLE
 	}
-	public Supplier<LibraryDownloader> libraryDownloaderType = memoize(this::guessLibraryDownloaderType);
+	public Supplier<LibraryDownloader> libraryDownloaderType = Suppliers.memoize(this::guessLibraryDownloaderType);
 	
 	public LibraryDownloader guessLibraryDownloaderType() {
 		checkConfigured("guessLibraryDownloaderType");
@@ -248,7 +233,7 @@ public class ForgeCapabilities {
 		return this;
 	}
 	
-	public Supplier<Boolean> supportsAssetsDir = memoize(this::guessSupportsAssetIndex);
+	public Supplier<Boolean> supportsAssetsDir = Suppliers.memoize(this::guessSupportsAssetIndex);
 	
 	public boolean guessSupportsAssetIndex() {
 		checkConfigured("guessSupportsAssetIndex");
@@ -274,7 +259,7 @@ public class ForgeCapabilities {
 		return this;
 	}
 	
-	public Supplier<Boolean> mappedAccessTransformers = memoize(this::guessMappedAccessTransformers);
+	public Supplier<Boolean> mappedAccessTransformers = Suppliers.memoize(this::guessMappedAccessTransformers);
 	
 	public boolean guessMappedAccessTransformers() {
 		checkConfigured("guessMappedAccessTransformers");
@@ -300,7 +285,7 @@ public class ForgeCapabilities {
 		return this;
 	}
 	
-	public Supplier<Function<Path, Path>> minecraftRealPath = memoize(this::guessMinecraftRealPath);
+	public Supplier<Function<Path, Path>> minecraftRealPath = Suppliers.memoize(this::guessMinecraftRealPath);
 	
 	public Function<Path, Path> guessMinecraftRealPath() {
 		checkConfigured("guessMinecraftRealPath");
