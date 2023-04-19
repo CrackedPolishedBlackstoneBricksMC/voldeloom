@@ -34,8 +34,7 @@ public class Packages {
 				continue;
 			}
 			
-			//for convenience, I want to store the full name as the value of the map (net/minecraft/block/BlockAnvil) rather than just the package
-			packages.put(mem.intern(split[0]), mem.intern(split[1] + "/" + split[0]));
+			packages.put(mem.intern(split[0]), mem.intern(split[1]));
 		}
 		
 		return this;
@@ -50,8 +49,11 @@ public class Packages {
 		int lastSlash = srgClass.lastIndexOf('/');
 		if(lastSlash != -1) srgClassNameOnly = srgClass.substring(lastSlash + 1);
 		
-		//lookup
-		return packages.getOrDefault(srgClassNameOnly, srgClass);
+		//the values of the map are the *new* package that the class should go in.
+		//if we don't get a hit, leave the class unmoved; else, glue the new package onto the old class name
+		String lookup = packages.get(srgClassNameOnly);
+		if(lookup == null) return srgClass;
+		else return lookup + "/" + srgClassNameOnly;
 	}
 	
 	// L([^.;\[]*);
