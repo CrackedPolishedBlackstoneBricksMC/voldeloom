@@ -21,6 +21,9 @@ Running changelog document, will be added to as I commit things.
     * Not all files include a hash
     * The actual, not-hashed metadata is not exposed to users (I'd like to store them somewhere, just for debugging's sake)
 * (performance) Forge binpatches now aren't re-parsed on every single Gradle invocation...
+* Partially fixed linemapping
+  * didn't understand what it was before :sweat_smile:
+  * After running genSources, refresh your gradle a second time to pick up on the updated Minecraft jar. Still thinking about how best to handle this...
 
 ## Roadmap
 

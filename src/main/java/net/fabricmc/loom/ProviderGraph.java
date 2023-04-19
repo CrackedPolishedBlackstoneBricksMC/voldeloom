@@ -21,6 +21,7 @@ import net.fabricmc.loom.util.Props;
 import org.gradle.api.Project;
 import org.gradle.api.logging.Logger;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -210,8 +211,6 @@ public class ProviderGraph {
 			.methods(mappings.mappings.methods)
 			.rename();
 		
-		project.getDependencies().add(Constants.MINECRAFT_NAMED, project.files(naive.getOutput()));
-		
 		//TODO: does this belong inside the per-side stuff, or outside
 		// probably inside? but i need better delineation of client and server workspace mods...
 		log.lifecycle("# ({}) Remapping mod dependencies...", side);
@@ -230,12 +229,24 @@ public class ProviderGraph {
 		log.lifecycle("# ({}) Initializing source generation job...", side);
 		GenSourcesTask.SourceGenerationJob job = new GenSourcesTask.SourceGenerationJob();
 		job.mappedJar = naive.getOutput();
-		job.sourcesJar = LoomGradlePlugin.replaceExtension(naive.getOutput(), "-sources-unlinemapped.jar");
+		job.sourcesJar = LoomGradlePlugin.replaceExtension(naive.getOutput(), "-sources.jar");
 		job.linemapFile = LoomGradlePlugin.replaceExtension(naive.getOutput(), "-linemap.lmap");
-		job.finishedJar = LoomGradlePlugin.replaceExtension(naive.getOutput(), "-sources.jar");
+		job.linemappedJar = LoomGradlePlugin.replaceExtension(naive.getOutput(), "-named-linemapped.jar");
 		job.libraries = vanillaDeps.getNonNativeLibraries_Todo();
 		job.mcpMappingsZip = mappings.getPath();
 		sourceGenerationJobs.add(job);
+		
+		//TODO: The idea is that using the linemapped jar is better than not using it, because debugger breakpoints work.
+		// But linemapping is optional because it's a component of genSources.
+		// Butbut, this is also ran before genSources, ideallyLinemappedJar's existence is from the *last* invocation...
+		// So you have to refresh gradle a second time to have the plugin put the linemapped jar into the configuration :(
+		// Also worried about cachebusting this?
+		//I guess I could have the linemapper actually overwrite the original jar... ?
+		Path ideallyLinemappedJar;
+		if(Files.exists(job.linemappedJar)) ideallyLinemappedJar = job.linemappedJar;
+		else ideallyLinemappedJar = naive.getOutput();
+		
+		project.getDependencies().add(Constants.MINECRAFT_NAMED, project.files(ideallyLinemappedJar));
 		
 		//TODO: oops all leaky abstraction again
 		if(side.equals("joined")) {

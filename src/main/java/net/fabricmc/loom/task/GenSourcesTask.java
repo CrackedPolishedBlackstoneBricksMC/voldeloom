@@ -12,7 +12,6 @@ import org.gradle.api.tasks.TaskAction;
 import org.gradle.process.ExecResult;
 import org.jetbrains.java.decompiler.main.extern.IFernflowerPreferences;
 
-import java.io.IOException;
 import java.net.URI;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
@@ -36,7 +35,7 @@ public class GenSourcesTask extends DefaultTask implements LoomTaskExt {
 		public Path mappedJar;
 		public Path sourcesJar;
 		public Path linemapFile;
-		public Path finishedJar;
+		public Path linemappedJar;
 		public Collection<Path> libraries;
 		public Path mcpMappingsZip;
 	}
@@ -46,21 +45,21 @@ public class GenSourcesTask extends DefaultTask implements LoomTaskExt {
 		List<SourceGenerationJob> jobs = getLoomGradleExtension().getProviderGraph().sourceGenerationJobs;
 		for(SourceGenerationJob job : jobs) {
 			Path mappedJar = job.mappedJar; //input
-			Path fernflowerOutput = job.sourcesJar; //intermediary product
+			Path sourcesJar = job.sourcesJar; //intermediary product
 			Path linemapFile = job.linemapFile; //intermediary product
-			Path finishedSourcesJar = job.finishedJar; //output
+			Path linemappedJar = job.linemappedJar; //output
 			Collection<Path> libraries = job.libraries; //resource
 			Path mcpMappingsZip = job.mcpMappingsZip;
 			
-			Files.deleteIfExists(fernflowerOutput);
+			Files.deleteIfExists(sourcesJar);
 			Files.deleteIfExists(linemapFile);
-			Files.deleteIfExists(finishedSourcesJar);
-			if(fernflowerOutput.getParent() != null) Files.createDirectories(fernflowerOutput.getParent());
+			Files.deleteIfExists(linemappedJar);
+			if(sourcesJar.getParent() != null) Files.createDirectories(sourcesJar.getParent());
 			if(linemapFile.getParent() != null) Files.createDirectories(linemapFile.getParent());
-			if(finishedSourcesJar.getParent() != null) Files.createDirectories(finishedSourcesJar.getParent());
-			getLogger().lifecycle("] fernflower target: {}", fernflowerOutput);
+			if(linemappedJar.getParent() != null) Files.createDirectories(linemappedJar.getParent());
+			getLogger().lifecycle("] sources jar target: {}", sourcesJar);
 			getLogger().lifecycle("] linemap file target: {}", linemapFile);
-			getLogger().lifecycle("] finished jar target: {}", finishedSourcesJar);
+			getLogger().lifecycle("] linemapped jar target: {}", linemappedJar);
 			
 			/// fernflower ///
 			getLogger().lifecycle("|-> Configuring Fernflower...");
@@ -75,7 +74,7 @@ public class GenSourcesTask extends DefaultTask implements LoomTaskExt {
 			
 			//ForkedFFExecutor wrapper options
 			args.add("-input=" + mappedJar.toAbsolutePath());
-			args.add("-output=" + fernflowerOutput.toAbsolutePath());
+			args.add("-output=" + sourcesJar.toAbsolutePath());
 			libraries.forEach(f -> args.add("-library=" + f.toAbsolutePath()));
 			if(mcpMappingsZip != null) args.add("-mcpmappings=" + mcpMappingsZip.toAbsolutePath());
 			args.add("-linemap=" + linemapFile.toAbsolutePath());
@@ -98,21 +97,20 @@ public class GenSourcesTask extends DefaultTask implements LoomTaskExt {
 			/// linemapping ///
 			
 			getLogger().lifecycle("|-> Configuring LineNumberRemapper...");
-			LineNumberRemapper remapper = new LineNumberRemapper();
-			remapper.readMappings(linemapFile.toFile());
+			LineNumberRemapper remapper = new LineNumberRemapper().readMappings(linemapFile);
 			
 			getLogger().lifecycle("|-> Remapping line numbers...");
-			try (FileSystem in = FileSystems.newFileSystem(URI.create("jar:" + fernflowerOutput.toUri()), Collections.emptyMap());
-			     FileSystem out = FileSystems.newFileSystem(URI.create("jar:" + finishedSourcesJar.toUri()), Collections.singletonMap("create", "true"))) {
-				remapper.process(getLogger(), in.getPath("/"), out.getPath("/"));
-			} catch (IOException e) {
-				throw new RuntimeException(e);
+			try (FileSystem src = FileSystems.newFileSystem(URI.create("jar:" + mappedJar.toUri()), Collections.emptyMap());
+			     FileSystem dst = FileSystems.newFileSystem(URI.create("jar:" + linemappedJar.toUri()), Collections.singletonMap("create", "true"))) {
+				remapper.process(src, dst, getLogger());
+			} catch (Exception e) {
+				throw new RuntimeException("Trouble linemapping: " + e);
 			}
 		}
 		
 		int n = jobs.size();
 		getLogger().lifecycle("|-> Created {} sources jar{}.", n, n == 1 ? "" : "s");
-		for(SourceGenerationJob job : jobs) getLogger().lifecycle("- {}", job.finishedJar);
+		for(SourceGenerationJob job : jobs) getLogger().lifecycle("- {}", job.sourcesJar);
 	}
 	
 	@Input

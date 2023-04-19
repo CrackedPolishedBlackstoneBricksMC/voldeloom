@@ -32,151 +32,163 @@ import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
+import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.FileSystem;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
-import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.NavigableMap;
+import java.util.TreeMap;
 
-import static java.text.MessageFormat.format;
-
-/**
- * TODO, Move to stitch.
- * Created by covers1624 on 18/02/19.
- */
+//Fernflower linemap format.
+//
+//If the line starts with a non-tab character, this starts a new class definition. Split on tabs:
+// element 0 is the class name (internal-name format)
+// element 1 is the last line-number with code on it in the *input* jar.
+// element 2 is the last line-number with code on it in fernflower's outputted sources.
+//These numbers will be smaller than the number of lines in the file; a line with only a } on may or may not count.
+//
+//This will be followed by a zero or more lines that *do* start with a tab character. Each line has two tab-separated integers.
+// element 0 is the line number in the input jar, and element 1 is the corresponding line number in the output jar.
+//
+//When performing a remap, it's not guaranteed that a line-number node you find in the file
+//has a corresponding entry in the remap table. That's fine; advance forwards until one is found.
+//(That's what the original implementation did anyway?)
+//
+//TODO: what to do about class names with $ in them? These are obviously Java inner classes.
+// They're showing up in my IDE with dollar signs in them though... that's an unrelated problem to this file.
 public class LineNumberRemapper {
-	private final Map<String, RClass> lineMap = new HashMap<>();
-
-	public void readMappings(File lineMappings) {
-		try (BufferedReader reader = new BufferedReader(new FileReader(lineMappings))) {
-			RClass clazz = null;
-			String line = null;
-			int i = 0;
-
-			try {
-				while ((line = reader.readLine()) != null) {
-					if (line.isEmpty()) {
-						continue;
-					}
-
-					String[] segs = line.trim().split("\t");
-
-					if (line.charAt(0) != '\t') {
-						clazz = lineMap.computeIfAbsent(segs[0], RClass::new);
-						clazz.maxLine = Integer.parseInt(segs[1]);
-						clazz.maxLineDest = Integer.parseInt(segs[2]);
-					} else {
-						clazz.lineMap.put(Integer.parseInt(segs[0]), Integer.parseInt(segs[1]));
-					}
-
-					i++;
-				}
-			} catch (Exception e) {
-				throw new RuntimeException(format("Exception reading mapping line @{0}: {1}", i, line), e);
-			}
-		} catch (IOException e) {
-			throw new RuntimeException("Exception reading LineMappings file.", e);
+	private final Map<String, RemapTable> tablesByInternalName = new HashMap<>();
+	
+	private static class RemapTable {
+		public RemapTable(int lastLineSrc, int lastLineDst) {
+			this.lastLineSrc = lastLineSrc;
+			this.lastLineDst = lastLineDst;
 		}
+		
+		private final int lastLineSrc;
+		private final int lastLineDst;
+		private final NavigableMap<Integer, Integer> lineMap = new TreeMap<>();
+	}
+	
+	public LineNumberRemapper readMappings(Path lineMappings) throws IOException {
+		RemapTable currentRemapTable = null;
+		
+		for(String line : Files.readAllLines(lineMappings)) {
+			if(line.isEmpty()) continue;
+			
+			String[] split = line.trim().split("\t");
+			if(line.charAt(0) == '\t') {
+				if(currentRemapTable != null) {
+					//Adding to an existing entry.
+					currentRemapTable.lineMap.put(Integer.parseInt(split[0]), Integer.parseInt(split[1]));
+				}
+			} else {
+				//Creating a new entry.
+				currentRemapTable = new RemapTable(Integer.parseInt(split[1]), Integer.parseInt(split[2]));
+				tablesByInternalName.put(split[0], currentRemapTable);
+			}
+		}
+		
+		return this;
 	}
 
-	public void process(Logger logger, Path input, Path output) throws IOException {
-		Files.walkFileTree(input, new SimpleFileVisitor<Path>() {
+	public void process(FileSystem srcFs, FileSystem dstFs, Logger logger) throws Exception {
+		Files.walkFileTree(srcFs.getPath("/"), new SimpleFileVisitor<Path>() {
 			@Override
-			public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-				String rel = input.relativize(file).toString();
-				Path dst = output.resolve(rel);
-				Path parent = dst.getParent();
-
-				if (parent != null) {
-					Files.createDirectories(parent);
-				}
-
-				String fName = file.getFileName().toString();
-
-				if (fName.endsWith(".class")) {
-					if (Files.exists(dst)) {
-						Files.delete(dst);
+			public FileVisitResult preVisitDirectory(Path srcDir, BasicFileAttributes attrs) throws IOException {
+				Files.createDirectories(dstFs.getPath(srcDir.toString()));
+				return FileVisitResult.CONTINUE;
+			}
+			
+			@Override
+			public FileVisitResult visitFile(Path srcPath, BasicFileAttributes attrs) throws IOException {
+				Path dstPath = dstFs.getPath(srcPath.toString());
+				
+				if(dstPath.toString().endsWith(".class")) {
+					//kludgily glean the class name from the filename:
+					String className = srcPath.toString()
+						.replace("\\", "/")     //maybe windows does this idk?
+						.substring(1)           //leading slash
+						.replace(".class", ""); //funny extension
+					
+					//see if we have a line-number remap table for this class
+					RemapTable table = tablesByInternalName.get(className);
+					if(table == null) {
+						Files.copy(srcPath, dstPath);
+						return FileVisitResult.CONTINUE;
 					}
-
-					String idx = rel.substring(0, rel.length() - 6);
-
-					if (logger != null) {
-						logger.debug("Line-remapping " + idx);
-					}
-
-					int dollarPos = idx.indexOf('$'); //This makes the assumption that only Java classes are to be remapped.
-
-					if (dollarPos >= 0) {
-						idx = idx.substring(0, dollarPos);
-					}
-
-					if (lineMap.containsKey(idx)) {
-						try (InputStream is = Files.newInputStream(file)) {
-							ClassReader reader = new ClassReader(is);
-							ClassWriter writer = new ClassWriter(0);
-
-							reader.accept(new LineNumberVisitor(Opcodes.ASM7, writer, lineMap.get(idx)), 0);
-							Files.write(dst, writer.toByteArray());
-						}
+					
+					//we do - perform a line remap.
+					try(InputStream srcReader = new BufferedInputStream((Files.newInputStream(srcPath)))) {
+						ClassReader srcClassReader = new ClassReader(srcReader);
+						ClassWriter dstClassWriter = new ClassWriter(0);
+						srcClassReader.accept(new LineNumberVisitor(Opcodes.ASM9, dstClassWriter, table), 0);
+						Files.write(dstPath, dstClassWriter.toByteArray());
 					}
 				} else {
-					Files.copy(file, dst, StandardCopyOption.REPLACE_EXISTING);
+					Files.copy(srcPath, dstPath);
 				}
-
+				
 				return FileVisitResult.CONTINUE;
 			}
 		});
 	}
-
+	
 	private static class LineNumberVisitor extends ClassVisitor {
-		private final RClass rClass;
-
-		LineNumberVisitor(int api, ClassVisitor classVisitor, RClass rClass) {
+		LineNumberVisitor(int api, ClassVisitor classVisitor, RemapTable remapTable) {
 			super(api, classVisitor);
-			this.rClass = rClass;
+			this.remapTable = remapTable;
 		}
-
+		
+		private final RemapTable remapTable;
+		
 		@Override
 		public MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
 			return new MethodVisitor(api, super.visitMethod(access, name, descriptor, signature, exceptions)) {
 				@Override
-				public void visitLineNumber(int line, Label start) {
-					int tLine = line;
-
-					if (tLine <= 0) {
-						super.visitLineNumber(line, start);
-					} else if (tLine >= rClass.maxLine) {
-						super.visitLineNumber(rClass.maxLineDest, start);
-					} else {
-						Integer matchedLine = null;
-
-						while (tLine <= rClass.maxLine && ((matchedLine = rClass.lineMap.get(tLine)) == null)) {
-							tLine++;
-						}
-
-						super.visitLineNumber(matchedLine != null ? matchedLine : rClass.maxLineDest, start);
+				public void visitLineNumber(int srcLine, Label start) {
+					//Sometimes classes that don't contain any source code still have synthetic methods (imagine Enum#values()).
+					//In these cases, *usually* the original line number in the LNT points to something interesting, like
+					//the definition of the enum itself. Can't hurt to pass it through.
+					if(remapTable.lastLineSrc == 0) {
+						super.visitLineNumber(srcLine, start);
+						return;
 					}
+					
+					if(srcLine > remapTable.lastLineSrc) {
+						//System.err.println("overly large line (line " + srcLine + " of " + remapTable.lastLineSrc + " in file), in " + who + "." + name + descriptor);
+						//System.err.println("(putting it at " + remapTable.lastLineDst + ")");
+						super.visitLineNumber(remapTable.lastLineDst, start);
+						return;
+					}
+					
+					//If we can't find an entry in the table for this line number, find the next-highest one.
+					//This is what original Loom did, I'm not sure why this algorithm was chosen... seems to work okay...?
+					Integer nextSrcLine = remapTable.lineMap.ceilingKey(srcLine); // returns the lowest key that's >= the argument
+					if(nextSrcLine == null) {
+						//Fell off the end of the table. I haven't identified if there's a pattern where this happens exactly, but it seems to
+						//always happen with the last line of the last method anyways; it should be fine to bring this to the last codebearing line.
+						//System.err.println("fell off end of navigablemap: src line " + srcLine + " in " + who + "." + name + descriptor);
+						//System.err.println("(putting it at " + remapTable.lastLineDst + ")");
+						super.visitLineNumber(remapTable.lastLineDst, start);
+						return;
+					} else if(nextSrcLine != srcLine) {
+						//System.err.println("rounded up from line " + srcLine + " to line " + nextSrcLine + " in " + who + "." + name + descriptor);
+						//System.err.println("(putting it at " + remapTable.lineMap.get(nextSrcLine) + ")");
+					} else {
+						//Exact hit.
+					}
+					
+					super.visitLineNumber(remapTable.lineMap.get(nextSrcLine), start);
 				}
 			};
-		}
-	}
-
-	private static class RClass {
-		private final String name;
-		private int maxLine;
-		private int maxLineDest;
-		private Map<Integer, Integer> lineMap = new HashMap<>();
-
-		private RClass(String name) {
-			this.name = name;
 		}
 	}
 }
