@@ -38,8 +38,6 @@ import java.nio.file.Path;
 /**
  * Downloads Minecraft's global asset index, the asset index for the selected version, and downloads all assets inside that index.
  * Results go into the Gradle user cache.
- * <p>
- * This class resolves assets using the "legacy" file layout only (real filenames, not hashes with the `objects` folder).
  */
 public class AssetDownloader extends NewProvider<AssetDownloader> {
 	public AssetDownloader(Project project, LoomGradleExtension extension) {
@@ -55,10 +53,6 @@ public class AssetDownloader extends NewProvider<AssetDownloader> {
 	private Path finishedFlag;
 	private Path assetsDir;
 	private boolean legacyLayout;
-	
-	//privates
-	private boolean freshAssetIndex;
-	private JsonObject assets;
 	
 	public AssetDownloader versionManifest(VersionManifest versionManifest) {
 		this.versionManifest = versionManifest;
@@ -99,6 +93,7 @@ public class AssetDownloader extends NewProvider<AssetDownloader> {
 			.download();
 		
 		//parse it as json
+		JsonObject assets;
 		try(BufferedReader in = Files.newBufferedReader(assetIndexJson)) {
 			assets = new Gson().fromJson(in, JsonObject.class);
 		}
@@ -119,6 +114,12 @@ public class AssetDownloader extends NewProvider<AssetDownloader> {
 	
 	public AssetDownloader downloadAssets() throws Exception {
 		if(Files.exists(finishedFlag)) return this; //nothing to do
+		
+		//parse it as json again! (this avoids having to hold `assets` in memory across prepare/downloadAssets, 99% of the time it is wasted ram)
+		JsonObject assets;
+		try(BufferedReader in = Files.newBufferedReader(assetIndexJson)) {
+			assets = new Gson().fromJson(in, JsonObject.class);
+		}
 		
 		log.lifecycle("|-> Downloading assets to {}...", assetsDir);
 		JsonObject objects = assets.getAsJsonObject("objects");
