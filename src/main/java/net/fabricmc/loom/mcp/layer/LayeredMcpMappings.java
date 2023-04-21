@@ -100,10 +100,12 @@ public class LayeredMcpMappings {
 				
 				String hashedUrl = Checksum.stringHexHash(s, Checksum.SHA256.get()).substring(0, 16);
 				
-				//for debugging purposes, note the URL in a user-readable sidecar file, because the filename is
-				//hashed from the url (max_path, weird characters, etc)
-				Path info = cache.resolve(hashedUrl + ".info");
-				Files.write(info, ("Downloaded from " + s + "\n").getBytes(StandardCharsets.UTF_8));
+				//note the URL in a user-readable sidecar file, because the filename is a meaningless hash
+				Path infoPath = cache.resolve(hashedUrl + ".info");
+				List<String> info = new ArrayList<>();
+				info.add("Downloaded from " + s);
+				info.add("Used by '" + project.getRootProject().getName() + "'.");
+				Files.write(infoPath, info, StandardCharsets.UTF_8);
 				
 				Path dest = cache.resolve(hashedUrl);
 				new DownloadSession(s, project)
@@ -113,7 +115,9 @@ public class LayeredMcpMappings {
 					.download();
 				
 				return dest;
-			} catch (Exception e) { throw new RuntimeException(e); }
+			} catch (Exception e) {
+				throw new RuntimeException("Failed to download from URL " + s + ": " + e.getMessage(), e);
+			}
 		} else {
 			project.getLogger().info("\t-- looks like a Maven coordinate (or unknown) --");
 			return resolveOne(project.getDependencies().create(thing));
@@ -135,11 +139,12 @@ public class LayeredMcpMappings {
 				readersDigest.update((byte) 0);
 			}
 			String hash = Checksum.toHexStringPrefix(readersDigest.digest(), 8);
-			Path filename = cache.resolve(hash + ".zip");
+			Path mappingsPath = cache.resolve(hash + ".zip");
+			Path infoPath = cache.resolve(hash + ".info");
 			
-			project.getLogger().lifecycle("] Using layered mappings, output: {}", filename);
+			project.getLogger().lifecycle("] Using layered mappings, output: {}", mappingsPath);
 			
-			if(ext.refreshDependencies || Files.notExists(filename)) {
+			if(ext.refreshDependencies || Files.notExists(mappingsPath)) {
 				//fun part:
 				Files.createDirectories(cache);
 				
@@ -150,7 +155,7 @@ public class LayeredMcpMappings {
 				
 				//and create the file. everything goes into the root of the zip
 				project.getLogger().lifecycle("|-> Writing mappings...");
-				try(FileSystem outFs = ZipUtil.createFs(filename)) {
+				try(FileSystem outFs = ZipUtil.createFs(mappingsPath)) {
 					if(!mappings.joined.isEmpty()) mappings.joined.writeTo(outFs.getPath("joined.srg"));
 					if(!mappings.client.isEmpty()) mappings.client.writeTo(outFs.getPath("client.srg"));
 					if(!mappings.server.isEmpty()) mappings.server.writeTo(outFs.getPath("server.srg"));
@@ -158,9 +163,12 @@ public class LayeredMcpMappings {
 					if(!mappings.methods.isEmpty()) mappings.methods.writeTo(outFs.getPath("methods.csv"));
 				}
 				project.getLogger().lifecycle("|-> Done.");
+				
+				//write info file pointing out why this file is in the gradle cache
+				Files.write(infoPath, ("Used by '" + project.getRootProject().getName() + "'.").getBytes(StandardCharsets.UTF_8));
 			}
 			
-			return new GradleDep(project, filename, hash);
+			return new GradleDep(project, mappingsPath, hash);
 		} catch (Exception e) {
 			throw new RuntimeException("problem creating layered mappings ! " + e.getMessage(), e);
 		}
