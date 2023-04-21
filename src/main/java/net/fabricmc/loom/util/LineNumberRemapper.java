@@ -78,21 +78,21 @@ public class LineNumberRemapper {
 	}
 	
 	public LineNumberRemapper readMappings(Path lineMappings) throws IOException {
-		RemapTable currentRemapTable = null;
+		RemapTable currentTable = null;
 		
 		for(String line : Files.readAllLines(lineMappings)) {
 			if(line.isEmpty()) continue;
 			
 			String[] split = line.trim().split("\t");
 			if(line.charAt(0) == '\t') {
-				if(currentRemapTable != null) {
+				if(currentTable != null) {
 					//Adding to an existing entry.
-					currentRemapTable.lineMap.put(Integer.parseInt(split[0]), Integer.parseInt(split[1]));
+					currentTable.lineMap.put(Integer.parseInt(split[0]), Integer.parseInt(split[1]));
 				}
 			} else {
 				//Creating a new entry.
-				currentRemapTable = new RemapTable(Integer.parseInt(split[1]), Integer.parseInt(split[2]));
-				tablesByInternalName.put(split[0], currentRemapTable);
+				currentTable = new RemapTable(Integer.parseInt(split[1]), Integer.parseInt(split[2]));
+				tablesByInternalName.put(split[0], currentTable);
 			}
 		}
 		
@@ -118,24 +118,22 @@ public class LineNumberRemapper {
 						.substring(1)           //leading slash
 						.replace(".class", ""); //funny extension
 					
-					//see if we have a line-number remap table for this class
 					RemapTable table = tablesByInternalName.get(className);
-					if(table == null) {
-						Files.copy(srcPath, dstPath);
-						return FileVisitResult.CONTINUE;
+					if(table != null) {
+						//we have a line-number remap table for this class, perform a line remap.
+						try(InputStream srcReader = new BufferedInputStream((Files.newInputStream(srcPath)))) {
+							ClassReader srcClassReader = new ClassReader(srcReader);
+							ClassWriter dstClassWriter = new ClassWriter(0);
+							
+							srcClassReader.accept(new LineNumberVisitor(Opcodes.ASM9, dstClassWriter, table), 0);
+							
+							Files.write(dstPath, dstClassWriter.toByteArray());
+							return FileVisitResult.CONTINUE;
+						}
 					}
-					
-					//we do - perform a line remap.
-					try(InputStream srcReader = new BufferedInputStream((Files.newInputStream(srcPath)))) {
-						ClassReader srcClassReader = new ClassReader(srcReader);
-						ClassWriter dstClassWriter = new ClassWriter(0);
-						srcClassReader.accept(new LineNumberVisitor(Opcodes.ASM9, dstClassWriter, table), 0);
-						Files.write(dstPath, dstClassWriter.toByteArray());
-					}
-				} else {
-					Files.copy(srcPath, dstPath);
 				}
 				
+				Files.copy(srcPath, dstPath);
 				return FileVisitResult.CONTINUE;
 			}
 		});
@@ -156,13 +154,15 @@ public class LineNumberRemapper {
 				public void visitLineNumber(int srcLine, Label start) {
 					//Sometimes classes that don't contain any source code still have synthetic methods (imagine Enum#values()).
 					//In these cases, *usually* the original line number in the LNT points to something interesting, like
-					//the definition of the enum itself. Can't hurt to pass it through.
+					//the definition of the enum itself; can't hurt to pass it through.
 					if(remapTable.lastLineSrc == 0) {
 						super.visitLineNumber(srcLine, start);
 						return;
 					}
 					
 					if(srcLine > remapTable.lastLineSrc) {
+						//Here's some code that Fernflower says exists on a line after the last codebearing line in the file.
+						//Ok, sure buddy.
 						//System.err.println("overly large line (line " + srcLine + " of " + remapTable.lastLineSrc + " in file), in " + who + "." + name + descriptor);
 						//System.err.println("(putting it at " + remapTable.lastLineDst + ")");
 						super.visitLineNumber(remapTable.lastLineDst, start);
