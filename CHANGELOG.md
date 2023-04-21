@@ -28,8 +28,10 @@ Running changelog document, will be added to as I commit things.
 ## Roadmap
 
 * Fix 1.2.5 and make it "nice" (split sourcesets etc)
-* Fix the inevitable growing pains from the new mapping system lol
 * Add more to the `volde.layered` system
+  * especially baseZip, classes, fieldsMethods should only look for the requisite files,need to write more interfaces for that
+* Fix reobf-to-srg 1.5+
+* support for CSRG format (files are a nice bit smaller, not hard to implement)
 
 # 2.2 (`agency.highlysuspect:voldeloom:2.2`)
 

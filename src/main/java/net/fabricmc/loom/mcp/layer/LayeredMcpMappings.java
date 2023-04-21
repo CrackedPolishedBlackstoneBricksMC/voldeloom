@@ -46,6 +46,18 @@ public class LayeredMcpMappings {
 	}
 	
 	@SuppressWarnings("unused") //gradle api
+	public LayeredMcpMappings classes(Object thing) {
+		layers.add(new ClassesLayer(realizeToPath(thing)));
+		return this;
+	}
+	
+	@SuppressWarnings("unused") //gradle api
+	public LayeredMcpMappings fieldsMethods(Object thing) {
+		layers.add(new FieldsMethodsLayer(realizeToPath(thing)));
+		return this;
+	}
+	
+	@SuppressWarnings("unused") //gradle api
 	public LayeredMcpMappings unmapClass(String unmapOne) {
 		layers.add(new ClassUnmappingLayer(Collections.singleton(unmapOne)));
 		return this;
@@ -116,6 +128,7 @@ public class LayeredMcpMappings {
 			
 			Path cache = WellKnownLocations.getLayeredMappingsCache(project);
 			
+			//hash the configuration and pick the filename
 			MessageDigest readersDigest = Checksum.SHA256.get();
 			for(Layer layer : layers) {
 				layer.updateHasher(readersDigest);

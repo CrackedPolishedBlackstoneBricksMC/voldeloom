@@ -73,7 +73,7 @@ public class ReobfJarTask extends Jar {
 			.getFiles()
 			.stream()
 			.map(File::toPath)
-			.filter((p) -> !input.equals(p) && Files.exists(p))
+			.filter(p -> !input.equals(p) && Files.exists(p))
 			.collect(Collectors.toSet());
 		
 		//TODO: weird
