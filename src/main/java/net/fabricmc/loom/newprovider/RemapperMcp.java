@@ -60,8 +60,6 @@ public class RemapperMcp extends NewProvider<RemapperMcp> {
 	
 	public RemapperMcp remap() throws Exception {
 		log.lifecycle("] input jar: {}", input);
-		log.lifecycle("] output jar: {}", mappedJar);
-		
 		mappedJar = getOrCreate(getCacheDir().resolve("mapped").resolve(mappedDirectory).resolve(props.subst(mappedFilename)), dest -> {
 			doIt(input, dest, srg, log, deletedPrefixes, remapClasspath);
 		});

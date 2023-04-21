@@ -46,7 +46,7 @@ public class ShimResourcesTask extends DefaultTask implements LoomTaskExt {
 		Path resourceSourceDirectory = ext.getProviderGraph()
 			.assets
 			.downloadAssets() //<-- actually download them now
-			.getAssetsDir();
+			.getAssetsDownloadDir();
 		
 		//TODO: unplug the task entirely, instead of early exiting
 		if(ext.forgeCapabilities.supportsAssetsDir.get()) {

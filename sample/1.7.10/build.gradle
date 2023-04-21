@@ -30,6 +30,7 @@ volde {
 	runs {
 		client {
 			programArg "--username=quaternary"
+			programArg "--assetIndex=1.7.10" //todo move into launcher
 			programArg "--userProperties={}" //required to launch (that is an empty json object)
 			programArg "--accessToken=69" //required to launch
 		}

@@ -133,7 +133,7 @@ public class RunConfig implements Named {
 		}
 		
 		if(ext.forgeCapabilities.supportsAssetsDir.get()) {
-			copy.programArg("--assetsDir=" + ext.getProviderGraph().assets.getAssetsDir().toAbsolutePath());
+			copy.programArg("--assetsDir=" + ext.getProviderGraph().assets.getAssetsGameRoot().toAbsolutePath());
 		}
 		
 		//TODO: dumb kludge (and overrides user's choice for main class)

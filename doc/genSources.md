@@ -20,9 +20,9 @@ Loom (and Voldeloom) takes this approach. Luckily, Fabric's fork of Fernflower c
 
 # A note about methods that fail to decompile
 
-Due to MCP errata, some methods containing a switch-over-enum cause Fernflower to throw an exception. In 1.4.7, these are `multiplyBy32AndRound`, `placeDoor`, `getAppDir`, and `getOptionOrdinalValue`. Fernflower will print errors about this.
+Due to MCP errata and a Fernflower bug, some methods containing a switch-over-enum cause Fernflower to throw an exception. In 1.4.7, these are `multiplyBy32AndRound`, `placeDoor`, `getAppDir`, and `getOptionOrdinalValue`. Fernflower will print errors about this. You may also see errors of the form "Unable to simplify switch on enum".
 
-This doesn't affect the functioning of the game. You can still `runClient` and calls to the methods will still work.
+These are safe to ignore and do not affect the functioning of the game. You can still `runClient` and calls to the methods will still work.
 
 # Configuring
 

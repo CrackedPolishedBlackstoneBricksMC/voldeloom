@@ -51,7 +51,8 @@ public class AssetDownloader extends NewProvider<AssetDownloader> {
 	//outputs
 	private Path assetIndexJson;
 	private Path finishedFlag;
-	private Path assetsDir;
+	private Path assetsDownloadDir;
+	private Path assetsGameRoot;
 	private boolean legacyLayout;
 	
 	public AssetDownloader versionManifest(VersionManifest versionManifest) {
@@ -64,8 +65,12 @@ public class AssetDownloader extends NewProvider<AssetDownloader> {
 		return this;
 	}
 	
-	public Path getAssetsDir() {
-		return assetsDir;
+	public Path getAssetsDownloadDir() {
+		return assetsDownloadDir;
+	}
+	
+	public Path getAssetsGameRoot() {
+		return assetsGameRoot;
 	}
 	
 	public Path getAssetIndex() {
@@ -106,8 +111,13 @@ public class AssetDownloader extends NewProvider<AssetDownloader> {
 			(assets.has("virtual") && assets.getAsJsonPrimitive("virtual").getAsBoolean());
 		
 		//decide what directory to put the output artifacts in
-		if(legacyLayout) assetsDir = assetsCache.resolve("legacy").resolve(versionManifest.assetIndexReference.id);
-		else assetsDir = assetsCache.resolve("objects");
+		if(legacyLayout) {
+			assetsDownloadDir = assetsCache.resolve("legacy").resolve(versionManifest.assetIndexReference.id);
+			assetsGameRoot = assetsDownloadDir;
+		} else {
+			assetsDownloadDir = assetsCache.resolve("objects");
+			assetsGameRoot = assetsCache; //non-legacy layout games (1.7+) parse the asset index internally
+		}
 		
 		return this;
 	}
@@ -121,7 +131,7 @@ public class AssetDownloader extends NewProvider<AssetDownloader> {
 			assets = new Gson().fromJson(in, JsonObject.class);
 		}
 		
-		log.lifecycle("|-> Downloading assets to {}...", assetsDir);
+		log.lifecycle("|-> Downloading assets to {}...", assetsDownloadDir);
 		JsonObject objects = assets.getAsJsonObject("objects");
 		
 		//<logging>
@@ -136,8 +146,8 @@ public class AssetDownloader extends NewProvider<AssetDownloader> {
 			String shsha1 = sh + '/' + sha1;
 			
 			Path destFile = legacyLayout ?
-				assetsDir.resolve(filename) :
-				assetsDir.resolve(sh).resolve(sha1);
+				assetsDownloadDir.resolve(filename) :
+				assetsDownloadDir.resolve(sh).resolve(sha1);
 			
 			if(Files.notExists(destFile)) {
 				newDownloadSession(resourcesBaseUrl + shsha1)
