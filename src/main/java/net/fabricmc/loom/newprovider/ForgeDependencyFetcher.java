@@ -134,18 +134,21 @@ public class ForgeDependencyFetcher extends NewProvider<ForgeDependencyFetcher> 
 		Check.notNull(fmlLibrariesBaseUrl, "FML libraries URL");
 		
 		cleanOnRefreshDependencies(libDownloaderDir);
-		Files.createDirectories(libDownloaderDir);
 		
-		for(String lib : sniffedLibDownloaderJarNames) {
-			Path dest = libDownloaderDir.resolve(lib);
-			resolvedLibDownloaderJars.add(dest);
+		if(!sniffedLibDownloaderJarNames.isEmpty()) {
+			Files.createDirectories(libDownloaderDir);
 			
-			newDownloadSession(fmlLibrariesBaseUrl + lib)
-				.dest(dest)
-				.etag(true)
-				.gzip(false)
-				.skipIfExists()
-				.download();
+			for(String lib : sniffedLibDownloaderJarNames) {
+				Path dest = libDownloaderDir.resolve(lib);
+				resolvedLibDownloaderJars.add(dest);
+				
+				newDownloadSession(fmlLibrariesBaseUrl + lib)
+					.dest(dest)
+					.etag(true)
+					.gzip(false)
+					.skipIfExists()
+					.download();
+			}
 		}
 		
 		return this;
