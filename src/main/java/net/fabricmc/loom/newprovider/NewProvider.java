@@ -45,7 +45,7 @@ public abstract class NewProvider<SELF extends NewProvider<SELF>> {
 	protected final Logger log;
 	public final Props props = new Props();
 	
-	//TODO: is the type-polymorphism here necessary?
+	//simply for convenience, can be called with a heterogenous array of NewProviders and Props
 	@SuppressWarnings("unchecked")
 	public SELF superProps(Object... others) {
 		for(Object other : others) {

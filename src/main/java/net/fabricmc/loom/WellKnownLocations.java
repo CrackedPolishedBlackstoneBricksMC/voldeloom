@@ -38,8 +38,10 @@ public class WellKnownLocations {
 	}
 	
 	//always use the project-local cache; layered mappings are created in the buildscript, so they're effectively always "projectmapped"
+	//TODO: well, hmm, it makes sense to share them if the hashing system is robust.. especially 1.7.10 where mappings are always layered
 	public static Path getLayeredMappingsCache(Project project) {
-		return mkdirs(getProjectCache(project).resolve("layered-mappings"));
+		//return mkdirs(getProjectCache(project).resolve("layered-mappings"));
+		return mkdirs(getUserCache(project).resolve("layered-mappings"));
 	}
 	
 	public static Path getRootProjectCache(Project project) {

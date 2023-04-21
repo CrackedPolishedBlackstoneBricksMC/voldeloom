@@ -162,6 +162,7 @@ public class ProviderGraph {
 		
 		log.lifecycle("# ({}) Preparing SRG remapper...", side);
 		RemapperMcp remapperMcp = new RemapperMcp(project, extension)
+			.superProps(mappings.props)
 			.srg(srgGetter.apply(mappings.mappings))
 			.addToRemapClasspath(vanillaDeps.getNonNativeLibraries_Todo())
 			.deletedPrefixes(extension.forgeCapabilities.classFilter.get());
@@ -231,7 +232,7 @@ public class ProviderGraph {
 		job.mappedJar = naive.getOutput();
 		job.sourcesJar = LoomGradlePlugin.replaceExtension(naive.getOutput(), "-sources.jar");
 		job.linemapFile = LoomGradlePlugin.replaceExtension(naive.getOutput(), "-linemap.lmap");
-		job.linemappedJar = LoomGradlePlugin.replaceExtension(naive.getOutput(), "-named-linemapped.jar");
+		job.linemappedJar = LoomGradlePlugin.replaceExtension(naive.getOutput(), "-linemapped.jar");
 		job.libraries = vanillaDeps.getNonNativeLibraries_Todo();
 		job.mcpMappingsZip = mappings.getPath();
 		sourceGenerationJobs.add(job);
