@@ -40,7 +40,7 @@ public class ZipUtil {
 		Check.notNull(destRoot, "destRoot");
 		Check.notNull(filter, "filter");
 		
-		try(FileSystem zipFs = FileSystems.newFileSystem(URI.create("jar:" + inZip.toUri()), Collections.emptyMap())) {
+		try(FileSystem zipFs = openFs(inZip)) {
 			Files.walkFileTree(zipFs.getPath("/"), new SimpleFileVisitor<Path>() {
 				@Override
 				public FileVisitResult preVisitDirectory(Path zipPath, BasicFileAttributes attrs) throws IOException {

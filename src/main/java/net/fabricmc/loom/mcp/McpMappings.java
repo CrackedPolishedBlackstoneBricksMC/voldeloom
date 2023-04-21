@@ -1,17 +1,15 @@
 package net.fabricmc.loom.mcp;
 
 import net.fabricmc.loom.util.StringInterner;
+import net.fabricmc.loom.util.ZipUtil;
 
 import java.io.IOException;
-import java.net.URI;
 import java.nio.file.FileSystem;
-import java.nio.file.FileSystems;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.Collections;
 import java.util.function.Consumer;
 
 /**
@@ -86,7 +84,7 @@ public class McpMappings {
 	}
 	
 	public McpMappings importFromZip(Consumer<String> log, Path zip) throws IOException {
-		try(FileSystem fs = FileSystems.newFileSystem(URI.create("jar:" + zip.toUri()), Collections.emptyMap())) {
+		try(FileSystem fs = ZipUtil.openFs(zip)) {
 			return importFromZip(log, fs);
 		}
 	}

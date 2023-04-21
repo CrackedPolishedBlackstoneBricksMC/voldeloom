@@ -3,6 +3,7 @@ package net.fabricmc.loom.newprovider;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.util.Check;
 import net.fabricmc.loom.util.VersionManifest;
+import net.fabricmc.loom.util.ZipUtil;
 import org.gradle.api.Project;
 import org.gradle.api.artifacts.dsl.DependencyHandler;
 import org.objectweb.asm.ClassReader;
@@ -11,14 +12,11 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
 import java.io.InputStream;
-import java.net.URI;
 import java.nio.file.FileSystem;
-import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 
 /**
  * Forge auto-downloads dependencies at runtime, but the server is long dead, and I'd like to know about the
@@ -91,7 +89,7 @@ public class ForgeDependencyFetcher extends NewProvider<ForgeDependencyFetcher> 
 			}
 		}
 		
-		try(FileSystem forgeFs = FileSystems.newFileSystem(URI.create("jar:" + forgeJar.toUri()), Collections.emptyMap())) {
+		try(FileSystem forgeFs = ZipUtil.openFs(forgeJar)) {
 			//read from magical hardcoded path inside the forge jar; this is where the auto-downloaded library paths are stored
 			//TODO: applies from forge 1.3 through forge 1.5, dropped in 1.6
 			//TODO: at least 1.5 includes additional "deobfuscation data" zip dep, but also contains a sys property to change download mirror

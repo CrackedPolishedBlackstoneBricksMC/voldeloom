@@ -2,19 +2,17 @@ package net.fabricmc.loom.newprovider;
 
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.util.Check;
+import net.fabricmc.loom.util.ZipUtil;
 import org.gradle.api.Project;
 
 import java.io.IOException;
-import java.net.URI;
 import java.nio.file.FileSystem;
-import java.nio.file.FileSystems;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.Collections;
 
 /**
  * Pastes one jar on top of another, and remembers to delete META-INF.
@@ -61,9 +59,7 @@ public class Jarmodder extends NewProvider<Jarmodder> {
 			log.lifecycle("|-> Performing jarmod...");
 			Files.createDirectories(dest.getParent());
 			
-			try(FileSystem baseFs    = FileSystems.newFileSystem(URI.create("jar:" + base.toUri()),    Collections.emptyMap());
-			    FileSystem overlayFs = FileSystems.newFileSystem(URI.create("jar:" + overlay.toUri()), Collections.emptyMap());
-			    FileSystem patchedFs = FileSystems.newFileSystem(URI.create("jar:" + dest.toUri()), Collections.singletonMap("create", "true"))) {
+			try(FileSystem baseFs = ZipUtil.openFs(base); FileSystem overlayFs = ZipUtil.openFs(overlay); FileSystem patchedFs = ZipUtil.createFs(dest)) {
 				log.lifecycle("|-> Copying base into patched jar...");
 				Files.walkFileTree(baseFs.getPath("/"), new SimpleFileVisitor<Path>() {
 					@Override

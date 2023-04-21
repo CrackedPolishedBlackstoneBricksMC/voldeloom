@@ -4,6 +4,7 @@ import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.mcp.Members;
 import net.fabricmc.loom.mcp.NaiveAsmSrgRenamer;
 import net.fabricmc.loom.mcp.NaiveTextualSrgRenamer;
+import net.fabricmc.loom.util.ZipUtil;
 import org.gradle.api.Project;
 import org.gradle.api.logging.Logger;
 import org.objectweb.asm.ClassReader;
@@ -12,16 +13,13 @@ import org.objectweb.asm.ClassWriter;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystem;
-import java.nio.file.FileSystems;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.Collections;
 
 public class NaiveRenamer extends NewProvider<NaiveRenamer> {
 	public NaiveRenamer(Project project, LoomGradleExtension extension) {
@@ -74,8 +72,7 @@ public class NaiveRenamer extends NewProvider<NaiveRenamer> {
 	public static void doIt(Path input, Path output, Logger log, Members fields, Members methods) throws Exception {
 		log.warn("NaiveRenamer.doIt; input: {}, output: {}", input, output);
 		
-		try(FileSystem srcFs = FileSystems.newFileSystem(URI.create("jar:" + input.toUri()), Collections.emptyMap());
-		    FileSystem dstFs = FileSystems.newFileSystem(URI.create("jar:" + output.toUri()), Collections.singletonMap("create", "true"))) {
+		try(FileSystem srcFs = ZipUtil.openFs(input); FileSystem dstFs = ZipUtil.createFs(output)) {
 			Files.walkFileTree(srcFs.getPath("/"), new SimpleFileVisitor<Path>() {
 				@Override
 				public FileVisitResult preVisitDirectory(Path srcDir, BasicFileAttributes attrs) throws IOException {

@@ -233,9 +233,9 @@ public class ForgeCapabilities {
 		return this;
 	}
 	
-	public Supplier<Boolean> supportsAssetsDir = Suppliers.memoize(this::guessSupportsAssetIndex);
+	public Supplier<Boolean> supportsAssetsDir = Suppliers.memoize(this::guessSupportsAssetsDir);
 	
-	public boolean guessSupportsAssetIndex() {
+	public boolean guessSupportsAssetsDir() {
 		checkConfigured("guessSupportsAssetIndex");
 		
 		if(guessMinecraftMinorVersion() >= 6) {
@@ -248,14 +248,14 @@ public class ForgeCapabilities {
 	}
 	
 	@SuppressWarnings("unused") //gradle api
-	public ForgeCapabilities supportsAssetIndex(boolean supportsAssetIndex) {
-		this.supportsAssetsDir = () -> supportsAssetIndex;
+	public ForgeCapabilities supportsAssetsDir(boolean supportsAssetsDir) {
+		this.supportsAssetsDir = () -> supportsAssetsDir;
 		return this;
 	}
 	
 	@SuppressWarnings("unused") //gradle api
-	public ForgeCapabilities supportsAssetIndexSupplier(Supplier<Boolean> supportsAssetIndex) {
-		this.supportsAssetsDir = supportsAssetIndex;
+	public ForgeCapabilities supportsAssetsDirSupplier(Supplier<Boolean> supportsAssetsDir) {
+		this.supportsAssetsDir = supportsAssetsDir;
 		return this;
 	}
 	
@@ -274,7 +274,7 @@ public class ForgeCapabilities {
 	}
 	
 	@SuppressWarnings("unused") //gradle api
-	public ForgeCapabilities mappedAccessTransformersSupplier(boolean mappedAccessTransformers) {
+	public ForgeCapabilities mappedAccessTransformers(boolean mappedAccessTransformers) {
 		this.mappedAccessTransformers = () -> mappedAccessTransformers;
 		return this;
 	}
@@ -302,5 +302,17 @@ public class ForgeCapabilities {
 			log.info("|-> [ForgeCapabilities guess] Guessing that this Minecraft version leaves the run dir unchanged");
 			return Function.identity();
 		}
+	}
+	
+	@SuppressWarnings("unused") //gradle api
+	public ForgeCapabilities minecraftRealPath(Function<Path, Path> minecraftRealPath) {
+		this.minecraftRealPath = () -> minecraftRealPath;
+		return this;
+	}
+	
+	@SuppressWarnings("unused") //gradle api
+	public ForgeCapabilities minecraftRealPathSupplier(Supplier<Function<Path, Path>> minecraftRealPath) {
+		this.minecraftRealPath = minecraftRealPath;
+		return this;
 	}
 }

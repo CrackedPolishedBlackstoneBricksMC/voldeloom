@@ -2,16 +2,14 @@ package net.fabricmc.loom.newprovider;
 
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.util.Check;
+import net.fabricmc.loom.util.ZipUtil;
 import net.fabricmc.loom.yoinked.stitch.ClassMergerCooler;
 import net.fabricmc.loom.yoinked.stitch.JarMergerCooler;
 import org.gradle.api.Project;
 
-import java.net.URI;
 import java.nio.file.FileSystem;
-import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Collections;
 
 /**
  * Merges two jars, such as a Minecraft client jar and server jar.
@@ -58,9 +56,7 @@ public class Merger extends NewProvider<Merger> {
 			
 			log.lifecycle("|-> Target does not exist. Merging with JarMergerCooler to {}", dest);
 			
-			try(FileSystem clientFs = FileSystems.newFileSystem(URI.create("jar:" + client.toUri()), Collections.emptyMap());
-			    FileSystem serverFs = FileSystems.newFileSystem(URI.create("jar:" + server.toUri()), Collections.emptyMap());
-			    FileSystem destFs = FileSystems.newFileSystem(URI.create("jar:" + dest.toUri()), Collections.singletonMap("create", "true"));
+			try(FileSystem clientFs = ZipUtil.openFs(client); FileSystem serverFs = ZipUtil.openFs(server); FileSystem destFs = ZipUtil.createFs(dest);
 			    JarMergerCooler jm = new JarMergerCooler(clientFs, serverFs, destFs)) {
 				//jm.enableSyntheticParamsOffset();
 				jm.merge(new ClassMergerCooler()

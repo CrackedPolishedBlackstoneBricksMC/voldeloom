@@ -1,6 +1,7 @@
 package net.fabricmc.loom.mcp;
 
 import net.fabricmc.loom.util.Check;
+import net.fabricmc.loom.util.ZipUtil;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.Opcodes;
@@ -8,15 +9,12 @@ import org.objectweb.asm.Opcodes;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URI;
 import java.nio.file.FileSystem;
-import java.nio.file.FileSystems;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -30,14 +28,14 @@ public class JarScanData {
 	public final Map<String, Set<String>> innerClassData = new HashMap<>();
 	
 	public JarScanData scan(Path jar) throws IOException {
-		try(FileSystem jarFs = FileSystems.newFileSystem(URI.create("jar:" + jar.toUri()), Collections.emptyMap())) {
+		try(FileSystem jarFs = ZipUtil.openFs(jar)) {
 			ClassVisitor loader = new InfoLoadingClassVisitor();
 			
 			Files.walkFileTree(jarFs.getPath("/"), new SimpleFileVisitor<Path>() {
 				@Override
-				public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-					if(file.toString().endsWith(".class")) {
-						try(InputStream in = new BufferedInputStream(Files.newInputStream(file))) {
+				public FileVisitResult visitFile(Path path, BasicFileAttributes attrs) throws IOException {
+					if(path.toString().endsWith(".class")) {
+						try(InputStream in = new BufferedInputStream(Files.newInputStream(path))) {
 							new ClassReader(in).accept(loader, 0);
 						}
 					}

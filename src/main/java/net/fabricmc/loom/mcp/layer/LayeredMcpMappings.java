@@ -5,6 +5,7 @@ import net.fabricmc.loom.WellKnownLocations;
 import net.fabricmc.loom.mcp.McpMappings;
 import net.fabricmc.loom.util.Checksum;
 import net.fabricmc.loom.util.DownloadSession;
+import net.fabricmc.loom.util.ZipUtil;
 import org.gradle.api.Project;
 import org.gradle.api.artifacts.Configuration;
 import org.gradle.api.artifacts.Dependency;
@@ -16,10 +17,8 @@ import org.gradle.api.tasks.TaskDependency;
 
 import javax.annotation.Nullable;
 import java.io.File;
-import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystem;
-import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.MessageDigest;
@@ -138,7 +137,7 @@ public class LayeredMcpMappings {
 				
 				//and create the file. everything goes into the root of the zip
 				project.getLogger().lifecycle("|-> Writing mappings...");
-				try(FileSystem outFs = FileSystems.newFileSystem(URI.create("jar:" + filename.toUri()), Collections.singletonMap("create", "true"))) {
+				try(FileSystem outFs = ZipUtil.createFs(filename)) {
 					if(!mappings.joined.isEmpty()) mappings.joined.writeTo(outFs.getPath("joined.srg"));
 					if(!mappings.client.isEmpty()) mappings.client.writeTo(outFs.getPath("client.srg"));
 					if(!mappings.server.isEmpty()) mappings.server.writeTo(outFs.getPath("server.srg"));

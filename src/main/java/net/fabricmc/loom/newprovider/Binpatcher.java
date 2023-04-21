@@ -4,20 +4,18 @@ import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.mcp.Binpatch;
 import net.fabricmc.loom.mcp.BinpatchesPack;
 import net.fabricmc.loom.util.Suppliers;
+import net.fabricmc.loom.util.ZipUtil;
 import org.gradle.api.Project;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.net.URI;
 import java.nio.file.FileSystem;
-import java.nio.file.FileSystems;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -73,7 +71,7 @@ public class Binpatcher extends NewProvider<Binpatcher> {
 	
 	//process
 	public Binpatcher binpatch() throws Exception {
-		try(FileSystem forgeFs = FileSystems.newFileSystem(URI.create("jar:" + forge.toUri()), Collections.emptyMap())) {
+		try(FileSystem forgeFs = ZipUtil.openFs(forge)) {
 			//There's three cases:
 			//1. This version of Forge does not use binpatches. (supplier == null).
 			//2. Forge uses binpatches, but that's all I care to know because the binpatched files already exist. (supplier != null, goes uncalled)
@@ -111,9 +109,7 @@ public class Binpatcher extends NewProvider<Binpatcher> {
 		Map<String, Binpatch> binpatches = client ? binpatchesPack.clientBinpatches : binpatchesPack.serverBinpatches;
 		Path input = client ? this.client : server;
 		
-		try(FileSystem inputFs  = FileSystems.newFileSystem(URI.create("jar:" + input.toUri()),  Collections.emptyMap());
-		    FileSystem outputFs = FileSystems.newFileSystem(URI.create("jar:" + output.toUri()), Collections.singletonMap("create", "true"))) {
-			
+		try(FileSystem inputFs = ZipUtil.openFs(input); FileSystem outputFs = ZipUtil.createFs(output)) {
 			Set<Binpatch> unusedBinpatches = new HashSet<>(binpatches.values());
 			
 			Files.walkFileTree(inputFs.getPath("/"), new SimpleFileVisitor<Path>() {
