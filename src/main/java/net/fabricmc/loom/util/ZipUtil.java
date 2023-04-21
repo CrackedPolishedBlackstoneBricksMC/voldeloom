@@ -85,4 +85,15 @@ public class ZipUtil {
 		}
 		return out;
 	}
+	
+	/**
+	 * TODO: migrate usages of FileSystems.newFileSystem to this method
+	 */
+	public static FileSystem openFs(Path path) throws IOException {
+		return FileSystems.newFileSystem(URI.create("jar:" + path.toUri()), Collections.emptyMap());
+	}
+	
+	public static FileSystem createFs(Path path) throws IOException {
+		return FileSystems.newFileSystem(URI.create("jar:" + path.toUri()), Collections.singletonMap("create", "true"));
+	}
 }

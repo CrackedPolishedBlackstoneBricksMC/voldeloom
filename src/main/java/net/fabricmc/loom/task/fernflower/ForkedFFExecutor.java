@@ -70,6 +70,8 @@ public class ForkedFFExecutor {
 		boolean isFernflowerOption = true;
 
 		for(String arg : args) {
+			System.out.println("\\-> Got argument: " + arg);
+			
 			if(isFernflowerOption && arg.length() > 5 && arg.charAt(0) == '-' && arg.charAt(4) == '=') {
 				//Standard fernflower option. These have to come first.
 				options.put(arg.substring(1, 4), arg.substring(5));

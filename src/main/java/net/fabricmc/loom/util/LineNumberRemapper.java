@@ -41,7 +41,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.TreeMap;
@@ -75,6 +78,7 @@ public class LineNumberRemapper {
 		private final int lastLineSrc;
 		private final int lastLineDst;
 		private final NavigableMap<Integer, Integer> lineMap = new TreeMap<>();
+		private final Map<Integer, Integer> dstToSrcUsedMappings = new HashMap<>(); //for debugging
 	}
 	
 	public LineNumberRemapper readMappings(Path lineMappings) throws IOException {
@@ -109,16 +113,18 @@ public class LineNumberRemapper {
 			
 			@Override
 			public FileVisitResult visitFile(Path srcPath, BasicFileAttributes attrs) throws IOException {
-				Path dstPath = dstFs.getPath(srcPath.toString());
+				String pathString = srcPath.toString();
+				Path dstPath = dstFs.getPath(pathString);
 				
-				if(dstPath.toString().endsWith(".class")) {
-					//kludgily glean the class name from the filename:
-					String className = srcPath.toString()
-						.replace("\\", "/")     //maybe windows does this idk?
-						.substring(1)           //leading slash
-						.replace(".class", ""); //funny extension
+				if(pathString.endsWith(".class")) {
+					RemapTable table = tablesByInternalName.get(
+						//guess the class name from the filename
+						pathString
+							.replace("\\", "/")    //maybe windows does this idk?
+							.substring(1)          //leading slash
+							.replace(".class", "") //funny extension
+					);
 					
-					RemapTable table = tablesByInternalName.get(className);
 					if(table != null) {
 						//we have a line-number remap table for this class, perform a line remap.
 						try(InputStream srcReader = new BufferedInputStream((Files.newInputStream(srcPath)))) {
@@ -133,14 +139,67 @@ public class LineNumberRemapper {
 					}
 				}
 				
+				//file is not a class, or we don't have a table for this class
 				Files.copy(srcPath, dstPath);
 				return FileVisitResult.CONTINUE;
 			}
 		});
 	}
 	
+	public void processDebug(FileSystem sourcesFs, FileSystem processedSourcesFs) throws Exception {
+		Files.walkFileTree(sourcesFs.getPath("/"), new SimpleFileVisitor<Path>() {
+			@Override
+			public FileVisitResult visitFile(Path sourcesPath, BasicFileAttributes attrs) throws IOException {
+				String pathString = sourcesPath.toString();
+				Path processedSourcesPath = processedSourcesFs.getPath(pathString);
+				
+				if(pathString.endsWith(".java")) {
+					//Found a java source file. Let's see if we have a remap table for its corresponding class file...
+					RemapTable table = tablesByInternalName.get(
+						pathString
+							.replace("\\", "/")   //maybe windows does this idk?
+							.substring(1)         //leading slash
+							.replace(".java", "") //funny extension
+					);
+					
+					if(table != null) {
+						//We do have a table!
+						//Process each line of source code, prefixing it with the line number it corresponded to in Mojang's sources.
+						
+						//First, we want the prefixes to be the same length so the sources don't come out jagged.
+						int lengthOfLongestNumberWritten = table.dstToSrcUsedMappings.values().stream()
+							.map(i -> Integer.toString(i).length()) //we have log10 at home
+							.max(Integer::compareTo)
+							.orElse(1);
+						String spaces = String.join("", Collections.nCopies(lengthOfLongestNumberWritten + 7, " ")); //we have String.repeat at home
+						String fmt = "/* %" + lengthOfLongestNumberWritten + "d */ "; //the %3d fmt argument left-pads a number to 3 characters using spaces
+						
+						//Now process it line-by-line.
+						List<String> sources = Files.readAllLines(sourcesPath);
+						List<String> processedSources = new ArrayList<>();
+						
+						for(int i = 0; i < sources.size(); i++) {
+							String sourceLine = sources.get(i);
+							
+							Integer mojangsLineNumber = table.dstToSrcUsedMappings.get(i + 1); //line numbers are one-indexed
+							if(mojangsLineNumber == null) processedSources.add(spaces + sourceLine);
+							else processedSources.add(String.format(fmt, mojangsLineNumber) + sourceLine);
+						}
+						
+						if(processedSourcesPath.getParent() != null) Files.createDirectories(processedSourcesPath.getParent());
+						Files.write(processedSourcesPath, processedSources);
+						return FileVisitResult.CONTINUE;
+					}
+				}
+				
+				Files.copy(sourcesPath, processedSourcesPath);
+				return FileVisitResult.CONTINUE;
+			}
+		});
+	}
+	
 	private static class LineNumberVisitor extends ClassVisitor {
-		LineNumberVisitor(int api, ClassVisitor classVisitor, RemapTable remapTable) {
+		private LineNumberVisitor(int api, ClassVisitor classVisitor, RemapTable remapTable) {
 			super(api, classVisitor);
 			this.remapTable = remapTable;
 		}
@@ -152,41 +211,21 @@ public class LineNumberRemapper {
 			return new MethodVisitor(api, super.visitMethod(access, name, descriptor, signature, exceptions)) {
 				@Override
 				public void visitLineNumber(int srcLine, Label start) {
-					//Sometimes classes that don't contain any source code still have synthetic methods (imagine Enum#values()).
-					//In these cases, *usually* the original line number in the LNT points to something interesting, like
-					//the definition of the enum itself; can't hurt to pass it through.
+					//Sometimes classes that don't contain any source code (lastLineSrc == 0) still have synthetic methods.
+					//Picture Enum#values()). In these cases, *usually* the original line number in the LNT points to *something*
+					//interesting, like maybe the definition of the enum itself. Can't hurt to pass it through.
 					if(remapTable.lastLineSrc == 0) {
+						remapTable.dstToSrcUsedMappings.put(srcLine, srcLine);
 						super.visitLineNumber(srcLine, start);
 						return;
 					}
 					
-					if(srcLine > remapTable.lastLineSrc) {
-						//Here's some code that Fernflower says exists on a line after the last codebearing line in the file.
-						//Ok, sure buddy.
-						//System.err.println("overly large line (line " + srcLine + " of " + remapTable.lastLineSrc + " in file), in " + who + "." + name + descriptor);
-						//System.err.println("(putting it at " + remapTable.lastLineDst + ")");
-						super.visitLineNumber(remapTable.lastLineDst, start);
-						return;
-					}
-					
-					//If we can't find an entry in the table for this line number, find the next-highest one.
-					//This is what original Loom did, I'm not sure why this algorithm was chosen... seems to work okay...?
-					Integer nextSrcLine = remapTable.lineMap.ceilingKey(srcLine); // returns the lowest key that's >= the argument
-					if(nextSrcLine == null) {
-						//Fell off the end of the table. I haven't identified if there's a pattern where this happens exactly, but it seems to
-						//always happen with the last line of the last method anyways; it should be fine to bring this to the last codebearing line.
-						//System.err.println("fell off end of navigablemap: src line " + srcLine + " in " + who + "." + name + descriptor);
-						//System.err.println("(putting it at " + remapTable.lastLineDst + ")");
-						super.visitLineNumber(remapTable.lastLineDst, start);
-						return;
-					} else if(nextSrcLine != srcLine) {
-						//System.err.println("rounded up from line " + srcLine + " to line " + nextSrcLine + " in " + who + "." + name + descriptor);
-						//System.err.println("(putting it at " + remapTable.lineMap.get(nextSrcLine) + ")");
-					} else {
-						//Exact hit.
-					}
-					
-					super.visitLineNumber(remapTable.lineMap.get(nextSrcLine), start);
+					//Magic algorithm:
+					Integer nextSrcLineBoxed = remapTable.lineMap.ceilingKey(srcLine);
+					int nextSrcLine = nextSrcLineBoxed == null ? -1 : nextSrcLineBoxed;
+					int dstLine = remapTable.lineMap.getOrDefault(nextSrcLine, remapTable.lastLineDst);
+					remapTable.dstToSrcUsedMappings.put(dstLine, srcLine);
+					super.visitLineNumber(dstLine, start);
 				}
 			};
 		}
