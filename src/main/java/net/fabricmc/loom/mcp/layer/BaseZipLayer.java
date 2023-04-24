@@ -1,6 +1,7 @@
 package net.fabricmc.loom.mcp.layer;
 
-import net.fabricmc.loom.mcp.McpMappings;
+import net.fabricmc.loom.mcp.McpMappingsBuilder;
+import net.fabricmc.loom.util.StringInterner;
 import net.fabricmc.loom.util.ZipUtil;
 import org.gradle.api.logging.Logger;
 
@@ -18,11 +19,11 @@ public class BaseZipLayer implements Layer {
 	private final Path zipPath;
 	
 	@Override
-	public void visit(Logger log, McpMappings mappings) throws Exception {
+	public void visit(Logger log, McpMappingsBuilder mappings, StringInterner mem) throws Exception {
 		log.info("\t-- (BaseZipLayer) Importing mappings from {} --", zipPath);
 		
 		try(FileSystem fs = ZipUtil.openFs(zipPath)) {
-			mappings.importFromZip(log::info, fs);
+			mappings.mergeFromZip(fs, mem, log::info);
 		}
 	}
 	

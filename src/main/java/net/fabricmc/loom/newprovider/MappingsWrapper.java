@@ -2,8 +2,10 @@ package net.fabricmc.loom.newprovider;
 
 import net.fabricmc.loom.mcp.JarScanData;
 import net.fabricmc.loom.mcp.McpMappings;
+import net.fabricmc.loom.mcp.McpMappingsBuilder;
 import net.fabricmc.loom.util.Checksum;
 import net.fabricmc.loom.util.Props;
+import net.fabricmc.loom.util.StringInterner;
 import net.fabricmc.loom.util.ZipUtil;
 import org.gradle.api.Project;
 import org.gradle.api.artifacts.Configuration;
@@ -25,16 +27,17 @@ public class MappingsWrapper extends ResolvedConfigElementWrapper {
 		log.lifecycle("] mappings source: {}", getPath());
 		
 		log.info("|-> Loading mappings...");
-		McpMappings mappings;
+		McpMappingsBuilder mappingsBuilder = new McpMappingsBuilder();
+		StringInterner mem = new StringInterner();
 		try(FileSystem mcpZipFs = ZipUtil.openFs(getPath())) {
-			mappings = new McpMappings().importFromZip(log::info, mcpZipFs);
+			mappingsBuilder.mergeFromZip(mcpZipFs, mem, log::info);
 		}
 		
-		log.info("|-> Loaded. Gleaning inner-class info from '{}'...", scanJar);
-		JarScanData scan = new JarScanData().scan(scanJar);
+		log.info("|-> Gleaning inner-class info from '{}'...", scanJar);
+		mappingsBuilder.augment(new JarScanData().scan(scanJar));
 		
-		log.info("|-> Augmenting mappings with inner-class info...");
-		this.mappings = mappings.augment(scan);
+		log.info("|-> Building...");
+		mappings = mappingsBuilder.build();
 		
 		MessageDigest sha = Checksum.SHA256.get();
 		sha.update(Files.readAllBytes(getPath()));

@@ -1,6 +1,7 @@
 package net.fabricmc.loom.mcp.layer;
 
-import net.fabricmc.loom.mcp.McpMappings;
+import net.fabricmc.loom.mcp.McpMappingsBuilder;
+import net.fabricmc.loom.util.StringInterner;
 import org.gradle.api.logging.Logger;
 
 import java.security.MessageDigest;
@@ -16,7 +17,7 @@ public class ClassUnmappingLayer implements Layer {
 	private final Set<String> classMappingsToRemove;
 	
 	@Override
-	public void visit(Logger log, McpMappings mappings) throws Exception {
+	public void visit(Logger log, McpMappingsBuilder mappings, StringInterner mem) throws Exception {
 		for(String unmap : classMappingsToRemove) {
 			log.info("\t-- (ClassUnmappingLayer) Removing class {} from mappings --", unmap);
 			mappings.joined.removeClassMapping(unmap);

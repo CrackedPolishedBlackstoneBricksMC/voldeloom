@@ -1,12 +1,13 @@
 package net.fabricmc.loom.mcp.layer;
 
-import net.fabricmc.loom.mcp.McpMappings;
+import net.fabricmc.loom.mcp.McpMappingsBuilder;
+import net.fabricmc.loom.util.StringInterner;
 import org.gradle.api.logging.Logger;
 
 import java.security.MessageDigest;
 
 public interface Layer {
-	void visit(Logger log, McpMappings mappings) throws Exception;
+	void visit(Logger log, McpMappingsBuilder mappings, StringInterner mem) throws Exception;
 	void updateHasher(MessageDigest hasher) throws Exception;
 	
 	//just sticking these here because the java messagedigest interface kinda sucks

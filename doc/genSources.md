@@ -6,17 +6,27 @@ Nevertheless, there's a few reasons you might want to run the `genSources` task 
 * Sometimes IntelliJ is picky and works better when you have an attached sources jar ("find usages" is very flaky without one)
 * Line number information.
 
+# Comments
+
+MCP fields.csv and methods.csv contain comments for fields and methods. Their quality is a bit all-over-the-place but they're generally useful.
+
+`genSources` will insert these into the source code where appropriate.
+
 # Linemapping
 
-Compiled Java code may contain a line-number table, which corresponds regions of JVM bytecode to lines of Java source code. The line numebr table is used when annotating exception stacktraces, but it's critical to the functioning of a debugger - when you place a breakpoint on "line 59", what actual instruction should the VM stop on, and when you press "next line", how many instructions should the JVM execute? Mojang did not strip out the line-number table from release versions of Minecraft, but the line numbers inside it correspond to lines in Mojang's internal source code, not the decompiled source code we have access to. That's a bummer. There's two possible ways around this:
+Compiled Java code may contain a line-number table, which corresponds regions of JVM bytecode to lines of Java source code. The line number table is used when annotating exception stacktraces and it's critical to the functioning of a debugger - when you place a breakpoint on "line 59", what actual instruction should the VM stop on, and when you press "next line", how many instructions should the JVM execute?
+
+Release versions of Minecraft do contain a line-number table, especially classes affected by a Forge patch, but the line numbers inside it correspond either to made-up crap by Proguard, or lines in Mojang's internal source code. Sometimes the line-numbers don't even belong to the right file if ProGuard inlined something. They certainly don't correspond to the decompiled source code we have access to, which is a bummer. There's two possible ways around this:
 
 * Recompile the decompiler output, creating a fresh linemap table.
 
-This *would* be the best solution, but recomp is very hard and requires manual patching to fix decompiler flaws. This is a binary-based toolchain anyway.
+This *would* be the best solution, and this is what Forge does, but recomp is very hard and requires manual patching to fix decompiler flaws. This is a binary-based toolchain anyway.
 
 * Edit the linemap table in the original jar.
 
-Loom (and Voldeloom) takes this approach. Luckily, Fabric's fork of Fernflower can write a "linemap" file, mapping line-number table information in the compiled original jar to physical lines of Fernflower's output. We can adjust the linemap in the original jar to match Fernflower's output. This is called *linemapping* and it's done automatically when you run `genSources`. If a linemapped jar exists in the Gradle cache, Voldeloom will add it as a project dependency instead of the regular Minecraft jar the next time you use Gradle. Make sure you're also referencing the linemapped jar in whatever tool you're using to place breakpoints (the filename will end in `-linemapped.jar`) - this may require a "refresh" whack.
+Loom (and Voldeloom) takes this approach. Fabric's fork of Fernflower can write a "linemap" file, mapping line-number table information in the compiled original jar to physical lines of Fernflower's output. We then adjust the linemap in the original jar to match Fernflower's output, and use that jar for executing the game instead. This is called *linemapping* and it's done automatically when you run `genSources`.
+
+If a linemapped jar exists in the Gradle cache, Voldeloom will add it as a project dependency instead of the regular Minecraft jar the next time you use Gradle. Make sure you're also referencing the linemapped jar in whatever tool you're using to place breakpoints (the filename will end in `-linemapped.jar`) - this may require a "refresh" whack.
 
 # A note about methods that fail to decompile
 
@@ -43,7 +53,7 @@ If *`saferBytecodeProvider`* is set, the stock Fernflower file-reading code is u
 
 *`skipDecompile`* will skip the actual source-gen part of genSources and only redo the linemapping.
 
-*`linemapDebug`* will write an alternate version of the `-sources` jar ending in `-linemap-debug.jar`, that annotates each line of decompiled code with what line of *Mojang's* source code it corresponds to. You can attach this in your editor instead of the regular `-sources` jar to shed some light on weird debugger behaviors - sometimes a line of code doesn't have any line-number table information because it's something Fernflower invented from thin air, and sometimes Fernflower decided to sugar the source code differently from Mojang.
+*`linemapDebug`* will write an alternate version of the `-sources` jar ending in `-linemap-debug.jar`, that attempts to annotate each line of source code with the corresponding line-number table information from the *original* jar. You can attach this in your editor instead of the regular `-sources` jar to shed some light on weird debugger behaviors - sometimes a line of code doesn't have any line-number table information because it's something Fernflower invented from thin air, and sometimes Fernflower decided to sugar the source code differently from Mojang.
 
 Here, Fernflower formatted the `if` body on a separate line, but Mojang must have put it on the same line:
 

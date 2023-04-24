@@ -2,6 +2,7 @@ package net.fabricmc.loom.mcp;
 
 import net.fabricmc.loom.util.StringInterner;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.nio.file.FileSystem;
 import java.nio.file.FileVisitResult;
@@ -16,7 +17,7 @@ public class McpMappingsBuilder {
 	public Srg joined = new Srg();
 	public Packages packages = new Packages();
 	
-	//split srg only:
+	//split srgs only:
 	public Srg client = new Srg();
 	public Srg server = new Srg();
 	
@@ -26,9 +27,9 @@ public class McpMappingsBuilder {
 	
 	public McpMappings build() {
 		//apply packaging transformation to joined only
-		//packaging transformations can technically exist for client/server but were not used in practice
+		//packaging transformations can technically exist for client/server, but were not used in practice
 		//todo: might be nice to come up with an anachronistic way to do it?
-		if(!packages.isEmpty()) joined = joined.repackage(packages);
+		if(!packages.isEmpty() && !joined.isEmpty()) joined = joined.repackage(packages);
 		
 		return new McpMappings(joined, client, server, fields, methods);
 	}
@@ -76,6 +77,54 @@ public class McpMappingsBuilder {
 	
 	public void mergeFromMethodsCsv(Path path, StringInterner mem) throws IOException {
 		methods.mergeWith(new Members().read(path, mem));
+	}
+	
+	public static @Nullable Path find(FileSystem fs, String name) throws IOException {
+		Path[] result = new Path[] { null };
+		
+		Files.walkFileTree(fs.getPath("/"), new SimpleFileVisitor<Path>() {
+			@Override
+			public FileVisitResult visitFile(Path path, BasicFileAttributes attrs) {
+				if(path.getFileName().toString().equals(name)) {
+					result[0] = path;
+					return FileVisitResult.TERMINATE;
+				} else return FileVisitResult.CONTINUE;
+			}
+		});
+		
+		return result[0];
+	}
+	
+	/// TODO: It's not great how this api does a whole walkFileTree on each call ///
+	
+	public void mergeFromFoundJoinedSrg(FileSystem fs, StringInterner mem) throws IOException {
+		Path path = find(fs, "joined.srg");
+		if(path != null) mergeFromJoinedSrg(path, mem);
+	}
+	
+	public void mergeFromFoundPackagesCsv(FileSystem fs, StringInterner mem) throws IOException {
+		Path path = find(fs, "packages.csv");
+		if(path != null) mergeFromPackagesCsv(path, mem);
+	}
+	
+	public void mergeFromFoundClientSrg(FileSystem fs, StringInterner mem) throws IOException {
+		Path path = find(fs, "joined.srg");
+		if(path != null) mergeFromClientSrg(path, mem);
+	}
+	
+	public void mergeFromFoundServerSrg(FileSystem fs, StringInterner mem) throws IOException {
+		Path path = find(fs, "server.srg");
+		if(path != null) mergeFromServerSrg(path, mem);
+	}
+	
+	public void mergeFromFoundFieldsCsv(FileSystem fs, StringInterner mem) throws IOException {
+		Path path = find(fs, "fields.csv");
+		if(path != null) mergeFromFieldsCsv(path, mem);
+	}
+	
+	public void mergeFromFoundMethodsCsv(FileSystem fs, StringInterner mem) throws IOException {
+		Path path = find(fs, "methods.csv");
+		if(path != null) mergeFromMethodsCsv(path, mem);
 	}
 	
 	public void mergeFromZip(FileSystem fs, StringInterner mem, Consumer<String> log) throws IOException {

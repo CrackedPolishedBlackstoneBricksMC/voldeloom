@@ -3,8 +3,10 @@ package net.fabricmc.loom.mcp.layer;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.WellKnownLocations;
 import net.fabricmc.loom.mcp.McpMappings;
+import net.fabricmc.loom.mcp.McpMappingsBuilder;
 import net.fabricmc.loom.util.Checksum;
 import net.fabricmc.loom.util.DownloadSession;
+import net.fabricmc.loom.util.StringInterner;
 import net.fabricmc.loom.util.ZipUtil;
 import org.gradle.api.Project;
 import org.gradle.api.artifacts.Configuration;
@@ -135,9 +137,12 @@ public class LayeredMcpMappings {
 			//hash the configuration and pick the filename
 			MessageDigest readersDigest = Checksum.SHA256.get();
 			for(Layer layer : layers) {
+				readersDigest.update(layer.getClass().getSimpleName().getBytes(StandardCharsets.UTF_8));
+				readersDigest.update((byte) 0);
 				layer.updateHasher(readersDigest);
 				readersDigest.update((byte) 0);
 			}
+			readersDigest.update((byte) 0); //<-- bump this when making a big change to mapping layer system !!!
 			String hash = Checksum.toHexStringPrefix(readersDigest.digest(), 8);
 			Path mappingsPath = cache.resolve(hash + ".zip");
 			Path infoPath = cache.resolve(hash + ".info");
@@ -150,11 +155,15 @@ public class LayeredMcpMappings {
 				
 				//resolve the layers
 				project.getLogger().lifecycle("|-> Computing layered mappings ({} layer{})...", layers.size(), layers.size() == 1 ? "" : "s");
-				McpMappings mappings = new McpMappings();
-				for(Layer layer : layers) layer.visit(project.getLogger(), mappings);
+				McpMappingsBuilder builder = new McpMappingsBuilder();
+				StringInterner mem = new StringInterner();
+				for(Layer layer : layers) layer.visit(project.getLogger(), builder, mem);
+				
+				project.getLogger().lifecycle("|-> Building...");
+				McpMappings mappings = builder.build();
 				
 				//and create the file. everything goes into the root of the zip
-				project.getLogger().lifecycle("|-> Writing mappings...");
+				project.getLogger().lifecycle("|-> Writing...");
 				try(FileSystem outFs = ZipUtil.createFs(mappingsPath)) {
 					if(!mappings.joined.isEmpty()) mappings.joined.writeTo(outFs.getPath("joined.srg"));
 					if(!mappings.client.isEmpty()) mappings.client.writeTo(outFs.getPath("client.srg"));
@@ -211,11 +220,13 @@ public class LayeredMcpMappings {
 			return resolve(); //dont care about transitive deps here
 		}
 		
+		//Buildable
 		@Override
 		public TaskDependency getBuildDependencies() {
 			return null;
 		}
 		
+		//Dependency
 		@Nullable
 		@Override
 		public String getGroup() {

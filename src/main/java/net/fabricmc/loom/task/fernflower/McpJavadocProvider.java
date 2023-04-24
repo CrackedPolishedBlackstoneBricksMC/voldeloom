@@ -2,6 +2,8 @@ package net.fabricmc.loom.task.fernflower;
 
 import net.fabricmc.fernflower.api.IFabricJavadocProvider;
 import net.fabricmc.loom.mcp.McpMappings;
+import net.fabricmc.loom.mcp.McpMappingsBuilder;
+import net.fabricmc.loom.util.StringInterner;
 import net.fabricmc.loom.util.ZipUtil;
 import org.jetbrains.java.decompiler.struct.StructClass;
 import org.jetbrains.java.decompiler.struct.StructField;
@@ -15,16 +17,16 @@ import java.util.Map;
 
 public class McpJavadocProvider implements IFabricJavadocProvider {
 	public McpJavadocProvider(Path mcpZip) throws IOException {
-		McpMappings mappings;
+		//Read just the fields.csv and methods.csv files:
+		// * They're the only ones with comments.
+		// * We don't care about the field/method's owning class because field/method names are always unique.
+		McpMappingsBuilder builder = new McpMappingsBuilder();
+		StringInterner mem = new StringInterner();
 		try(FileSystem fs = ZipUtil.openFs(mcpZip)) {
-			mappings = new McpMappings().importFromZip(System.out::println, fs);
+			builder.mergeFromFoundFieldsCsv(fs, mem);
+			builder.mergeFromFoundMethodsCsv(fs, mem);
 		}
-		
-		//NB: This relies on MCP having unique names for all fields/methods with javadoc
-		//I don't thiiink this is true (it has unique SRGs, sometimes methods are named oddly to make them unique,
-		//but i don't know if they're all unique). Hopefully when i get a find-and-replace-based remapper in place
-		//I can maybe run fernflower on the srg and use find-and-replace to remap to mcp, so fernflower will be able
-		//to see the (unique) srg names. Right now this seems to work decently enough...?
+		McpMappings mappings = builder.build();
 		
 		mappings.fields.members.values().forEach(entry -> {
 			if(entry.comment != null && !entry.comment.trim().isEmpty()) fieldComments.put(entry.remappedName, entry.comment);
