@@ -5,7 +5,6 @@ import net.fabricmc.tinyremapper.IMappingProvider;
 
 import java.io.BufferedOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -36,6 +35,8 @@ public class Srg {
 	public final Map<String, Map<String, String>> fieldMappingsByOwningClass;
 	public final Map<String, Map<MethodEntry, MethodEntry>> methodMappingsByOwningClass;
 	
+	/// importing ///
+	
 	public Srg read(Path path, StringInterner mem) throws IOException {
 		List<String> lines = Files.readAllLines(path);
 		for(int i = 0; i < lines.size(); i++) {
@@ -52,21 +53,22 @@ public class Srg {
 			if("CL:".equals(split[0])) {
 				//Example class line:
 				// CL: abk net/minecraft/src/WorldGenDeadBush
-				classMappings.put(mem.intern(split[1]), mem.intern(split[2]));
+				String fromClass = mem.intern(split[1]);
+				String toClass = mem.intern(split[2]);
+				putClassMapping(fromClass, toClass);
 			} else if("FD:".equals(split[0])) {
 				//Example field line:
 				// FD: abk/a net/minecraft/src/WorldGenDeadBush/field_76516_a
 				//
 				//In fields 1 and 2, the name of the field is attached to the owning class with a `/`.
 				int fstSlash = split[1].lastIndexOf('/');
-				String fromOwningClass = split[1].substring(0, fstSlash);
-				String fromName = split[1].substring(fstSlash + 1);
+				String fromOwningClass = mem.intern(split[1].substring(0, fstSlash));
+				String fromName = mem.intern(split[1].substring(fstSlash + 1));
 				
 				int sndSlash = split[2].lastIndexOf('/');
-				String toName = split[2].substring(sndSlash + 1);
+				String toName = mem.intern(split[2].substring(sndSlash + 1));
 				
-				fieldMappingsByOwningClass.computeIfAbsent(fromOwningClass, __ -> new LinkedHashMap<>())
-					.put(mem.intern(fromName), mem.intern(toName));
+				putFieldMapping(fromOwningClass, fromName, toName);
 			} else if("MD:".equals(split[0])) {
 				//Example method line:
 				// MD: acn/b (Lacn;)V net/minecraft/src/StructureBoundingBox/func_78888_b (Lnet/minecraft/src/StructureBoundingBox;)V
@@ -80,13 +82,13 @@ public class Srg {
 				}
 				
 				int fstSlash = split[1].lastIndexOf('/');
-				String fromOwningClass = split[1].substring(0, fstSlash);
-				String fromName = split[1].substring(fstSlash + 1);
-				String fromDesc = split[2];
+				String fromOwningClass = mem.intern(split[1].substring(0, fstSlash));
+				String fromName = mem.intern(split[1].substring(fstSlash + 1));
+				String fromDesc = mem.intern(split[2]);
 				
 				int trdSlash = split[3].lastIndexOf('/');
-				String toName = split[3].substring(trdSlash + 1);
-				String toDesc = split[4];
+				String toName = mem.intern(split[3].substring(trdSlash + 1));
+				String toDesc = mem.intern(split[4]);
 				
 				//TODO: KLUDGE for 1.6.4, need to debug. Naming conflicts. May be less of an issue after switching off tiny-remapper?
 				// (This is accurate to the actual contents of the SRG, btw, there are duplicates)
@@ -96,8 +98,7 @@ public class Srg {
 				else if(toName.equals("func_319_i") && fromDesc.equals("(Lxd;III)V")) continue;
 				else if(toName.equals("func_35199_b") && fromDesc.equals("(Laan;I)V")) continue;
 				
-				methodMappingsByOwningClass.computeIfAbsent(fromOwningClass, __ -> new LinkedHashMap<>())
-					.put(new MethodEntry(mem.intern(fromName), mem.intern(fromDesc)), new MethodEntry(mem.intern(toName), mem.intern(toDesc)));
+				putMethodMapping(fromOwningClass, fromName, fromDesc, toName, toDesc);
 			} else if(!"PK:".equals(split[0])) { //We acknowledge PK lines but they're useless to us, retroguard stuff
 				System.err.println("line " + lineNo + " has unknown type (not CL/FD/MD/PK): " + line);
 			}
@@ -106,79 +107,44 @@ public class Srg {
 		return this;
 	}
 	
+	/// exporting ///
+	
 	public void writeTo(Path path) throws IOException {
-		try(OutputStream o = new BufferedOutputStream(Files.newOutputStream(path)); OutputStreamWriter w = new OutputStreamWriter(o)) {
-			write(w);
-			o.flush(); //(SFX: toilet flushing)
-		}
-	}
-	
-	public void write(OutputStreamWriter o) throws IOException {
-		for(Map.Entry<String, String> classMapping : classMappings.entrySet()) {
-			o.write("CL: ");
-			o.write(classMapping.getKey());
-			o.write(' ');
-			o.write(classMapping.getValue());
-			o.write('\n');
-		}
-		
-		for(Map.Entry<String, Map<String, String>> bleh : fieldMappingsByOwningClass.entrySet()) {
-			String owningClass = bleh.getKey();
-			String mappedOwningClass = classMappings.getOrDefault(owningClass, owningClass);
-			for(Map.Entry<String, String> fieldMapping : bleh.getValue().entrySet()) {
-				o.write("FD: ");
-				o.write(owningClass); o.write('/'); o.write(fieldMapping.getKey());
-				o.write(' ');
-				o.write(mappedOwningClass); o.write('/'); o.write(fieldMapping.getValue());
-				o.write('\n');
+		//cant use cool loops because of IOException :(
+		try(OutputStreamWriter w = new OutputStreamWriter(new BufferedOutputStream(Files.newOutputStream(path)))) {
+			for(Map.Entry<String, String> classMapping : classMappings.entrySet()) {
+				w.write("CL: ");
+				w.write(classMapping.getKey());
+				w.write(' ');
+				w.write(classMapping.getValue());
+				w.write('\n');
 			}
-		}
-		
-		for(Map.Entry<String, Map<MethodEntry, MethodEntry>> bleh : methodMappingsByOwningClass.entrySet()) {
-			String owningClass = bleh.getKey();
-			String mappedOwningClass = classMappings.getOrDefault(owningClass, owningClass);
-			for(Map.Entry<MethodEntry, MethodEntry> methodMapping : bleh.getValue().entrySet()) {
-				o.write("MD: ");
-				o.write(owningClass); o.write('/'); o.write(methodMapping.getKey().name); o.write(' '); o.write(methodMapping.getKey().descriptor);
-				o.write(' ');
-				o.write(mappedOwningClass); o.write('/'); o.write(methodMapping.getValue().name); o.write(' '); o.write(methodMapping.getValue().descriptor);
-				o.write('\n');
-			}
-		}
-	}
-	
-	public void augment(JarScanData data) {
-		int[] thinAirId = new int[] { 0 }; //FINAL OR EFFECTIVELY FINAL
-		
-		data.innerClassData.forEach((outerClass, innerClasses) ->
-			innerClasses.forEach(innerClass -> {
-				if(classMappings.containsKey(outerClass) && !classMappings.containsKey(innerClass)) {
-					//`innerClass` is an inner class of `outerClass`, and there's a mapping for `outerClass`,
-					//but none for `innerClass`. If we remap now, `innerClass` will be left where it is,
-					//but `outerClass` will be moved. This will probably lead to runtime crashes; the JVM
-					//really really wants outer classes and their inner classes to stick together.
-					//We could fix this by augmenting the remapper, but currently it's off-the-shelf tiny-remapper.
-					//Instead, let's invent a mapping for this class.
-					
-					//If there's a mapping "amq -> net/minecraft/block/Block", and I'm inventing a mapping for the
-					//class "amq$1", I want to map it the same way "amq" is mapped, but keep the $1 suffix.
-					//So ideally I want net/minecraft/block/Block$1. We don't really have a choice; Forge binpatches
-					//will refer to the class by this name.
-					
-					String suffix;
-					
-					int dollarIndex = innerClass.indexOf('$');
-					if(dollarIndex != -1) {
-						//Grab the part after/including the dollar sign.
-						suffix = innerClass.substring(dollarIndex);
-					} else {
-						//Well that sucks. Let's just make something up.
-						suffix = "$voldeloom_invented$" + thinAirId[0]++; 
-					}
-					
-					classMappings.put(innerClass, classMappings.get(outerClass) + suffix);
+			
+			for(Map.Entry<String, Map<String, String>> bleh : fieldMappingsByOwningClass.entrySet()) {
+				String fromOwningClass = bleh.getKey();
+				String toOwningClass = classMappings.getOrDefault(fromOwningClass, fromOwningClass);
+				for(Map.Entry<String, String> fieldMapping : bleh.getValue().entrySet()) {
+					w.write("FD: ");
+					w.write(fromOwningClass); w.write('/'); w.write(fieldMapping.getKey());
+					w.write(' ');
+					w.write(toOwningClass); w.write('/'); w.write(fieldMapping.getValue());
+					w.write('\n');
 				}
-			}));
+			}
+			
+			for(Map.Entry<String, Map<MethodEntry, MethodEntry>> bleh : methodMappingsByOwningClass.entrySet()) {
+				String fromOwningClass = bleh.getKey();
+				String toOwningClass = classMappings.getOrDefault(fromOwningClass, fromOwningClass);
+				for(Map.Entry<MethodEntry, MethodEntry> methodMapping : bleh.getValue().entrySet()) {
+					w.write("MD: ");
+					w.write(fromOwningClass); w.write('/'); w.write(methodMapping.getKey().name); w.write(' '); w.write(methodMapping.getKey().descriptor);
+					w.write(' ');
+					w.write(toOwningClass); w.write('/'); w.write(methodMapping.getValue().name); w.write(' '); w.write(methodMapping.getValue().descriptor);
+					w.write('\n');
+				}
+			}
+			w.flush(); //(SFX: toilet flushing)
+		}
 	}
 	
 	public IMappingProvider toMappingProvider() {
@@ -197,82 +163,77 @@ public class Srg {
 	}
 	
 	/**
-	 * Applies the "packaging transformation"; this renames most of the fully-qualified class names.
-	 * Class names, owners of fields, owners of methods, and method descriptors are affected.
+	 * Returns a new srg with the "packaging transformation" applied; this renames most of the class names, field owners,
+	 * method owners, and method descriptors. Field/method names and class simple names are unchanged.
 	 */
 	public Srg repackage(Packages packages) {
 		StringInterner mem = new StringInterner();
+		Srg repackaged = new Srg();
 		
-		Map<String, String> repackagedClasses = new LinkedHashMap<>();
-		classMappings.forEach((proguardClass, srgClass) -> repackagedClasses.put(
-			mem.intern(packages.repackage(proguardClass)),
-			mem.intern(packages.repackage(srgClass))
-		));
-		
-		Map<String, Map<String, String>> repackagedFields = new LinkedHashMap<>();
-		fieldMappingsByOwningClass.forEach((prg, fields) -> repackagedFields.put(
-			mem.intern(packages.repackage(prg)),
-			fields
-		));
-		
-		Map<String, Map<MethodEntry, MethodEntry>> repackagedMethods = new LinkedHashMap<>();
-		methodMappingsByOwningClass.forEach((prg, methods) -> {
-			Map<MethodEntry, MethodEntry> newMethods = new LinkedHashMap<>();
-			methods.forEach((prgM, srgM) -> newMethods.put(
-				prgM.repackage(packages, mem),
-				srgM.repackage(packages, mem)
+		classMappings.forEach((fromClass, toClass) ->
+			repackaged.putClassMapping(
+				mem.intern(packages.repackage(fromClass)),
+				mem.intern(packages.repackage(toClass))
 			));
-			
-			repackagedMethods.put(mem.intern(packages.repackage(prg)), newMethods);
-		});
 		
-		return new Srg(repackagedClasses, repackagedFields, repackagedMethods);
+		fieldMappingsByOwningClass.forEach((owningClass, fieldMappings) ->
+			repackaged.putAllFieldMappings(
+				mem.intern(packages.repackage(owningClass)),
+				fieldMappings
+			));
+		
+		methodMappingsByOwningClass.forEach((owningClass, methodMappings) ->
+			methodMappings.forEach((fromEntry, toEntry) ->
+				repackaged.putMethodMapping(
+					mem.intern(owningClass),
+					fromEntry.name,
+					mem.intern(packages.repackageDescriptor(fromEntry.descriptor)),
+					toEntry.name,
+					mem.intern(packages.repackageDescriptor(toEntry.descriptor))
+				)));
+		
+		return repackaged;
 	}
 	
 	/**
 	 * emulates the "rename the SRG using find-and-replace" step of official tools.
 	 * Anywhere an SRG name could appear, it is fed through the fields/methods csvs.
-	 * 
+	 *
 	 * @param srgAsFallback if {@code true} and an MCP field name doesn't exist, the srg name will be used,
 	 *                      if not, the proguarded name will be used. same for method names.
 	 *                      mainly because this method is for reobf, so it should match what's in the dev workspace
 	 */
 	public Srg named(Members fields, Members methods, boolean srgAsFallback) {
-		Map<String, Map<String, String>> renamedFieldMappings = new LinkedHashMap<>();
-		fieldMappingsByOwningClass.forEach((proguardClass, fieldMappings) -> {
-			Map<String, String> namedFields = new LinkedHashMap<>();
+		//StringInterner mem = new StringInterner(); //Not necessary since i only make selections from existing String objects
+		Srg named = new Srg();
+		
+		named.putAllClassMappings(classMappings);
+		
+		fieldMappingsByOwningClass.forEach((owningClass, fieldMappings) ->
 			fieldMappings.forEach((proguard, srg) -> {
-				Members.Entry entry = fields.remapSrg(srg);
+				Members.Entry namedEntry = fields.remapSrg(srg);
 				
-				String name;
-				if(entry != null) name = entry.remappedName;
-				else if(srgAsFallback) name = srg;
-				else name = proguard;
-				
-				namedFields.put(proguard, name);
-			});
-			
-			renamedFieldMappings.put(proguardClass, namedFields);
-		});
+				named.putFieldMapping(
+					owningClass,
+					proguard,
+					namedEntry != null ? namedEntry.remappedName : (srgAsFallback ? srg : proguard)
+				);
+			}));
 		
-		Map<String, Map<MethodEntry, MethodEntry>> renamedMethodMappings = new LinkedHashMap<>();
-		methodMappingsByOwningClass.forEach((proguardClass, methodMappings) -> {
-			Map<MethodEntry, MethodEntry> namedMethods = new LinkedHashMap<>();
-			methodMappings.forEach((proguard, srg) -> {
-				Members.Entry entry = methods.remapSrg(srg.name);
+		methodMappingsByOwningClass.forEach((owningClass, methodMappings) ->
+			methodMappings.forEach((proguardEntry, srgEntry) -> {
+				Members.Entry namedEntry = methods.remapSrg(srgEntry.name);
 				
-				String name;
-				if(entry != null) name = entry.remappedName;
-				else if(srgAsFallback) name = srg.name;
-				else name = proguard.name;
-				
-				namedMethods.put(proguard, new MethodEntry(name, srg.descriptor));
-			});
-			
-			renamedMethodMappings.put(proguardClass, namedMethods);
-		});
+				named.putMethodMapping(
+					owningClass,
+					proguardEntry.name,
+					proguardEntry.descriptor,
+					namedEntry != null ? namedEntry.remappedName : (srgAsFallback ? srgEntry.name : proguardEntry.name),
+					srgEntry.descriptor
+				);
+			}));
 		
-		return new Srg(new LinkedHashMap<>(classMappings), renamedFieldMappings, renamedMethodMappings);
+		return named;
 	}
 	
 	/**
@@ -298,25 +259,91 @@ public class Srg {
 		return inverted;
 	}
 	
-	/**
-	 * Simply deletes a class from the mappings.
-	 * This is maiiinly here to cheat with Ears, because it looks up a class at runtime using its proguarded name.
-	 * Making it work in a dev workspace involves making sure that class exists under its proguarded name.
-	 */
-	public void unmapClass(String classs) {
+	/// mutating ///
+	
+	public void putClassMapping(String from, String to) {
+		classMappings.put(from, to);
+	}
+	
+	public void putAllClassMappings(Map<String, String> bulk) {
+		classMappings.putAll(bulk);
+	}
+	
+	public void putFieldMapping(String owningClass, String from, String to) { //MCP doesn't handle field descriptors
+		fieldMappingsByOwningClass.computeIfAbsent(owningClass, __ -> new LinkedHashMap<>())
+			.put(from, to);
+	}
+	
+	public void putAllFieldMappings(String owningClass, Map<String, String> bulk) {
+		fieldMappingsByOwningClass.computeIfAbsent(owningClass, __ -> new LinkedHashMap<>())
+			.putAll(bulk);
+	}
+	
+	public void putMethodMapping(String owningClass, String fromName, String fromDesc, String toName, String toDesc) {
+		methodMappingsByOwningClass.computeIfAbsent(owningClass, __ -> new LinkedHashMap<>())
+			.put(new MethodEntry(fromName, fromDesc), new MethodEntry(toName, toDesc));
+	}
+	
+	public void putAllMethodMappings(String owningClass, Map<MethodEntry, MethodEntry> bulk) {
+		methodMappingsByOwningClass.computeIfAbsent(owningClass, __ -> new LinkedHashMap<>())
+			.putAll(bulk);
+	}
+	
+	public void removeClassMapping(String classs) {
 		classMappings.remove(classs);
 		fieldMappingsByOwningClass.remove(classs);
 		methodMappingsByOwningClass.remove(classs);
 	}
 	
-	public boolean isEmpty() {
-		//handles the pathological case, where a mapping from X -> Y exists, but Y is itself an empty collection
-		//probably Point less:tm:
-		boolean fieldEmpty = fieldMappingsByOwningClass.isEmpty() || fieldMappingsByOwningClass.values().stream().allMatch(Map::isEmpty);
-		boolean methodEmpty = methodMappingsByOwningClass.isEmpty() || methodMappingsByOwningClass.values().stream().allMatch(Map::isEmpty);
-		return classMappings.isEmpty() && fieldEmpty && methodEmpty;
+	public void augment(JarScanData data) {
+		int[] thinAirId = new int[]{0}; //FINAL OR EFFECTIVELY FINAL
+		
+		data.innerClassData.forEach((outerClass, innerClasses) ->
+			innerClasses.forEach(innerClass -> {
+				if(classMappings.containsKey(outerClass) && !classMappings.containsKey(innerClass)) {
+					//`innerClass` is an inner class of `outerClass`, and there's a mapping for `outerClass`,
+					//but none for `innerClass`. If we remap now, `innerClass` will be left where it is,
+					//but `outerClass` will be moved. This will probably lead to runtime crashes; the JVM
+					//really really wants outer classes and their inner classes to stick together.
+					//We could fix this by augmenting the remapper, but currently it's off-the-shelf tiny-remapper.
+					//Instead, let's invent a mapping for this class.
+					
+					//If there's a mapping "amq -> net/minecraft/block/Block", and I'm inventing a mapping for the
+					//class "amq$1", I want to map it the same way "amq" is mapped, but keep the $1 suffix.
+					//So ideally I want net/minecraft/block/Block$1. We don't really have a choice; Forge binpatches
+					//will refer to the class by this name.
+					
+					String suffix;
+					
+					int dollarIndex = innerClass.indexOf('$');
+					if(dollarIndex != -1) {
+						//Grab the part after/including the dollar sign.
+						suffix = innerClass.substring(dollarIndex);
+					} else {
+						//Well that sucks. Let's just make something up.
+						suffix = "$voldeloom_invented$" + thinAirId[0]++;
+					}
+					
+					classMappings.put(innerClass, classMappings.get(outerClass) + suffix);
+				}
+			}));
 	}
 	
+	public void mergeWith(Srg other) {
+		classMappings.putAll(other.classMappings);
+		//not using putAll since i want to zip the maps together
+		other.fieldMappingsByOwningClass.forEach(this::putAllFieldMappings);
+		other.methodMappingsByOwningClass.forEach(this::putAllMethodMappings);
+	}
+	
+	/// introspecting ///
+	
+	public boolean isEmpty() {
+		return classMappings.isEmpty() &&
+			(fieldMappingsByOwningClass.isEmpty() || fieldMappingsByOwningClass.values().stream().allMatch(Map::isEmpty)) &&
+			(methodMappingsByOwningClass.isEmpty() || methodMappingsByOwningClass.values().stream().allMatch(Map::isEmpty));
+	}
+		
 	public static class MethodEntry {
 		public MethodEntry(String name, String descriptor) {
 			this.name = name;

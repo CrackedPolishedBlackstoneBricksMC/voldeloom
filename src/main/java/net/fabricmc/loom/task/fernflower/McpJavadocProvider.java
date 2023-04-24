@@ -2,18 +2,23 @@ package net.fabricmc.loom.task.fernflower;
 
 import net.fabricmc.fernflower.api.IFabricJavadocProvider;
 import net.fabricmc.loom.mcp.McpMappings;
+import net.fabricmc.loom.util.ZipUtil;
 import org.jetbrains.java.decompiler.struct.StructClass;
 import org.jetbrains.java.decompiler.struct.StructField;
 import org.jetbrains.java.decompiler.struct.StructMethod;
 
 import java.io.IOException;
+import java.nio.file.FileSystem;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 
 public class McpJavadocProvider implements IFabricJavadocProvider {
 	public McpJavadocProvider(Path mcpZip) throws IOException {
-		McpMappings mappings = new McpMappings().importFromZip(System.out::println, mcpZip);
+		McpMappings mappings;
+		try(FileSystem fs = ZipUtil.openFs(mcpZip)) {
+			mappings = new McpMappings().importFromZip(System.out::println, fs);
+		}
 		
 		//NB: This relies on MCP having unique names for all fields/methods with javadoc
 		//I don't thiiink this is true (it has unique SRGs, sometimes methods are named oddly to make them unique,

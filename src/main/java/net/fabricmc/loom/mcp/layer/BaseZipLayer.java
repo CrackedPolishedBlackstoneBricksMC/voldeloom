@@ -1,9 +1,11 @@
 package net.fabricmc.loom.mcp.layer;
 
 import net.fabricmc.loom.mcp.McpMappings;
+import net.fabricmc.loom.util.ZipUtil;
 import org.gradle.api.logging.Logger;
 
 import java.nio.charset.StandardCharsets;
+import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.MessageDigest;
@@ -19,7 +21,9 @@ public class BaseZipLayer implements Layer {
 	public void visit(Logger log, McpMappings mappings) throws Exception {
 		log.info("\t-- (BaseZipLayer) Importing mappings from {} --", zipPath);
 		
-		mappings.importFromZip(log::info, zipPath);
+		try(FileSystem fs = ZipUtil.openFs(zipPath)) {
+			mappings.importFromZip(log::info, fs);
+		}
 	}
 	
 	@Override

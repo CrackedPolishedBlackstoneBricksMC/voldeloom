@@ -140,7 +140,7 @@ public class RunConfig implements Named {
 		if(ext.forgeCapabilities.requiresLaunchwrapper.get()) {
 			copy.setMainClass("net.minecraft.launchwrapper.Launch");
 			//TODO not here
-			copy.programArg("--version=" + ext.getProviderGraph().mc.getVersion() + " (Voldeloom deobf)");
+			copy.programArg("--version=" + ext.getProviderGraph().mcWrapper.getVersion() + " (Voldeloom deobf)");
 			
 			if(getEnvironment().equals("client")) {
 				copy.programArg("--tweakClass=cpw.mods.fml.common.launcher.FMLTweaker");

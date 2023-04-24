@@ -1,9 +1,11 @@
 package net.fabricmc.loom.mcp.layer;
 
 import net.fabricmc.loom.mcp.McpMappings;
+import net.fabricmc.loom.util.ZipUtil;
 import org.gradle.api.logging.Logger;
 
 import java.nio.charset.StandardCharsets;
+import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.MessageDigest;
@@ -20,7 +22,9 @@ public class FieldsMethodsLayer implements Layer {
 		log.info("\t-- (FieldsMethodsLayer) Importing field and method mappings from {} --", zipPath);
 		
 		//TODO: call a more specific method (this class should not be the same as BaseZipLayer)
-		mappings.importFromZip(log::info, zipPath);
+		try(FileSystem fs = ZipUtil.openFs(zipPath)) {
+			mappings.importFromZip(log::info, fs);
+		}
 	}
 	
 	@Override

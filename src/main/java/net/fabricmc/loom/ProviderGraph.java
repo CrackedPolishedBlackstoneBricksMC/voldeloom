@@ -25,7 +25,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Function;
 
 /**
  * Manages the tangle of DependencyProviders.
@@ -46,7 +45,7 @@ public class ProviderGraph {
 	//"globals", accessible outside this class for various reasons. i try to keep this surface as small as possible
 	
 	//couple places would like access to the minecraft version number
-	public ConfigElementWrapper mc;
+	public ConfigElementWrapper mcWrapper;
 	//run configs would like to know where this directory is
 	public Path mcNativesDir;
 	//called from ShimAssetsTask, client run configs need to invoke it, not invoked here because assets aren't needed on the server/in CI
@@ -59,12 +58,12 @@ public class ProviderGraph {
 	
 	public void setup() throws Exception {
 		log.lifecycle("# Wrapping basic dependencies...");
-		mc = new ConfigElementWrapper(project, project.getConfigurations().getByName(Constants.MINECRAFT));
+		mcWrapper = new ConfigElementWrapper(project, project.getConfigurations().getByName(Constants.MINECRAFT));
 		
 		log.lifecycle("# Fetching vanilla jars and indexes...");
-		String mcPrefix = "minecraft-" + mc.getFilenameSafeVersion();
+		String mcPrefix = "minecraft-" + mcWrapper.getFilenameSafeVersion();
 		VanillaJarFetcher vanillaJars = new VanillaJarFetcher(project, extension)
-			.mc(mc)
+			.mc(mcWrapper)
 			.customManifestUrl(extension.customManifestUrl)
 			.clientFilename(mcPrefix + "-client-{HASH}.jar")
 			.serverFilename(mcPrefix + "-server-{HASH}.jar")
@@ -75,7 +74,7 @@ public class ProviderGraph {
 			.superProps(vanillaJars)
 			.manifest(vanillaJars.getVersionManifest())
 			.librariesBaseUrl(extension.librariesBaseUrl)
-			.nativesDirname(mc.getFilenameSafeVersion() + "-{HASH}")
+			.nativesDirname(mcWrapper.getFilenameSafeVersion() + "-{HASH}")
 			.fetch()
 			.installDependenciesToProject(Constants.MINECRAFT_DEPENDENCIES, project.getDependencies());
 		mcNativesDir = vanillaDeps.getNativesDir();
@@ -111,13 +110,13 @@ public class ProviderGraph {
 				.merge();
 			
 			//and the rest is the same
-			setupSide("joined", merger.getMergedJar(), merger.props, vanillaDeps, mcPrefix, forge, mappings -> mappings.joined);
+			setupSide("joined", merger.getMergedJar(), merger.props, vanillaDeps, mcPrefix, forge);
 		} else {
 			//split jar (1.2.5-)
 			ResolvedConfigElementWrapper forgeClient = new ResolvedConfigElementWrapper(project, project.getConfigurations().getByName(Constants.FORGE_CLIENT));
 			ResolvedConfigElementWrapper forgeServer = new ResolvedConfigElementWrapper(project, project.getConfigurations().getByName(Constants.FORGE_SERVER));
-			setupSide("client", vanillaJars.getClientJar(), vanillaJars.props, vanillaDeps, mcPrefix + "-client", forgeClient, mappings -> mappings.client);
-			setupSide("server", vanillaJars.getServerJar(), vanillaJars.props, vanillaDeps, mcPrefix + "-server", forgeServer, mappings -> mappings.server);
+			setupSide("client", vanillaJars.getClientJar(), vanillaJars.props, vanillaDeps, mcPrefix + "-client", forgeClient);
+			setupSide("server", vanillaJars.getServerJar(), vanillaJars.props, vanillaDeps, mcPrefix + "-server", forgeServer);
 		}
 		
 		log.lifecycle("# Thank you for flying Voldeloom.");
@@ -129,41 +128,41 @@ public class ProviderGraph {
 		Props vanillaJarProps,
 		VanillaDependencyFetcher vanillaDeps,
 		String mcPrefix,
-		ResolvedConfigElementWrapper forge,
-		Function<McpMappings, Srg> srgGetter
+		ResolvedConfigElementWrapper forgeWrapper
 	) throws Exception {
 		log.lifecycle("# ({}) Fetching Forge dependencies...", side);
 		ForgeDependencyFetcher forgeDeps = new ForgeDependencyFetcher(project, extension)
-			.forgeJar(forge.getPath())
+			.forgeJar(forgeWrapper.getPath())
 			.fmlLibrariesBaseUrl(extension.fmlLibrariesBaseUrl)
-			.libDownloaderDir(forge.getFilenameSafeDepString())
+			.libDownloaderDir(forgeWrapper.getFilenameSafeDepString())
 			.bouncycastleCheat(extension.forgeCapabilities.bouncycastleCheat.get())
 			.sniff()
 			.fetch()
 			.installDependenciesToProject(Constants.FORGE_DEPENDENCIES, project.getDependencies());
 		
 		log.lifecycle("# ({}) Jarmodding...", side);
-		String jarmoddedPrefix = mcPrefix + "-forge-" + forge.getFilenameSafeVersion();
+		String jarmoddedPrefix = mcPrefix + "-forge-" + forgeWrapper.getFilenameSafeVersion();
 		Jarmodder jarmod = new Jarmodder(project, extension)
 			.superProps(vanillaJarProps)
 			.base(vanillaJar)
-			.overlay(forge.getPath())
+			.overlay(forgeWrapper.getPath())
 			.jarmoddedFilename(jarmoddedPrefix + "-jarmod-{HASH}.jar")
 			.patch();
 		
 		log.lifecycle("# ({}) Parsing mappings...", side);
 		//the jarscandata comes from the jarmodded jar, not the vanilla one, because some inner-class relations i need to know about are added by forge
-		MappingsWrapper mappings = new MappingsWrapper(project, extension, project.getConfigurations().getByName(Constants.MAPPINGS), jarmod.getJarmoddedJar());
+		MappingsWrapper mappingsWrapper = new MappingsWrapper(project, project.getConfigurations().getByName(Constants.MAPPINGS), jarmod.getJarmoddedJar());
+		McpMappings mappings = mappingsWrapper.mappings;
 		
 		log.lifecycle("# ({}) Preparing ATs...", side);
 		AccessTransformer transformer = new AccessTransformer(project, extension)
-			.regularForgeJar(forge.getPath())
+			.regularForgeJar(forgeWrapper.getPath())
 			.loadCustomAccessTransformers();
 		
 		log.lifecycle("# ({}) Preparing SRG remapper...", side);
 		RemapperMcp remapperMcp = new RemapperMcp(project, extension)
-			.superProps(mappings.props)
-			.srg(srgGetter.apply(mappings.mappings))
+			.superProps(mappingsWrapper.props)
+			.srg(mappings.chooseSrg(side))
 			.addToRemapClasspath(vanillaDeps.getNonNativeLibraries_Todo())
 			.deletedPrefixes(extension.forgeCapabilities.classFilter.get());
 		
@@ -173,7 +172,7 @@ public class ProviderGraph {
 			remapperMcp = remapperMcp
 				.superProps(jarmod)
 				.inputJar(jarmod.getJarmoddedJar())
-				.outputSrgJar(mappings.getFilenameSafeDepString(), jarmoddedPrefix + "-srg-{HASH}.jar")
+				.outputSrgJar(mappingsWrapper.getFilenameSafeDepString(), jarmoddedPrefix + "-srg-{HASH}.jar")
 				.remap();
 			
 			log.lifecycle("# ({}) Applying (mapped) access transformers...", side);
@@ -197,7 +196,7 @@ public class ProviderGraph {
 			remapperMcp = remapperMcp
 				.superProps(transformer)
 				.inputJar(transformer.getTransformedJar())
-				.outputSrgJar(mappings.getFilenameSafeDepString(), jarmoddedPrefix + "-atd-srg-{HASH}.jar")
+				.outputSrgJar(mappingsWrapper.getFilenameSafeDepString(), jarmoddedPrefix + "-atd-srg-{HASH}.jar")
 				.remap();
 			
 			srgAtdJar = remapperMcp.getOutputSrgJar();
@@ -207,9 +206,9 @@ public class ProviderGraph {
 		NaiveRenamer naive = new NaiveRenamer(project, extension)
 			.superProps(transformer, remapperMcp)
 			.input(srgAtdJar)
-			.outputFilename(mappings.getFilenameSafeDepString(), jarmoddedPrefix + "-named-{HASH}.jar")
-			.fields(mappings.mappings.fields)
-			.methods(mappings.mappings.methods)
+			.outputFilename(mappingsWrapper.getFilenameSafeDepString(), jarmoddedPrefix + "-named-{HASH}.jar")
+			.fields(mappings.fields)
+			.methods(mappings.methods)
 			.rename();
 		
 		//TODO: does this belong inside the per-side stuff, or outside
@@ -217,10 +216,10 @@ public class ProviderGraph {
 		log.lifecycle("# ({}) Remapping mod dependencies...", side);
 		new DependencyRemapperMcp(project, extension)
 			.superProps(naive)
-			.mappingsDepString(mappings.getFilenameSafeDepString())
-			.srg(srgGetter.apply(mappings.mappings))
-			.fields(mappings.mappings.fields)
-			.methods(mappings.mappings.methods)
+			.mappingsDepString(mappingsWrapper.getFilenameSafeDepString())
+			.srg(mappings.chooseSrg(side))
+			.fields(mappings.fields)
+			.methods(mappings.methods)
 			.remappedConfigurationEntries(extension.remappedConfigurationEntries)
 			.distributionNamingScheme(extension.forgeCapabilities.distributionNamingScheme.get())
 			.addToRemapClasspath(jarmod.getJarmoddedJar())
@@ -234,7 +233,7 @@ public class ProviderGraph {
 		job.linemapFile = LoomGradlePlugin.replaceExtension(naive.getOutput(), "-linemap.lmap");
 		job.linemappedJar = LoomGradlePlugin.replaceExtension(naive.getOutput(), "-linemapped.jar");
 		job.libraries = vanillaDeps.getNonNativeLibraries_Todo();
-		job.mcpMappingsZip = mappings.getPath();
+		job.mcpMappingsZip = mappingsWrapper.getPath();
 		sourceGenerationJobs.add(job);
 		
 		//TODO: The idea is that using the linemapped jar is better than not using it, because debugger breakpoints work.
@@ -252,8 +251,8 @@ public class ProviderGraph {
 		//TODO: oops all leaky abstraction again
 		if(side.equals("joined")) {
 			log.lifecycle("# ({}) Initializing reobf mappings...", side);
-			reobfSrg = srgGetter.apply(mappings.mappings)
-				.named(mappings.mappings.fields, mappings.mappings.methods, extension.forgeCapabilities.srgsAsFallback.get())
+			reobfSrg = mappings.chooseSrg(side)
+				.named(mappings.fields, mappings.methods, extension.forgeCapabilities.srgsAsFallback.get())
 				.inverted();
 		}
 	}

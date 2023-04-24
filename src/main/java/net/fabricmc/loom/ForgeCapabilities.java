@@ -30,7 +30,7 @@ public class ForgeCapabilities {
 	}
 	
 	private int guessMinecraftMinorVersion() {
-		String mcVersion = extension.getProviderGraph().mc.getVersion();
+		String mcVersion = extension.getProviderGraph().mcWrapper.getVersion();
 		
 		try {
 			return Integer.parseInt(mcVersion.split("\\.")[1]);

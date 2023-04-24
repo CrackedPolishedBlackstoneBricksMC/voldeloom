@@ -19,9 +19,9 @@ public class ClassUnmappingLayer implements Layer {
 	public void visit(Logger log, McpMappings mappings) throws Exception {
 		for(String unmap : classMappingsToRemove) {
 			log.info("\t-- (ClassUnmappingLayer) Removing class {} from mappings --", unmap);
-			mappings.joined.unmapClass(unmap);
-			mappings.client.unmapClass(unmap);
-			mappings.server.unmapClass(unmap);
+			mappings.joined.removeClassMapping(unmap);
+			mappings.client.removeClassMapping(unmap);
+			mappings.server.removeClassMapping(unmap);
 		}
 	}
 	

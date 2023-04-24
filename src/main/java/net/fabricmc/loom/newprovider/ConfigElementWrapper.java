@@ -5,12 +5,13 @@ import org.gradle.api.artifacts.Configuration;
 import org.gradle.api.artifacts.Dependency;
 import org.gradle.api.artifacts.DependencySet;
 
+import javax.annotation.Nullable;
+
 /**
- * This is a convenience for dealing with Gradle dependency configurations that are supposed to contain only one file.
+ * This is a convenience for dealing with Gradle dependency configurations that are supposed to contain only one dependency.
  * 
- * @see ResolvedConfigElementWrapper for one that also ensures the dependency resolves to something
- *                                   "why have this at all, if it doesn't resolve the dependency?", i hear you ask
- *                                   well it's because the {@code minecraft} dependency doesn't actually resolve ;)
+ * @see ResolvedConfigElementWrapper ConfigElementWrapper doesn't resolve any files belonging to the dependency.
+ *                                   ResolvedConfigElementWrapper additionally ensures that the dependency resolves to one file.
  */
 public class ConfigElementWrapper {
 	public ConfigElementWrapper(Project project, Configuration config) {
@@ -18,12 +19,7 @@ public class ConfigElementWrapper {
 		
 		if(set.size() == 0) {
 			throw new IllegalStateException("Expected configuration '" + config.getName() + "' to contain one dependency, but found zero.");
-		} else if(set.size() == 1) {
-			//there is one dependency. let's resolve it
-			dep = set.iterator().next();
-			depString = String.format("%s:%s:%s", dep.getGroup(), dep.getName(), dep.getVersion());
-			version = dep.getVersion();
-		} else {
+		} else if(set.size() != 1) {
 			StringBuilder builder = new StringBuilder("Expected configuration '");
 			builder.append(config.getName());
 			builder.append("' to contain one dependency, but found ");
@@ -36,11 +32,20 @@ public class ConfigElementWrapper {
 			
 			throw new IllegalStateException(builder.toString());
 		}
+		
+		//there is one dependency. let's resolve it
+		this.dep = set.iterator().next();
+		
+		this.depString = String.format("%s:%s:%s", dep.getGroup(), dep.getName(), dep.getVersion());
+		this.version = dep.getVersion();
+		
+		this.filenameSafeDepString = sanitizeForFilenames(depString);
+		this.filenameSafeVersion = sanitizeForFilenames(version);
 	}
 	
 	private final Dependency dep;
-	private final String depString;
-	private final String version;
+	private final String depString, filenameSafeDepString;
+	private final String version, filenameSafeVersion;
 	
 	public Dependency getDep() {
 		return dep;
@@ -55,10 +60,18 @@ public class ConfigElementWrapper {
 	}
 	
 	public String getFilenameSafeDepString() {
-		return depString.replaceAll("[^A-Za-z0-9.+-]", "_");
+		return filenameSafeDepString;
 	}
 	
 	public String getFilenameSafeVersion() {
-		return version.replaceAll("[^A-Za-z0-9.+-]", "_");
+		return filenameSafeVersion;
+	}
+	
+	protected String sanitizeForFilenames(@Nullable String in) {
+		if(in == null) return null; //hrm
+		
+		String out = in.replaceAll("[^A-Za-z0-9.+-]", "_");
+		if(out.equals(in)) return in; //i love to save 0.0001 bytes of ram
+		else return out;
 	}
 }

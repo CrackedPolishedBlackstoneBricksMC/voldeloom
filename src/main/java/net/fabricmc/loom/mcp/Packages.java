@@ -40,6 +40,14 @@ public class Packages {
 		return this;
 	}
 	
+	public void mergeWith(Packages other) {
+		packages.putAll(other.packages);
+	}
+	
+	public boolean isEmpty() {
+		return packages.isEmpty();
+	}
+	
 	/**
 	 * Applies the packaging transformation to a class name, in internal format.
 	 */

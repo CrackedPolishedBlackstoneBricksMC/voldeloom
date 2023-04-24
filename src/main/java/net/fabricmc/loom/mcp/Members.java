@@ -5,7 +5,6 @@ import net.fabricmc.loom.util.StringInterner;
 import javax.annotation.Nullable;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -63,27 +62,24 @@ public class Members {
 	}
 	
 	public void writeTo(Path path) throws IOException {
-		try(
-			OutputStream o = new BufferedOutputStream(Files.newOutputStream(path));
-			OutputStreamWriter w = new OutputStreamWriter(o)
-		) {
-			write(w);
-			o.flush();
+		try(OutputStreamWriter w = new OutputStreamWriter(new BufferedOutputStream(Files.newOutputStream(path)))) {
+			w.write("searge,name,side,desc\n");
+			for(Map.Entry<String, Entry> e : members.entrySet()) {
+				w.write(e.getKey());
+				w.write(',');
+				w.write(e.getValue().remappedName);
+				w.write(',');
+				w.write(Integer.toString(e.getValue().side));
+				w.write(',');
+				if(e.getValue().comment != null) w.write(e.getValue().comment);
+				w.write('\n');
+			}
+			w.flush();
 		}
 	}
 	
-	public void write(OutputStreamWriter o) throws IOException {
-		o.write("searge,name,side,desc\n");
-		for(Map.Entry<String, Entry> e : members.entrySet()) {
-			o.write(e.getKey());
-			o.write(',');
-			o.write(e.getValue().remappedName);
-			o.write(',');
-			o.write(Integer.toString(e.getValue().side));
-			o.write(',');
-			String comment = e.getValue().comment; if(comment != null) o.write(comment);
-			o.write('\n');
-		}
+	public void mergeWith(Members other) {
+		members.putAll(other.members);
 	}
 	
 	public boolean isEmpty() {
@@ -97,15 +93,22 @@ public class Members {
 	public static class Entry {
 		public final String remappedName;
 		public final int side;
-		public final @Nullable String comment;
+		public final @Nullable String comment; //TODO, non-nullable, use empty string for no comment
 		
-		public Entry(String remappedName, int side, String comment) {
+		public Entry(String remappedName, int side, @Nullable String comment) {
 			this.remappedName = remappedName;
 			this.side = side;
 			
 			if(comment == null || comment.trim().isEmpty()) {
 				this.comment = null;
 			} else {
+				//"handle" the form of escaping used in the CSV
+				//TODO, check that there's no more forms of visible gunk
+				comment = comment.trim();
+				if(comment.length() >= 2 && comment.startsWith("\"") && comment.endsWith("\"")) {
+					comment = comment.substring(1, comment.length() - 1);
+				}
+				
 				this.comment = comment;
 			}
 		}

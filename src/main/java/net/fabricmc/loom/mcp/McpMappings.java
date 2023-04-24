@@ -1,7 +1,6 @@
 package net.fabricmc.loom.mcp;
 
 import net.fabricmc.loom.util.StringInterner;
-import net.fabricmc.loom.util.ZipUtil;
 
 import java.io.IOException;
 import java.nio.file.FileSystem;
@@ -22,6 +21,18 @@ import java.util.function.Consumer;
  * </ul>
  */
 public class McpMappings {
+	public McpMappings() {
+		
+	}
+	
+	public McpMappings(Srg joined, Srg client, Srg server, Members fields, Members methods) {
+		this.joined = joined;
+		this.client = client;
+		this.server = server;
+		this.fields = fields;
+		this.methods = methods;
+	}
+	
 	public Srg joined = new Srg();
 	public Srg client = new Srg();
 	public Srg server = new Srg();
@@ -83,18 +94,25 @@ public class McpMappings {
 		return this;
 	}
 	
-	public McpMappings importFromZip(Consumer<String> log, Path zip) throws IOException {
-		try(FileSystem fs = ZipUtil.openFs(zip)) {
-			return importFromZip(log, fs);
-		}
-	}
-	
 	public McpMappings augment(JarScanData jarScanData) {
 		if(!joined.isEmpty()) joined.augment(jarScanData);
 		if(!client.isEmpty()) client.augment(jarScanData);
 		if(!server.isEmpty()) server.augment(jarScanData);
 		
 		return this;
+	}
+	
+	//in 1.2 there's four files to keep track of: client, server, fields, methods.
+	//the fields and methods are shared across both sides, but the srgs are not.
+	//in 1.3+ there's only one srg which is not the same as either the client or server srgs.
+	//and yeah, this is some "stringly typed coding"
+	public Srg chooseSrg(String srgName) {
+		switch(srgName) {
+			case "client": return client;
+			case "server": return server;
+			case "joined": return joined;
+			default: throw new IllegalArgumentException("pick 'client', 'server', or 'joined', not '" + srgName + "'");
+		}
 	}
 	
 	private static class FindingVisitor extends SimpleFileVisitor<Path> {
