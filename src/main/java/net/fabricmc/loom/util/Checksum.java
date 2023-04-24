@@ -24,6 +24,7 @@
 
 package net.fabricmc.loom.util;
 
+import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -53,7 +54,8 @@ public class Checksum {
 	 * Runs the file through the specified hashing function, and returns the hash as a string in hexadecimal format.
 	 */
 	public static String fileHexHash(Path path, MessageDigest alg) throws IOException {
-		return bytesHexHash(Files.readAllBytes(path), alg);
+		feedFileToHasher(path, alg);
+		return toHexString(alg.digest());
 	}
 	
 	/**
@@ -110,6 +112,16 @@ public class Checksum {
 			return MessageDigest.getInstance(type);
 		} catch (NoSuchAlgorithmException e) {
 			throw new RuntimeException(e);
+		}
+	}
+	
+	public static void feedFileToHasher(Path path, MessageDigest alg) throws IOException {
+		try(BufferedInputStream in = new BufferedInputStream(Files.newInputStream(path))) {
+			byte[] buf = new byte[8192]; //matching BufferedInputStream.DEFAULT_BUFFER_SIZE
+			int read;
+			while((read = in.read(buf)) > 0) {
+				alg.update(buf, 0, read);
+			}
 		}
 	}
 }

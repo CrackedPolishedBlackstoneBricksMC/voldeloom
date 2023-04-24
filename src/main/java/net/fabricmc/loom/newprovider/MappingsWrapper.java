@@ -12,7 +12,6 @@ import org.gradle.api.artifacts.Configuration;
 import org.gradle.api.logging.Logger;
 
 import java.nio.file.FileSystem;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.MessageDigest;
 
@@ -40,7 +39,7 @@ public class MappingsWrapper extends ResolvedConfigElementWrapper {
 		mappings = mappingsBuilder.build();
 		
 		MessageDigest sha = Checksum.SHA256.get();
-		sha.update(Files.readAllBytes(getPath()));
+		Checksum.feedFileToHasher(getPath(), sha);
 		this.props = new Props().put("mappings-hash", Checksum.toHexString(sha.digest()));
 	}
 	

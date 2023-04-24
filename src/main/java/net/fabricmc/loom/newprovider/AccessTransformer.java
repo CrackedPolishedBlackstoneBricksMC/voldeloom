@@ -83,7 +83,7 @@ public class AccessTransformer extends NewProvider<AccessTransformer> {
 			log.lifecycle("] Found {} custom access transformer files.", customAccessTransformers.size());
 			MessageDigest readersDigest = Checksum.SHA256.get();
 			for(Path path : customAccessTransformers) {
-				readersDigest.update(Files.readAllBytes(path));
+				Checksum.feedFileToHasher(path, readersDigest);
 				readersDigest.update((byte) 0);
 			}
 			
