@@ -38,7 +38,6 @@ import org.gradle.api.provider.Property;
 import org.gradle.api.provider.Provider;
 import org.gradle.api.tasks.JavaExec;
 import org.gradle.api.tasks.bundling.AbstractArchiveTask;
-import org.gradle.internal.Pair;
 import org.gradle.process.JavaExecSpec;
 
 import javax.annotation.Nullable;
@@ -272,22 +271,29 @@ public class GradleSupport {
 	//Property<> is incubating in Gradle 4 but got stabilized as-is in 7,
 	//so when i'm using Gradle 4, the UnstableApiUsage warning is redundant.
 	@SuppressWarnings({"UnstableApiUsage", "RedundantSuppression"})
-	public static Pair<JavaVersion, String> readToolchainSpec(Object javaToolchainSpec) {
+	public static ToolchainSpecResult readToolchainSpec(Object javaToolchainSpec) {
 		try {
+			ToolchainSpecResult result = new ToolchainSpecResult();
+			
 			Method getLanguageVersion = getAccessibleMethod(javaToolchainSpec.getClass(), "getLanguageVersion");
 			Property<?> languageVersionProperty = (Property<?>) getLanguageVersion.invoke(javaToolchainSpec);
 			Object languageVersion = languageVersionProperty.getOrNull();
-			JavaVersion javaVersion = convertToJavaVersion(languageVersion == null ? 8 : languageVersion);
+			result.javaVersion = convertToJavaVersion(languageVersion == null ? 8 : languageVersion);
 			
 			Method getVendor = getAccessibleMethod(javaToolchainSpec.getClass(), "getVendor");
 			Property<?> vendorProperty = (Property<?>) getVendor.invoke(javaToolchainSpec);
 			Object vendor = vendorProperty.getOrNull();
-			String vendorString = convertToVendorString(vendor == null ? "ADOPTIUM" : vendor);
+			result.vendorString = convertToVendorString(vendor == null ? "ADOPTIUM" : vendor);
 			
-			return Pair.of(javaVersion, vendorString);
+			return result;
 		} catch (ReflectiveOperationException e) {
 			throw new RuntimeException("[Voldeloom GradleSupport] Unable to readToolchainSpec this " + javaToolchainSpec.getClass(), e);
 		}
+	}
+	
+	public static class ToolchainSpecResult {
+		public JavaVersion javaVersion;
+		public String vendorString;
 	}
 	
 	private static Method getAccessibleMethod(Class<?> classs, String method, Class<?>... types) throws ReflectiveOperationException {

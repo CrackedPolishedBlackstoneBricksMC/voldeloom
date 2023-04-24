@@ -30,7 +30,6 @@ import net.fabricmc.loom.util.ZipUtil;
 import org.gradle.api.JavaVersion;
 import org.gradle.api.Named;
 import org.gradle.api.Project;
-import org.gradle.internal.Pair;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -314,9 +313,9 @@ public class RunConfig implements Named {
 	}
 	
 	public RunConfig setToolchain(Object toolchain) {
-		Pair<JavaVersion, String> parsedToolchain = GradleSupport.readToolchainSpec(toolchain);
-		this.runToolchainVersion = parsedToolchain.left;
-		this.runToolchainVendor = parsedToolchain.right;
+		GradleSupport.ToolchainSpecResult result = GradleSupport.readToolchainSpec(toolchain);
+		this.runToolchainVersion = result.javaVersion;
+		this.runToolchainVendor = result.vendorString;
 		return this;
 	}
 	

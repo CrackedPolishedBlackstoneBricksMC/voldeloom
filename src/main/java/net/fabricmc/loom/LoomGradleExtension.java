@@ -24,14 +24,13 @@
 
 package net.fabricmc.loom;
 
-import net.fabricmc.loom.util.GradleSupport;
 import net.fabricmc.loom.mcp.layer.LayeredMcpMappings;
+import net.fabricmc.loom.util.GradleSupport;
 import org.gradle.api.Action;
 import org.gradle.api.JavaVersion;
 import org.gradle.api.NamedDomainObjectContainer;
 import org.gradle.api.Project;
 import org.gradle.api.artifacts.Dependency;
-import org.gradle.internal.Pair;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -133,7 +132,7 @@ public class LoomGradleExtension {
 	/**
 	 * This *JavaVersion* contains the default toolchain Java version, used when a run configuration does not configure a Java version of its own.
 	 *
-	 * Note that it's a JavaVersion, and not a JavaLanguageVersion. Ditto for the reasoning.
+	 * Note that it's a JavaVersion, and not a JavaLanguageVersion. This is because Voldeloom remains source-compatible with Gradle 4, which doesn't have that class.
 	 * The setter methods will accept JavaLanguageVersions and convert them to JavaVersions.
 	 */
 	public JavaVersion defaultRunToolchainVersion = JavaVersion.VERSION_1_8;
@@ -141,7 +140,7 @@ public class LoomGradleExtension {
 	/**
 	 * This *string* contains the default toolchain vendor, used when a run configuration does not configure a vendor of its own.
 	 * 
-	 * Note that it's a string, and not a JvmVendorSpec. This is because Voldeloom remains source-compatible with Gradle 4, which doesn't have that class.
+	 * Note that it's a string, and not a JvmVendorSpec. Same reason as above.
 	 * The setter methods will accept JvmVendorSpecs and convert them to strings.
 	 */
 	public String defaultRunToolchainVendor = "ADOPTIUM";
@@ -180,9 +179,16 @@ public class LoomGradleExtension {
 	public boolean refreshDependencies;
 	
 	/**
-	 * Callbacks for more precision than "afterEvaluate"
+	 * Callback with a bit more precision than "afterEvaluate". Evaluated before the internal ProviderGraph is evaluated
+	 * and before the project has been configured with all the Minecraft-related dependencies.
+	 * In Groovy, prefer to use the "beforeMinecraftSetup" function instead.
 	 */
 	public List<Action<? super Project>> beforeMinecraftSetupActions = new ArrayList<>();
+	
+	/**
+	 * Callback with a bit more precision than "afterEvaluate". Evaluated after Voldeloom has finished its afterEvaluate block.
+	 * In Groovy, prefer to use the "afterMinecraftSetup" function instead.
+	 */
 	public List<Action<? super Project>> afterMinecraftSetupActions = new ArrayList<>();
 	
 	private final ProviderGraph providers;
@@ -194,7 +200,7 @@ public class LoomGradleExtension {
 		unmappedModsBuilt.add(file);
 	}
 
-	//AbstractRunTask and SourceRemapper - todo why, can i use a configuration instead
+	//AbstractRunTask - todo why, can i use a configuration instead
 	public List<Path> getUnmappedMods() {
 		return Collections.unmodifiableList(unmappedModsBuilt);
 	}
@@ -231,10 +237,12 @@ public class LoomGradleExtension {
 		warnOnProbablyWrongConfigurationNames = last;
 	}
 	
+	@SuppressWarnings("unused") //Gradle api
 	public void beforeMinecraftSetup(Action<? super Project> action) {
 		beforeMinecraftSetupActions.add(action);
 	}
 	
+	@SuppressWarnings("unused") //Gradle api
 	public void afterMinecraftSetup(Action<? super Project> action) {
 		afterMinecraftSetupActions.add(action);
 	}
@@ -252,8 +260,8 @@ public class LoomGradleExtension {
 	
 	@SuppressWarnings("unused") //Gradle api
 	public void setToolchain(Object toolchain) {
-		Pair<JavaVersion, String> parsedToolchain = GradleSupport.readToolchainSpec(toolchain);
-		this.defaultRunToolchainVersion = parsedToolchain.left;
-		this.defaultRunToolchainVendor = parsedToolchain.right;
+		GradleSupport.ToolchainSpecResult parsedToolchain = GradleSupport.readToolchainSpec(toolchain);
+		this.defaultRunToolchainVersion = parsedToolchain.javaVersion;
+		this.defaultRunToolchainVendor = parsedToolchain.vendorString;
 	}
 }
