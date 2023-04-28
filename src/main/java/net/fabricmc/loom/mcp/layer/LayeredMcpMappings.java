@@ -185,6 +185,10 @@ public class LayeredMcpMappings {
 	
 	//glue code to shove it into gradle, really
 	//Some shit explodes if i don't use SelfResolvingDependencyInternal (gradle blind-casts) so fuckit whatever
+	@SuppressWarnings({
+		"UnstableApiUsage", //When the IDE is working against Gradle 4, a lot of the Gradle API was incubating
+		"RedundantSuppression" //And when it's woring against Gradle 7, it got stabilized
+	})
 	public static class GradleDep implements FileCollectionDependency, SelfResolvingDependencyInternal {
 		public GradleDep(Project project, Path path, String hash) {
 			this.fileCollection = project.files(path);

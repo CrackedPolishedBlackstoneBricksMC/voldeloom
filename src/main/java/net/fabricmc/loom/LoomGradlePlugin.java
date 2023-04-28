@@ -36,6 +36,7 @@ import net.fabricmc.loom.task.runs.GenEclipseRunsTask;
 import net.fabricmc.loom.task.runs.GenIdeaProjectTask;
 import net.fabricmc.loom.task.runs.GenIdeaRunConfigsTask;
 import net.fabricmc.loom.task.runs.GenVsCodeProjectTask;
+import net.fabricmc.loom.util.Check;
 import net.fabricmc.loom.util.GradleSupport;
 import net.fabricmc.loom.util.GroovyXmlUtil;
 import org.gradle.api.Plugin;
@@ -64,6 +65,10 @@ import java.util.stream.Collectors;
 /**
  * Main entrypoint for the plugin.
  */
+@SuppressWarnings({
+	"UnstableApiUsage", //When the IDE is working against Gradle 4, a lot of the Gradle API was incubating
+	"RedundantSuppression" //And when it's woring against Gradle 7, it got stabilized
+})
 public class LoomGradlePlugin implements Plugin<Project> {
 	@Override
 	public void apply(Project project) {
@@ -312,6 +317,7 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		//Configure the for-release remapper
 		AbstractArchiveTask jarTask = (AbstractArchiveTask) project.getTasks().getByName("jar");
 		ReobfJarTask reobfJarTask = (ReobfJarTask) project.getTasks().findByName("remapJarForRelease");
+		Check.notNull(reobfJarTask, "reobfJarTask");
 		
 		if(!reobfJarTask.getInput().isPresent()) {
 			//unless you configured it otherwise, move the regular jar to having the -dev classifier,

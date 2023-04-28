@@ -6,8 +6,8 @@ import net.fabricmc.loom.util.ManifestIndex;
 import net.fabricmc.loom.util.Props;
 import net.fabricmc.loom.util.VersionManifest;
 import org.gradle.api.Project;
+import org.jetbrains.annotations.Nullable;
 
-import javax.annotation.Nullable;
 import java.nio.file.Path;
 import java.time.Period;
 import java.util.Locale;

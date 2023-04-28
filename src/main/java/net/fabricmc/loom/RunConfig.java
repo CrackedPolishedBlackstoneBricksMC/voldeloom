@@ -49,6 +49,7 @@ import java.util.Map;
  * <p>
  * Voldeloom is based off of Loom 0.4; the bulk of this stuff is backported from Loom 1.
  */
+@SuppressWarnings("unused") //Probably a bad idea to stick this on the whole class, but there's a lot of Gradle API-facing bean properties
 public class RunConfig implements Named {
 	private final Project project;
 	private final String baseName;

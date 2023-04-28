@@ -50,6 +50,10 @@ import java.util.Set;
 /**
  * Bridges the gap over large gradle api changes. 
  */
+@SuppressWarnings({
+	"UnstableApiUsage", //When the IDE is working against Gradle 4, a lot of the Gradle API was incubating
+	"RedundantSuppression" //And when it's woring against Gradle 7, it got stabilized :)
+})
 public class GradleSupport {
 	public static String compileOrImplementation;
 	public static String runtimeOrRuntimeOnly;
@@ -74,9 +78,6 @@ public class GradleSupport {
 		return configurations.getByName(compileOrImplementation);
 	}
 	
-	//RegularFileProperty is incubating in Gradle 4 but got stabilized as-is in 7,
-	//so when i'm using Gradle 4, the UnstableApiUsage warning is redundant.
-	@SuppressWarnings({"UnstableApiUsage", "RedundantSuppression"})
 	public static RegularFileProperty getRegularFileProperty(Project project) {
 		try {
 			//Gradle 7
@@ -124,7 +125,7 @@ public class GradleSupport {
 		}
 	}
 	
-	@SuppressWarnings({"UnstableApiUsage", "RedundantSuppression", "unchecked"})
+	@SuppressWarnings("unchecked")
 	public static void setMainClass(JavaExecSpec task, String mainClass) {
 		try {
 			//Gradle 7
@@ -144,7 +145,7 @@ public class GradleSupport {
 		}
 	}
 	
-	@SuppressWarnings({"UnstableApiUsage", "RedundantSuppression", "unchecked"})
+	@SuppressWarnings("unchecked")
 	public static void setClassifier(AbstractArchiveTask task, String classifier) {
 		try {
 			//Gradle 7
@@ -164,7 +165,7 @@ public class GradleSupport {
 		}
 	}
 	
-	@SuppressWarnings({"UnstableApiUsage", "RedundantSuppression", "unchecked"})
+	@SuppressWarnings("unchecked")
 	public static File getArchiveFile(AbstractArchiveTask task) {
 		try {
 			//Gradle 7
@@ -185,8 +186,7 @@ public class GradleSupport {
 	}
 	
 	@SuppressWarnings({
-		"rawtypes", "unchecked", //Property<?> and Provider<?> rawtypes, lets me call set() when I can't name the type.
-		"UnstableApiUsage", "RedundantSuppression"
+		"rawtypes", "unchecked", //Property<?> and Provider<?> rawtypes, lets me call set() when I can't name the type
 	})
 	public static boolean trySetJavaToolchain(JavaExec task, @Nullable JavaVersion javaVersion, @Nullable String vendorString) {
 		task.getLogger().info("] Trying to set up a Java {} {} toolchain for {}", javaVersion, vendorString, task.getName());
@@ -268,9 +268,6 @@ public class GradleSupport {
 		throw new IllegalArgumentException("[Voldeloom GradleSupport] Not sure how to parse this " + o.getClass() + " as a JVM vendor.");
 	}
 	
-	//Property<> is incubating in Gradle 4 but got stabilized as-is in 7,
-	//so when i'm using Gradle 4, the UnstableApiUsage warning is redundant.
-	@SuppressWarnings({"UnstableApiUsage", "RedundantSuppression"})
 	public static ToolchainSpecResult readToolchainSpec(Object javaToolchainSpec) {
 		try {
 			ToolchainSpecResult result = new ToolchainSpecResult();

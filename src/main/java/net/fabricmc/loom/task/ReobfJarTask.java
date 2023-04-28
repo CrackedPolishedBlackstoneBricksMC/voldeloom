@@ -46,6 +46,10 @@ import java.util.stream.Collectors;
  * 
  * TODO: Investigate...
  */
+@SuppressWarnings({
+	"UnstableApiUsage", //When the IDE is working against Gradle 4, a lot of the Gradle API was incubating
+	"RedundantSuppression" //And when it's woring against Gradle 7, it got stabilized
+})
 public class ReobfJarTask extends Jar {
 	public ReobfJarTask() {
 		setGroup(Constants.TASK_GROUP_PLUMBING);

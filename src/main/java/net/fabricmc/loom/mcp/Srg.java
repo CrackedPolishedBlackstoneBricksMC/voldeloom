@@ -432,9 +432,5 @@ public class Srg {
 		public String toString() {
 			return name + " " + descriptor;
 		}
-		
-		public MethodEntry repackage(Packages packages, StringInterner mem) {
-			return new MethodEntry(name, mem.intern(packages.repackageDescriptor(descriptor)));
-		}
 	}
 }

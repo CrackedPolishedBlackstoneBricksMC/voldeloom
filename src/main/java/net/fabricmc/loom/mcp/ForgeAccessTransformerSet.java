@@ -37,7 +37,7 @@ public class ForgeAccessTransformerSet {
 	//class + "." + method + descriptor
 	private final Map<String, AccessTransformation> methodTransformers = new HashMap<>();
 	
-	private final Set<String> touchedClasses = new HashSet<>();
+	private final Set<String> touchedClasses = new HashSet<>(); //for optimization
 	
 	//and for debugging:
 	private int count = 0;
@@ -304,14 +304,6 @@ public class ForgeAccessTransformerSet {
 	
 	public int getTouchedClassCount() {
 		return touchedClasses.size();
-	}
-	
-	public void resetUsageData() {
-		usedClassTransformers.clear();
-		usedWildcardFieldTransformers.clear();
-		usedFieldTransformers.clear();
-		usedWildcardMethodTransformers.clear();
-		usedMethodTransformers.clear();
 	}
 	
 	public List<String> reportUnusedTransformers() {

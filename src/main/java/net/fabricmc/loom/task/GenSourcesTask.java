@@ -112,7 +112,7 @@ public class GenSourcesTask extends DefaultTask implements LoomTaskExt {
 		
 		getLogger().lifecycle("|-> Remapping line numbers...");
 		try(FileSystem srcFs = ZipUtil.openFs(mappedJar); FileSystem dstFs = ZipUtil.createFs(linemappedJar)) {
-			remapper.process(srcFs, dstFs, getLogger());
+			remapper.process(srcFs, dstFs);
 		} catch (Exception e) {
 			throw new RuntimeException("Trouble linemapping: " + e.getMessage(), e);
 		}

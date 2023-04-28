@@ -3,8 +3,8 @@ package net.fabricmc.loom;
 import org.gradle.api.Named;
 import org.gradle.api.Project;
 import org.gradle.api.artifacts.Configuration;
+import org.jetbrains.annotations.Nullable;
 
-import javax.annotation.Nullable;
 
 /**
  * When working with artifacts that are themselves mods, it is nice to remap them "on the way in", from the release namespace into the dev workspace's namespace.
@@ -23,6 +23,7 @@ import javax.annotation.Nullable;
  *   <li>{@code copyToFolder}, if nonnull, will copy artifacts from the *output* configuration to a folder inside run configs. This is mainly to work around Forge being unable to find coremods on the classpath, so putting coremods in "runtime" or "implementation" doesn't work.</li>
  * </ul>
  */
+//TODO: Contains a few unused members, evaluate which ones are useful to be Gradle API-facing
 public class RemappedConfigurationEntry implements Named {
 	/** Creating with live Configuration objects */
 	public RemappedConfigurationEntry(Configuration inputConfig, Configuration outputConfig) {

@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.nio.file.FileSystem;
 import java.nio.file.Path;
 
+@SuppressWarnings("CanBeFinal") //Thinking about letting you set (instead of append) to these from Gradle layered mappings api
 public class McpMappingsBuilder {
 	//joined srg only:
 	public Srg joined = new Srg();

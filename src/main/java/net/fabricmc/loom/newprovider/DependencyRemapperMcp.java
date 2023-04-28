@@ -16,17 +16,11 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.function.Supplier;
 
 public class DependencyRemapperMcp extends NewProvider<DependencyRemapperMcp> {
 	public DependencyRemapperMcp(Project project, LoomGradleExtension extension) {
 		super(project, extension);
-		tinyRemapperFactory = () -> new RemapperMcp(project, extension);
-		naiveRenamerFactory = () -> new NaiveRenamer(project, extension);
 	}
-	
-	private final Supplier<RemapperMcp> tinyRemapperFactory;
-	private final Supplier<NaiveRenamer> naiveRenamerFactory;
 	
 	private String mappingsDepString;
 	private Srg srg;

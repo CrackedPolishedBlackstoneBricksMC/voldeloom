@@ -58,7 +58,7 @@ public class ProviderGraph {
 	
 	public void setup() throws Exception {
 		log.lifecycle("# Wrapping basic dependencies...");
-		mcWrapper = new ConfigElementWrapper(project, project.getConfigurations().getByName(Constants.MINECRAFT));
+		mcWrapper = new ConfigElementWrapper(project.getConfigurations().getByName(Constants.MINECRAFT));
 		
 		log.lifecycle("# Fetching vanilla jars and indexes...");
 		String mcPrefix = "minecraft-" + mcWrapper.getFilenameSafeVersion();

@@ -12,7 +12,7 @@ import java.util.Set;
  */
 public class ResolvedConfigElementWrapper extends ConfigElementWrapper {
 	public ResolvedConfigElementWrapper(Project project, Configuration config) {
-		super(project, config);
+		super(config);
 		
 		Set<File> files = config.files(getDep());
 		

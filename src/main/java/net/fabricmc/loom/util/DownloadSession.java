@@ -2,8 +2,8 @@ package net.fabricmc.loom.util;
 
 import net.fabricmc.loom.LoomGradleExtension;
 import org.gradle.api.Project;
+import org.jetbrains.annotations.Nullable;
 
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;

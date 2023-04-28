@@ -24,7 +24,6 @@
 
 package net.fabricmc.loom.util;
 
-import org.gradle.api.logging.Logger;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
@@ -103,7 +102,7 @@ public class LineNumberRemapper {
 		return this;
 	}
 
-	public void process(FileSystem srcFs, FileSystem dstFs, Logger logger) throws Exception {
+	public void process(FileSystem srcFs, FileSystem dstFs) throws Exception {
 		Files.walkFileTree(srcFs.getPath("/"), new SimpleFileVisitor<Path>() {
 			@Override
 			public FileVisitResult preVisitDirectory(Path srcDir, BasicFileAttributes attrs) throws IOException {
@@ -131,7 +130,7 @@ public class LineNumberRemapper {
 							ClassReader srcClassReader = new ClassReader(srcReader);
 							ClassWriter dstClassWriter = new ClassWriter(0);
 							
-							srcClassReader.accept(new LineNumberVisitor(Opcodes.ASM9, dstClassWriter, table), 0);
+							srcClassReader.accept(new LineNumberVisitor(dstClassWriter, table), 0);
 							
 							Files.write(dstPath, dstClassWriter.toByteArray());
 							return FileVisitResult.CONTINUE;
@@ -199,8 +198,8 @@ public class LineNumberRemapper {
 	}
 	
 	private static class LineNumberVisitor extends ClassVisitor {
-		private LineNumberVisitor(int api, ClassVisitor classVisitor, RemapTable remapTable) {
-			super(api, classVisitor);
+		private LineNumberVisitor(ClassVisitor classVisitor, RemapTable remapTable) {
+			super(Opcodes.ASM9, classVisitor);
 			this.remapTable = remapTable;
 		}
 		

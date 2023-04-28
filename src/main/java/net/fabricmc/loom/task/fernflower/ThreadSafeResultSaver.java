@@ -53,8 +53,8 @@ public class ThreadSafeResultSaver implements IResultSaver, IFabricResultSaver {
 	private final Supplier<File> output;
 	private final Supplier<File> lineMapFile;
 
-	public Map<String, ZipOutputStream> outputStreams = new HashMap<>();
-	public Map<String, ExecutorService> saveExecutors = new HashMap<>();
+	public final Map<String, ZipOutputStream> outputStreams = new HashMap<>();
+	public final Map<String, ExecutorService> saveExecutors = new HashMap<>();
 	public PrintWriter lineMapWriter;
 
 	public ThreadSafeResultSaver(File output, File lineMapFile) {

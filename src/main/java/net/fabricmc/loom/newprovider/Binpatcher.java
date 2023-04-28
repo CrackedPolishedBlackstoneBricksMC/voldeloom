@@ -160,6 +160,5 @@ public class Binpatcher extends NewProvider<Binpatcher> {
 		}
 		
 		log.info("|-> Binpatch success.");
-		return;
 	}
 }

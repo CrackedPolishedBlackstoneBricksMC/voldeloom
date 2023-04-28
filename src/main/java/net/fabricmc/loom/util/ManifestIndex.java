@@ -14,6 +14,7 @@ import java.util.Locale;
 import java.util.Map;
 
 //TODO: a bit less crummy (maybe manual gson-wrangling, maybe don't allocate crap for *every* minecraft version *ever* because we're only interested in one)
+@SuppressWarnings("CanBeFinal") //google gson
 public class ManifestIndex {
 	public static ManifestIndex read(Path path) throws IOException {
 		try(BufferedReader reader = Files.newBufferedReader(path)) {

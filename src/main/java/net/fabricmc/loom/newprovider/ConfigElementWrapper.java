@@ -1,6 +1,5 @@
 package net.fabricmc.loom.newprovider;
 
-import org.gradle.api.Project;
 import org.gradle.api.artifacts.Configuration;
 import org.gradle.api.artifacts.Dependency;
 import org.gradle.api.artifacts.DependencySet;
@@ -14,7 +13,7 @@ import javax.annotation.Nullable;
  *                                   ResolvedConfigElementWrapper additionally ensures that the dependency resolves to one file.
  */
 public class ConfigElementWrapper {
-	public ConfigElementWrapper(Project project, Configuration config) {
+	public ConfigElementWrapper(Configuration config) {
 		DependencySet set = config.getDependencies();
 		
 		if(set.size() == 0) {
