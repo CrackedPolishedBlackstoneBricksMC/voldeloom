@@ -45,7 +45,7 @@ buildscript {
 		maven { url "https://repo.sleeping.town" }
 	}
 	dependencies {
-		classpath "agency.highlysuspect:voldeloom:2.1" //or "2.3-SNAPSHOT" for the cutting-edge 
+		classpath "agency.highlysuspect:voldeloom:2.3-SNAPSHOT" 
 	}
 }
 
@@ -93,12 +93,10 @@ Using the latest version of Minecraft Forge for each Minecraft version.
 | 1.2.5 | ❌ | ❌ | ❌ | Mods don't load in dev.<br>Remapping for release is dummied out. |
 | 1.3.2 | ✅ | 🤔 | ✅ | |
 | 1.4.7 | ✅ | ✅ | ✅ | **Has received the most testing.**<br>Used for several production mods. |
-| 1.5.2 | ✅ | ✅* | ✅ | |
-| 1.6.4 | ✅ | 🤔* | ✅ | |
-| 1.7.10 | ✅ | 🤔* | ✅ | MCPBot export support is WIP |
+| 1.5.2 | ✅ | ✅ | ✅ | |
+| 1.6.4 | ✅ | 🤔 | ✅ | |
+| 1.7.10 | ✅ | 🤔 | ✅ | |
 | >=1.8 | ❌ | ❌ | ❌ | Out of scope. |
-
-\*Reobf-to-SRG is currently broken in `2.3-SNAPSHOT`. Workin on it.
 
 # Documentation / help
 

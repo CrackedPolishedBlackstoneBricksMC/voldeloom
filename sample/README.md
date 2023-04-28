@@ -74,4 +74,4 @@ Forge 1.6.4-9.11.1.1345 using Gradle 7.6.
 
 Forge 1.7.10-10.13.4.1614-1.7.10 (yes it says 1.7.10 twice) using Gradle 7.6.
 
-**Works.** MCPBot export mappings support is WIP.
+**Works great**

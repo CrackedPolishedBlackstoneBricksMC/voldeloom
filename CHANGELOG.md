@@ -21,15 +21,22 @@ Running changelog document, will be added to as I commit things.
     * Not all files include a hash
     * The actual, not-hashed metadata is not exposed to users (I'd like to store them somewhere, just for debugging's sake)
 * (performance) Forge binpatches now aren't re-parsed on every single Gradle invocation...
-* Partially fixed linemapping
+* Fixed linemapping
   * didn't understand what it was before :sweat_smile:
   * After running genSources, might need to refresh your gradle to get your IDE to use the linemapped jar.
+* Reobf-to-srg has finally been added to the mappings system rewrite
+  * release 1.5/1.6/1.7 mods again! maybe! (test them!!!)
+  * quick note: setting `targetCompatibility = "6"` is *not enough* to strip some Java 8 anachronisms from class files if you use a java 8 compiler
 
 ## Roadmap
 
 * Fix 1.2.5 and make it "nice" (split sourcesets etc)
 * Add more to the `volde.layered` system
-* Fix reobf-to-srg 1.5+
+* Figure out what's up with parameter name tables/asm4/targetCompatibility?
+  * The current Auto Third Person buid uses gtnh forgegradle, i dropped it in my Blightfall (pre-CE) instance (Forge 10.13.2.1291, last version before the asm5 update) and it worked fine
+  * The Voldeloom sample mod gets skipped though, because javac included a parameter name table that Forge's `ModClassVisitor` choked on. Why does gtnh fg work but mine doesnt
+  * looks like the ATP jar uses local variable slots (according to intellij bytecode viewer) but samplemod is using the new parameter name system
+  * why ?
 
 # 2.2 (`agency.highlysuspect:voldeloom:2.2`)
 
