@@ -29,7 +29,7 @@ public class MappingsWrapper extends ResolvedConfigElementWrapper {
 		McpMappingsBuilder mappingsBuilder = new McpMappingsBuilder();
 		StringInterner mem = new StringInterner();
 		try(FileSystem mcpZipFs = ZipUtil.openFs(getPath())) {
-			mappingsBuilder.mergeFromZip(mcpZipFs, mem, log::info);
+			mappingsBuilder.importEverythingFromZip(mcpZipFs, mem);
 		}
 		
 		log.info("|-> Gleaning inner-class info from '{}'...", scanJar);

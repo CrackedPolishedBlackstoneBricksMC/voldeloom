@@ -1,6 +1,7 @@
 package net.fabricmc.loom.task.fernflower;
 
 import net.fabricmc.fernflower.api.IFabricJavadocProvider;
+import net.fabricmc.loom.mcp.MappingScanner;
 import net.fabricmc.loom.mcp.McpMappings;
 import net.fabricmc.loom.mcp.McpMappingsBuilder;
 import net.fabricmc.loom.util.StringInterner;
@@ -23,8 +24,9 @@ public class McpJavadocProvider implements IFabricJavadocProvider {
 		McpMappingsBuilder builder = new McpMappingsBuilder();
 		StringInterner mem = new StringInterner();
 		try(FileSystem fs = ZipUtil.openFs(mcpZip)) {
-			builder.mergeFromFoundFieldsCsv(fs, mem);
-			builder.mergeFromFoundMethodsCsv(fs, mem);
+			MappingScanner scan = new MappingScanner(fs);
+			builder.mergeFromFieldsCsv(scan, mem);
+			builder.mergeFromMethodsCsv(scan, mem);
 		}
 		McpMappings mappings = builder.build();
 		

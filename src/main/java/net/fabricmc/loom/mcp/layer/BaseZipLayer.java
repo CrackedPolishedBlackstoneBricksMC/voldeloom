@@ -23,7 +23,7 @@ public class BaseZipLayer implements Layer {
 		log.info("\t-- (BaseZipLayer) Importing mappings from {} --", zipPath);
 		
 		try(FileSystem fs = ZipUtil.openFs(zipPath)) {
-			mappings.mergeFromZip(fs, mem, log::info);
+			mappings.importEverythingFromZip(fs, mem);
 		}
 	}
 	

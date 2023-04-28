@@ -1,5 +1,6 @@
 package net.fabricmc.loom.mcp.layer;
 
+import net.fabricmc.loom.mcp.MappingScanner;
 import net.fabricmc.loom.mcp.McpMappingsBuilder;
 import net.fabricmc.loom.util.Checksum;
 import net.fabricmc.loom.util.StringInterner;
@@ -23,8 +24,10 @@ public class FieldsMethodsLayer implements Layer {
 		log.info("\t-- (FieldsMethodsLayer) Importing field and method mappings from {} --", zipPath);
 		
 		try(FileSystem fs = ZipUtil.openFs(zipPath)) {
-			mappings.mergeFromFoundFieldsCsv(fs, mem);
-			mappings.mergeFromFoundMethodsCsv(fs, mem);
+			MappingScanner scan = new MappingScanner(fs);
+			
+			mappings.mergeFromFieldsCsv(scan, mem);
+			mappings.mergeFromMethodsCsv(scan, mem);
 		}
 	}
 	

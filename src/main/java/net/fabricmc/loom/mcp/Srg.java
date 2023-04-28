@@ -75,8 +75,7 @@ public class Srg {
 				// MD: acn/b (Lacn;)V net/minecraft/src/StructureBoundingBox/func_78888_b (Lnet/minecraft/src/StructureBoundingBox;)V
 				//
 				//In fields 1 and 3, the name of the method is also attached to the owning class with a `/`.
-				//Fields 2 and 4 are the descriptors of the method. Field 4 is simply a conveniently-remapped version of field 2.
-				//(note/todo: field 4 does not exist in the TSRG format)
+				//Fields 2 and 4 are the descriptors of the method. Field 4 is simply field 2 with the class names remapped.
 				if(split.length < 5) {
 					System.err.println("line " + lineNo + " is too short for method descriptor: " + line);
 					continue;
@@ -104,14 +103,13 @@ public class Srg {
 				//Ignore PK lines, they're retroguard junk.
 			} else {
 				//Ok, so this might be a line from a CSRG file, which is a slightly more terse format.
-				//PK lines look like this (two entries, first ending in `/`)
-				// net/ net
+				//PK lines look like this (two entries where the first ends in `/`)
 				// net/minecraft/ net/minecraft
-				//CL lines look like this (two entries)
+				//CL lines look like this (class name, remapped class name)
 				// a net/minecraft/util/EnumChatFormatting
-				//FD lines look like this (three entries)
+				//FD lines look like this (owning class, field name, remapped field name)
 				// aaa a field_75226_a
-				//MD lines look like this (four entries, no "remapped method desc")
+				//MD lines look like this (owning class, method name, method desc, remapped method name).)
 				// ao d ()[Ljava/lang/String; func_90022_d
 				switch(split.length) {
 					case 2: {
@@ -124,7 +122,7 @@ public class Srg {
 						break;
 					}
 					case 3: {
-						//FD line. New, simpler format.
+						//FD line. Note how the class name isn't attached to the field name with `/` anymore.
 						String fromOwningClass = mem.intern(split[0]);
 						String fromName = mem.intern(split[1]);
 						String toName = mem.intern(split[2]);
@@ -132,7 +130,8 @@ public class Srg {
 						break;
 					}
 					case 4: {
-						//Method line, with a missing remapped method desc that we need to puzzle out.
+						//MD line. Also doesn't attach the name using a `/` character anymore.
+						//The line also doesn't include a remapped method descriptor, so we need to puzzle that out.
 						//(Note: this code assumes all relevant class mappings appear before method mappings in the csrg. This
 						//allows the parser to remain single-pass. I haven't checked if this is accurate to Forgestuff.)
 						String fromOwningClass = mem.intern(split[0]);

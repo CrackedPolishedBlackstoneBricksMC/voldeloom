@@ -142,7 +142,7 @@ public class LayeredMcpMappings {
 				layer.updateHasher(readersDigest);
 				readersDigest.update((byte) 0);
 			}
-			readersDigest.update((byte) 0); //<-- bump this when making a big change to mapping layer system !!!
+			readersDigest.update((byte) 1); //<-- bump this when making a big change to mapping layer system !!!
 			String hash = Checksum.toHexStringPrefix(readersDigest.digest(), 8);
 			Path mappingsPath = cache.resolve(hash + ".zip");
 			Path infoPath = cache.resolve(hash + ".info");

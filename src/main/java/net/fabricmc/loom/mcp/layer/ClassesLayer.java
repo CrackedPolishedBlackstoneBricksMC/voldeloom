@@ -1,5 +1,6 @@
 package net.fabricmc.loom.mcp.layer;
 
+import net.fabricmc.loom.mcp.MappingScanner;
 import net.fabricmc.loom.mcp.McpMappingsBuilder;
 import net.fabricmc.loom.util.Checksum;
 import net.fabricmc.loom.util.StringInterner;
@@ -23,11 +24,12 @@ public class ClassesLayer implements Layer {
 		log.info("\t-- (ClassesLayer) Importing class/package mappings from {} --", zipPath);
 		
 		try(FileSystem fs = ZipUtil.openFs(zipPath)) {
-			//TODO: four passes over the filesystem isn't great
-			mappings.mergeFromFoundJoinedSrg(fs, mem);
-			mappings.mergeFromFoundPackagesCsv(fs, mem);
-			mappings.mergeFromFoundClientSrg(fs, mem);
-			mappings.mergeFromFoundServerSrg(fs, mem);
+			MappingScanner scan = new MappingScanner(fs);
+			
+			mappings.mergeFromJoinedSrg(scan, mem);
+			mappings.mergeFromPackagesCsv(scan, mem);
+			mappings.mergeFromClientSrg(scan, mem);
+			mappings.mergeFromServerSrg(scan, mem);
 		}
 	}
 	
