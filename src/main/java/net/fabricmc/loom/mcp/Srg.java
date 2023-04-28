@@ -90,14 +90,6 @@ public class Srg {
 				String toName = mem.intern(split[3].substring(trdSlash + 1));
 				String toDesc = mem.intern(split[4]);
 				
-				//TODO: KLUDGE for 1.6.4, need to debug. Naming conflicts. May be less of an issue after switching off tiny-remapper?
-				// (This is accurate to the actual contents of the SRG, btw, there are duplicates)
-				if(toName.equals("func_130000_a") && fromDesc.equals("(Lof;DDDFF)V")) continue;
-				else if(toName.equals("func_82408_c") && fromDesc.equals("(Lof;IF)V")) continue;
-				//TODO: KLUDGE for 1.2.5 client
-				else if(toName.equals("func_319_i") && fromDesc.equals("(Lxd;III)V")) continue;
-				else if(toName.equals("func_35199_b") && fromDesc.equals("(Laan;I)V")) continue;
-				
 				putMethodMapping(fromOwningClass, fromName, fromDesc, toName, toDesc);
 			} else if("PK:".equals(split[0])) {
 				//Ignore PK lines, they're retroguard junk.
@@ -148,7 +140,33 @@ public class Srg {
 			}
 		}
 		
+		//TODO: Temp fixes for remapping weirdness.
+		// These are only relevant to one specific Minecraft version, so including stuff like the owning class name
+		// and SRG name are attempts to make sure we don't accidentally target irrelevant mappings.
+		//1.6.4 - duplicated mappings, cause tiny-remapper to report "unfixable conflicts"
+		kludge("bga", "a", "(Lof;DDDFF)V", "func_130000_a");
+		kludge("bhb", "a", "(Lof;DDDFF)V", "func_130000_a");
+		kludge("bhj", "a", "(Lof;DDDFF)V", "func_130000_a");
+		kludge("bhb", "c", "(Lof;IF)V", "func_82408_c");
+		kludge("bhj", "c", "(Lof;IF)V", "func_82408_c");
+		
+		//1.2.5 client - tiny-remapper accepts it, but ClassFormatErrors about duplicate method names happen at runtime
+		kludge("uj", "i", "(Lxd;III)V", "func_319_i");
+		kludge("yw", "c", "(Laan;I)V", "func_35199_b");
+		
 		return this;
+	}
+	
+	private void kludge(String owningClass, String fromName, String fromDesc, String toName) {
+		Map<MethodEntry, MethodEntry> methodMappings = methodMappingsByOwningClass.get(owningClass);
+		if(methodMappings != null) {
+			MethodEntry unmapped = new MethodEntry(fromName, fromDesc);
+			MethodEntry mapped = methodMappings.get(unmapped);
+			if(mapped != null && mapped.name.equals(toName)) {
+				methodMappings.remove(unmapped);
+				System.err.printf("TEMP FIX for voldeloom bug - Dropping method mapping for %s/%s %s (%s)%n", owningClass, fromName, fromDesc, toName);
+			}
+		}
 	}
 	
 	/// exporting ///

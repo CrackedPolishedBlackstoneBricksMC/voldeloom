@@ -23,15 +23,13 @@ Running changelog document, will be added to as I commit things.
 * (performance) Forge binpatches now aren't re-parsed on every single Gradle invocation...
 * Partially fixed linemapping
   * didn't understand what it was before :sweat_smile:
-  * After running genSources, refresh your gradle a second time to pick up on the updated Minecraft jar. Still thinking about how best to handle this...
+  * After running genSources, might need to refresh your gradle to get your IDE to use the linemapped jar.
 
 ## Roadmap
 
 * Fix 1.2.5 and make it "nice" (split sourcesets etc)
 * Add more to the `volde.layered` system
-  * especially baseZip, classes, fieldsMethods should only look for the requisite files,need to write more interfaces for that
 * Fix reobf-to-srg 1.5+
-* support for CSRG format (files are a nice bit smaller, not hard to implement)
 
 # 2.2 (`agency.highlysuspect:voldeloom:2.2`)
 
