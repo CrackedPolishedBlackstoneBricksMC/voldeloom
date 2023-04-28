@@ -223,7 +223,13 @@ Class names (in `.srg` and a new `.csrg` format) are provided in the `mcp` folde
 It's like an `.srg` but slightly smaller and slightly more irritating to parse. The `CL:`, `FD:`, `MD:` etc prefixes are gone. Instead, split on spaces, and see how many segments you get:
 
 * if there's two elements, it's a `PK` line if the first element ends in a `/`, otherwise it's a `CL` line;
-* if there's three elements, it's a `FD` line;
-* if there's four segments, it's a `MD` line. The remapped copy of the method descriptor is no longer included.
+* if there's three elements, it's a `FD` line.
+  * Split on spaces - element 0 is unmapped owning class, 1 is unmapped field name, 2 is mapped field name.
+  * No more `/` character to attach the class and field name.
+  * Still no field descriptors.
+* if there's four segments, it's a `MD` line.
+  * Element 0 is unmapped owning class, 1 is unmapped method name, 2 is unmapped method desc, 3 is mapped method name. 
+  * The remapped copy of the method descriptor is no longer included. You will need to make it yourself.
+  * I'm not sure if official forgetech did this in two passes (i.e. can you invent the remapped method descriptor right there, or do you need to wait for all class mappings to arrive and do method descriptors in a second pass)
 
 MCPBot provides both `.srg` and `.csrg` exports.

@@ -13,14 +13,15 @@ apply plugin: "agency.highlysuspect.voldeloom"
 
 java {
 	toolchain {
-		//Last version able to set a --release as low as 6.
-		languageVersion = JavaLanguageVersion.of(11)
+		languageVersion = JavaLanguageVersion.of(8)
 	}
 }
 
 compileJava {
 	//Forge doesn't understand classes compiled to versions of the class-file format newer than Java 6's.
-	options.release.set(6)
+	//options.release.set(6)
+	sourceCompatibility = "6"
+	targetCompatibility = "1.6"
 }
 
 String minecraftVersion = "1.7.10"

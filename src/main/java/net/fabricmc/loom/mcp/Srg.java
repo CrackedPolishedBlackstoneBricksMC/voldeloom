@@ -321,6 +321,47 @@ public class Srg {
 		return inverted;
 	}
 	
+	public Srg reobf(Members fields, Members methods, boolean srgFieldsMethodsAsFallback, boolean reobfToSrg) {
+		Srg reobf = new Srg();
+		
+		if(reobfToSrg) {
+			//don't reproguard class names, use passthrough class name mappings
+			classMappings.values().forEach(c -> reobf.putClassMapping(c, c));
+		} else {
+			reobf.putAllClassMappings(invert(classMappings));
+		}
+		
+		fieldMappingsByOwningClass.forEach((owningClass, fieldMappings) -> {
+			String sourceOwningClass = classMappings.getOrDefault(owningClass, owningClass);
+			
+			fieldMappings.forEach((proguard, srg) -> {
+				Members.Entry namedEntry = fields.remapSrg(srg);
+				
+				String sourceName = namedEntry != null ? namedEntry.remappedName : (srgFieldsMethodsAsFallback ? srg : proguard);
+				String targetName = reobfToSrg ? srg : proguard;
+				
+				reobf.putFieldMapping(sourceOwningClass, sourceName, targetName);
+			});
+		});
+		
+		methodMappingsByOwningClass.forEach((owningClass, methodMappings) -> {
+			String sourceOwningClass = classMappings.getOrDefault(owningClass, owningClass);
+			
+			methodMappings.forEach((proguardEntry, srgEntry) -> {
+				Members.Entry namedEntry = methods.remapSrg(srgEntry.name);
+				
+				String sourceName = namedEntry != null ? namedEntry.remappedName : (srgFieldsMethodsAsFallback ? srgEntry.name : proguardEntry.name);
+				String sourceDesc = srgFieldsMethodsAsFallback ? srgEntry.descriptor : proguardEntry.descriptor;
+				String targetName = reobfToSrg ? srgEntry.name : proguardEntry.name;
+				String targetDesc = reobfToSrg ? srgEntry.descriptor : proguardEntry.descriptor;
+				
+				reobf.putMethodMapping(sourceOwningClass, sourceName, sourceDesc, targetName, targetDesc);
+			});
+		});
+		
+		return reobf;
+	}
+	
 	/// mutating ///
 	
 	public void putClassMapping(String from, String to) {

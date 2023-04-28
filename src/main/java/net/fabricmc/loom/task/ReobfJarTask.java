@@ -54,6 +54,7 @@ public class ReobfJarTask extends Jar {
 	public ReobfJarTask() {
 		setGroup(Constants.TASK_GROUP_PLUMBING);
 		setDescription("Remaps the mod under development into the distribution naming scheme, ready for publishing.");
+		getOutputs().upToDateWhen(__ -> false); //TODO
 	}
 	
 	private final RegularFileProperty input = GradleSupport.getRegularFileProperty(getProject());

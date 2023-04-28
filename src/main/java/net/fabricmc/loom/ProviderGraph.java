@@ -250,10 +250,13 @@ public class ProviderGraph {
 		
 		//TODO: oops all leaky abstraction again
 		if(side.equals("joined")) {
-			log.lifecycle("# ({}) Initializing reobf mappings...", side);
-			reobfSrg = mappings.chooseSrg(side)
-				.named(mappings.fields, mappings.methods, extension.forgeCapabilities.srgsAsFallback.get())
-				.inverted();
+			boolean srgFieldsMethodsAsFallback = extension.forgeCapabilities.srgsAsFallback.get();
+			boolean reobfToSrg = extension.forgeCapabilities.distributionNamingScheme.get().equals(Constants.INTERMEDIATE_NAMING_SCHEME);
+			
+			log.lifecycle("# ({}) Initializing reobf mappings ({} -> {})...", side, Constants.MAPPED_NAMING_SCHEME,
+				reobfToSrg ? Constants.INTERMEDIATE_NAMING_SCHEME : Constants.PROGUARDED_NAMING_SCHEME);
+			
+			reobfSrg = mappings.chooseSrg(side).reobf(mappings.fields, mappings.methods, srgFieldsMethodsAsFallback, reobfToSrg);
 		}
 	}
 	

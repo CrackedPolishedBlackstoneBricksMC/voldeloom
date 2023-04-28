@@ -2,6 +2,7 @@ package agency.highlysuspect;
 
 import cpw.mods.fml.common.Mod;
 import cpw.mods.fml.common.SidedProxy;
+import cpw.mods.fml.common.event.FMLPostInitializationEvent;
 import cpw.mods.fml.common.event.FMLPreInitializationEvent;
 import net.minecraftforge.common.MinecraftForge;
 import org.apache.logging.log4j.LogManager;
@@ -24,5 +25,11 @@ public class Sample1710 {
 	public void preinit(FMLPreInitializationEvent e) {
 		LOGGER.info("Hello, preinit!");
 		proxy.hi();
+	}
+	
+	@Mod.EventHandler
+	public void postinit(FMLPostInitializationEvent e) {
+		LOGGER.info("Hello, postinit!");
+		proxy.bye();
 	}
 }
