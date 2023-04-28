@@ -71,6 +71,26 @@ public class LayeredMcpMappings {
 		return this;
 	}
 	
+	@SuppressWarnings("unused") //gradle api
+	public LayeredMcpMappings mcpbot(String mcVersion, String mappingsVersion, String mappingsChannel) {
+		String baseUrl;
+		if(project.hasProperty("voldeloom.mcpbotUrl")) baseUrl = (String) project.property("voldeloom.mcpbotUrl");
+		else baseUrl = "https://mcpbot.unascribed.com/";
+		
+		project.getLogger().lifecycle(" !! Using MCPBot mirror service hosted at {} (change with 'voldeloom.mcpbotUrl' project property)", baseUrl);
+		
+		// https://mcpbot.unascribed.com/mcp/1.7.10/mcp-1.7.10-csrg.zip
+		// [----------base url----------]    [mcver]    [mcver]
+		String classesUrl = String.format("%smcp/%s/mcp-%s-csrg.zip", baseUrl, mcVersion, mcVersion);
+		// https://mcpbot.unascribed.com/mcp_stable/12-1.7.10/mcp_stable-12-1.7.10.zip
+		// [----------base url----------]    [chan] [version]     [chan] [version]
+		String fieldsMethodsUrl = String.format("%smcp_%s/%s/mcp_%s-%s.zip", baseUrl, mappingsChannel, mappingsVersion, mappingsChannel, mappingsVersion);
+		
+		layers.add(new ClassesLayer(realizeToPath(classesUrl)));
+		layers.add(new FieldsMethodsLayer(realizeToPath(fieldsMethodsUrl)));
+		return this;
+	}
+	
 	private Path resolveOne(Dependency dep) {
 		Configuration detatched = project.getConfigurations().detachedConfiguration(dep);
 		//detatched.resolutionStrategy(ResolutionStrategy::failOnNonReproducibleResolution); //TODO: missing Gradle 4

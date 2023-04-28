@@ -42,10 +42,7 @@ dependencies {
 	minecraft "com.mojang:minecraft:${minecraftVersion}"
 	forge "net.minecraftforge:forge:${forgeVersion}:universal"
 	
-	//TODO: una told me the MCP mappings in the Forge zip are not actually used, and i should use mcpbot exports instead
 	mappings volde.layered {
-		//baseZip("https://github.com/MinecraftForge/MinecraftForge/archive/refs/heads/1.7.10.zip")
-		classes("https://mcpbot.unascribed.com/mcp/1.7.10/mcp-1.7.10-csrg.zip")
-		fieldsMethods("https://mcpbot.unascribed.com/mcp_stable/12-1.7.10/mcp_stable-12-1.7.10.zip")
+		mcpbot(minecraftVersion, "12-1.7.10", "stable")
 	}
 }
