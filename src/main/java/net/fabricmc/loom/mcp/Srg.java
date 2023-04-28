@@ -37,6 +37,7 @@ public class Srg {
 	
 	/// importing ///
 	
+	@SuppressWarnings("StatementWithEmptyBody")
 	public Srg read(Path path, StringInterner mem) throws IOException {
 		List<String> lines = Files.readAllLines(path);
 		for(int i = 0; i < lines.size(); i++) {
@@ -45,8 +46,8 @@ public class Srg {
 			int lineNo = i + 1;
 			
 			String[] split = line.split(" ");
-			if(split.length < 3) {
-				System.err.println("line " + lineNo + " is too short: " + line);
+			if(split.length < 2) {
+				System.err.println("srg/csrg line " + lineNo + " is too short: " + line);
 				continue;
 			}
 			
@@ -99,8 +100,52 @@ public class Srg {
 				else if(toName.equals("func_35199_b") && fromDesc.equals("(Laan;I)V")) continue;
 				
 				putMethodMapping(fromOwningClass, fromName, fromDesc, toName, toDesc);
-			} else if(!"PK:".equals(split[0])) { //We acknowledge PK lines but they're useless to us, retroguard stuff
-				System.err.println("line " + lineNo + " has unknown type (not CL/FD/MD/PK): " + line);
+			} else if("PK:".equals(split[0])) {
+				//Ignore PK lines, they're retroguard junk.
+			} else {
+				//Ok, so this might be a line from a CSRG file, which is a slightly more terse format.
+				//PK lines look like this (two entries, first ending in `/`)
+				// net/ net
+				// net/minecraft/ net/minecraft
+				//CL lines look like this (two entries)
+				// a net/minecraft/util/EnumChatFormatting
+				//FD lines look like this (three entries)
+				// aaa a field_75226_a
+				//MD lines look like this (four entries, no "remapped method desc")
+				// ao d ()[Ljava/lang/String; func_90022_d
+				switch(split.length) {
+					case 2: {
+						//Either a PK line or a CL line, tell them apart with the `/` character.
+						if(!split[0].endsWith("/")) {
+							String fromClass = mem.intern(split[0]);
+							String toClass = mem.intern(split[1]);
+							putClassMapping(fromClass, toClass);
+						}
+						break;
+					}
+					case 3: {
+						//FD line. New, simpler format.
+						String fromOwningClass = mem.intern(split[0]);
+						String fromName = mem.intern(split[1]);
+						String toName = mem.intern(split[2]);
+						putFieldMapping(fromOwningClass, fromName, toName);
+						break;
+					}
+					case 4: {
+						//Method line, with a missing remapped method desc that we need to puzzle out.
+						//(Note: this code assumes all relevant class mappings appear before method mappings in the csrg. This
+						//allows the parser to remain single-pass. I haven't checked if this is accurate to Forgestuff.)
+						String fromOwningClass = mem.intern(split[0]);
+						String fromName = mem.intern(split[1]);
+						String fromDesc = mem.intern(split[2]);
+						String toName = mem.intern(split[3]);
+						String toDesc = mem.intern(DescriptorMapper.map(fromDesc, c -> classMappings.getOrDefault(c, c)));
+						
+						putMethodMapping(fromOwningClass, fromName, fromDesc, toName, toDesc);
+						break;
+					}
+					default: System.err.println("srg/csrg line " + lineNo + " is weird: " + line);
+				}
 			}
 		}
 		

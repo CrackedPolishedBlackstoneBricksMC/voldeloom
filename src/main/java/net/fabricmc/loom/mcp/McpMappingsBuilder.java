@@ -26,8 +26,8 @@ public class McpMappingsBuilder {
 	public Members methods = new Members();
 	
 	public McpMappings build() {
-		//apply packaging transformation to joined only
-		//packaging transformations can technically exist for client/server, but were not used in practice
+		//Only apply packaging transformation to joined srg. Packaging transformations theoretically make sense for client/server
+		//srgs too, but this never happened in practice because packages.csv was invented in 1.4, after the client/server srg merge.
 		//todo: might be nice to come up with an anachronistic way to do it?
 		if(!packages.isEmpty() && !joined.isEmpty()) joined = joined.repackage(packages);
 		
@@ -99,6 +99,8 @@ public class McpMappingsBuilder {
 	
 	public void mergeFromFoundJoinedSrg(FileSystem fs, StringInterner mem) throws IOException {
 		Path path = find(fs, "joined.srg");
+		if(path == null) path = find(fs, "joined.csrg");
+		
 		if(path != null) mergeFromJoinedSrg(path, mem);
 	}
 	
@@ -134,6 +136,7 @@ public class McpMappingsBuilder {
 				String filename = path.getFileName().toString();
 				switch(filename) {
 					case "joined.srg":
+					case "joined.csrg":
 						log.accept("\\-> Reading " + path);
 						mergeFromJoinedSrg(path, mem);
 						break;

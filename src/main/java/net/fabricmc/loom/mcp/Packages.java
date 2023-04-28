@@ -8,8 +8,6 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * Parser for Forge's packages.csv.
@@ -64,23 +62,10 @@ public class Packages {
 		else return lookup + "/" + srgClassNameOnly;
 	}
 	
-	// L([^;]*);
-	//Matches nonnested brackets delimited on the left by a capital L and on the right by a semicolon. This is how class types are encoded in descriptors.
-	//Capturing group 1 is set to the stuff inside the brackets.
-	//See JVMS section 4.2.1, 4.2.2 for a definition of "legal class name". Basically any character is permissible except for ";", which terminates
-	//the class name, and a few other characters (.[) that I don't expect to see because we're not being fed pathological class names.
-	public static final Pattern CLASS_NAMES_FROM_DESCRIPTOR_SOUP = Pattern.compile("L([^;]*);");
-	
 	/**
 	 * Calls {@code repackage} on all internal-format class names it can find in the descriptor.
 	 */
 	public String repackageDescriptor(String descriptor) {
-		if(descriptor.indexOf('L') == -1) return descriptor; //Surely no class names in this descriptor (fast path)
-		
-		StringBuffer out = new StringBuffer(descriptor.length());
-		Matcher m = CLASS_NAMES_FROM_DESCRIPTOR_SOUP.matcher(descriptor);
-		while(m.find()) m.appendReplacement(out, "L" + repackage(m.group(1)) + ";");
-		m.appendTail(out);
-		return out.toString();
+		return DescriptorMapper.map(descriptor, this::repackage);
 	}
 }
