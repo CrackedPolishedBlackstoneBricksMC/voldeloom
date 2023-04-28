@@ -42,7 +42,7 @@ Voldeloom adds a few configurations, and it tries to make the names match Gradle
 | < 7 | `modCompile`, `coremodCompile` | `modRuntime`, `coremodRuntime` |
 | >= 7 | `modImplementation`, `coremodImplementation` | `modRuntimeOnly`, `coremodRuntimeOnly` |
 
-Voldeloom will print a warning to the console when you try to use a configuration for a version it doesn't exist for, like `modCompile` on Gradle 7. This helps track down annoying bugs when updating the Gradle version of an old project. Additionally, it will warn when accessing the nonexistent configuration `coremodCompileOnly`, as it is not necessary (`compileOnly` is fine).
+Voldeloom will print a warning to the console when you try to use a configuration for a version it doesn't exist for, like `modCompile` on Gradle 7. This helps track down annoying bugs when updating the Gradle version of an old project. Additionally, it will warn when accessing the nonexistent configuration `coremodCompileOnly`, as it is not necessary (`modCompileOnly` is fine).
 
 Setting `warnOnProbablyWrongConfigurationNames` to `false` will remove the warning messages, if you have a legitimate reason to use these configuration names.
 
@@ -70,7 +70,7 @@ These settings default to `true` if you pass `--offline` or `--refresh-dependenc
 
 ## `runs` block
 
-TODO: Document run configs
+TODO: Document run configs (see the `RunConfig` class in the meantime)
 
 ## `forgeCapabilities` block
 
@@ -80,4 +80,9 @@ Forge and Minecraft have changed over the years and Voldeloom contains a bunch o
 
 Voldeloom does most of its work in an `afterEvaluate` block attached to the current Gradle project. You can also add your own `afterEvaluate` blocks to your buildscript, it's a normal feature of Gradle, but sometimes the ordering is inconvenient or unclear (will Voldeloom's block run first, or yours? is the ordering defined behavior? can the ordering be changed? honestly I don't know myself).
 
-The first thing Voldeloom does in its `afterEvaluate` block is execute all `beforeMinecraftSetup` blocks, and the last thing it does is execute all `afterMinecraftSetup` blocks. Generally these are only useful for doing awkward debugging or hackery.
+Voldeloom's `afterEvaluate` block looks like this:
+
+* Early-exit if project configuration already failed (`project.getState().getFailure() != null`). For some reason Gradle still runs `afterEvaluate` blocks in that situation.
+* Run all `beforeMinecraftSetup` blocks.
+* Take care of all the other things Voldeloom does in its `afterEvalute` block.
+* Run all `afterMinecraftSetup` blocks.

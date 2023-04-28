@@ -27,8 +27,8 @@ package net.fabricmc.loom;
 import groovy.util.Node;
 import net.fabricmc.loom.task.ConfigurationDebugTask;
 import net.fabricmc.loom.task.GenSourcesTask;
-import net.fabricmc.loom.task.ReobfJarTask;
 import net.fabricmc.loom.task.RemappedConfigEntryFolderCopyTask;
+import net.fabricmc.loom.task.ReobfJarTask;
 import net.fabricmc.loom.task.RunTask;
 import net.fabricmc.loom.task.ShimForgeLibrariesTask;
 import net.fabricmc.loom.task.ShimResourcesTask;
@@ -65,24 +65,6 @@ import java.util.stream.Collectors;
  * Main entrypoint for the plugin.
  */
 public class LoomGradlePlugin implements Plugin<Project> {
-	/**
-	 * Okay, this is a random utility method. Sorry.
-	 * <p>
-	 * Deletes a file or directory using Gradle's machinery. Announces each file to be deleted.<br>
-	 * Gradle's machinery accepts a million different types of object here, but the most important ones are {@code File} and {@code Path}.<br>
-	 * Deleting a directory will recursively delete all files inside it, too.
-	 */
-	public static void delete(Project project, Object... things) {
-		project.delete(deleteSpec -> {
-			deleteSpec.setFollowSymlinks(false);
-			for(Object thing : things) {
-				project.getLogger().lifecycle("Deleting " + thing);
-			}
-			
-			deleteSpec.delete(things);
-		});
-	}
-	
 	@Override
 	public void apply(Project project) {
 		//Hi!
@@ -212,7 +194,7 @@ public class LoomGradlePlugin implements Plugin<Project> {
 			}
 			
 			if("coremodCompileOnly".equals(wrongName)) {
-				project.getLogger().error("!! [Voldeloom] No need to use 'coremodCompileOnly', simply use regular 'compileOnly'.");
+				project.getLogger().error("!! [Voldeloom] No need to use 'coremodCompileOnly', simply use regular 'modCompileOnly'.");
 				project.getLogger().error("!! Coremod special-casing is only relevant to getting mods onto the runtime classpath.");
 			}
 		});
@@ -237,7 +219,8 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		//and some for coremods
 		extensionUnconfigured.remappedConfigurationEntries.create("core" + modImplementationName, mod -> {
 			mod.mavenScope("compile").copyToFolder("coremods");
-			project.getConfigurations().getByName(JavaPlugin.COMPILE_ONLY_CONFIGURATION_NAME).extendsFrom(mod.outputConfig); //coremods do not go on runtime the usual way
+			project.getConfigurations().getByName(JavaPlugin.COMPILE_ONLY_CONFIGURATION_NAME).extendsFrom(mod.outputConfig);
+			//doesn't extend from compile/implementation since copyToFolder will take care of the runtime-classpath aspect
 		});
 		extensionUnconfigured.remappedConfigurationEntries.create("core" + modRuntimeOnlyName, mod -> {
 			mod.mavenScope("runtime").copyToFolder("coremods");
@@ -261,7 +244,7 @@ public class LoomGradlePlugin implements Plugin<Project> {
 		ideaModel.getModule().setInheritOutputDirs(true);
 		
 		//And now, we add a bunch of Gradle tasks.
-		//Note that `register` doesn't add the task right away, but Gradle will reflectively creates it when someone asks for it,
+		//Note that `register` doesn't add the task right away, but Gradle will reflectively create it when someone asks for it,
 		//and (if a closure is specified) call the closure to configure the task. Optimization thing, I guess.
 		TaskContainer tasks = project.getTasks();
 		
@@ -308,7 +291,8 @@ public class LoomGradlePlugin implements Plugin<Project> {
 	}
 	
 	private void afterEvaluate(Project project) {
-		//"For some crazy reason afterEvaluate is still invoked when the configuration fails" - modmuss in loom 1. I agree with this adjective
+		//"For some crazy reason afterEvaluate is still invoked when the configuration fails" - modmuss in loom 1.
+		//He's right, this is really weird behavior. Exit as soon as possible before we cause more failures
 		if(project.getState().getFailure() != null) return;
 		
 		project.getLogger().lifecycle(":Beginning Voldeloom afterEvaluate sauce");
@@ -385,11 +369,33 @@ public class LoomGradlePlugin implements Plugin<Project> {
 			}
 		}
 		
-		extension.afterMinecraftSetupActions.forEach(action -> action.execute(project));
+		//User's post-setup actions
+		if(!extension.afterMinecraftSetupActions.isEmpty()) {
+			project.getLogger().info(":running " + extension.afterMinecraftSetupActions.size() + " afterMinecraftSetup action(s)");
+			extension.afterMinecraftSetupActions.forEach(action -> action.execute(project));
+		}
 	}
 	
 	/**
-	 * Replaces a file extension.
+	 * Okay, this is a random utility method. Sorry.
+	 * <p>
+	 * Deletes a file or directory using Gradle's machinery, announcing each file to be deleted.<br>
+	 * Gradle's machinery accepts a million different types of object here, but the most important ones are {@code File} and {@code Path}.<br>
+	 * Deleting a directory will recursively delete all files inside it, too.
+	 */
+	public static void delete(Project project, Object... things) {
+		project.delete(deleteSpec -> {
+			deleteSpec.setFollowSymlinks(false);
+			for(Object thing : things) {
+				project.getLogger().lifecycle("Deleting " + thing);
+			}
+			
+			deleteSpec.delete(things);
+		});
+	}
+	
+	/**
+	 * Also a random utility method. Replaces a file extension.
 	 * @param path The path to replace the extension of.
 	 * @param suffix The new extension. If this doesn't begin with a dot, it'll look like a suffix was appended to the filename, too.
 	 */
