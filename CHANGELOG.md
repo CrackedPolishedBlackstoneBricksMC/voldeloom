@@ -21,6 +21,7 @@ Some `volde.layered` method names are different, sorry:
   * Deleted lots of tiny-remapper stuff that fell unused due to this change
 * Reobf-to-srg also works in the new mapping system
   * release 1.5/1.6/1.7 mods again! maybe! (test them!!!)
+* `tiny-remapper` output is postprocessed to remove things not compatible with ASM api level 4, like the parameter-name table
 * `.srg` parser can also handle the more compact MCPBot `.csrg` format too
 * Fixed cache soundness issues
   * Most files in your Gradle cache will now end in an 8-character hash of some metadata about their *provenance*. For example, `version_manifest_{HASH}.json`'s filename now carries the URL that the manifest was downloaded from (if using the customManifestUrl feature).
