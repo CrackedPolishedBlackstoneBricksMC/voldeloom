@@ -21,7 +21,6 @@ Some `volde.layered` method names are different, sorry:
   * Deleted lots of tiny-remapper stuff that fell unused due to this change
 * Reobf-to-srg also works in the new mapping system
   * release 1.5/1.6/1.7 mods again! maybe! (test them!!!)
-  * quick note: setting `targetCompatibility = "6"` is *not enough* to strip some Java 8 anachronisms from class files if you use a java 8 compiler i think??
 * `.srg` parser can also handle the more compact MCPBot `.csrg` format too
 * Fixed cache soundness issues
   * Most files in your Gradle cache will now end in an 8-character hash of some metadata about their *provenance*. For example, `version_manifest_{HASH}.json`'s filename now carries the URL that the manifest was downloaded from (if using the customManifestUrl feature).
@@ -52,11 +51,6 @@ Some `volde.layered` method names are different, sorry:
 
 * Fix 1.2.5 and make it "nice" (split sourcesets etc)
 * Read data from the Exceptor, maybe apply parameter names
-* Figure out what's up with parameter-name-tables/asm4/targetCompatibility?
-  * The current Auto Third Person buid uses gtnh forgegradle, i dropped it in my Blightfall (pre-CE) instance (Forge 10.13.2.1291, last version before the asm5 update) and it worked fine
-  * The Voldeloom sample mod gets skipped though, because javac included a parameter name table that Forge's `ModClassVisitor` choked on. Why does gtnh fg work but mine doesnt
-  * looks like the ATP jar uses local variable slots (according to intellij bytecode viewer) but samplemod is using the new parameter name system
-  * why ?
 
 # 2.2 (`agency.highlysuspect:voldeloom:2.2`)
 
