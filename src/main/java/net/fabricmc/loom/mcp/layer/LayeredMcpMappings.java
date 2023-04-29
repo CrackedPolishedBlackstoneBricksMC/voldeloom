@@ -71,24 +71,31 @@ public class LayeredMcpMappings {
 		return this;
 	}
 	
+	/**
+	 * Convenience method for ingesting MCPBot exports from a hosted MCPBot archive service. Nothing you can't
+	 * do yourself; it simply formats two URLs and calls {@code classes} and {@code fieldsMethods} with them.
+	 * 
+	 * @param mcpbotMirrorUrl URL the MCPBot service is mirrored at. Include the trailing {@code /} character.
+	 *                        The service must mirror the original MCPBot service's file structure.
+	 *                        A popular mirror, hosted by unascribed, is available at https://mcpbot.unascribed.com/ .
+	 * @param srgVersion      Minecraft version that class names will be sourced from, like "1.7.10".
+	 * @param mappingsChannel MCP data channel, like "stable", "snapshot", "stable_nodoc", etc, that field/method names will be sourced from.
+	 * @param mappingsVersion MCP data version, like "12-1.7.10" (stable), "20140925-1.7.10" (snapshot), etc, that field/method names will be sourced from.
+	 *                        The Minecraft version is included again. (This lets you mix and match versions.)
+	 */
 	@SuppressWarnings("unused") //gradle api
-	public LayeredMcpMappings mcpbot(String mcVersion, String mappingsVersion, String mappingsChannel) {
-		String baseUrl;
-		if(project.hasProperty("voldeloom.mcpbotUrl")) baseUrl = (String) project.property("voldeloom.mcpbotUrl");
-		else baseUrl = "https://mcpbot.unascribed.com/";
+	public LayeredMcpMappings mcpbot(String mcpbotMirrorUrl, String srgVersion, String mappingsChannel, String mappingsVersion) {
+		//https://mcpbot.unascribed.com/mcp/1.7.10/mcp-1.7.10-csrg.zip
+		//[---------mirror url---------]    [srgv]     [srgv]
+		String classesUrl = String.format("%smcp/%s/mcp-%s-csrg.zip", mcpbotMirrorUrl, srgVersion, srgVersion);
 		
-		project.getLogger().lifecycle(" !! Using MCPBot mirror service hosted at {} (change with 'voldeloom.mcpbotUrl' project property)", baseUrl);
+		//https://mcpbot.unascribed.com/mcp_stable/12-1.7.10/mcp_stable-12-1.7.10.zip
+		//[---------mirror url---------]    [chan] [version]     [chan] [version]
+		//https://mcpbot.unascribed.com/mcp_snapshot/20140925-1.7.10/mcp_snapshot-20140925-1.7.10.zip
+		//[---------mirror url---------]    [-chan-] [---version---]     [-chan-] [---version---]
+		String fieldsMethodsUrl = String.format("%smcp_%s/%s/mcp_%s-%s.zip", mcpbotMirrorUrl, mappingsChannel, mappingsVersion, mappingsChannel, mappingsVersion);
 		
-		// https://mcpbot.unascribed.com/mcp/1.7.10/mcp-1.7.10-csrg.zip
-		// [----------base url----------]    [mcver]    [mcver]
-		String classesUrl = String.format("%smcp/%s/mcp-%s-csrg.zip", baseUrl, mcVersion, mcVersion);
-		// https://mcpbot.unascribed.com/mcp_stable/12-1.7.10/mcp_stable-12-1.7.10.zip
-		// [----------base url----------]    [chan] [version]     [chan] [version]
-		String fieldsMethodsUrl = String.format("%smcp_%s/%s/mcp_%s-%s.zip", baseUrl, mappingsChannel, mappingsVersion, mappingsChannel, mappingsVersion);
-		
-		layers.add(new ClassesLayer(realizeToPath(classesUrl)));
-		layers.add(new FieldsMethodsLayer(realizeToPath(fieldsMethodsUrl)));
-		return this;
+		return classes(classesUrl).fieldsMethods(fieldsMethodsUrl);
 	}
 	
 	private Path resolveOne(Dependency dep) {

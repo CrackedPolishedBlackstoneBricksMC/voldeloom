@@ -43,6 +43,6 @@ dependencies {
 	forge "net.minecraftforge:forge:${forgeVersion}:universal"
 	
 	mappings volde.layered {
-		mcpbot(minecraftVersion, "12-1.7.10", "stable")
+		mcpbot("https://mcpbot.unascribed.com/", minecraftVersion, "stable", "12-1.7.10")
 	}
 }

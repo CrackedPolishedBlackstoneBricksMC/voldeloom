@@ -93,6 +93,16 @@ Now `./gradlew runClient --info --stacktrace` should perform a bunch of magic cu
 
 Then just start modding. Don't worry too much about Java versions - the plugin will provision a Java 8 toolchain for launching the game.
 
+## for 1.7.10
+
+Replace the `mappings` line with:
+
+```groovy
+mappings volde.layered {
+	mcpbot("https://mcpbot.unascribed.com/", minecraftVersion, "stable", "12-1.7.10")
+}
+```
+
 ## Using an older version of Java or Gradle
 
 Voldeloom should work all the way down to Java 8 and Gradle 4. If using the sample buildscript above, replace the `java.toolchain`/`compileJava` lines with:
@@ -104,7 +114,7 @@ compileJava {
 }
 ```
 
-and since these old versions of Gradle are not Java 9-clean and lack the "toolchains" feature, remember to invoke Gradle using a Java 8 JDK.
+and since old versions of Gradle are not Java 9-clean and lack the "toolchains" feature, remember to invoke Gradle using a Java 8 JDK.
 
 # Documentation / help
 
