@@ -50,6 +50,15 @@ public class McpMappingsBuilder {
 		return this;
 	}
 	
+	public Srg chooseSrg(String srgName) {
+		switch(srgName) {
+			case "client": return client;
+			case "server": return server;
+			case "joined": return joined;
+			default: throw new IllegalArgumentException("can only choose from 'client', 'server', or 'joined' srgs, not '" + srgName + "'");
+		}
+	}
+	
 	public void mergeFromJoinedSrg(Path path, StringInterner mem) throws IOException {
 		if(path != null) joined.mergeWith(new Srg().read(path, mem));
 	}

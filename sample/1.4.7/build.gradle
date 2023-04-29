@@ -34,8 +34,8 @@ dependencies {
 	forge "net.minecraftforge:forge:${forgeVersion}:universal@zip"
 	
 	mappings volde.layered {
-		baseZip "net.minecraftforge:forge:${forgeVersion}:src@zip"
-		unmapClass(["bar", "bas"])
+		importBaseZip "net.minecraftforge:forge:${forgeVersion}:src@zip"
+		removeClasses(["bar", "bas"])
 	}
 	
 	//accessTransformers files("./src/main/resources/good_cool_ats.cfg")

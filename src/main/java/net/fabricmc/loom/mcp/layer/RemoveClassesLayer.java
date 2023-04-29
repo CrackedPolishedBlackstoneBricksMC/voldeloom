@@ -9,8 +9,8 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
-public class ClassUnmappingLayer implements Layer {
-	public ClassUnmappingLayer(Collection<String> reh) {
+public class RemoveClassesLayer implements Layer {
+	public RemoveClassesLayer(Collection<String> reh) {
 		classMappingsToRemove = new HashSet<>(reh);
 	}
 	
@@ -19,7 +19,7 @@ public class ClassUnmappingLayer implements Layer {
 	@Override
 	public void visit(Logger log, McpMappingsBuilder mappings, StringInterner mem) throws Exception {
 		for(String unmap : classMappingsToRemove) {
-			log.info("\t-- (ClassUnmappingLayer) Removing class {} from mappings --", unmap);
+			log.info("\t-- (RemoveClassesLayer) Removing class {} from mappings --", unmap);
 			mappings.joined.removeClassMapping(unmap);
 			mappings.client.removeClassMapping(unmap);
 			mappings.server.removeClassMapping(unmap);

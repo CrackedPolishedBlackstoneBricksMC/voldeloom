@@ -1,3 +1,5 @@
+import net.fabricmc.loom.mcp.McpMappingsBuilder
+
 buildscript {
 	repositories {
 		mavenCentral()
@@ -43,6 +45,11 @@ dependencies {
 	forge "net.minecraftforge:forge:${forgeVersion}:universal"
 	
 	mappings volde.layered {
-		mcpbot("https://mcpbot.unascribed.com/", minecraftVersion, "stable", "12-1.7.10")
+		importMCPBot("https://mcpbot.unascribed.com/", minecraftVersion, "stable", "12-1.7.10")
+		
+		modify("3", {McpMappingsBuilder builder ->
+			project.logger.warn("Hababababa!!!!!!!!!!")
+			builder.joined.putClassMapping("bjn", "net/verygood/Aaaaaaaaaaaaaaa")
+		})
 	}
 }

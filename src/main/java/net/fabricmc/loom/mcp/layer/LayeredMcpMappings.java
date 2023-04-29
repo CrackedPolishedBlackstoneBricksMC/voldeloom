@@ -29,6 +29,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Consumer;
 
 public class LayeredMcpMappings {
 	public LayeredMcpMappings(Project project, LoomGradleExtension ext) {
@@ -42,49 +43,49 @@ public class LayeredMcpMappings {
 	public final List<Layer> layers = new ArrayList<>();
 	
 	@SuppressWarnings("unused") //gradle api
-	public LayeredMcpMappings baseZip(Object thing) {
-		layers.add(new BaseZipLayer(realizeToPath(thing)));
+	public LayeredMcpMappings importBaseZip(Object thing) {
+		layers.add(new ImportBaseZipLayer(realizeToPath(thing)));
 		return this;
 	}
 	
 	@SuppressWarnings("unused") //gradle api
-	public LayeredMcpMappings classes(Object thing) {
-		layers.add(new ClassesLayer(realizeToPath(thing)));
+	public LayeredMcpMappings importClasses(Object thing) {
+		layers.add(new ImportClassesLayer(realizeToPath(thing)));
 		return this;
 	}
 	
 	@SuppressWarnings("unused") //gradle api
-	public LayeredMcpMappings fieldsMethods(Object thing) {
-		layers.add(new FieldsMethodsLayer(realizeToPath(thing)));
+	public LayeredMcpMappings importFieldsMethods(Object thing) {
+		layers.add(new ImportFieldsMethodsLayer(realizeToPath(thing)));
 		return this;
 	}
 	
 	@SuppressWarnings("unused") //gradle api
-	public LayeredMcpMappings unmapClass(String unmapOne) {
-		layers.add(new ClassUnmappingLayer(Collections.singleton(unmapOne)));
+	public LayeredMcpMappings removeClasses(String unmapOne) {
+		layers.add(new RemoveClassesLayer(Collections.singleton(unmapOne)));
 		return this;
 	}
 	
 	@SuppressWarnings("unused") //gradle api
-	public LayeredMcpMappings unmapClass(Collection<String> unmap) {
-		layers.add(new ClassUnmappingLayer(unmap));
+	public LayeredMcpMappings removeClasses(Collection<String> unmap) {
+		layers.add(new RemoveClassesLayer(unmap));
 		return this;
 	}
 	
 	/**
 	 * Convenience method for ingesting MCPBot exports from a hosted MCPBot archive service. Nothing you can't
-	 * do yourself; it simply formats two URLs and calls {@code classes} and {@code fieldsMethods} with them.
+	 * do yourself; it simply formats two URLs and calls {@code importClasses} and {@code importFieldsMethods} with them.
 	 * 
 	 * @param mcpbotMirrorUrl URL the MCPBot service is mirrored at. Include the trailing {@code /} character.
 	 *                        The service must mirror the original MCPBot service's file structure.
 	 *                        A popular mirror, hosted by unascribed, is available at https://mcpbot.unascribed.com/ .
 	 * @param srgVersion      Minecraft version that class names will be sourced from, like "1.7.10".
 	 * @param mappingsChannel MCP data channel, like "stable", "snapshot", "stable_nodoc", etc, that field/method names will be sourced from.
-	 * @param mappingsVersion MCP data version, like "12-1.7.10" (stable), "20140925-1.7.10" (snapshot), etc, that field/method names will be sourced from.
+	 * @param mappingsVersion MCP data version, like "12-1.7.10", "20140925-1.7.10", etc, that field/method names will be sourced from.
 	 *                        The Minecraft version is included again. (This lets you mix and match versions.)
 	 */
 	@SuppressWarnings("unused") //gradle api
-	public LayeredMcpMappings mcpbot(String mcpbotMirrorUrl, String srgVersion, String mappingsChannel, String mappingsVersion) {
+	public LayeredMcpMappings importMCPBot(String mcpbotMirrorUrl, String srgVersion, String mappingsChannel, String mappingsVersion) {
 		//https://mcpbot.unascribed.com/mcp/1.7.10/mcp-1.7.10-csrg.zip
 		//[---------mirror url---------]    [srgv]     [srgv]
 		String classesUrl = String.format("%smcp/%s/mcp-%s-csrg.zip", mcpbotMirrorUrl, srgVersion, srgVersion);
@@ -95,7 +96,22 @@ public class LayeredMcpMappings {
 		//[---------mirror url---------]    [-chan-] [---version---]     [-chan-] [---version---]
 		String fieldsMethodsUrl = String.format("%smcp_%s/%s/mcp_%s-%s.zip", mcpbotMirrorUrl, mappingsChannel, mappingsVersion, mappingsChannel, mappingsVersion);
 		
-		return classes(classesUrl).fieldsMethods(fieldsMethodsUrl);
+		return importClasses(classesUrl).importFieldsMethods(fieldsMethodsUrl);
+	}
+	
+	/**
+	 * Custom action to modify the mappings in any way you want.
+	 * 
+	 * @param cacheKey Voldeloom first computes a hash of all layers in the layered-mappings stack, and uses it
+	 *                 as a cache key to identify if it should bother to actually evaluate the mappings stack
+	 *                 (which might involve downloading files, traversing zips, etc; it's a relatively expensive operation.)
+	 *                 The idea is that you can change this string whenever you change the body of the method,
+	 *                 then you don't need to otherwise do any cachebusting to cause the mappings to be recreated.
+	 * @param action   Action to perform to the mappings builder.
+	 */
+	public LayeredMcpMappings modify(String cacheKey, Consumer<McpMappingsBuilder> action) {
+		layers.add(new ModifyLayer(cacheKey, action));
+		return this;
 	}
 	
 	private Path resolveOne(Dependency dep) {
@@ -169,7 +185,7 @@ public class LayeredMcpMappings {
 				layer.updateHasher(readersDigest);
 				readersDigest.update((byte) 0);
 			}
-			readersDigest.update((byte) 1); //<-- bump this when making a big change to mapping layer system !!!
+			readersDigest.update((byte) 2); //<-- bump this when making a big change to mapping layer system !!!
 			String hash = Checksum.toHexStringPrefix(readersDigest.digest(), 8);
 			Path mappingsPath = cache.resolve(hash + ".zip");
 			Path infoPath = cache.resolve(hash + ".info");

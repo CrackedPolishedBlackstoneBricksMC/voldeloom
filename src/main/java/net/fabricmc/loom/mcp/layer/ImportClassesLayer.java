@@ -12,8 +12,8 @@ import java.nio.file.FileSystem;
 import java.nio.file.Path;
 import java.security.MessageDigest;
 
-public class FieldsMethodsLayer implements Layer {
-	public FieldsMethodsLayer(Path zipPath) {
+public class ImportClassesLayer implements Layer {
+	public ImportClassesLayer(Path zipPath) {
 		this.zipPath = zipPath;
 	}
 	
@@ -21,13 +21,15 @@ public class FieldsMethodsLayer implements Layer {
 	
 	@Override
 	public void visit(Logger log, McpMappingsBuilder mappings, StringInterner mem) throws Exception {
-		log.info("\t-- (FieldsMethodsLayer) Importing field and method mappings from {} --", zipPath);
+		log.info("\t-- (ImportClassesLayer) Importing class/package mappings from {} --", zipPath);
 		
 		try(FileSystem fs = ZipUtil.openFs(zipPath)) {
 			MappingScanner scan = new MappingScanner(fs);
 			
-			mappings.mergeFromFieldsCsv(scan, mem);
-			mappings.mergeFromMethodsCsv(scan, mem);
+			mappings.mergeFromJoinedSrg(scan, mem);
+			mappings.mergeFromPackagesCsv(scan, mem);
+			mappings.mergeFromClientSrg(scan, mem);
+			mappings.mergeFromServerSrg(scan, mem);
 		}
 	}
 	

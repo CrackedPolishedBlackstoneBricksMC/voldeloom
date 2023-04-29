@@ -26,7 +26,7 @@ public class Packages {
 			//Example packages.csv line:
 			// BlockAnvil,net/minecraft/block
 			
-			String[] split = line.split(",");
+			String[] split = line.split(",", 2);
 			if(split.length != 2) {
 				System.err.println("line " + lineNo + " has weird number of elements: " + line);
 				continue;

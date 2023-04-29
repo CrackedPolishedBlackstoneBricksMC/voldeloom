@@ -2,12 +2,18 @@ Running changelog document, will be added to as I commit things.
 
 # Next version: 2.3 (`agency.highlysuspect:voldeloom:2.3-SNAPSHOT`)
 
+## Breaking changes
+
+Some `volde.layered` method names are different, sorry:
+
+* `baseZip` becomes `importBaseZip`
+* `unmapClass` becomes `removeClass` (single `String` argument) / `removeClasses` (`Collection<String>` argument)
+
 ## Changes
 
 * Rewrote basically all of the mappings guts
   * I researched how MCP actually works, instead of simply throwing `tiny-remapper` at everything
-  * the goal is to use `tiny-remapper` where MCP uses RetroGuard, and an in-house `NaiveRenamer` tool where MCP uses regular expressions over the source code
-    * `tiny-remapper` and RetroGuard are similar, modulo the mappings input format.
+  * `tiny-remapper` is used where MCP uses RetroGuard/SpecialSource, and an in-house `NaiveRenamer` is used where MCP uses "regular expressions over the source code"
     * The main difference is that `NaiveRenamer` also operates over Java bytecode as well as source code, but uses the same "just find-and-replace" algorithm that ignores things like method descriptors.
     * deobf: `tiny-remapper` is used for the initial deobfuscation to SRG names, `NaiveRenamer` takes it the rest of the way to named
     * reobf: the SRG is extended to cover MCP names instead of just SRGs (mirroring a find-replace step in MCP), inverted, and `tiny-remapper` is used
@@ -32,12 +38,21 @@ Running changelog document, will be added to as I commit things.
   * Reduced the amount of `Files.readAllBytes` calls, instead reading the files in chunks
   * Data structure used for `packages.csv` parsing is more memory-efficient
   * Mapping-related files are extracted from the mappings archive in a single pass
+* New interfaces for `volde.layered`:
+  * `importBaseZip` imports (c)srgs, packages.csv, fields/methods csvs
+  * `importClasses` imports (c)srgs/packages only (from a zip)
+  * `importFieldsMethods` imports fields/methods csvs only (from a zip)
+  * `removeClasses` deletes class mappings
+  * `importMCPBot` is a convenience to import mappings from an MCPBot mirror service
+    * try `importMCPBot("https://mcpbot.unascribed.com/", minecraftVersion, "stable", "12-1.7.10")`!
+  * if that's not enough, `modify` lets you directly interface with the mcp mappings builder
+    * I'm not really sure what people need/want out of layered mappings so if there's something i'm missing, let me know
 
 ## Roadmap
 
 * Fix 1.2.5 and make it "nice" (split sourcesets etc)
-* Add more to the `volde.layered` system
-* Figure out what's up with parameter name tables/asm4/targetCompatibility?
+* Read data from the Exceptor, maybe apply parameter names
+* Figure out what's up with parameter-name-tables/asm4/targetCompatibility?
   * The current Auto Third Person buid uses gtnh forgegradle, i dropped it in my Blightfall (pre-CE) instance (Forge 10.13.2.1291, last version before the asm5 update) and it worked fine
   * The Voldeloom sample mod gets skipped though, because javac included a parameter name table that Forge's `ModClassVisitor` choked on. Why does gtnh fg work but mine doesnt
   * looks like the ATP jar uses local variable slots (according to intellij bytecode viewer) but samplemod is using the new parameter name system

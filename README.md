@@ -99,7 +99,7 @@ Replace the `mappings` line with:
 
 ```groovy
 mappings volde.layered {
-	mcpbot("https://mcpbot.unascribed.com/", minecraftVersion, "stable", "12-1.7.10")
+	importMCPBot("https://mcpbot.unascribed.com/", minecraftVersion, "stable", "12-1.7.10")
 }
 ```
 

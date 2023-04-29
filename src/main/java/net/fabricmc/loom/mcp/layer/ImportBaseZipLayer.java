@@ -11,8 +11,8 @@ import java.nio.file.FileSystem;
 import java.nio.file.Path;
 import java.security.MessageDigest;
 
-public class BaseZipLayer implements Layer {
-	public BaseZipLayer(Path zipPath) {
+public class ImportBaseZipLayer implements Layer {
+	public ImportBaseZipLayer(Path zipPath) {
 		this.zipPath = zipPath;
 	}
 	
@@ -20,7 +20,7 @@ public class BaseZipLayer implements Layer {
 	
 	@Override
 	public void visit(Logger log, McpMappingsBuilder mappings, StringInterner mem) throws Exception {
-		log.info("\t-- (BaseZipLayer) Importing mappings from {} --", zipPath);
+		log.info("\t-- (ImportBaseZipLayer) Importing mappings from {} --", zipPath);
 		
 		try(FileSystem fs = ZipUtil.openFs(zipPath)) {
 			mappings.importEverythingFromZip(fs, mem);
