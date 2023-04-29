@@ -1,6 +1,15 @@
 Running changelog document, will be added to as I commit things.
 
-# Next version: 2.3 (`agency.highlysuspect:voldeloom:2.3-SNAPSHOT`)
+# Next version: 2.4 (`agency.highlysuspect:voldeloom:2.4-SNAPSHOT`)
+
+No changes so far.
+
+## Roadmap
+
+* Fix 1.2.5 and make it "nice" (split sourcesets etc)
+* Read data from the Exceptor, maybe apply parameter names
+
+# 2.3 (`agency.highlysuspect:voldeloom:2.3`)
 
 ## Breaking changes
 
@@ -47,11 +56,6 @@ Some `volde.layered` method names are different, sorry:
     * try `importMCPBot("https://mcpbot.unascribed.com/", minecraftVersion, "stable", "12-1.7.10")`!
   * if that's not enough, `modify` lets you directly interface with the mcp mappings builder
     * I'm not really sure what people need/want out of layered mappings so if there's something i'm missing, let me know
-
-## Roadmap
-
-* Fix 1.2.5 and make it "nice" (split sourcesets etc)
-* Read data from the Exceptor, maybe apply parameter names
 
 # 2.2 (`agency.highlysuspect:voldeloom:2.2`)
 

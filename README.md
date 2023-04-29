@@ -2,9 +2,8 @@
 
 Gradle plugin for ~~Fabric~~ ancient versions of Forge.
 
-* **Latest stable**: `2.2`
-* **Latest stable** that actually works good (long story): `2.1`
-* **Latest snapshot**: `2.3-SNAPSHOT` (from CI every commit)
+* **Latest stable**: `2.3`
+* **Latest snapshot**: `2.4-SNAPSHOT` (from CI every commit)
 
 ## History
 
@@ -64,7 +63,7 @@ buildscript {
 		maven { url "https://repo.sleeping.town" }
 	}
 	dependencies {
-		classpath "agency.highlysuspect:voldeloom:2.3-SNAPSHOT" 
+		classpath "agency.highlysuspect:voldeloom:2.3" 
 	}
 }
 
