@@ -1,6 +1,5 @@
 package agency.highlysuspect;
 
-import com.unascribed.ears.Ears;
 import net.minecraft.block.BlockSand;
 import net.minecraft.block.material.Material;
 import net.minecraft.client.Minecraft;
@@ -25,7 +24,7 @@ public class SampleClientProxy extends SampleCommonProxy {
 		Sample147.LOGGER.info("BlockSand's class name is: " + BlockSand.class.getName());
 		Sample147.LOGGER.info("Minecraft mcDataDir: " + Minecraft.getMinecraft().mcDataDir);
 		
-		Sample147.LOGGER.info("Una's skin URL: " + Ears.amendSkinUrl("http://skins.minecraft.net/MinecraftSkins/unascribed.png"));
+		//Sample147.LOGGER.info("Una's skin URL: " + Ears.amendSkinUrl("http://skins.minecraft.net/MinecraftSkins/unascribed.png"));
 		
 		EntityClientPlayerMP hmm1 = Minecraft.getMinecraft().thePlayer;
 		EntityPlayerSP hmm2 = Minecraft.getMinecraft().thePlayer;

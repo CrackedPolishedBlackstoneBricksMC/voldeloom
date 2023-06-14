@@ -2,14 +2,22 @@ Running changelog document, will be added to as I commit things.
 
 # Next version: 2.4 (`agency.highlysuspect:voldeloom:2.4-SNAPSHOT`)
 
-## Changes
+## Critical bugfixes
 
-* Fix: the run dir is now resolved against the project directory instead of the *root* project directory. This makes more sense.
+* **Very important** fix: Fix reobfuscation of method calls that mention a class from Minecraft in their parameter list or return type
+  * Which is, frankly, "most of them"
+  * Bug only cropped up if you didn't have `srgsAsFallback = true`
+* Fix the Forge-added class `amq$1`/`net/minecraft/src/Block$1` getting put in the wrong spot for like, the millionth time
+  * fixes `canSustainPlant`-related runtime crashes in dev on 1.4.7, and other assorted crashes
+
+## Breaking changes
+
+* The run dir is now resolved against the current subproject project directory, instead of the *root* project directory.
+  * This makes more sense, matches what other Minecraft dev tools use, etc. 
   * Sorry about that. If you were using voldeloom in a subproject, you can probably remove your custom runDir now.
 
 ## Roadmap
 
-* **Fix #3 (serious issues with remapping)** - need to be fixed ASAP
 * Supply required arguments to launch 1.6 and 1.7 instead of requiring you to customize the run config
 * Fix 1.2.5 and make it "nice" (split sourcesets etc)
 * Read data from the Exceptor, maybe apply parameter names

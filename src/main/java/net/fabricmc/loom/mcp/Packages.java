@@ -50,16 +50,32 @@ public class Packages {
 	 * Applies the packaging transformation to a class name, in internal format.
 	 */
 	public String repackage(String srgClass) {
+		if(srgClass.equals("net/minecraft/src/Block$1")) {
+			System.out.println("hi");
+		}
+		
 		//remove the package prefix from the class
 		String srgClassNameOnly = srgClass;
 		int lastSlash = srgClass.lastIndexOf('/');
 		if(lastSlash != -1) srgClassNameOnly = srgClass.substring(lastSlash + 1);
 		
 		//the values of the map are the *new* package that the class should go in.
-		//if we don't get a hit, leave the class unmoved; else, glue the new package onto the old class name
+		//if we get a hit, glue the new package onto the old class name
 		String lookup = packages.get(srgClassNameOnly);
-		if(lookup == null) return srgClass;
-		else return lookup + "/" + srgClassNameOnly;
+		if(lookup != null) return lookup + "/" + srgClassNameOnly;
+		
+		//If we don't get a hit, we might be repackaging a class like net/minecraft/src/Block$1. This class name
+		//was invented by Srg#augment and (since we didn't get a hit above) it doesn't exist in the package mappings.
+		//Well, we should try repackaging this class like its equivalent without the $1.
+		int dollarIndex = srgClass.indexOf('$');
+		if(dollarIndex != -1) {
+			String prefix = srgClass.substring(0, dollarIndex); //"net/minecraft/src/Block"
+			String suffix = srgClass.substring(dollarIndex); //"$1"
+			return repackage(prefix) + suffix; //"net/minecraft/block/Block" + "$1"
+		}
+		
+		//No packaging transformation exists for this class, and it's also not an inner class. Leave it alone.
+		return srgClass;
 	}
 	
 	/**

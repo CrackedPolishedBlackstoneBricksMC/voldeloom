@@ -18,9 +18,9 @@ String minecraftVersion = "1.4.7"
 String forgeVersion = "1.4.7-6.6.2.534"
 
 volde {
-	forgeCapabilities {
-		srgsAsFallback = true
-	}
+//	forgeCapabilities {
+//		srgsAsFallback = true
+//	}
 	
 	runs {
 		client {
@@ -41,6 +41,6 @@ dependencies {
 	
 	//accessTransformers files("./src/main/resources/good_cool_ats.cfg")
 	
-	coremodImplementation files("../dep_testin/ears-forge-1.4-1.4.5_01.jar")
-	modImplementation files("../dep_testin/buildcraft-A-1.4.7-3.4.4.jar")
+	//coremodImplementation files("../dep_testin/ears-forge-1.4-1.4.5_01.jar")
+	//modImplementation files("../dep_testin/buildcraft-A-1.4.7-3.4.4.jar")
 }
