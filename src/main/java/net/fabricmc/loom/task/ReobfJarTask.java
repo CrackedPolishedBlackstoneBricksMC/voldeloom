@@ -38,6 +38,7 @@ import org.gradle.jvm.tasks.Jar;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -79,7 +80,7 @@ public class ReobfJarTask extends Jar {
 			.stream()
 			.map(File::toPath)
 			.filter(p -> !input.equals(p) && Files.exists(p))
-			.collect(Collectors.toSet());
+			.collect(Collectors.toCollection(LinkedHashSet::new));
 		
 		//TODO: weird
 		Files.deleteIfExists(output);

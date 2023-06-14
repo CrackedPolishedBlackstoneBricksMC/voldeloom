@@ -9,6 +9,8 @@ Running changelog document, will be added to as I commit things.
 
 ## Roadmap
 
+* **Fix #3 (serious issues with remapping)** - need to be fixed ASAP
+* Supply required arguments to launch 1.6 and 1.7 instead of requiring you to customize the run config
 * Fix 1.2.5 and make it "nice" (split sourcesets etc)
 * Read data from the Exceptor, maybe apply parameter names
 

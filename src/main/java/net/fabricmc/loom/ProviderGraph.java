@@ -257,6 +257,15 @@ public class ProviderGraph {
 				reobfToSrg ? Constants.INTERMEDIATE_NAMING_SCHEME : Constants.PROGUARDED_NAMING_SCHEME);
 			
 			reobfSrg = mappings.chooseSrg(side).reobf(mappings.fields, mappings.methods, srgFieldsMethodsAsFallback, reobfToSrg);
+			
+			//TODO: debugging
+			if(project.hasProperty("voldeloom.debug")) {
+				Path dbgOut = project.getBuildDir().toPath().resolve("voldeloom-reobf-mappings-debug.srg");
+				Files.deleteIfExists(dbgOut);
+				
+				log.lifecycle("!! Writing debug reobf mappings to {}", dbgOut);
+				reobfSrg.writeTo(dbgOut);
+			}
 		}
 	}
 	

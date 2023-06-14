@@ -14,7 +14,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Set;
 
 public class DependencyRemapperMcp extends NewProvider<DependencyRemapperMcp> {
@@ -27,7 +27,7 @@ public class DependencyRemapperMcp extends NewProvider<DependencyRemapperMcp> {
 	private Members fields, methods;
 	private Iterable<RemappedConfigurationEntry> remappedConfigurationEntries;
 	private String distributionNamingScheme; //TODO weird
-	private final Set<Path> remapClasspath = new HashSet<>();
+	private final Set<Path> remapClasspath = new LinkedHashSet<>();
 	
 	public DependencyRemapperMcp mappingsDepString(String mappingsDepString) {
 		this.mappingsDepString = mappingsDepString;
@@ -95,7 +95,7 @@ public class DependencyRemapperMcp extends NewProvider<DependencyRemapperMcp> {
 						log.info("\\-> First, mapping to SRG using tiny-remapper at {}", srgMappedPath);
 						
 						//add the other mod dependencies to the remap classpath
-						Set<Path> remapClasspathIncludingOtherMods = new HashSet<>(remapClasspath);
+						Set<Path> remapClasspathIncludingOtherMods = new LinkedHashSet<>(remapClasspath);
 						for(File file : getConfigurationByName(Constants.EVERY_UNMAPPED_MOD).getFiles()) {
 							Path p = file.toPath();
 							if(!p.equals(unmappedPath)) remapClasspathIncludingOtherMods.add(p);
