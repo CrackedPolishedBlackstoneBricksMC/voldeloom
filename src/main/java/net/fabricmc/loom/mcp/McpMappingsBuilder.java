@@ -24,9 +24,11 @@ public class McpMappingsBuilder {
 		//Only apply packaging transformation to joined srg. Packaging transformations theoretically make sense for client/server
 		//srgs too, but this never happened in practice because packages.csv was invented in 1.4, after the client/server srg merge.
 		//todo: might be nice to come up with an anachronistic way to do it?
-		if(!packages.isEmpty() && !joined.isEmpty()) joined = joined.repackage(packages);
+		Srg joinedRepackaged;
+		if(!packages.isEmpty() && !joined.isEmpty()) joinedRepackaged = joined.repackage(packages);
+		else joinedRepackaged = joined;
 		
-		return new McpMappings(joined, client, server, fields, methods);
+		return new McpMappings(joinedRepackaged, client, server, fields, methods);
 	}
 	
 	public McpMappingsBuilder mergeWith(McpMappingsBuilder other) {

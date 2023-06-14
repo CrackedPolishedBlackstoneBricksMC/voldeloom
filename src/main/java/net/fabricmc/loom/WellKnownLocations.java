@@ -44,13 +44,8 @@ public class WellKnownLocations {
 		return mkdirs(getUserCache(project).resolve("layered-mappings"));
 	}
 	
-	public static Path getRootProjectCache(Project project) {
-		return getProjectCache(project.getRootProject());
-	}
-	
-	//TODO: Should this use getProjectCache instead of getRootProjectCache?
 	//Added as a flatDir maven repo in LoomGradlePlugin.
 	public static Path getRemappedModCache(Project project) {
-		return mkdirs(getRootProjectCache(project).resolve("remapped-mods"));
+		return mkdirs(getProjectCache(project).resolve("remapped-mods"));
 	}
 }

@@ -2,7 +2,10 @@ Running changelog document, will be added to as I commit things.
 
 # Next version: 2.4 (`agency.highlysuspect:voldeloom:2.4-SNAPSHOT`)
 
-No changes so far.
+## Changes
+
+* Fix: the run dir is now resolved against the project directory instead of the *root* project directory. This makes more sense.
+  * Sorry about that. If you were using voldeloom in a subproject, you can probably remove your custom runDir now.
 
 ## Roadmap
 

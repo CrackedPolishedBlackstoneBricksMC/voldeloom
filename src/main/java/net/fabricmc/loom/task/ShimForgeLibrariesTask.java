@@ -25,8 +25,9 @@ public class ShimForgeLibrariesTask extends DefaultTask implements LoomTaskExt {
 		setDescription("Copies Forge's runtime-downloaded dependencies into the folder where Forge expects to find them, because Forge tries to download dependencies at game startup, and the server it downloads them from is long-dead.");
 		
 		getOutputs().upToDateWhen(__ -> {
+			Set<File> libs = getLibs();
 			for(Path libDir : getLibraryDirectories()) {
-				for(File lib : getLibs()) {
+				for(File lib : libs) {
 					if(Files.notExists(libDir.resolve(lib.getName()))) return false;
 				}
 			}

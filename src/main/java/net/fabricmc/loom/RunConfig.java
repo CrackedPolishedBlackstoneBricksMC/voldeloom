@@ -96,7 +96,7 @@ public class RunConfig implements Named {
 	}
 	
 	public Path resolveRunDir() {
-		return project.getRootDir().toPath().resolve(runDir);
+		return project.getProjectDir().toPath().resolve(runDir);
 	}
 	
 	public RunConfig copy() {

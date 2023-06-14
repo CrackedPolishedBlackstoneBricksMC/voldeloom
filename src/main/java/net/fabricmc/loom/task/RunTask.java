@@ -81,34 +81,6 @@ public class RunTask extends JavaExec implements LoomTaskExt {
 		classpath(classpath);
 		
 		//Arguments
-//		List<String> argsSplit = new ArrayList<>();
-//		String[] args = config.stringifyProgramArgs().split(" ");
-//		int partPos = -1;
-//
-//		for (int i = 0; i < args.length; i++) {
-//			if (partPos < 0) {
-//				if (args[i].startsWith("\"")) {
-//					if (args[i].endsWith("\"")) {
-//						argsSplit.add(args[i].substring(1, args[i].length() - 1));
-//					} else {
-//						partPos = i;
-//					}
-//				} else {
-//					argsSplit.add(args[i]);
-//				}
-//			} else if (args[i].endsWith("\"")) {
-//				StringBuilder builder = new StringBuilder(args[partPos].substring(1));
-//
-//				for (int j = partPos + 1; j < i; j++) {
-//					builder.append(" ").append(args[j]);
-//				}
-//
-//				builder.append(" ").append(args[i], 0, args[i].length() - 1);
-//				argsSplit.add(builder.toString());
-//				partPos = -1;
-//			}
-//		}
-
 		jvmArgs(config.getVmArgs());
 		args(config.getProgramArgs());
 
