@@ -32,11 +32,12 @@ volde {
 dependencies {
 	minecraft "com.mojang:minecraft:${minecraftVersion}"
 	forge "net.minecraftforge:forge:${forgeVersion}:universal@zip"
+	mappings "net.minecraftforge:forge:${forgeVersion}:src@zip"
 	
-	mappings volde.layered {
-		importBaseZip "net.minecraftforge:forge:${forgeVersion}:src@zip"
-		removeClasses(["bar", "bas"])
-	}
+//	mappings volde.layered {
+//		importBaseZip "net.minecraftforge:forge:${forgeVersion}:src@zip"
+//		removeClasses(["bar", "bas"])
+//	}
 	
 	//accessTransformers files("./src/main/resources/good_cool_ats.cfg")
 	
