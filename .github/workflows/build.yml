@@ -17,7 +17,7 @@ jobs:
           java-version: "17"
 
       - name: Build with Gradle
-        uses: gradle/gradle-build-action@v2.3.3
+        uses: gradle/gradle-build-action@v2.4.2
         with:
           arguments: clean build --info --stacktrace
 
@@ -49,7 +49,7 @@ jobs:
           java-version: "${{matrix.java_version}}"
 
       - name: Build sample ${{matrix.sample}} with Gradle
-        uses: gradle/gradle-build-action@v2.3.3
+        uses: gradle/gradle-build-action@v2.4.2
         with:
           arguments: clean build --info --stacktrace -Dvoldeloom.refreshDependencies=true
           build-root-directory: "./sample/${{matrix.sample}}"
@@ -72,6 +72,6 @@ jobs:
           java-version: "17"
 
       - name: Publish with Gradle
-        uses: gradle/gradle-build-action@v2.3.3
+        uses: gradle/gradle-build-action@v2.4.2
         with:
           arguments: publish --info --stacktrace -Ppublish-username=${{secrets.PUBLISH_USERNAME}} -Ppublish-password=${{secrets.PUBLISH_PASSWORD}}
