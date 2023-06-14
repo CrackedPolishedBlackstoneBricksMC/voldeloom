@@ -351,7 +351,7 @@ public class Srg {
 				Members.Entry namedEntry = methods.remapSrg(srgEntry.name);
 				
 				String sourceName = namedEntry != null ? namedEntry.remappedName : (srgFieldsMethodsAsFallback ? srgEntry.name : proguardEntry.name);
-				String sourceDesc = srgFieldsMethodsAsFallback ? srgEntry.descriptor : proguardEntry.descriptor;
+				String sourceDesc = srgEntry.descriptor;
 				String targetName = reobfToSrg ? srgEntry.name : proguardEntry.name;
 				String targetDesc = reobfToSrg ? srgEntry.descriptor : proguardEntry.descriptor;
 				
