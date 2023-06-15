@@ -185,7 +185,7 @@ public class LayeredMcpMappings {
 				layer.updateHasher(readersDigest);
 				readersDigest.update((byte) 0);
 			}
-			readersDigest.update((byte) 2); //<-- bump this when making a big change to mapping layer system !!!
+			readersDigest.update((byte) 3); //<-- bump this when making a big change to mapping layer system !!!
 			String hash = Checksum.toHexStringPrefix(readersDigest.digest(), 8);
 			Path mappingsPath = cache.resolve(hash + ".zip");
 			Path infoPath = cache.resolve(hash + ".info");
@@ -203,7 +203,7 @@ public class LayeredMcpMappings {
 				for(Layer layer : layers) layer.visit(project.getLogger(), builder, mem);
 				
 				project.getLogger().lifecycle("|-> Building...");
-				McpMappings mappings = builder.build();
+				McpMappings mappings = builder.build(ext.forgeCapabilities.srgsAsFallback.get());
 				
 				//and create the file. everything goes into the root of the zip
 				project.getLogger().lifecycle("|-> Writing...");

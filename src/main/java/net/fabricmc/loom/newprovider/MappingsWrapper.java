@@ -1,5 +1,6 @@
 package net.fabricmc.loom.newprovider;
 
+import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.mcp.JarScanData;
 import net.fabricmc.loom.mcp.McpMappings;
 import net.fabricmc.loom.mcp.McpMappingsBuilder;
@@ -19,7 +20,7 @@ import java.security.MessageDigest;
  * Loads and parses MCP mappings from a file.
  */
 public class MappingsWrapper extends ResolvedConfigElementWrapper {
-	public MappingsWrapper(Project project, Configuration config, Path scanJar) throws Exception {
+	public MappingsWrapper(Project project, LoomGradleExtension ext, Configuration config, Path scanJar) throws Exception {
 		super(project, config);
 		Logger log = project.getLogger();
 		
@@ -36,11 +37,13 @@ public class MappingsWrapper extends ResolvedConfigElementWrapper {
 		mappingsBuilder.augment(new JarScanData().scan(scanJar));
 		
 		log.info("|-> Building...");
-		mappings = mappingsBuilder.build();
+		mappings = mappingsBuilder.build(ext.forgeCapabilities.srgsAsFallback.get());
 		
 		MessageDigest sha = Checksum.SHA256.get();
 		Checksum.feedFileToHasher(getPath(), sha);
-		this.props = new Props().put("mappings-hash", Checksum.toHexString(sha.digest()));
+		this.props = new Props()
+			.put("mappings-hash", Checksum.toHexString(sha.digest()))
+			.put("srgsAsFallback", Boolean.toString(ext.forgeCapabilities.srgsAsFallback.get()));
 	}
 	
 	public final McpMappings mappings;

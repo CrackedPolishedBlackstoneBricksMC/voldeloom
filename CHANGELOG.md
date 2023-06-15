@@ -12,9 +12,13 @@ Running changelog document, will be added to as I commit things.
 
 ## Breaking changes
 
+* SRG field/method names now (correctly) no longer show through if `srgsAsFallback` is not set.
+  * Either switch your code to use the proguarded names (look for things with 1 or 2 char names)
+  * Or set `volde { forgeCapabilities { srgsAsFallback = true } }`
 * The run dir is now resolved against the current subproject project directory, instead of the *root* project directory.
   * This makes more sense, matches what other Minecraft dev tools use, etc. 
   * Sorry about that. If you were using voldeloom in a subproject, you can probably remove your custom runDir now.
+* Bumped mappings version (expect a longer first-run setup time)
 
 ## Roadmap
 

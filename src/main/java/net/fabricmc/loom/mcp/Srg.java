@@ -298,27 +298,25 @@ public class Srg {
 		return named;
 	}
 	
-	/**
-	 * Puts the thing down, flips it, and reverses it.
-	 */
-	public Srg inverted() {
-		Map<String, String> flipClasses = invert(classMappings);
+	public Srg reproguardUnnamed(Members fields, Members methods) {
+		Srg reproguarded = new Srg();
+		reproguarded.putAllClassMappings(classMappings);
 		
-		Map<String, Map<String, String>> flipFields = new LinkedHashMap<>();
-		fieldMappingsByOwningClass.forEach((proguardClass, fieldMappings) ->
-			flipFields.put(classMappings.getOrDefault(proguardClass, proguardClass), invert(fieldMappings)));
+		fieldMappingsByOwningClass.forEach((owningClass, fieldMappings) -> {
+			Map<String, String> newFieldMappings = new LinkedHashMap<>();
+			fieldMappings.forEach((prg, srg) -> newFieldMappings.put(prg, fields.remapSrg(srg) == null ? prg : srg));
+			reproguarded.putAllFieldMappings(owningClass, newFieldMappings);
+		});
 		
-		Map<String, Map<MethodEntry, MethodEntry>> flipMethods = new LinkedHashMap<>();
-		methodMappingsByOwningClass.forEach((proguardClass, methodMappings) ->
-			flipMethods.put(classMappings.getOrDefault(proguardClass, proguardClass), invert(methodMappings)));
+		methodMappingsByOwningClass.forEach((owningClass, methodMappings) -> {
+			Map<MethodEntry, MethodEntry> newMethodMappings = new LinkedHashMap<>();
+			methodMappings.forEach((prg, srg) -> {
+				newMethodMappings.put(prg, methods.remapSrg(srg.name) != null ? srg : new MethodEntry(prg.name, srg.descriptor));
+			});
+			reproguarded.putAllMethodMappings(owningClass, newMethodMappings);
+		});
 		
-		return new Srg(flipClasses, flipFields, flipMethods);
-	}
-	
-	private <T> Map<T, T> invert(Map<T, T> in) {
-		Map<T, T> inverted = new LinkedHashMap<>();
-		in.forEach((key, value) -> inverted.put(value, key));
-		return inverted;
+		return reproguarded;
 	}
 	
 	public Srg reobf(Members fields, Members methods, boolean srgFieldsMethodsAsFallback, boolean reobfToSrg) {
@@ -328,7 +326,9 @@ public class Srg {
 			//don't reproguard class names, use passthrough class name mappings
 			classMappings.values().forEach(c -> reobf.putClassMapping(c, c));
 		} else {
-			reobf.putAllClassMappings(invert(classMappings));
+			Map<String, String> inverted = new LinkedHashMap<>();
+			classMappings.forEach((key, value) -> inverted.put(value, key));
+			reobf.putAllClassMappings(inverted);
 		}
 		
 		fieldMappingsByOwningClass.forEach((owningClass, fieldMappings) -> {

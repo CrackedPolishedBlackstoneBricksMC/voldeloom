@@ -50,10 +50,6 @@ public class Packages {
 	 * Applies the packaging transformation to a class name, in internal format.
 	 */
 	public String repackage(String srgClass) {
-		if(srgClass.equals("net/minecraft/src/Block$1")) {
-			System.out.println("hi");
-		}
-		
 		//remove the package prefix from the class
 		String srgClassNameOnly = srgClass;
 		int lastSlash = srgClass.lastIndexOf('/');

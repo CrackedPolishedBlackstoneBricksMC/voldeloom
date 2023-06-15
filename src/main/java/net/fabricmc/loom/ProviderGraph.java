@@ -151,7 +151,7 @@ public class ProviderGraph {
 		
 		log.lifecycle("# ({}) Parsing mappings...", side);
 		//the jarscandata comes from the jarmodded jar, not the vanilla one, because some inner-class relations i need to know about are added by forge
-		MappingsWrapper mappingsWrapper = new MappingsWrapper(project, project.getConfigurations().getByName(Constants.MAPPINGS), jarmod.getJarmoddedJar());
+		MappingsWrapper mappingsWrapper = new MappingsWrapper(project, extension, project.getConfigurations().getByName(Constants.MAPPINGS), jarmod.getJarmoddedJar());
 		McpMappings mappings = mappingsWrapper.mappings;
 		
 		log.lifecycle("# ({}) Preparing ATs...", side);
