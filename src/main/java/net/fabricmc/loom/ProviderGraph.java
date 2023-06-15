@@ -258,8 +258,7 @@ public class ProviderGraph {
 			
 			reobfSrg = mappings.chooseSrg(side).reobf(mappings.fields, mappings.methods, srgFieldsMethodsAsFallback, reobfToSrg);
 			
-			//TODO: debugging
-			if(project.hasProperty("voldeloom.debug")) {
+			if(project.hasProperty("voldeloom.reobf-debug")) {
 				Path dbgOut = project.getBuildDir().toPath().resolve("voldeloom-reobf-mappings-debug.srg");
 				Files.deleteIfExists(dbgOut);
 				

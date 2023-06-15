@@ -19,7 +19,6 @@ import java.nio.file.Path;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 public class RemapperMcp extends NewProvider<RemapperMcp> {
 	public RemapperMcp(Project project, LoomGradleExtension extension) {
@@ -86,12 +85,6 @@ public class RemapperMcp extends NewProvider<RemapperMcp> {
 		
 		log.lifecycle("] input jar: {}", input);
 		log.lifecycle("] mapped jar: {}", mappedJar);
-		
-		//ugh
-		if(remapClasspath != null) {
-			Iterable<CharSequence> hooey = remapClasspath.stream().map(Path::toString).collect(Collectors.toList());
-			log.lifecycle("] remap classpath: {}", String.join(", ", hooey));
-		}
 		
 		log.lifecycle("\\-> Performing remap");
 		
