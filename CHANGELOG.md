@@ -1,6 +1,16 @@
 Running changelog document, will be added to as I commit things.
 
-# Next version: 2.4 (`agency.highlysuspect:voldeloom:2.4-SNAPSHOT`)
+# Next version: 2.5 (`agency.highlysuspect:voldeloom:2.5-SNAPSHOT`)
+
+No changes yet.
+
+## Roadmap
+
+* Supply required arguments to launch 1.6 and 1.7 instead of requiring you to customize the run config
+* Fix 1.2.5 and make it "nice" (split sourcesets etc)
+* Read data from the Exceptor, maybe apply parameter names
+
+# 2.4 (`agency.highlysuspect:voldeloom:2.4`)
 
 ## Critical bugfixes
 
@@ -22,12 +32,6 @@ Running changelog document, will be added to as I commit things.
 ## Changes
 
 * Bumped internal mappings version. Expect a slightly longer import time after doing this update.
-
-## Roadmap
-
-* Supply required arguments to launch 1.6 and 1.7 instead of requiring you to customize the run config
-* Fix 1.2.5 and make it "nice" (split sourcesets etc)
-* Read data from the Exceptor, maybe apply parameter names
 
 # 2.3 (`agency.highlysuspect:voldeloom:2.3`)
 
