@@ -203,7 +203,7 @@ public class LayeredMcpMappings {
 				for(Layer layer : layers) layer.visit(project.getLogger(), builder, mem);
 				
 				project.getLogger().lifecycle("|-> Building...");
-				McpMappings mappings = builder.build(ext.forgeCapabilities.srgsAsFallback.get());
+				McpMappings mappings = builder.build();
 				
 				//and create the file. everything goes into the root of the zip
 				project.getLogger().lifecycle("|-> Writing...");

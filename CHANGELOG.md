@@ -4,21 +4,24 @@ Running changelog document, will be added to as I commit things.
 
 ## Critical bugfixes
 
-* **Very important** fix: Fix reobfuscation of method calls that mention a class from Minecraft in their parameter list or return type
-  * Which is, frankly, "most of them"
-  * Bug only cropped up if you didn't have `srgsAsFallback = true`
-* Fix the Forge-added class `amq$1`/`net/minecraft/src/Block$1` getting put in the wrong spot for like, the millionth time
-  * fixes `canSustainPlant`-related runtime crashes in dev on 1.4.7, and other assorted crashes
+* **Very important** fix: Fix reobfuscation of method calls that mention a class from Minecraft in their parameter list or return type.
+  * Which is, frankly, "most of them".
+  * Bug only cropped up if you didn't have `srgsAsFallback = true`. This option has been removed and is now effectively always `true`.
+* Fix the Forge-added class `amq$1`/`net/minecraft/src/Block$1` getting put in the wrong spot (for like, the millionth time)
+  * Fixes several `IllegalAccessError` crashes in the dev workspace, e.g. a `canSustainPlant`-related crash on 1.4.7
 
 ## Breaking changes
 
-* SRG field/method names now (correctly) no longer show through if `srgsAsFallback` is not set.
-  * Either switch your code to use the proguarded names (look for things with 1 or 2 char names)
-  * Or set `volde { forgeCapabilities { srgsAsFallback = true } }`
-* The run dir is now resolved against the current subproject project directory, instead of the *root* project directory.
-  * This makes more sense, matches what other Minecraft dev tools use, etc. 
+* `srgsAsFallback` as a configurable option is removed. It is now effectively set to `true`.
+  * Proguarded names can now only show up in your dev workspace if they are not mentioned in your `joined.srg` (which'd probably mean you're using mappings for the wrong version).
+  * Supporting both `true` and `false` turned out to be very complicated and buggy for little benefit. `false` mode wasn't working properly anyway; it still dumped SRG names into your workspace - and did you know that enum values weren't given MCP names? A correct implementation of `srgsAsFallback = false` stripped all enum value names. That's no good.
+  * **If your mod was calling methods or accessing fields with their proguarded names,** you'll need to update it to use the `func_` or `field_`-prefixed names.
+* The run dir is now correctly resolved against the current subproject project directory, instead of the *root* project directory.
   * Sorry about that. If you were using voldeloom in a subproject, you can probably remove your custom runDir now.
-* Bumped mappings version (expect a longer first-run setup time)
+
+## Changes
+
+* Bumped internal mappings version. Expect a slightly longer import time after doing this update.
 
 ## Roadmap
 

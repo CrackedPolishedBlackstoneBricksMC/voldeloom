@@ -11,7 +11,7 @@ Gradle plugin for ~~Fabric~~ ancient versions of Forge.
 * [Forked](https://github.com/TwilightFlower/fabric-loom/) by [TwilightFlower](https://github.com/TwilightFlower/) May 2020 for the release of [Retro Tater](https://github.com/TwilightFlower/retro-tater); she did lots of the initial architecture work.
 * [Tweaked, maintained, and additional version support](https://github.com/unascribed/voldeloom/) by [unascribed](https://github.com/unascribed/) May 2021 - May 2022 for the release of [Ears](https://git.sleeping.town/unascribed/Ears/src/branch/trunk/platform-forge-1.4) and other Forge mods.
 * Minor tweak by [quaternary](https://github.com/quat1024) Jul 2022 for the release of [Hopper](https://github.com/quat1024/hoppers).
-* `disaster-time` rewrite branch started by quaternary Dec 2022 - Apr 2023.
+* `disaster-time` rewrite branch started by quaternary Dec 2022 - Jun 2023.
 
 This branch is my playground and my domain. Here be dragons (it's me. I'm the dragon)
 

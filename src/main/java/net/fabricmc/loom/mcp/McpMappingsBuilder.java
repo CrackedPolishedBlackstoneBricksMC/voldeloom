@@ -20,14 +20,11 @@ public class McpMappingsBuilder {
 	public Members fields = new Members();
 	public Members methods = new Members();
 	
-	public McpMappings build(boolean srgFieldsMethodsAsFallback) {
+	public McpMappings build() {
 		//Only apply packaging transformation to joined srg. Packaging transformations theoretically make sense for client/server
 		//srgs too, but this never happened in practice because packages.csv was invented in 1.4, after the client/server srg merge.
 		//todo: might be nice to come up with an anachronistic way to do it?
 		Srg joined2 = !packages.isEmpty() && !joined.isEmpty() ? joined.repackage(packages) : joined;
-		
-		//If requested, "re-proguard" fields/methods that don't have a corresponding MCP name
-		if(!srgFieldsMethodsAsFallback) joined2 = joined2.reproguardUnnamed(fields, methods);
 		
 		return new McpMappings(joined2, client, server, fields, methods);
 	}

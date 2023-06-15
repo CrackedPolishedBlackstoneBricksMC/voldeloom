@@ -28,7 +28,7 @@ public class McpJavadocProvider implements IFabricJavadocProvider {
 			builder.mergeFromFieldsCsv(scan, mem);
 			builder.mergeFromMethodsCsv(scan, mem);
 		}
-		McpMappings mappings = builder.build(true);
+		McpMappings mappings = builder.build();
 		
 		mappings.fields.members.values().forEach(entry -> {
 			if(entry.comment != null && !entry.comment.trim().isEmpty()) fieldComments.put(entry.remappedName, entry.comment);

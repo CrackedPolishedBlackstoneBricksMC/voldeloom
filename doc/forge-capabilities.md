@@ -25,12 +25,12 @@ They are:
 
 *`distributionNamingScheme`* - string - the way references to fields and variables are encoded in reobfuscated release mod jars. This is `"intermediary"` since 1.5 and `"official"` before it.
 
-*`srgsAsFallback`* - bool - when a field or method is missing an MCP name, if `true` (1.5+) the proguarded name will show through, and if `false` (1.4-) the SRG will show through. This is relevant if you need to use reflection or a coremod to access a field. **TODO: I need to research this more**
-
 *`requiresLaunchwrapper`* - bool - Minecraft 1.6 changed its launch procedure to require LegacyLaunch (aka Launchwrapper); a different method of setting up run configurations is required.
 
 *`supportsAssetsDir`* - bool - If `true` (1.6+), the game accepts an `--assetsDir` argument to set the path of the asset directory. If `false` (1.5-), the game uses an assets directory in a hardcoded path inside the game folder, and Voldeloom must copy assets into that folder before starting a client run configuration.
 
 *`mappedAccessTransformers`* - bool - If `true` (1.7+), access transformer files have SRG-named access transformers. If `false` (otherwise), they're proguarded.
+
+~~*`srgsAsFallback`* - bool - when a field or method is missing an MCP name, if `true` (1.5+) the proguarded name will show through, and if `false` (1.4-) the SRG will show through. This is relevant if you need to use reflection or a coremod to access a field.~~ Removed in Voldeloom 2.4; effectively always evaluates to "true". If you'd like to do reflection, you'll need to look up the proguarded name yourself.
 
 (All options also have a form suffixed with `Supplier` (like `srgsAsFallbackSupplier`) that let you provide a `Supplier<T>` instead of a T. See also: `net.fabricmc.loom.util.Suppliers.memoize`.)

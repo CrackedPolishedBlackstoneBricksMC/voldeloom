@@ -25,12 +25,6 @@ public class Srg {
 		methodMappingsByOwningClass = new LinkedHashMap<>();
 	}
 	
-	public Srg(Map<String, String> classMappings, Map<String, Map<String, String>> fieldMappingsByOwningClass, Map<String, Map<MethodEntry, MethodEntry>> methodMappingsByOwningClass) {
-		this.classMappings = classMappings;
-		this.fieldMappingsByOwningClass = fieldMappingsByOwningClass;
-		this.methodMappingsByOwningClass = methodMappingsByOwningClass;
-	}
-	
 	public final Map<String, String> classMappings;
 	public final Map<String, Map<String, String>> fieldMappingsByOwningClass;
 	public final Map<String, Map<MethodEntry, MethodEntry>> methodMappingsByOwningClass;
@@ -260,12 +254,8 @@ public class Srg {
 	/**
 	 * emulates the "rename the SRG using find-and-replace" step of official tools.
 	 * Anywhere an SRG name could appear, it is fed through the fields/methods csvs.
-	 *
-	 * @param srgAsFallback if {@code true} and an MCP field name doesn't exist, the srg name will be used,
-	 *                      if not, the proguarded name will be used. same for method names.
-	 *                      mainly because this method is for reobf, so it should match what's in the dev workspace
 	 */
-	public Srg named(Members fields, Members methods, boolean srgAsFallback) {
+	public Srg named(Members fields, Members methods) {
 		//StringInterner mem = new StringInterner(); //Not necessary since i only make selections from existing String objects
 		Srg named = new Srg();
 		
@@ -278,7 +268,7 @@ public class Srg {
 				named.putFieldMapping(
 					owningClass,
 					proguard,
-					namedEntry != null ? namedEntry.remappedName : (srgAsFallback ? srg : proguard)
+					namedEntry != null ? namedEntry.remappedName : srg
 				);
 			}));
 		
@@ -290,7 +280,7 @@ public class Srg {
 					owningClass,
 					proguardEntry.name,
 					proguardEntry.descriptor,
-					namedEntry != null ? namedEntry.remappedName : (srgAsFallback ? srgEntry.name : proguardEntry.name),
+					namedEntry != null ? namedEntry.remappedName : srgEntry.name,
 					srgEntry.descriptor
 				);
 			}));
@@ -298,37 +288,14 @@ public class Srg {
 		return named;
 	}
 	
-	public Srg reproguardUnnamed(Members fields, Members methods) {
-		Srg reproguarded = new Srg();
-		reproguarded.putAllClassMappings(classMappings);
-		
-		fieldMappingsByOwningClass.forEach((owningClass, fieldMappings) -> {
-			Map<String, String> newFieldMappings = new LinkedHashMap<>();
-			fieldMappings.forEach((prg, srg) -> newFieldMappings.put(prg, fields.remapSrg(srg) == null ? prg : srg));
-			reproguarded.putAllFieldMappings(owningClass, newFieldMappings);
-		});
-		
-		methodMappingsByOwningClass.forEach((owningClass, methodMappings) -> {
-			Map<MethodEntry, MethodEntry> newMethodMappings = new LinkedHashMap<>();
-			methodMappings.forEach((prg, srg) -> {
-				newMethodMappings.put(prg, methods.remapSrg(srg.name) != null ? srg : new MethodEntry(prg.name, srg.descriptor));
-			});
-			reproguarded.putAllMethodMappings(owningClass, newMethodMappings);
-		});
-		
-		return reproguarded;
-	}
-	
-	public Srg reobf(Members fields, Members methods, boolean srgFieldsMethodsAsFallback, boolean reobfToSrg) {
+	public Srg reobf(Members fields, Members methods, boolean reobfToSrg) {
 		Srg reobf = new Srg();
 		
 		if(reobfToSrg) {
 			//don't reproguard class names, use passthrough class name mappings
 			classMappings.values().forEach(c -> reobf.putClassMapping(c, c));
 		} else {
-			Map<String, String> inverted = new LinkedHashMap<>();
-			classMappings.forEach((key, value) -> inverted.put(value, key));
-			reobf.putAllClassMappings(inverted);
+			classMappings.forEach((key, value) -> reobf.putClassMapping(value, key));
 		}
 		
 		fieldMappingsByOwningClass.forEach((owningClass, fieldMappings) -> {
@@ -337,7 +304,7 @@ public class Srg {
 			fieldMappings.forEach((proguard, srg) -> {
 				Members.Entry namedEntry = fields.remapSrg(srg);
 				
-				String sourceName = namedEntry != null ? namedEntry.remappedName : (srgFieldsMethodsAsFallback ? srg : proguard);
+				String sourceName = namedEntry != null ? namedEntry.remappedName : srg;
 				String targetName = reobfToSrg ? srg : proguard;
 				
 				reobf.putFieldMapping(sourceOwningClass, sourceName, targetName);
@@ -350,7 +317,7 @@ public class Srg {
 			methodMappings.forEach((proguardEntry, srgEntry) -> {
 				Members.Entry namedEntry = methods.remapSrg(srgEntry.name);
 				
-				String sourceName = namedEntry != null ? namedEntry.remappedName : (srgFieldsMethodsAsFallback ? srgEntry.name : proguardEntry.name);
+				String sourceName = namedEntry != null ? namedEntry.remappedName : srgEntry.name;
 				String sourceDesc = srgEntry.descriptor;
 				String targetName = reobfToSrg ? srgEntry.name : proguardEntry.name;
 				String targetDesc = reobfToSrg ? srgEntry.descriptor : proguardEntry.descriptor;
@@ -464,6 +431,7 @@ public class Srg {
 			return name.equals(that.name) && descriptor.equals(that.descriptor);
 		}
 		
+		@SuppressWarnings("ObjectInstantiationInEqualsHashCode")
 		@Override
 		public int hashCode() {
 			return Objects.hash(name, descriptor);

@@ -131,7 +131,7 @@ public class ProviderGraph {
 		ResolvedConfigElementWrapper forgeWrapper
 	) throws Exception {
 		log.lifecycle("# ({}) Fetching Forge dependencies...", side);
-		ForgeDependencyFetcher forgeDeps = new ForgeDependencyFetcher(project, extension)
+		new ForgeDependencyFetcher(project, extension)
 			.forgeJar(forgeWrapper.getPath())
 			.fmlLibrariesBaseUrl(extension.fmlLibrariesBaseUrl)
 			.libDownloaderDir(forgeWrapper.getFilenameSafeDepString())
@@ -250,13 +250,12 @@ public class ProviderGraph {
 		
 		//TODO: oops all leaky abstraction again
 		if(side.equals("joined")) {
-			boolean srgFieldsMethodsAsFallback = extension.forgeCapabilities.srgsAsFallback.get();
 			boolean reobfToSrg = extension.forgeCapabilities.distributionNamingScheme.get().equals(Constants.INTERMEDIATE_NAMING_SCHEME);
 			
 			log.lifecycle("# ({}) Initializing reobf mappings ({} -> {})...", side, Constants.MAPPED_NAMING_SCHEME,
 				reobfToSrg ? Constants.INTERMEDIATE_NAMING_SCHEME : Constants.PROGUARDED_NAMING_SCHEME);
 			
-			reobfSrg = mappings.chooseSrg(side).reobf(mappings.fields, mappings.methods, srgFieldsMethodsAsFallback, reobfToSrg);
+			reobfSrg = mappings.chooseSrg(side).reobf(mappings.fields, mappings.methods, reobfToSrg);
 			
 			if(project.hasProperty("voldeloom.reobf-debug")) {
 				Path dbgOut = project.getBuildDir().toPath().resolve("voldeloom-reobf-mappings-debug.srg");

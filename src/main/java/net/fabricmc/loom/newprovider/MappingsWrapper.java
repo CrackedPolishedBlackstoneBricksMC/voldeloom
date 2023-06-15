@@ -37,13 +37,13 @@ public class MappingsWrapper extends ResolvedConfigElementWrapper {
 		mappingsBuilder.augment(new JarScanData().scan(scanJar));
 		
 		log.info("|-> Building...");
-		mappings = mappingsBuilder.build(ext.forgeCapabilities.srgsAsFallback.get());
+		mappings = mappingsBuilder.build();
 		
 		MessageDigest sha = Checksum.SHA256.get();
 		Checksum.feedFileToHasher(getPath(), sha);
 		this.props = new Props()
 			.put("mappings-hash", Checksum.toHexString(sha.digest()))
-			.put("srgsAsFallback", Boolean.toString(ext.forgeCapabilities.srgsAsFallback.get()));
+			.put("v", "2");
 	}
 	
 	public final McpMappings mappings;

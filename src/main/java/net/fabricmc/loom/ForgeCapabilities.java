@@ -68,38 +68,6 @@ public class ForgeCapabilities {
 	}
 	
 	/**
-	 * If a field/method is missing a mapping, if 'true' the proguarded name will show through, and if 'false' the MCP name will.
-	 * <p>
-	 * By default, this evaluates to 'true' since 1.5, and 'false' before it.
-	 * TODO: is this even a good idea?
-	 */
-	public Supplier<Boolean> srgsAsFallback = Suppliers.memoize(this::guessSrgsAsFallback);
-	
-	public boolean guessSrgsAsFallback() {
-		checkConfigured("guessSrgsAsFallback");
-		
-		if(guessMinecraftMinorVersion() >= 5) {
-			log.info("|-> [ForgeCapabilities guess] I think this Forge version uses SRGs as the fallback when no mapping is defined?");
-			return true;
-		} else {
-			log.info("|-> [ForgeCapabilities guess] I think this Forge version uses proguarded names as the fallback when no mapping is defined?");
-			return false;
-		}
-	}
-	
-	@SuppressWarnings("unused") //gradle api
-	public ForgeCapabilities setSrgsAsFallback(boolean srgsAsFallback) {
-		this.srgsAsFallback = () -> srgsAsFallback;
-		return this;
-	}
-	
-	@SuppressWarnings("unused") //gradle api
-	public ForgeCapabilities setSrgsAsFallbackSupplier(Supplier<Boolean> srgsAsFallback) {
-		this.srgsAsFallback = srgsAsFallback;
-		return this;
-	}
-	
-	/**
 	 * Minecraft used to contain shaded copies of libraries that MCP tried to map back to reality.
 	 * The Forge installation procedure would sometimes delete these libraries after deobfuscating the game.
 	 * The exact libraries changed over time.
@@ -314,5 +282,31 @@ public class ForgeCapabilities {
 	public ForgeCapabilities minecraftRealPathSupplier(Supplier<Function<Path, Path>> minecraftRealPath) {
 		this.minecraftRealPath = minecraftRealPath;
 		return this;
+	}
+	
+	/// --- ///
+	
+	/*
+	 * "If a field/method is missing a mapping, if 'true' the proguarded name will show through, and if 'false' the MCP name will.
+	 * By default, this evaluates to 'true' since 1.5, and 'false' before it."
+	 * ---
+	 * that was old documentation. This item was removed and effectively always evaluates to `true`.
+	 * It was buggy, had undesirable side effects (enum values were not given MCP names), and the benefit is questionable.
+	 * It's really only important if you needed to do reflection on something unmapped. You'll need to look up its proguarded name.
+	 */
+	
+	@SuppressWarnings("unused") //gradle api
+	@Deprecated
+	public ForgeCapabilities setSrgsAsFallback(boolean hmm) {
+		log.error("[voldeloom] `srgsAsFallback = false` mode was removed, and does not need to be configured anymore");
+		if(!hmm) throw new IllegalArgumentException("[voldeloom] `srgsAsFallback = false` mode was removed");
+		
+		return this;
+	}
+	
+	@SuppressWarnings("unused") //gradle api
+	@Deprecated
+	public ForgeCapabilities setSrgsAsFallbackSupplier(Supplier<Boolean> hmm) {
+		return setSrgsAsFallback(hmm.get());
 	}
 }
