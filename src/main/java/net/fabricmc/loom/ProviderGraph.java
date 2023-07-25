@@ -74,7 +74,7 @@ public class ProviderGraph {
 			.superProps(vanillaJars)
 			.manifest(vanillaJars.getVersionManifest())
 			.librariesBaseUrl(extension.librariesBaseUrl)
-			.nativesDirname(mcWrapper.getFilenameSafeVersion() + "-{HASH}")
+			.nativesDirname(mcWrapper.getFilenameSafeVersion() + "-{HASH}-v2") //v2 to cachebust some version manifest changes in 2.5
 			.fetch()
 			.installDependenciesToProject(Constants.MINECRAFT_DEPENDENCIES, project.getDependencies());
 		mcNativesDir = vanillaDeps.getNativesDir();

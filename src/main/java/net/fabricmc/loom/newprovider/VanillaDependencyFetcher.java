@@ -2,6 +2,7 @@ package net.fabricmc.loom.newprovider;
 
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.util.Check;
+import net.fabricmc.loom.util.OperatingSystem;
 import net.fabricmc.loom.util.VersionManifest;
 import net.fabricmc.loom.util.ZipUtil;
 import org.gradle.api.Project;
@@ -75,16 +76,19 @@ public class VanillaDependencyFetcher extends NewProvider<VanillaDependencyFetch
 			Files.createDirectories(dest);
 			
 			for(VersionManifest.Library library : manifest.libraries) {
-				if(!library.allowed() || !library.isNative()) continue;
+				if(!library.allowed() || !library.hasNatives()) continue;
+				
+				VersionManifest.LibraryArtifact nativeArtifact = library.nativeArtifactFor(OperatingSystem.getOS(), OperatingSystem.getArch());
 				
 				//download the natives jar
-				Path libJar = newDownloadSession(librariesBaseUrl + library.getURLSuffix())
-					.dest(library.getPath(dest.resolve("jars")))
+				Path libJar = newDownloadSession(nativeArtifact.url)
+					.dest(nativeArtifact.resolveFlat(dest.resolve("jars")))
 					.etag(false) //no need to save etag, this directory is fresh.
 					.gzip(true)
 					.download();
 				
 				//extract them all onto each other in nativesDir - n.b., the file visitor here is used as a "filter" argument
+				//TODO: actually parse the mojang version manifest instead of hardcoding a meta-inf exclusion?
 				ZipUtil.unpack(libJar, dest, new SimpleFileVisitor<Path>() {
 					@Override
 					public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
@@ -97,11 +101,11 @@ public class VanillaDependencyFetcher extends NewProvider<VanillaDependencyFetch
 		log.lifecycle("] native libraries directory: {}", nativesDir);
 		
 		for(VersionManifest.Library library : manifest.libraries) {
-			if(!library.allowed() || library.isNative()) continue;
+			if(!library.allowed() || library.hasNatives()) continue;
 			//It appears downloading the library manually is not necessary since the json
 			//gives maven coordinates which Gradle can resolve the usual way off of mojang's maven
-			log.info("|-> Found Minecraft maven-style dependency {}", library.getArtifactName());
-			mavenDependencies.add(library.getArtifactName());
+			log.info("|-> Found Minecraft maven-style dependency {}", library.getMavenCoordinate());
+			mavenDependencies.add(library.getMavenCoordinate());
 		}
 		
 		return this;

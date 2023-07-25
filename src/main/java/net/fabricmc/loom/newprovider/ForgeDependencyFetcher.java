@@ -110,7 +110,7 @@ public class ForgeDependencyFetcher extends NewProvider<ForgeDependencyFetcher> 
 				
 				for(VersionManifest.Library lib : versionManifest.libraries) {
 					//todo: all the natives handling from vanilla's library sniffer too?
-					if(lib.allowed() && !"http://files.minecraftforge.net/maven/".equals(lib.forgeDownloadRoot)) {
+					if(lib.allowed() && !lib.isCustomForge()) {
 						sniffedMavenDepNames.add(lib.name);
 					}
 				}

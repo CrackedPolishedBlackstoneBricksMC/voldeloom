@@ -25,9 +25,9 @@
 package net.fabricmc.loom.util;
 
 import com.google.gson.Gson;
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.annotations.SerializedName;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -65,67 +65,62 @@ public class VersionManifest {
 		public String id;
 		public String sha1;
 		public String url;
-
-//		public String getFabricId(String version) {
-//			return id.equals(version) ? version : version + "-" + id;
-//		}
 	}
+	
+	//NON-NATIVE DEPS (eg. joptsimple)
+	// specify "name", specify "downloads">"artifact"
+	// an artifact (path/sha/size/url) is under "downloads">"artifact"
+	//
+	//NON-NATIVE SUPPORT LIBS FOR NATIVE DEPS (eg. lwjgl_util)
+	// same but specify "rules" as well
+	//
+	//NATIVE DEPS (eg. jinput)
+	// specify "name", "downloads">"classifiers", "natives", and "extract"
+	// "natives" is a map from platform to classifier
+	// look up the classifier for that platform, then look in downloads/classifiers to get the artifact
+	// you may need to subst ${arch} for 32 or 64 in the classifier ^^
+	// "extract" is rules for extracting the native library, which is typically "skip META-INF" (voldeloom does not parse these)
 
+	public static class LibraryDownloads {
+		@SerializedName("artifact")
+		public LibraryArtifact mainArtifact;
+		
+		@SerializedName("classifiers")
+		public Map<String, LibraryArtifact> classifiedArtifacts;
+	}
+	
+	public static class LibraryArtifact {
+		public String path, sha1, url;
+		public int size;
+		
+		//Mojang suggests a directory structure in "path", but I'd rather just resolve into a flat dir
+		public Path resolveFlat(Path root) {
+			int slash = path.lastIndexOf('/');
+			String justFilename = slash == -1 ? path : path.substring(slash + 1);
+			return root.resolve(justFilename);
+		}
+	}
+	
 	public static class Library {
 		public String name;
-		@SerializedName("url") public String forgeDownloadRoot; //used by Forge 1.6/1.7's version.json, i don't think it's vanilla
-		public JsonObject natives;
-		public JsonObject downloads;
-		private Artifact artifact;
+		public @Nullable JsonObject natives;
+		public LibraryDownloads downloads;
 		public Rule[] rules;
 		
-		/** url pattern that can be appended to mojang's libraries.minecraft.net server */
-		public String getURLSuffix() {
-			String[] parts = this.name.split(":", 3);
-			return parts[0].replace(".", "/") + "/" + parts[1] + "/" + parts[2] + "/" + parts[1] + "-" + parts[2] + getClassifier() + ".jar";
+		//Used by Forge 1.6/1.7's internal version.json. Not vanilla.
+		@SerializedName("url") public String forgeDownloadRoot;
+		
+		public boolean isCustomForge() {
+			return forgeDownloadRoot != null;
 		}
 		
-		public Path getPath(Path basePath) {
-			return basePath.resolve(name.replaceAll("[^A-Za-z0-9.-]", "_") + ".jar");
-		}
-		
-		public String getSha1() {
-			if (this.downloads == null) {
-				return "";
-			} else if (this.downloads.getAsJsonObject("artifact") == null) {
-				return "";
-			} else if (this.downloads.getAsJsonObject("artifact").get("sha1") == null) {
-				return "";
-			} else {
-				return this.downloads.getAsJsonObject("artifact").get("sha1").getAsString();
-			}
-		}
-
-		public String getClassifier() {
-			if (natives == null) {
-				return "";
-			} else {
-				JsonElement element = natives.get(OperatingSystem.getOS().replace("${arch}", OperatingSystem.getArch()));
-
-				if (element == null) {
-					return "";
-				}
-
-				return "-" + element.getAsString().replace("\"", "").replace("${arch}", OperatingSystem.getArch());
-			}
-		}
-
-		public boolean isNative() {
-			return getClassifier().contains("natives");
-		}
-
 		public boolean allowed() {
-			if (this.rules == null || this.rules.length <= 0) {
-				return true;
-			}
-
+			//no rules -> always allowed
+			if(rules == null || rules.length == 0) return true;
+			
+			//TODO copypaste from last time, logic is weird
 			boolean success = false;
-
+			
 			for (Rule rule : this.rules) {
 				if (rule.os != null && rule.os.name != null) {
 					if (rule.os.name.equalsIgnoreCase(OperatingSystem.getOS())) {
@@ -135,70 +130,37 @@ public class VersionManifest {
 					success = rule.action.equalsIgnoreCase("allow");
 				}
 			}
-
+			
 			return success;
 		}
-
-		public String getArtifactName() {
-			if (artifact == null) {
-				artifact = new Artifact(name);
-			}
-
-			if (natives != null) {
-				JsonElement jsonElement = natives.get(OperatingSystem.getOS());
-
-				if (jsonElement != null) {
-					return artifact.getArtifact(jsonElement.getAsString());
-				}
-			}
-
-			return artifact.getArtifact(artifact.classifier);
+		
+		public String getMavenCoordinate() {
+			return name;
 		}
-
-		private static class Artifact {
-			private final String domain, name, version, classifier, ext;
-
-			Artifact(String name) {
-				String[] splitedArtifact = name.split(":");
-				int idx = splitedArtifact[splitedArtifact.length - 1].indexOf('@');
-
-				if (idx != -1) {
-					ext = splitedArtifact[splitedArtifact.length - 1].substring(idx + 1);
-					splitedArtifact[splitedArtifact.length - 1] = splitedArtifact[splitedArtifact.length - 1].substring(0, idx);
-				} else {
-					ext = "jar";
-				}
-
-				this.domain = splitedArtifact[0];
-				this.name = splitedArtifact[1];
-				this.version = splitedArtifact[2];
-				this.classifier = splitedArtifact.length > 3 ? splitedArtifact[3] : null;
-			}
-
-			public String getArtifact(String classifier) {
-				String ret = domain + ":" + name + ":" + version;
-
-				if (classifier != null && classifier.indexOf('$') > -1) {
-					classifier = classifier.replace("${arch}", OperatingSystem.getArch());
-				}
-
-				if (classifier != null) {
-					ret += ":" + classifier;
-				}
-
-				if (!"jar".equals(ext)) {
-					ret += "@" + ext;
-				}
-
-				return ret;
-			}
-
-			public String getClassifier() {
-				return classifier;
-			}
+		
+		public boolean hasNatives() {
+			return natives != null && natives.size() > 0;
+		}
+		
+		public LibraryArtifact nativeArtifactFor(String os, String arch) {
+			if(natives == null) throw new UnsupportedOperationException("no 'natives' table in dep " + name);
+			if(downloads == null) throw new UnsupportedOperationException("no downloads for dep " + name);
+			if(downloads.classifiedArtifacts == null) throw new UnsupportedOperationException("no classified downloads for dep " + name);
+			
+			String classifier = natives.get(os).getAsString();
+			if(classifier == null) throw new UnsupportedOperationException("no native classifier for OS " + os + " in dep " + name);
+			
+			//e.g., 1.7.10's tv.twitch:twitch-platform dep
+			classifier = classifier.replace("${arch}", arch);
+			
+			LibraryArtifact classifiedArtifact = downloads.classifiedArtifacts.get(classifier);
+			if(classifiedArtifact == null) throw new UnsupportedOperationException("no artifact for classifier " + classifier + " in dep " + name);
+			
+			return classifiedArtifact;
 		}
 	}
 
+	//TODO: doesn't check OS version ranges at all
 	private static class Rule {
 		public String action;
 		public OS os;
