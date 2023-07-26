@@ -2,6 +2,7 @@ package net.fabricmc.loom.newprovider;
 
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.util.Check;
+import net.fabricmc.loom.util.OperatingSystem;
 import net.fabricmc.loom.util.VersionManifest;
 import net.fabricmc.loom.util.ZipUtil;
 import org.gradle.api.Project;
@@ -110,7 +111,7 @@ public class ForgeDependencyFetcher extends NewProvider<ForgeDependencyFetcher> 
 				
 				for(VersionManifest.Library lib : versionManifest.libraries) {
 					//todo: all the natives handling from vanilla's library sniffer too?
-					if(lib.allowed() && !lib.isCustomForge()) {
+					if(lib.allowed(OperatingSystem.CURRENT) && !lib.isCustomForge()) {
 						sniffedMavenDepNames.add(lib.name);
 					}
 				}

@@ -259,7 +259,7 @@ public class ForgeCapabilities {
 		checkConfigured("guessMinecraftRealPath");
 		
 		if(guessMinecraftMinorVersion() <= 2) {
-			if(OperatingSystem.getOS().contains("osx")) {
+			if(OperatingSystem.CURRENT.thinkDifferent) {
 				log.info("|-> [ForgeCapabilities guess] Guessing that this Minecraft version appends 'minecraft' to the user-specified path (without a dot character, because this is a Mac)");
 				return p -> p.resolve("minecraft");
 			} else {

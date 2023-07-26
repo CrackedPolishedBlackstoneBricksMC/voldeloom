@@ -24,38 +24,85 @@
 
 package net.fabricmc.loom.util;
 
+import java.util.Locale;
+
 /**
  * Utilities for reading properties of the current operating system.
  */
 public class OperatingSystem {
-	/**
-	 * @return "windows", "osx", or "linux"
-	 */
-	public static String getOS() {
-		String osName = System.getProperty("os.name").toLowerCase();
-
-		if (osName.contains("win")) {
-			return "windows";
-		} else if (osName.contains("mac")) {
-			return "osx";
-		} else {
-			return "linux";
-		}
+	public OperatingSystem(String shortName, int bitness, String architecture) {
+		this.shortName = shortName;
+		this.thinkDifferent = shortName.contains("osx");
+		this.bitness = bitness;
+		this.architecture = architecture;
+		
+		String prismArchitectureSuffix = architecture.startsWith("x86") ? "" : "-" + architecture;
+		this.longName = shortName + prismArchitectureSuffix;
 	}
 	
+	public static OperatingSystem CURRENT;
+	
 	/**
-	 * @return "64" or "32"
+	 * "windows", "osx", or "linux", like mojang uses in version manifests
 	 */
-	public static String getArch() {
-		if (is64Bit()) {
-			return "64";
-		} else {
-			return "32";
-		}
+	public final String shortName;
+	
+	/**
+	 * Whether the operating system was designed by apple in california
+	 */
+	public final boolean thinkDifferent;
+	
+	/**
+	 * 64 or 32
+	 */
+	public final int bitness;
+	
+	/**
+	 * arm64, arm32, x86_64, or x86
+	 */
+	public final String architecture;
+	
+	/**
+	 * OS name *and* architecture (like "osx-arm64"), except x86 which is unsuffixed.
+	 * Generally this is used by Prism launcher
+	 */
+	public final String longName;
+	
+	public boolean matches(String key) {
+		return shortName.equals(key) || longName.equals(key);
 	}
 	
-	//TODO: remove lol
-	public static boolean is64Bit() {
-		return System.getProperty("sun.arch.data.model").contains("64");
+	@Override
+	public String toString() {
+		return String.format("os short name: '%s', long name: '%s', bitness: %d, arch: %s", shortName, longName, bitness, architecture);
+	}
+	
+	static {
+		//TODO include more funny architectures
+		
+		String shortName, architecture;
+		int bitness;
+		
+		String osName = System.getProperty("os.name").toLowerCase(Locale.ROOT);
+		String dataModel = System.getProperty("sun.arch.data.model").toLowerCase(Locale.ROOT); //Surely theres a nicer way to do this
+		String osArch = System.getProperty("os.arch").toLowerCase(Locale.ROOT);
+		
+		if(osName.contains("win")) shortName = "windows";
+		else if(osName.contains("mac")) shortName = "osx";
+		else shortName = "linux";
+		
+		if(dataModel.contains("64")) {
+			bitness = 64;
+			if(osArch.contains("aarch") || osArch.contains("arm")) architecture = "arm64";
+			else architecture = "x86_64";
+		} else {
+			bitness = 32;
+			if(osArch.contains("aarch") || osArch.contains("arm")) architecture = "arm32";
+			else architecture = "x86";
+		}
+		
+		CURRENT = new OperatingSystem(shortName, bitness, architecture);
+		
+		System.out.println("current " + CURRENT);
 	}
 }

@@ -25,6 +25,7 @@
 package net.fabricmc.loom.util;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.annotations.SerializedName;
 import org.jetbrains.annotations.Nullable;
@@ -33,19 +34,25 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 /**
  * A per-version Minecraft version manifest.
  * <p>
- * This class is intended to be deserialized with Google GSON.
+ * This class is intended to be deserialized with Google GSON. It can also be used for some similar-but-not-quite-the-same
+ * file structures found around Minecraft, like the internal version.json included in Forge 1.6 and 1.7, and some of Prism
+ * Launcher's partial manifests.
  */
 @SuppressWarnings("unused")
 public class VersionManifest {
 	public static VersionManifest read(Path path) throws IOException {
 		try(BufferedReader reader = Files.newBufferedReader(path)) {
-			return new Gson().fromJson(reader, VersionManifest.class);
+			VersionManifest vm = new Gson().fromJson(reader, VersionManifest.class);
+			
+			for(Library l : vm.libraries) vm.librariesByArtifactName.put(l.getMavenArtifactName(), l);
+			return vm;
 		}
 	}
 	
@@ -55,6 +62,8 @@ public class VersionManifest {
 	public String id; //version number
 	public String mainClass;
 	public String minecraftArguments;
+	
+	public transient Map<String, Library> librariesByArtifactName = new HashMap<>();
 
 	public static class Downloads {
 		public String url;
@@ -80,6 +89,9 @@ public class VersionManifest {
 	// look up the classifier for that platform, then look in downloads/classifiers to get the artifact
 	// you may need to subst ${arch} for 32 or 64 in the classifier ^^
 	// "extract" is rules for extracting the native library, which is typically "skip META-INF" (voldeloom does not parse these)
+	//
+	//PRISM LAUNCHER NATIVE DEPS
+	// same, but they don't specify "name"; part of the URL only
 
 	public static class LibraryDownloads {
 		@SerializedName("artifact")
@@ -93,10 +105,15 @@ public class VersionManifest {
 		public String path, sha1, url;
 		public int size;
 		
-		//Mojang suggests a directory structure in "path", but I'd rather just resolve into a flat dir
+		//2 things.
+		// a) Mojang suggests a deeply nested directory structure in `path`, but I'd rather just resolve into a flat dir.
+		// b) Prism Launcher manifests provide only `url`, and don't include the path.
+		//Let's pick the appropriate string then chop everything after the last slash character, to cut it down to a filename.
 		public Path resolveFlat(Path root) {
-			int slash = path.lastIndexOf('/');
-			String justFilename = slash == -1 ? path : path.substring(slash + 1);
+			String path2 = path == null ? url : path;
+			
+			int slash = path2.lastIndexOf('/');
+			String justFilename = slash == -1 ? path2 : path2.substring(slash + 1);
 			return root.resolve(justFilename);
 		}
 	}
@@ -114,7 +131,7 @@ public class VersionManifest {
 			return forgeDownloadRoot != null;
 		}
 		
-		public boolean allowed() {
+		public boolean allowed(OperatingSystem os) {
 			//no rules -> always allowed
 			if(rules == null || rules.length == 0) return true;
 			
@@ -123,7 +140,7 @@ public class VersionManifest {
 			
 			for (Rule rule : this.rules) {
 				if (rule.os != null && rule.os.name != null) {
-					if (rule.os.name.equalsIgnoreCase(OperatingSystem.getOS())) {
+					if (os.matches(rule.os.name)) {
 						return rule.action.equalsIgnoreCase("allow");
 					}
 				} else {
@@ -138,20 +155,31 @@ public class VersionManifest {
 			return name;
 		}
 		
+		public String getMavenArtifactName() {
+			int a = name.indexOf(':');
+			int b = name.indexOf(':', a + 1);
+			if(a != -1 && b != -1) return name.substring(a + 1, b);
+			else throw new IllegalArgumentException("cant parse " + name + " as maven coordinate to get name");
+		}
+		
 		public boolean hasNatives() {
 			return natives != null && natives.size() > 0;
 		}
 		
-		public LibraryArtifact nativeArtifactFor(String os, String arch) {
+		public LibraryArtifact nativeArtifactFor(OperatingSystem os) {
 			if(natives == null) throw new UnsupportedOperationException("no 'natives' table in dep " + name);
 			if(downloads == null) throw new UnsupportedOperationException("no downloads for dep " + name);
 			if(downloads.classifiedArtifacts == null) throw new UnsupportedOperationException("no classified downloads for dep " + name);
 			
-			String classifier = natives.get(os).getAsString();
-			if(classifier == null) throw new UnsupportedOperationException("no native classifier for OS " + os + " in dep " + name);
+			//try the long name first, to prefer "osx-arm64" natives over just "osx"
+			JsonElement classifierElem = natives.get(os.longName);
+			if(classifierElem == null) classifierElem = natives.get(os.shortName);
+			if(classifierElem == null) throw new UnsupportedOperationException("no native classifier for OS " + os.longName + " or " + os.shortName + " in dep " + name);
 			
-			//e.g., 1.7.10's tv.twitch:twitch-platform dep
-			classifier = classifier.replace("${arch}", arch);
+			String classifier = classifierElem.getAsString();
+			
+			//e.g., 1.7.10's tv.twitch:twitch-platform dep. Yes, mojang wrote ${arch} and meant bitness
+			classifier = classifier.replace("${arch}", Integer.toString(os.bitness));
 			
 			LibraryArtifact classifiedArtifact = downloads.classifiedArtifacts.get(classifier);
 			if(classifiedArtifact == null) throw new UnsupportedOperationException("no artifact for classifier " + classifier + " in dep " + name);

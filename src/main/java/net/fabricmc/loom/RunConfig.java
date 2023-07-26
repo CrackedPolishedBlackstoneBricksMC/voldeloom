@@ -189,7 +189,7 @@ public class RunConfig implements Named {
 	}
 	
 	public void startOnFirstThread() {
-		if(OperatingSystem.getOS().equalsIgnoreCase("osx")) {
+		if(OperatingSystem.CURRENT.thinkDifferent) {
 			vmArg("-XstartOnFirstThread");
 		}
 	}
