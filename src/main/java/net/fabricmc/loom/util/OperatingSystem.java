@@ -30,11 +30,12 @@ import java.util.Locale;
  * Utilities for reading properties of the current operating system.
  */
 public class OperatingSystem {
-	public OperatingSystem(String shortName, int bitness, String architecture) {
+	public OperatingSystem(String shortName, int bitness, String architecture, String version) {
 		this.shortName = shortName;
 		this.thinkDifferent = shortName.contains("osx");
 		this.bitness = bitness;
 		this.architecture = architecture;
+		this.version = version;
 		
 		String prismArchitectureSuffix = architecture.startsWith("x86") ? "" : "-" + architecture;
 		this.longName = shortName + prismArchitectureSuffix;
@@ -62,6 +63,8 @@ public class OperatingSystem {
 	 */
 	public final String architecture;
 	
+	public final String version;
+	
 	/**
 	 * OS name *and* architecture (like "osx-arm64"), except x86 which is unsuffixed.
 	 * Generally this is used by Prism launcher
@@ -74,7 +77,8 @@ public class OperatingSystem {
 	
 	@Override
 	public String toString() {
-		return String.format("os short name: '%s', long name: '%s', bitness: %d, arch: %s", shortName, longName, bitness, architecture);
+		return String.format("os short name: '%s', long name: '%s', bitness: %d, arch: %s, ver: %s",
+			shortName, longName, bitness, architecture, version);
 	}
 	
 	static {
@@ -86,6 +90,7 @@ public class OperatingSystem {
 		String osName = System.getProperty("os.name").toLowerCase(Locale.ROOT);
 		String dataModel = System.getProperty("sun.arch.data.model").toLowerCase(Locale.ROOT); //Surely theres a nicer way to do this
 		String osArch = System.getProperty("os.arch").toLowerCase(Locale.ROOT);
+		String version = System.getProperty("os.version").toLowerCase(Locale.ROOT);
 		
 		if(osName.contains("win")) shortName = "windows";
 		else if(osName.contains("mac")) shortName = "osx";
@@ -101,7 +106,7 @@ public class OperatingSystem {
 			else architecture = "x86";
 		}
 		
-		CURRENT = new OperatingSystem(shortName, bitness, architecture);
+		CURRENT = new OperatingSystem(shortName, bitness, architecture, version);
 		
 		System.out.println("current " + CURRENT);
 	}

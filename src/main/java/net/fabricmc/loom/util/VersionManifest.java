@@ -37,6 +37,7 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 /**
  * A per-version Minecraft version manifest.
@@ -135,13 +136,18 @@ public class VersionManifest {
 			//no rules -> always allowed
 			if(rules == null || rules.length == 0) return true;
 			
-			//TODO copypaste from last time, logic is weird
+			//TODO this is a wreck
 			boolean success = false;
-			
 			for (Rule rule : this.rules) {
 				if (rule.os != null && rule.os.name != null) {
 					if (os.matches(rule.os.name)) {
-						return rule.action.equalsIgnoreCase("allow");
+						if(rule.os.version != null) {
+							if (Pattern.matches(rule.os.version, os.version)) {
+								success = rule.action.equalsIgnoreCase("allow");
+							}
+						} else {
+							success = rule.action.equalsIgnoreCase("allow");
+						}
 					}
 				} else {
 					success = rule.action.equalsIgnoreCase("allow");
@@ -195,6 +201,7 @@ public class VersionManifest {
 
 		private static class OS {
 			String name;
+			String version;
 		}
 	}
 }

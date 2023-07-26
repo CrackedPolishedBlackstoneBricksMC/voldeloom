@@ -73,15 +73,14 @@ public class VanillaDependencyFetcher extends NewProvider<VanillaDependencyFetch
 		Check.notNull(librariesBaseUrl, "libraries base URL");
 		
 		nativesDir = getOrCreate(getCacheDir().resolve("natives").resolve(props.subst(nativesDirName)), dest -> {
-			//TODO: make it configurable !!
-			Path prismOverlayManifestPath = getOrCreate(getCacheDir().resolve("natives").resolve("prism-launcher-lwjgl.json"), dest2 -> {
-				log.info("|-> Downloading prism launcher lwjgl 2.9.4 information...");
-				newDownloadSession("https://meta.prismlauncher.org/v1/org.lwjgl/2.9.4-nightly-20150209.json")
-					.dest(dest2)
-					.gzip(true)
-					.download();
-			});
-			VersionManifest prismOverlayManifest = VersionManifest.read(prismOverlayManifestPath);
+//			Path prismOverlayManifestPath = getOrCreate(getCacheDir().resolve("natives").resolve("prism-launcher-lwjgl.json"), dest2 -> {
+//				log.info("|-> Downloading prism launcher lwjgl 2.9.4 information...");
+//				newDownloadSession("https://meta.prismlauncher.org/v1/org.lwjgl/2.9.4-nightly-20150209.json")
+//					.dest(dest2)
+//					.gzip(true)
+//					.download();
+//			});
+//			VersionManifest prismOverlayManifest = VersionManifest.read(prismOverlayManifestPath);
 			
 			log.info("|-> Downloading native libraries into {}", dest);
 			Files.createDirectories(dest);
@@ -91,15 +90,15 @@ public class VanillaDependencyFetcher extends NewProvider<VanillaDependencyFetch
 				
 				VersionManifest.LibraryArtifact nativeArtifact = library.nativeArtifactFor(OperatingSystem.CURRENT);
 				
-				//If the prism launcher manifest has an artifact, grab it instead
-				VersionManifest.Library prismLibraryInstead = prismOverlayManifest.librariesByArtifactName.get(library.getMavenArtifactName());
-				if(prismLibraryInstead != null) {
-					VersionManifest.LibraryArtifact prismNativeArtifactInstead = prismLibraryInstead.nativeArtifactFor(OperatingSystem.CURRENT);
-					if(prismNativeArtifactInstead != null) {
-						log.lifecycle("!! Swapping Mojang's '" + library.name + "' for '" + prismLibraryInstead.name + "' provided by Prism Launcher");
-						nativeArtifact = prismNativeArtifactInstead;
-					}
-				}
+//				//If the prism launcher manifest has an artifact, grab it instead
+//				VersionManifest.Library prismLibraryInstead = prismOverlayManifest.librariesByArtifactName.get(library.getMavenArtifactName());
+//				if(prismLibraryInstead != null) {
+//					VersionManifest.LibraryArtifact prismNativeArtifactInstead = prismLibraryInstead.nativeArtifactFor(OperatingSystem.CURRENT);
+//					if(prismNativeArtifactInstead != null) {
+//						log.lifecycle("!! Swapping Mojang's '" + library.name + "' for '" + prismLibraryInstead.name + "' provided by Prism Launcher");
+//						nativeArtifact = prismNativeArtifactInstead;
+//					}
+//				}
 				
 				//download the natives jar
 				Path libJar = newDownloadSession(nativeArtifact.url)
