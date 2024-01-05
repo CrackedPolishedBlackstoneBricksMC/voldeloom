@@ -1,19 +1,28 @@
 package net.fabricmc.loom.mcp;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
+import java.io.BufferedInputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
+
+import net.fabricmc.loom.util.Gdiff;
+import org.apache.commons.compress.compressors.pack200.Pack200CompressorInputStream;
+import org.tukaani.xz.LZMAInputStream;
 
 public class Binpatch {
-	public String originalFilename;
+	public String originalFilename; //my own debug logging only
 
 	public String sourceClassName;
-	public String targetClassName;
 	public boolean existsAtTarget; //<- if `false`, the patch expects to be applied to a zero-byte input and creates a brand new file at sourceClassName
-	public int checksum;
-	public int patchLength;
 	public byte[] patchBytes;
 	
 	//see ClassPatchManager#readPatch. It's the same among 1.6.4 and 1.7.10.
@@ -22,110 +31,90 @@ public class Binpatch {
 		
 		DataInputStream dataIn = new DataInputStream(in); //Not using try-with-resources. I do not want to close the provided stream.
 		
-		dataIn.readUTF(); //internal 'name' field, unused
+		dataIn.readUTF(); //internal 'name' field, unused by both me and forge
 		sourceClassName = dataIn.readUTF();
-		targetClassName = dataIn.readUTF();
+		dataIn.readUTF(); //targetClassName, we don't use it
 		existsAtTarget = dataIn.readBoolean();
-		if(existsAtTarget) checksum = dataIn.readInt();
-		patchLength = dataIn.readInt();
-		
+		if(existsAtTarget) dataIn.readInt(); //adler32 source class checksum, we don't use it
+
+		int patchLength = dataIn.readInt();
 		patchBytes = new byte[patchLength];
 		dataIn.readFully(patchBytes);
 		
 		return this;
 	}
-	
-	//The gdiff algorithm is described at https://www.w3.org/TR/NOTE-gdiff-19970825.html .
-	//It's merely a note, not a published standard.
+
 	public byte[] apply(byte[] originalBytes) {
-		ByteArrayInputStream patch = new ByteArrayInputStream(patchBytes);
-		//empirically: this estimate for the output size fits most 1.6.4 binpatches, and the ones that don't fit only grow the array once
-		//here's a plot of "(size after patch/size before patch)" on forge 1.6: https://i.imgur.com/f41kemy.png
-		//the smallest is client GuiControls (0.7x) and the largest is server WorldProvider (4.1x)
-		ByteArrayOutputStream out = new ByteArrayOutputStream((int) (originalBytes.length * 2.2));
-		
-		int magic = readMagic(patch);
-		if(magic != 0xD1FFD1FF) throw new RuntimeException("Invalid magic: " + Integer.toHexString(magic) + ", expected 0xD1FFD1FF");
-		
-		int version = readUbyte(patch);
-		if(version != 4) throw new RuntimeException("Invalid version: " + version + ", expected version 4");
-		
-		done: while(true) {
-			int instruction = readUbyte(patch);
-			if(instruction == -1) throw new RuntimeException("Unexpected end-of-patch");
-			if(instruction > 255) throw new RuntimeException("Not a byte: " + instruction);
-			
-			switch(instruction) {
-				//Instruction 0: end.
-				case 0: break done;
-				
-				//Instructions 1..=246: copy [instruction] many bytes from patch to output.
-				//Instructions 247/248: read (ushort/uint), copy that many bytes from patch to output.
-				default:  copyFromPatch(patch, instruction,       out); break; //<- forge patches use this
-				case 247: copyFromPatch(patch, readUshort(patch), out); break; //<- forge patches use this
-				case 248: copyFromPatch(patch, readInt(patch),    out); break;
-				
-				//Instructions 249..=255: copy a segment of the original file into the output.
-				//first read "absolute byte offset in original file", then read "length to copy".
-				//Data types vary per-instruction to accomodate different sizes of number.
-				case 249: out.write(originalBytes, readUshort(patch),    readUbyte(patch));  break; //<- forge patches use this
-				case 250: out.write(originalBytes, readUshort(patch),    readUshort(patch)); break;
-				case 251: out.write(originalBytes, readUshort(patch),    readInt(patch));    break;
-				case 252: out.write(originalBytes, readInt(patch),       readUbyte(patch));  break;
-				case 253: out.write(originalBytes, readInt(patch),       readUshort(patch)); break;
-				case 254: out.write(originalBytes, readInt(patch),       readInt(patch));    break;
-				case 255: out.write(originalBytes, readTruncLong(patch), readInt(patch));    break;
+		return Gdiff.apply(originalBytes, patchBytes);
+	}
+
+	public static class Patchset {
+		private final Map<String, List<Binpatch>> modifications = new HashMap<>();
+		private final List<Binpatch> additions = new ArrayList<>();
+		public int modificationCount; //for logging
+
+		private void add(Binpatch patch) {
+			if(patch.existsAtTarget) {
+				//Forge technically supports multiple binpatches applied to the same class. Patch order is based off zip encounter order.
+				//Thing is, I don't think Forge actually uses the feature.
+				modifications.computeIfAbsent(patch.sourceClassName.replace('.', '/'), __ -> new ArrayList<>(1)).add(patch);
+				modificationCount++;
+			} else {
+				//This patch invents a class out of thin air.
+				//Forge saves these into the same collection as the modification-style binpatches, since it does binpatching on-the-fly.
+				//We're doing patching ahead-of-time though, so it's alright to just dump these all into a list.
+				additions.add(patch);
 			}
 		}
-		
-		return out.toByteArray();
-	}
-	
-	private void copyFromPatch(ByteArrayInputStream patch, int howMany, ByteArrayOutputStream out) {
-		byte[] buffer = new byte[howMany];
-		int actuallyRead = patch.read(buffer, 0, buffer.length);
-		if(actuallyRead != buffer.length) throw new RuntimeException("I thought ByteArrayInputStream.read() always filled the buffer");
-		out.write(buffer, 0, buffer.length);
-	}
-	
-	private int readUbyte(ByteArrayInputStream in) {
-		return in.read();
-	}
-	
-	private int readUshort(ByteArrayInputStream in) {
-		return (int) readBigEndian(in, 2, "ushort");
-	}
-	
-	private int readMagic(ByteArrayInputStream in) {
-		return (int) readBigEndian(in, 4, "magic number");
-	}
-	
-	//"If a number larger than 1^31-1 bytes is needed for a command command that takes only int arguments,
-	//the command must be split into multiple commands.". hehe. png has something similar.
-	//this clause, in standards, is known as the "i bet you're using some shitty language without unsigned types" clause
-	private int readInt(ByteArrayInputStream in) {
-		int result = (int) readBigEndian(in, 4, "int");
-		if(result < 0) throw new RuntimeException("int with the high bit set");
-		return result;
-	}
-	
-	//We assume the input file fits in a Java array (<2gb), so if we get a `long` we can't use it to index anyway.
-	private int readTruncLong(ByteArrayInputStream in) {
-		long result = readBigEndian(in, 8, "long");
-		if(result < 0 || result > Integer.MAX_VALUE) throw new RuntimeException("long that can't be truncated to an int");
-		return (int) result;
-	}
-	
-	private long readBigEndian(ByteArrayInputStream in, int bytes, String type) {
-		long result = 0;
-		for(int i = 0; i < bytes; i++) {
-			result <<= 8;
-			
-			int read = in.read();
-			if(read == -1) throw new RuntimeException("Unexpected end of file (byte " + i + " of " + type + ")");
-			
-			result |= read;
+
+		//All binpatches that existAtTarget for the given target
+		public List<Binpatch> getPatchesFor(String sourceClassInternalName) {
+			List<Binpatch> patches = modifications.get(sourceClassInternalName);
+			return patches == null ? Collections.emptyList() : patches;
 		}
-		return result;
+
+		//All binpatches that don't existAtTarget
+		public List<Binpatch> getAdditions() {
+			return additions;
+		}
+	}
+
+	public static class Pack {
+		public final Patchset client = new Patchset();
+		public final Patchset server = new Patchset();
+
+		/**
+		 * Reads a Forge binpatches file, "binpatches.pack.lzma". The patches are wrapped in a jar, which is wrapped in pack200,
+		 * which is wrapped further in a layer of LZMA compression. I guess they were really worried about filesize?
+		 *
+		 * Previous versions of voldeloom worked around a bug in commons-compress's Pack200CompressorInputStream.
+		 * https://github.com/CrackedPolishedBlackstoneBricksMC/voldeloom/blob/10cb0c2f1d51c0570902e16d410868114baaba03/src/main/java/net/fabricmc/loom/mcp/BinpatchesPack.java#L63-L92
+		 * This bug appears to be fixed.
+		 */
+		public Pack read(Path binpatchesPackLzma) {
+			try(InputStream binpatchesPackLzmaIn = new BufferedInputStream(Files.newInputStream(binpatchesPackLzma));
+			    InputStream lzmaDecompressor = new LZMAInputStream(binpatchesPackLzmaIn);
+			    InputStream pack200Decompressor = new Pack200CompressorInputStream(lzmaDecompressor);
+			    ZipInputStream binpatchesJar = new ZipInputStream(pack200Decompressor)
+			) {
+				ZipEntry entry;
+				while((entry = binpatchesJar.getNextEntry()) != null) {
+					if(entry.isDirectory() || !entry.getName().endsWith(".binpatch")) continue;
+
+					//Forge, at startup, reads either from binpatch/client/ or binpatch/server/ based on physical side.
+					//Let's read both patchsets at the same time.
+					Patchset target;
+					if(entry.getName().startsWith("binpatch/client/")) target = client;
+					else if(entry.getName().startsWith("binpatch/server/")) target = server;
+					else continue;
+
+					target.add(new Binpatch().read(entry.getName(), binpatchesJar));
+				}
+			} catch (Exception e) {
+				throw new RuntimeException("Failed to read binpatches.pack.lzma: " + e.getMessage(), e);
+			}
+
+			return this;
+		}
 	}
 }

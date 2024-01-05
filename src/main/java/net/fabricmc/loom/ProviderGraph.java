@@ -1,5 +1,10 @@
 package net.fabricmc.loom;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+
 import net.fabricmc.loom.mcp.McpMappings;
 import net.fabricmc.loom.mcp.Srg;
 import net.fabricmc.loom.newprovider.AccessTransformer;
@@ -20,11 +25,6 @@ import net.fabricmc.loom.task.GenSourcesTask;
 import net.fabricmc.loom.util.Props;
 import org.gradle.api.Project;
 import org.gradle.api.logging.Logger;
-
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Manages the tangle of DependencyProviders.
@@ -96,8 +96,8 @@ public class ProviderGraph {
 				.client(vanillaJars.getClientJar())
 				.server(vanillaJars.getServerJar())
 				.forge(forge.getPath())
-				.binpatchedClientName(mcPrefix + "-client-binpatched-{HASH}")
-				.binpatchedServerName(mcPrefix + "-server-binpatched-{HASH}")
+				.binpatchedClientName(mcPrefix + "-client-binpatched-{HASH}.jar")
+				.binpatchedServerName(mcPrefix + "-server-binpatched-{HASH}.jar")
 				.binpatch();
 			
 			//then merge jars

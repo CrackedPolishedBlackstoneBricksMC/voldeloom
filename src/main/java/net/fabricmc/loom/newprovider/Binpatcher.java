@@ -7,9 +7,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.List;
 import java.util.function.Supplier;
 
 import javax.annotation.Nonnull;
@@ -17,7 +15,6 @@ import javax.annotation.Nullable;
 
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.mcp.Binpatch;
-import net.fabricmc.loom.mcp.BinpatchesPack;
 import net.fabricmc.loom.util.Suppliers;
 import net.fabricmc.loom.util.ZipUtil;
 import org.gradle.api.Project;
@@ -26,6 +23,8 @@ public class Binpatcher extends NewProvider<Binpatcher> {
 	public Binpatcher(Project project, LoomGradleExtension extension) {
 		super(project, extension);
 	}
+
+	private static final byte[] EMPTY_BYTE_ARRAY = new byte[0];
 	
 	//inputs
 	private Path client, server, forge;
@@ -77,15 +76,16 @@ public class Binpatcher extends NewProvider<Binpatcher> {
 			//1. This version of Forge does not use binpatches. (supplier == null).
 			//2. Forge uses binpatches, but that's all I care to know because the binpatched files already exist. (supplier != null, goes uncalled)
 			//3. Forge uses binpatches, but the binpatched files don't exist yet, so I actually need to parse the binpatches too. (supplier != null, called)
-			@Nullable Supplier<BinpatchesPack> binpatchesSupplier;
+			@Nullable Supplier<Binpatch.Pack> binpatchesSupplier;
 			
 			Path binpatchesPath = forgeFs.getPath("binpatches.pack.lzma");
 			if(Files.exists(binpatchesPath)) {
 				log.lifecycle("|-> Yes, this version of Forge does contain binpatches.");
 				props.put("has-binpatches", "yes");
+				props.put("binpatch-algo", "2"); //i changed a decent bit of binpatch code, want to make sure it gets tested
 				binpatchesSupplier = Suppliers.memoize(() -> { //<- memoized!
 					log.lifecycle("\\-> Parsing binpatches...");
-					return new BinpatchesPack().read(log, binpatchesPath);
+					return new Binpatch.Pack().read(binpatchesPath);
 				});
 			} else {
 				log.lifecycle("|-> No, this version of Forge does not contain binpatches.");
@@ -105,61 +105,80 @@ public class Binpatcher extends NewProvider<Binpatcher> {
 		return this;
 	}
 	
-	private void doPatch(Path output, boolean client, @Nonnull Supplier<BinpatchesPack> binpatchesPackSupplier) throws Exception {
-		BinpatchesPack binpatchesPack = binpatchesPackSupplier.get();
-		Map<String, Binpatch> binpatches = client ? binpatchesPack.clientBinpatches : binpatchesPack.serverBinpatches;
-		Path input = client ? this.client : server;
-		
+	private void doPatch(Path output, boolean client, @Nonnull Supplier<Binpatch.Pack> binpatchesPackSupplier) throws Exception {
+		Binpatch.Pack binpatchesPack = binpatchesPackSupplier.get();
+
+		Binpatch.Patchset patchset = client ? binpatchesPack.client : binpatchesPack.server;
+		Path input = client ? this.client : this.server;
+
+		//populate outputFs with
+		// 1. files that don't have any corresponding patches
+		// 2. patched versions of files that do have a corresponding patch
+		log.lifecycle("\\-> Applying {} modifications to {} (and copying unpatched data)...", patchset.modificationCount, output);
 		try(FileSystem inputFs = ZipUtil.openFs(input); FileSystem outputFs = ZipUtil.createFs(output)) {
-			Set<Binpatch> unusedBinpatches = new HashSet<>(binpatches.values());
-			
 			Files.walkFileTree(inputFs.getPath("/"), new SimpleFileVisitor<Path>() {
 				@Override
 				public FileVisitResult preVisitDirectory(Path vanillaPath, BasicFileAttributes attrs) throws IOException {
 					Files.createDirectories(outputFs.getPath(vanillaPath.toString()));
 					return FileVisitResult.CONTINUE;
 				}
-				
+
 				@Override
 				public FileVisitResult visitFile(Path vanillaPath, BasicFileAttributes attrs) throws IOException {
-					Path patchedPath = outputFs.getPath(vanillaPath.toString());
-					String filename = vanillaPath.toString().substring(1); //remove leading slash
-					
+					String filename = vanillaPath.toString();
+					Path patchedPath = outputFs.getPath(filename);
+
 					if(filename.endsWith(".class")) {
-						Binpatch binpatch = binpatches.get(filename.substring(0, filename.length() - ".class".length()));
-						if(binpatch != null) {
-							log.debug("Binpatching {}...", filename);
-							Files.write(patchedPath, binpatch.apply(Files.readAllBytes(vanillaPath)));
-							unusedBinpatches.remove(binpatch);
+						//just guess the vanilla class internal name from its filename (maybe a little lazy)
+						String vanillaClassInternalName = filename.substring(
+							1, //remove leading slash
+							filename.length() - ".class".length() //remove file extension
+						);
+
+						List<Binpatch> patches = patchset.getPatchesFor(vanillaClassInternalName);
+						if(!patches.isEmpty()) {
+							if(patches.size() != 1) {
+								log.lifecycle("Found multiple patches ({}) for '{}'. Huh! That's interesting!", patches.size(), vanillaClassInternalName);
+							}
+
+							log.info("Binpatching {}...", filename);
+							Files.write(patchedPath, applyPatchSequence(Files.readAllBytes(vanillaPath), patches));
 							return FileVisitResult.CONTINUE;
 						}
 					}
-					
+
 					Files.copy(vanillaPath, patchedPath);
 					return FileVisitResult.CONTINUE;
 				}
 			});
-			
-			for(Binpatch unusedPatch : unusedBinpatches) {
-				if(unusedPatch.existsAtTarget) {
-					log.warn("Unused binpatch with 'existsAtTarget = true', {}", unusedPatch.originalFilename);
+
+			//3. files that don't exist in the source jar at all. forge patches them in from thin air.
+			log.lifecycle("\\-> Applying {} additions to {}...", patchset.getAdditions().size(), output);
+			for(Binpatch addPatch : patchset.getAdditions()) {
+				log.info("Binpatching (!existsAtTarget) {}...", addPatch.sourceClassName);
+
+				//guess the destination filename.
+				// (usage of .sourceClassName instead of .targetClassName is correct, we're keeping things unmapped for now.)
+				String[] split = addPatch.sourceClassName.split("\\.");
+				split[split.length - 1] += ".class";
+				Path patchedPath = outputFs.getPath("/", split);
+
+				if(Files.exists(patchedPath)) {
+					log.warn("Binpatch with 'existsAtTarget = false' for a file that does indeed exist at the target, {}", addPatch.originalFilename);
 				} else {
-					log.debug("Binpatching (!existsAtTarget) {}...", unusedPatch.sourceClassName);
-					
-					String[] split = unusedPatch.sourceClassName.split("\\.");
-					split[split.length - 1] += ".class";
-					Path path = outputFs.getPath("/", split);
-					
-					if(Files.exists(path)) {
-						log.warn("Unused binpatch with 'existsAtTarget = false' for a file that already exists, {}", unusedPatch.originalFilename);
-					} else {
-						if(path.getParent() != null) Files.createDirectories(path.getParent());
-						Files.write(path, unusedPatch.apply(new byte[0]));
-					}
+					if(patchedPath.getParent() != null) Files.createDirectories(patchedPath.getParent());
+					Files.write(patchedPath, addPatch.apply(EMPTY_BYTE_ARRAY));
 				}
 			}
 		}
 		
-		log.info("|-> Binpatch success.");
+		log.lifecycle("|-> Binpatch success.");
+	}
+
+	private static byte[] applyPatchSequence(byte[] input, List<Binpatch> patches) {
+		for(Binpatch patch : patches) {
+			input = patch.apply(input);
+		}
+		return input;
 	}
 }
