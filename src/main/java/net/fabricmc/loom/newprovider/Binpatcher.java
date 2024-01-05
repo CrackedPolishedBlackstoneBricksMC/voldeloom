@@ -1,14 +1,5 @@
 package net.fabricmc.loom.newprovider;
 
-import net.fabricmc.loom.LoomGradleExtension;
-import net.fabricmc.loom.mcp.Binpatch;
-import net.fabricmc.loom.mcp.BinpatchesPack;
-import net.fabricmc.loom.util.Suppliers;
-import net.fabricmc.loom.util.ZipUtil;
-import org.gradle.api.Project;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.nio.file.FileSystem;
 import java.nio.file.FileVisitResult;
@@ -20,6 +11,16 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
+import net.fabricmc.loom.LoomGradleExtension;
+import net.fabricmc.loom.mcp.Binpatch;
+import net.fabricmc.loom.mcp.BinpatchesPack;
+import net.fabricmc.loom.util.Suppliers;
+import net.fabricmc.loom.util.ZipUtil;
+import org.gradle.api.Project;
 
 public class Binpatcher extends NewProvider<Binpatcher> {
 	public Binpatcher(Project project, LoomGradleExtension extension) {
@@ -141,7 +142,7 @@ public class Binpatcher extends NewProvider<Binpatcher> {
 			
 			for(Binpatch unusedPatch : unusedBinpatches) {
 				if(unusedPatch.existsAtTarget) {
-					log.warn("Unused binpatch with 'existsAtTarget = true', {}", unusedPatch.originalEntryName);
+					log.warn("Unused binpatch with 'existsAtTarget = true', {}", unusedPatch.originalFilename);
 				} else {
 					log.debug("Binpatching (!existsAtTarget) {}...", unusedPatch.sourceClassName);
 					
@@ -150,7 +151,7 @@ public class Binpatcher extends NewProvider<Binpatcher> {
 					Path path = outputFs.getPath("/", split);
 					
 					if(Files.exists(path)) {
-						log.warn("Unused binpatch with 'existsAtTarget = false' for a file that already exists, {}", unusedPatch.originalEntryName);
+						log.warn("Unused binpatch with 'existsAtTarget = false' for a file that already exists, {}", unusedPatch.originalFilename);
 					} else {
 						if(path.getParent() != null) Files.createDirectories(path.getParent());
 						Files.write(path, unusedPatch.apply(new byte[0]));

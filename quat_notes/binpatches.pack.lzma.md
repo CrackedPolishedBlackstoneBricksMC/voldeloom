@@ -52,24 +52,35 @@ The `.binpatch` file format is defined in terms of `DataInputStream`:
 
 If the `exists` field is `true`, `patchBytes` is a sequence of [gdiff instructions](https://www.w3.org/TR/NOTE-gdiff-19970825.html) that transforms a vanilla class into a patched class.
 
-* `sourceClassName`: The class to diff against.
-* `targetClassName`: Same as `sourceClassName`.
-* `checksum`: ADLER-32 hash of the vanilla class, before patches are applied.
-  * Forge checks this unless `-Dfml.ignorePatchDiscrepancies=true` before applying the patch, so it doesn't corrupt some class it doesn't expect.
+If the `exists` field is `false`, patchBytes is still a sequence of gdiff instructions, but the sequence doesn't contain any COPY commands; i.e. the patch never looks at anything from the input file. A patch with `exists = false` describes the difference *from* a zero-byte file *to* the destination.
 
-If the `exists` field is `false`, patchBytes is still a sequence of gdiff instructions, but the sequence doesn't contain any COPY commands. This means the patch never looks at anything from the input file, which can be an empty 0-byte stream. This feature is sometimes used when Forge adds a new inner class (e.g. switchmaps).
-
-* `sourceClassName`: The empty string(?)
-* `targetClassName`: The class this binpatch creates.
-* `checksum`: Not present in the file.
-
-And fields common to both modes:
-
-* `name`: Kind of strange, since the `.binpatch` file already *has* a filename...?
+* `name`: Internal name of the patch. Afaik this is *only* used for debugging in `ClassPatch#toString`.
+  * It is *usually* similar to `sourceClassName` but it shouldn't br relied upon for this purpose.
+* `sourceClassName`: The proguarded name of the class to diff against.
+  * It is in 'package' format (dots separate packages).
+  * When Forge's classloader attempts to load a class with a name `xyz`, it will look for binpatches whos `sourceClassName` is `xyz`.
+  * (So the `sourceClassName` is still relevant for `exists = false` classes.)
+* `targetClassName`: The *MCP mapped* name of the class to create, in 'package' format.
+  * Used mainly as another layer of insurance that the patch is applied to the correct class. (Launchwrapper `IClassTransformer` passes in both the proguarded & mapped names, and forge checks both.)
+  * The patch *itself* does not create a class with this name. It creates a class with the proguarded name.
+* `exists`: As above.
+* `checksum`:
+  * If `exists = true`, this is the ADLER-32 hash of the bytes of the *vanilla* class *before* applying the patch.
+  * Forge refuses to perform the patch (unless `-Dfml.ignorePatchDiscrepancies=true`) unless the hashes match.
+  * If `exists = false`, this field is not present in the file at all.
 * `patchLength`: The length, in bytes, of the rest of the file.
 * `patchBytes`: The actual sequence of gdiff instructions.
 
-TODO: document the name/className parameters more
+## Trivia
+
+* Forge reads either the client or the server patchset based on directory. The client reads from `./binpatches/client/` and the server reads from `./binpatches/server`.
+* Even within the same patchset, it's possible for multiple patches to exist for a given source file.
+  * Patch order is based off encounter order in the zip.
+  * Forge does not use this feature.
+* Why are `exists = false` patches used?
+  * Sometimes Forge "patches off a `@SideOnly` annotation" with `exists = false` binpatches.
+  * Sometimes forge patches *in* an incorrectly-sided `@SideOnly` class. Weird. One exists under `net.minecraft.client.ClientBrandRetriever`.
+  * Switchmaps, of course. 
 
 ## And the patch data?
 

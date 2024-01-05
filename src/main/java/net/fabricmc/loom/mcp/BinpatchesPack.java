@@ -1,8 +1,6 @@
 package net.fabricmc.loom.mcp;
 
 import java.io.BufferedInputStream;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -33,40 +31,26 @@ public class BinpatchesPack {
 		try(InputStream binpatchesPackLzmaIn = new BufferedInputStream(Files.newInputStream(binpatchesPackLzma));
 		    InputStream lzmaDecompressor = new LZMAInputStream(binpatchesPackLzmaIn);
 		    InputStream pack200Decompressor = new Pack200CompressorInputStream(lzmaDecompressor);
-		    ByteArrayOutputStream binpatchesJarBytes = new ByteArrayOutputStream()) {
+		    ZipInputStream binpatchesJar = new ZipInputStream(pack200Decompressor)
+		) {
+			ZipEntry entry;
+			while((entry = binpatchesJar.getNextEntry()) != null) {
+				if(entry.isDirectory() || !entry.getName().endsWith(".binpatch")) continue;
 
-			//TODO: I don't think we need this buffering anymore either; I used this when dumping the intermediate products to disk while reverse-engineering.
+				//Forge, at startup, reads either from binpatch/client/ or binpatch/server/ based on physical side.
+				//Let's read both patchsets at the same time.
+				Map<String, Binpatch> target;
+				if(entry.getName().startsWith("binpatch/client/")) target = clientBinpatches;
+				else if(entry.getName().startsWith("binpatch/server/")) target = serverBinpatches;
+				else continue;
 
-			log.info("--> Decompressing {}...", binpatchesPackLzma);
-			
-			//standard java boilerplate to pour one stream into another
-			byte[] shuttle = new byte[4096];
-			int readBytes;
-			while((readBytes = pack200Decompressor.read(shuttle)) != -1) binpatchesJarBytes.write(shuttle, 0, readBytes);
-			
-			log.info("--> Parsing decompressed jar...");
-			byte[] binpatchesJarByteArray = binpatchesJarBytes.toByteArray();
-			
-			//Here, using oldschool JarInputStream instead of zip filesystem, because the jar doesn't exist on-disk.
-			try(ZipInputStream binpatchesJar = new ZipInputStream(new ByteArrayInputStream(binpatchesJarByteArray))) {
-				ZipEntry entry;
-				while((entry = binpatchesJar.getNextEntry()) != null) {
-					if(entry.isDirectory() || !entry.getName().endsWith(".binpatch")) continue;
-					
-					//what's the worst that could happen
-					Map<String, Binpatch> target;
-					if(entry.getName().startsWith("binpatch/client/")) target = clientBinpatches;
-					else if(entry.getName().startsWith("binpatch/server/")) target = serverBinpatches;
-					else continue;
-					
-					Binpatch binpatch = new Binpatch().read(entry.getName(), binpatchesJar);
-					target.put(binpatch.sourceClassName.replace('.', '/'), binpatch);
-				}
+				Binpatch binpatch = new Binpatch().read(entry.getName(), binpatchesJar);
+				target.put(binpatch.sourceClassName.replace('.', '/'), binpatch);
 			}
 		} catch (Exception e) {
 			throw new RuntimeException("Failed to read binpatches.pack.lzma: " + e.getMessage(), e);
 		}
-		
+
 		return this;
 	}
 }

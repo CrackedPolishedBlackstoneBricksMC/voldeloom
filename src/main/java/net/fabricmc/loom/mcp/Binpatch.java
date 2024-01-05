@@ -7,8 +7,8 @@ import java.io.IOException;
 import java.io.InputStream;
 
 public class Binpatch {
-	public String originalEntryName;
-	public String name;
+	public String originalFilename;
+
 	public String sourceClassName;
 	public String targetClassName;
 	public boolean existsAtTarget; //<- if `false`, the patch expects to be applied to a zero-byte input and creates a brand new file at sourceClassName
@@ -17,12 +17,12 @@ public class Binpatch {
 	public byte[] patchBytes;
 	
 	//see ClassPatchManager#readPatch. It's the same among 1.6.4 and 1.7.10.
-	public Binpatch read(String originalEntryName, InputStream in) throws IOException {
-		this.originalEntryName = originalEntryName;
+	public Binpatch read(String originalFilename, InputStream in) throws IOException {
+		this.originalFilename = originalFilename;
 		
 		DataInputStream dataIn = new DataInputStream(in); //Not using try-with-resources. I do not want to close the provided stream.
 		
-		name = dataIn.readUTF();
+		dataIn.readUTF(); //internal 'name' field, unused
 		sourceClassName = dataIn.readUTF();
 		targetClassName = dataIn.readUTF();
 		existsAtTarget = dataIn.readBoolean();
