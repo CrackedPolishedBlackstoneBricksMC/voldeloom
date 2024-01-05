@@ -26,31 +26,50 @@ Instead, patches are done in a mildly less copyright-infringing way. The class `
 * In each directory there are files with names like `net.minecraft.block.Block.binpatch`, `net.minecraft.block.BlockBaseRailLogic.binpatch`, etc
 * At runtime, Forge picks the `client` or `server` directory
 * Deltas are applied with a modified version of `com.nothome.delta`, algorithm is the same but the library was modified to not use Trove
-  * the algorithm is called "GDiff" i think
+  * the algorithm is called "GDiff"
 
 ## Parsing pack200
 
-Pack200 is removed from the jdk so you need a third party decompresser. ~~Apache Commons Compress has one, but it's... broken?~~
+pack200 is an obscure, complex, and highly domain-specific compression scheme for Java archives, dating back to the applet days when download sizes were a big concern. It has been removed from the jdk so you need a third party decompressor such as Apache Commons Compress.
 
-> ~~Failed to unpack Jar:org.apache.commons.compress.harmony.pack200.Pack200Exception: Expected to read 48873 bytes but read 3274~~
+It was probably not the best compression scheme to use - most of its complexity is about ways to compress class files, not resource files like these `.binpatch`es - but it's what we got!
 
-Nah, apache commons-compress is broken in a different way! See https://github.com/apache/commons-compress/pull/360 . You can fix it with a carefully crafted `InputStream`.
+For a while commons-compress's pack200 parser was broken, giving you errors like `Failed to unpack Jar:org.apache.commons.compress.harmony.pack200.Pack200Exception: Expected to read 48873 bytes but read 3274`. See https://github.com/apache/commons-compress/pull/360 . You can fix it by wrapping the input in an `InputStream` that returns `false` from `markSupported`, and returns any nonzero value from `available`, [like this](https://github.com/CrackedPolishedBlackstoneBricksMC/voldeloom/blob/10cb0c2f1d51c0570902e16d410868114baaba03/src/main/java/net/fabricmc/loom/mcp/BinpatchesPack.java#L63-L92). The bug has been fixed so I removed the fix from voldeloom.
 
 # Binpatches themselves
 
-The file format is defined in terms of `DataInputStream`:
+The `.binpatch` file format is defined in terms of `DataInputStream`:
 
-| field | read with |
-| --: | :-- |
-| name | `readUTF` |
-| sourceClassName | `readUTF` |
-| targetClassName | `readUTF` |
-| exists | `readBoolean` |
-| checksum | `readInt` if "exists", otherwise zero-length |
-| patchLength | `readInt` |
-| patchBytes | `readFully` into a buffer the size of `patchLength` |
+|           field | read with                                           |
+|----------------:|:----------------------------------------------------|
+|            name | `readUTF`                                           |
+| sourceClassName | `readUTF`                                           |
+| targetClassName | `readUTF`                                           |
+|          exists | `readBoolean`                                       |
+|        checksum | if "exists", call `readInt`; else 0                 |
+|     patchLength | `readInt`                                           |
+|      patchBytes | `readFully` into a buffer the size of `patchLength` |
 
-TODO: investigate the class name parameters (i don't think i need this weird filename-parsing hack maybe)
+If the `exists` field is `true`, `patchBytes` is a sequence of [gdiff instructions](https://www.w3.org/TR/NOTE-gdiff-19970825.html) that transforms a vanilla class into a patched class.
+
+* `sourceClassName`: The class to diff against.
+* `targetClassName`: Same as `sourceClassName`.
+* `checksum`: ADLER-32 hash of the vanilla class, before patches are applied.
+  * Forge checks this unless `-Dfml.ignorePatchDiscrepancies=true` before applying the patch, so it doesn't corrupt some class it doesn't expect.
+
+If the `exists` field is `false`, patchBytes is still a sequence of gdiff instructions, but the sequence doesn't contain any COPY commands. This means the patch never looks at anything from the input file, which can be an empty 0-byte stream. This feature is sometimes used when Forge adds a new inner class (e.g. switchmaps).
+
+* `sourceClassName`: The empty string(?)
+* `targetClassName`: The class this binpatch creates.
+* `checksum`: Not present in the file.
+
+And fields common to both modes:
+
+* `name`: Kind of strange, since the `.binpatch` file already *has* a filename...?
+* `patchLength`: The length, in bytes, of the rest of the file.
+* `patchBytes`: The actual sequence of gdiff instructions.
+
+TODO: document the name/className parameters more
 
 ## And the patch data?
 

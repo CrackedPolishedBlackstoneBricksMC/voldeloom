@@ -1,13 +1,8 @@
 package net.fabricmc.loom.mcp;
 
-import org.apache.commons.compress.compressors.pack200.Pack200CompressorInputStream;
-import org.gradle.api.logging.Logger;
-import org.tukaani.xz.LZMAInputStream;
-
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.FilterInputStream;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -16,17 +11,32 @@ import java.util.Map;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
+import org.apache.commons.compress.compressors.pack200.Pack200CompressorInputStream;
+import org.gradle.api.logging.Logger;
+import org.tukaani.xz.LZMAInputStream;
+
 public class BinpatchesPack {
 	//Keys are classes in "internal name" format.
 	public final Map<String, Binpatch> clientBinpatches = new LinkedHashMap<>();
 	public final Map<String, Binpatch> serverBinpatches = new LinkedHashMap<>();
-	
+
+	/**
+	 * This method reads a Forge binpatches file, "binpatches.pack.lzma".
+	 * The patches are wrapped in a jar, which is wrapped in pack200, which is wrapped further in a layer of LZMA compression.
+	 * I guess they were really worried about filesize.
+	 *
+	 * Previous versions of voldeloom worked around a bug in commons-compress's Pack200CompressorInputStream.
+	 * https://github.com/CrackedPolishedBlackstoneBricksMC/voldeloom/blob/10cb0c2f1d51c0570902e16d410868114baaba03/src/main/java/net/fabricmc/loom/mcp/BinpatchesPack.java#L63-L92
+	 * This bug appears to be fixed.
+	 */
 	public BinpatchesPack read(Logger log, Path binpatchesPackLzma) {
 		try(InputStream binpatchesPackLzmaIn = new BufferedInputStream(Files.newInputStream(binpatchesPackLzma));
 		    InputStream lzmaDecompressor = new LZMAInputStream(binpatchesPackLzmaIn);
-		    InputStream pack200Decompressor = new Pack200CompressorInputStream(new OpenSesameInputStream(lzmaDecompressor));
+		    InputStream pack200Decompressor = new Pack200CompressorInputStream(lzmaDecompressor);
 		    ByteArrayOutputStream binpatchesJarBytes = new ByteArrayOutputStream()) {
-			
+
+			//TODO: I don't think we need this buffering anymore either; I used this when dumping the intermediate products to disk while reverse-engineering.
+
 			log.info("--> Decompressing {}...", binpatchesPackLzma);
 			
 			//standard java boilerplate to pour one stream into another
@@ -58,36 +68,5 @@ public class BinpatchesPack {
 		}
 		
 		return this;
-	}
-	
-	/*
-	 * The commons-compress pack200 implementation has a correctness bug where it blindly assumes read(byte[], int, int)
-	 * will *always* return *exactly* the requested number of bytes. It is legal for this method to return
-	 * fewer bytes, and in fact when passed basically any stream that doesn't implement the `available` hint,
-	 * it will wrap it in such a way where it's almost guaranteed to get an InputStream that doesn't adhere
-	 * to this assumption. We can work around this by looking carefully at how that wrapping code works,
-	 * and crafting an inputstream that causes commons-compress to not shoot itself in the foot.
-	 * See: https://github.com/apache/commons-compress/pull/360
-	 */
-	private static class OpenSesameInputStream extends FilterInputStream {
-		public OpenSesameInputStream(InputStream wrapped) {
-			super(wrapped);
-		}
-		
-		@Override
-		public boolean markSupported() {
-			//Causes Segment#unpackRead to wrap me in a BufferedInputStream, because those do support marking
-			return false;
-		}
-		
-		@Override
-		public int available() {
-			//This method is rather obscure - You're supposed to estimate how many bytes are available to read immediately.
-			//A return value of 0 doesn't mean the stream is depleted, it is just a hint that further calls to read() will block.
-			//BufferedInputStream#read(byte[]) usually tries to fill the entire user-provided buffer "as a convenience", calling
-			//the wrapped stream's read() until the whole buffer is full, but it doesn't want to block, so it will stop when the
-			//wrapped stream's `available()` returns 0. Let's just... not make it return 0, so it always fills the entire user-provided buffer.
-			return Integer.MAX_VALUE;
-		}
 	}
 }
