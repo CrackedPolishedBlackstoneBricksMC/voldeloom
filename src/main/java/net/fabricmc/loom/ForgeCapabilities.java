@@ -284,6 +284,35 @@ public class ForgeCapabilities {
 		return this;
 	}
 	
+	/**
+	 * see https://github.com/CrackedPolishedBlackstoneBricksMC/voldeloom/issues/16
+	 */
+	public Supplier<Boolean> needsAsm4Compat = Suppliers.memoize(this::guessNeedsAsm4Compat);
+	
+	public boolean guessNeedsAsm4Compat() {
+		checkConfigured("guessAsmLevel");
+		
+		if(guessMinecraftMinorVersion() >= 7) {
+			log.info("|-> [ForgeCapabilities guess] Guessing that Forge can handle classes with modern ASM5 features");
+			return false;
+		} else {
+			log.info("|-> [ForgeCapabilities guess] Guessing that Forge requires ASM4 compat");
+			return true;
+		}
+	}
+	
+	@SuppressWarnings("unused") //gradle api
+	public ForgeCapabilities needsAsm4Compat(boolean asmLevel) {
+		this.needsAsm4Compat = () -> asmLevel;
+		return this;
+	}
+	
+	@SuppressWarnings("unused") //gradle api
+	public ForgeCapabilities needsAsm4CompatSupplier(Supplier<Boolean> asmLevel) {
+		this.needsAsm4Compat = asmLevel;
+		return this;
+	}
+	
 	/// --- ///
 	
 	/*

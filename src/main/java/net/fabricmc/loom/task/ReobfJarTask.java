@@ -84,7 +84,7 @@ public class ReobfJarTask extends Jar {
 		
 		//TODO: weird
 		Files.deleteIfExists(output);
-		RemapperMcp.doIt(input, output, extension.getProviderGraph().reobfSrg, getLogger(), null, remapClasspath);
+		RemapperMcp.doIt(input, output, extension.getProviderGraph().reobfSrg, getLogger(), null, remapClasspath, extension.forgeCapabilities.needsAsm4Compat.get());
 
 		if(Files.notExists(output)) {
 			throw new RuntimeException("Failed to remap " + input + " to " + output + " - file missing!");

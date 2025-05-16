@@ -164,7 +164,8 @@ public class ProviderGraph {
 		RemapperMcp remapperMcp = new RemapperMcp(project, extension)
 			.superProps(mappingsWrapper.props)
 			.srg(mappings.chooseSrg(side))
-			.deletedPrefixes(extension.forgeCapabilities.classFilter.get());
+			.deletedPrefixes(extension.forgeCapabilities.classFilter.get())
+			.needsAsm4(extension.forgeCapabilities.needsAsm4Compat.get());
 		
 		Path srgAtdJar;
 		if(extension.forgeCapabilities.mappedAccessTransformers.get()) { //1.7 and above
@@ -223,6 +224,7 @@ public class ProviderGraph {
 			.remappedConfigurationEntries(extension.remappedConfigurationEntries)
 			.distributionNamingScheme(extension.forgeCapabilities.distributionNamingScheme.get())
 			.addToRemapClasspath(jarmod.getJarmoddedJar())
+			.needsAsm4(extension.forgeCapabilities.needsAsm4Compat.get())
 			.doIt(project.getDependencies());
 		
 		log.lifecycle("# ({}) Initializing source generation job...", side);

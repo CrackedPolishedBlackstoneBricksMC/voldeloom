@@ -6,13 +6,7 @@ import net.fabricmc.tinyremapper.OutputConsumerPath;
 import net.fabricmc.tinyremapper.TinyRemapper;
 import org.gradle.api.Project;
 import org.gradle.api.logging.Logger;
-import org.objectweb.asm.AnnotationVisitor;
-import org.objectweb.asm.ClassVisitor;
-import org.objectweb.asm.FieldVisitor;
-import org.objectweb.asm.Label;
-import org.objectweb.asm.MethodVisitor;
-import org.objectweb.asm.Opcodes;
-import org.objectweb.asm.TypePath;
+import org.objectweb.asm.*;
 
 import javax.annotation.Nullable;
 import java.nio.file.Path;
@@ -31,6 +25,7 @@ public class RemapperMcp extends NewProvider<RemapperMcp> {
 	private String mappedDirectory, mappedFilename;
 	private Set<String> deletedPrefixes;
 	private final Set<Path> remapClasspath = new LinkedHashSet<>();
+	private boolean needsAsm4;
 	
 	public RemapperMcp inputJar(Path inputJar) {
 		this.input = inputJar;
@@ -58,6 +53,11 @@ public class RemapperMcp extends NewProvider<RemapperMcp> {
 		return this;
 	}
 	
+	public RemapperMcp needsAsm4(boolean needsAsm4) {
+		this.needsAsm4 = needsAsm4;
+		return this;
+	}
+	
 	//outputs
 	private Path mappedJar;
 	
@@ -67,21 +67,22 @@ public class RemapperMcp extends NewProvider<RemapperMcp> {
 	
 	public RemapperMcp remap() throws Exception {
 		mappedJar = getOrCreate(getCacheDir().resolve("mapped").resolve(mappedDirectory).resolve(props.subst(mappedFilename)), dest ->
-			doIt(input, dest, srg, log, deletedPrefixes, remapClasspath));
+			doIt(input, dest, srg, log, deletedPrefixes, remapClasspath, needsAsm4));
 		
 		return this;
 	}
 	
-	public static void doIt(Path input, Path mappedJar, Srg srg, Logger log, @Nullable Set<String> deletedPrefixes, @Nullable Set<Path> remapClasspath) throws Exception {
+	public static void doIt(Path input, Path mappedJar, Srg srg, Logger log, @Nullable Set<String> deletedPrefixes, @Nullable Set<Path> remapClasspath, boolean needsAsm4) throws Exception {
 		log.lifecycle("\\-> Constructing TinyRemapper");
-		TinyRemapper remapper = TinyRemapper.newRemapper()
+		
+		TinyRemapper.Builder builder = TinyRemapper.newRemapper()
 			.renameInvalidLocals(true)
 			.rebuildSourceFilenames(true)
 			.ignoreFieldDesc(true) //MCP doesn't have them
 			.skipLocalVariableMapping(true)
-			.withMappings(srg.toMappingProvider())
-			.extraPostApplyVisitor((trclass, next) -> new Asm4CompatClassVisitor(next)) //TODO maybe move this lol
-			.build();
+			.withMappings(srg.toMappingProvider());
+		if(needsAsm4) builder = builder.extraPostApplyVisitor((trclass, next) -> new Asm4CompatClassVisitor(next));
+		TinyRemapper remapper = builder.build();
 		
 		log.lifecycle("] input jar: {}", input);
 		log.lifecycle("] mapped jar: {}", mappedJar);
@@ -110,8 +111,6 @@ public class RemapperMcp extends NewProvider<RemapperMcp> {
 	 * There are more things that aren't compatible with asm api 4 but i don't think tiny-remapper will add them,
 	 * and they aren't as easily silently-droppable as this stuff (like what am i supposed to do if i find an
 	 * invokedynamic at this stage lmao)
-	 * <p>
-	 * <a href="https://www.youtube.com/watch?v=n2IZbbuFxWg">https://www.youtube.com/watch?v=n2IZbbuFxWg</a>
 	 */
 	private static class Asm4CompatClassVisitor extends ClassVisitor {
 		public Asm4CompatClassVisitor(ClassVisitor classVisitor) {

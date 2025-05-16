@@ -28,6 +28,7 @@ public class DependencyRemapperMcp extends NewProvider<DependencyRemapperMcp> {
 	private Iterable<RemappedConfigurationEntry> remappedConfigurationEntries;
 	private String distributionNamingScheme; //TODO weird
 	private final Set<Path> remapClasspath = new LinkedHashSet<>();
+	private boolean needsAsm4;
 	
 	public DependencyRemapperMcp mappingsDepString(String mappingsDepString) {
 		this.mappingsDepString = mappingsDepString;
@@ -68,6 +69,11 @@ public class DependencyRemapperMcp extends NewProvider<DependencyRemapperMcp> {
 		return addToRemapClasspath(Arrays.asList(paths));
 	}
 	
+	public DependencyRemapperMcp needsAsm4(boolean needsAsm4) {
+		this.needsAsm4 = needsAsm4;
+		return this;
+	}
+	
 	public DependencyRemapperMcp doIt(DependencyHandler deps) throws Exception {
 		Path remappedModCache = getRemappedModCache();
 		cleanOnRefreshDependencies(remappedModCache);
@@ -101,7 +107,7 @@ public class DependencyRemapperMcp extends NewProvider<DependencyRemapperMcp> {
 							if(!p.equals(unmappedPath)) remapClasspathIncludingOtherMods.add(p);
 						}
 						
-						RemapperMcp.doIt(unmappedPath, srgMappedPath, srg, log, null, remapClasspathIncludingOtherMods);
+						RemapperMcp.doIt(unmappedPath, srgMappedPath, srg, log, null, remapClasspathIncludingOtherMods, needsAsm4);
 					} else {
 						throw new IllegalArgumentException("Unknown distributionNamingScheme... i should make than an enum");
 					}

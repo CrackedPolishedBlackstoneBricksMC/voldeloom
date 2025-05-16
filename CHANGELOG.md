@@ -2,9 +2,15 @@ Running changelog document, will be added to as I commit things.
 
 # Next version: 2.5 (`agency.highlysuspect:voldeloom:2.5-SNAPSHOT`)
 
+## New
+
+* In 1.7.10, `RemapperMcp.ASM4CompatVisitor` will no longer be ran over your jars (see [GH-16](https://github.com/CrackedPolishedBlackstoneBricksMC/voldeloom/issues/16))
+  * Controllable by a new `forgeCapabilities` entry: `needsAsm4Compat`, true on 1.6-, false on 1.7+
+
 ## Changes
 
-* Removed `xz-java` dependency and replaced it with the LZMA decoder from the public-domain LZMA SDK.
+* Removed `xz-java` dependency and replaced it with the LZMA decoder from the public-domain LZMA SDK
+  * Used to parse 1.6 and 1.7 `binpatches.pack.lzma`
 
 ## Roadmap
 
