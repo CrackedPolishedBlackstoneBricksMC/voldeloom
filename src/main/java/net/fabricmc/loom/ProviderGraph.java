@@ -3,6 +3,7 @@ package net.fabricmc.loom;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import net.fabricmc.loom.mcp.McpMappings;
@@ -163,7 +164,6 @@ public class ProviderGraph {
 		RemapperMcp remapperMcp = new RemapperMcp(project, extension)
 			.superProps(mappingsWrapper.props)
 			.srg(mappings.chooseSrg(side))
-			.addToRemapClasspath(vanillaDeps.getNonNativeLibraries_Todo())
 			.deletedPrefixes(extension.forgeCapabilities.classFilter.get());
 		
 		Path srgAtdJar;
@@ -223,7 +223,6 @@ public class ProviderGraph {
 			.remappedConfigurationEntries(extension.remappedConfigurationEntries)
 			.distributionNamingScheme(extension.forgeCapabilities.distributionNamingScheme.get())
 			.addToRemapClasspath(jarmod.getJarmoddedJar())
-			.addToRemapClasspath(vanillaDeps.getNonNativeLibraries_Todo())
 			.doIt(project.getDependencies());
 		
 		log.lifecycle("# ({}) Initializing source generation job...", side);
@@ -232,7 +231,7 @@ public class ProviderGraph {
 		job.sourcesJar = LoomGradlePlugin.replaceExtension(naive.getOutput(), "-sources.jar");
 		job.linemapFile = LoomGradlePlugin.replaceExtension(naive.getOutput(), "-linemap.lmap");
 		job.linemappedJar = LoomGradlePlugin.replaceExtension(naive.getOutput(), "-linemapped.jar");
-		job.libraries = vanillaDeps.getNonNativeLibraries_Todo();
+		job.libraries = Collections.emptyList();
 		job.mcpMappingsZip = mappingsWrapper.getPath();
 		sourceGenerationJobs.add(job);
 		

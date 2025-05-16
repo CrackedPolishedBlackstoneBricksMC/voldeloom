@@ -56,16 +56,6 @@ public class VanillaDependencyFetcher extends NewProvider<VanillaDependencyFetch
 		return mavenDependencies;
 	}
 	
-	//TODO: Upstream Voldeloom had a bug where it didn't actually write anything to this collection lol
-	// Returning an empty collection here to maintain the buggy behavior. Later I will analyze the impact
-	//  HEY IT's me from the future. I'm not seeing any issue, and there's no code to maintain this collection anymore
-	// (it was the realized files inside the mavenDependencies collection, but i no longer realize them myself and let
-	// gradle's stock dep downloading take care of it)
-	public Collection<Path> getNonNativeLibraries_Todo() {
-		//return nonNativeLibs;
-		return Collections.emptyList();
-	}
-	
 	//process
 	public VanillaDependencyFetcher fetch() throws Exception {
 		Check.notNull(nativesDirName, "natives directory name");
