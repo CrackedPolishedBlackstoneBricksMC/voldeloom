@@ -1,6 +1,7 @@
 package net.fabricmc.loom.mcp;
 
 import net.fabricmc.loom.util.StringInterner;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -14,6 +15,9 @@ import java.util.Map;
  */
 public class Packages {
 	private final Map<String, String> packages = new HashMap<>();
+	
+	//Either the empty string, or some string with a trailing slash
+	private String unpackagedFallback = "";
 	
 	public Packages read(Path path, StringInterner mem) throws IOException {
 		List<String> lines = Files.readAllLines(path);
@@ -46,6 +50,19 @@ public class Packages {
 		return packages.isEmpty();
 	}
 	
+	//TODO: Unused at the moment, I think this is fundamentally incompatible with Volde's current
+	// approach of treating repackaging as something that can be folded into SRG remapping.
+	// Basically we need the ability to repackage classes even when we don't see them in SRG names.
+	public Packages setUnpackagedFallback(@Nullable String fallback) {
+		if(fallback == null || fallback.isEmpty()) unpackagedFallback = "";
+		
+		//make sure there's a trailing slash
+		else if(!fallback.endsWith("/")) unpackagedFallback = fallback + "/";
+		else unpackagedFallback = fallback;
+		
+		return this;
+	}
+	
 	/**
 	 * Applies the packaging transformation to a class name, in internal format.
 	 */
@@ -70,8 +87,11 @@ public class Packages {
 			return repackage(prefix) + suffix; //"net/minecraft/block/Block" + "$1"
 		}
 		
-		//No packaging transformation exists for this class, and it's also not an inner class. Leave it alone.
-		return srgClass;
+		//If the class is unpackaged and we don't have anywhere better to put it, apply the default package to it
+		if(lastSlash == -1) return unpackagedFallback + srgClass;
+		
+		//No packaging transformation exists for this class, it's not an inner class, and no fallback. Leave it alone.
+		else return srgClass;
 	}
 	
 	/**
