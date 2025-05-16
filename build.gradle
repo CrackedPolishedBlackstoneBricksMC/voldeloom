@@ -69,7 +69,6 @@ dependencies {
 	implementation "org.jetbrains:intellij-fernflower:1.2.1.16"
 	
 	//for working with forge 1.6's binpatches.pack.lzma
-	implementation "org.tukaani:xz:1.9" //lzma decompression
 	implementation "org.apache.commons:commons-compress:1.25.0" //pack200 decompression
 	
 	//implementation ("net.fabricmc:lorenz-tiny:1.0.0+build.1") { transitive = false } //TODO: only used by MigrateMappingsTask

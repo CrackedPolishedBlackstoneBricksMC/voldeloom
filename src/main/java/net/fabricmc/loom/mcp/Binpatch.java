@@ -1,9 +1,6 @@
 package net.fabricmc.loom.mcp;
 
-import java.io.BufferedInputStream;
-import java.io.DataInputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -14,9 +11,9 @@ import java.util.Map;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
+import net.fabricmc.loom.yoinked.SevenZip.Compression.LZMA.Decoder;
 import net.fabricmc.loom.util.Gdiff;
 import org.apache.commons.compress.compressors.pack200.Pack200CompressorInputStream;
-import org.tukaani.xz.LZMAInputStream;
 
 public class Binpatch {
 	public String originalFilename; //my own debug logging only
@@ -93,7 +90,7 @@ public class Binpatch {
 		 */
 		public Pack read(Path binpatchesPackLzma) {
 			try(InputStream binpatchesPackLzmaIn = new BufferedInputStream(Files.newInputStream(binpatchesPackLzma));
-			    InputStream lzmaDecompressor = new LZMAInputStream(binpatchesPackLzmaIn);
+			    InputStream lzmaDecompressor = decodeLzmaAllAtOnce(binpatchesPackLzmaIn);
 			    InputStream pack200Decompressor = new Pack200CompressorInputStream(lzmaDecompressor);
 			    ZipInputStream binpatchesJar = new ZipInputStream(pack200Decompressor)
 			) {
@@ -116,5 +113,47 @@ public class Binpatch {
 
 			return this;
 		}
+	}
+	
+	static ByteArrayInputStream decodeLzmaAllAtOnce(InputStream in) throws IOException {
+		System.out.println("Using new LZMA decoder! Yay");
+		
+		//Adapted from the LZMA java sdk's "SevenZip.LzmaAlone" class
+		Decoder decoder = new Decoder();
+		
+		//read properties block
+		byte[] properties = new byte[5];
+		int toRead = 5;
+		int actuallyRead = 0;
+		while((actuallyRead = in.read(properties, actuallyRead, toRead)) > 0)
+			toRead -= actuallyRead;
+		
+		if(!decoder.SetDecoderProperties(properties)) throw new IOException("Invalid lzma properties");
+		
+		//read data size
+		long outSize = 0;
+		for (int i = 0; i < 8; i++) {
+			int v = in.read();
+			if(v < 0) throw new IOException("couldn't read output size");
+			outSize |= ((long)v) << (8 * i);
+		}
+		
+		//somewhere to put the data
+		ByteArrayOutputStream out;
+		if(outSize < 0 || outSize > Integer.MAX_VALUE) {
+			//We don't know how big it will be
+			out = new ByteArrayOutputStream(4096);
+		} else {
+			//Use the predicted output size
+			out = new ByteArrayOutputStream((int) outSize);
+		}
+		
+		//actually decompress
+		if(!decoder.Code(in, out, outSize)) {
+			throw new IOException("Error decompressing LZMA stream");
+		}
+		out.flush();
+		
+		return new ByteArrayInputStream(out.toByteArray());
 	}
 }

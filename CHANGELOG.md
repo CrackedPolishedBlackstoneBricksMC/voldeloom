@@ -2,7 +2,9 @@ Running changelog document, will be added to as I commit things.
 
 # Next version: 2.5 (`agency.highlysuspect:voldeloom:2.5-SNAPSHOT`)
 
-No changes yet.
+## Changes
+
+* Removed `xz-java` dependency and replaced it with the LZMA decoder from the public-domain LZMA SDK.
 
 ## Roadmap
 
