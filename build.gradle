@@ -57,13 +57,12 @@ dependencies {
 	implementation "com.google.code.gson:gson:2.8.5"
 	
 	//bytecode
-	implementation "org.ow2.asm:asm:9.1"
-	implementation "org.ow2.asm:asm-commons:9.1"
-	implementation "org.ow2.asm:asm-tree:9.1"
+	implementation "org.ow2.asm:asm:9.7.1"
+	implementation "org.ow2.asm:asm-commons:9.7.1"
+	implementation "org.ow2.asm:asm-tree:9.7.1" //same version of this stuff that tiny-remapper uses
 	
 	//mappings
-	implementation "net.fabricmc:tiny-mappings-parser:0.3.0+build.17"
-	implementation ("net.fabricmc:tiny-remapper:0.8.6") { transitive = false } //disabling transitives removes another copy of asm (this time 9.3)
+	implementation "net.fabricmc:tiny-remapper:0.11.1"
 	
 	//decompilers
 	implementation "org.jetbrains:intellij-fernflower:1.2.1.16"

@@ -17,6 +17,9 @@ import java.util.Set;
 public class RemapperMcp extends NewProvider<RemapperMcp> {
 	public RemapperMcp(Project project, LoomGradleExtension extension) {
 		super(project, extension);
+		
+		//TODO: cachebusting
+		props.put("tiny-remapper-version", "0.11.1");
 	}
 	
 	//inputs

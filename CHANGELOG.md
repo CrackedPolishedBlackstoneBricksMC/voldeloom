@@ -9,8 +9,10 @@ Running changelog document, will be added to as I commit things.
 
 ## Changes
 
-* Removed `xz-java` dependency and replaced it with the LZMA decoder from the public-domain LZMA SDK
-  * Used to parse 1.6 and 1.7 `binpatches.pack.lzma`
+* Remove `xz-java` dependency and replace it with the LZMA decoder from the public-domain LZMA SDK
+  * It's used to parse 1.6 and 1.7 `binpatches.pack.lzma`
+* Update `tiny-remapper` to 0.11.1
+* Remove unused `tiny-mappings-parser` dep
 
 ## Roadmap
 
