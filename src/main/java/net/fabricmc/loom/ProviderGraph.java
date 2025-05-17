@@ -155,6 +155,16 @@ public class ProviderGraph {
 		MappingsWrapper mappingsWrapper = new MappingsWrapper(project, extension, project.getConfigurations().getByName(Constants.MAPPINGS), jarmod.getJarmoddedJar());
 		McpMappings mappings = mappingsWrapper.mappings;
 		
+		if(project.hasProperty("voldeloom.mapping-debug")) {
+			Path p = WellKnownLocations.getProjectCache(project).resolve("volde-mapping-out");
+			Files.createDirectories(p);
+			if(mappings.client != null && !mappings.client.isEmpty()) mappings.client.writeTo(p.resolve("client.srg"));
+			if(mappings.server != null && !mappings.server.isEmpty()) mappings.server.writeTo(p.resolve("server.srg"));
+			if(mappings.joined != null && !mappings.joined.isEmpty()) mappings.joined.writeTo(p.resolve("joined.srg"));
+			if(mappings.fields != null && !mappings.fields.isEmpty()) mappings.fields.writeTo(p.resolve("fields.csv"));
+			if(mappings.methods != null && !mappings.methods.isEmpty()) mappings.methods.writeTo(p.resolve("methods.csv"));
+		}
+		
 		log.lifecycle("# ({}) Preparing ATs...", side);
 		AccessTransformer transformer = new AccessTransformer(project, extension)
 			.regularForgeJar(forgeWrapper.getPath())

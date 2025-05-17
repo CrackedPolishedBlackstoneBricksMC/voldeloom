@@ -32,15 +32,23 @@ volde {
 dependencies {
 	minecraft "com.mojang:minecraft:${minecraftVersion}"
 	forge "net.minecraftforge:forge:${forgeVersion}:universal@zip"
-	mappings "net.minecraftforge:forge:${forgeVersion}:src@zip"
+//	mappings "net.minecraftforge:forge:${forgeVersion}:src@zip"
 	
-//	mappings volde.layered {
-//		importBaseZip "net.minecraftforge:forge:${forgeVersion}:src@zip"
-//		removeClasses(["bar", "bas"])
-//	}
+	mappings volde.layered {
+		importBaseZip "net.minecraftforge:forge:${forgeVersion}:src@zip"
+		modify("fz workaround3") {
+			for(String problem : ["ce", "cg", "cf"]) {
+				it.joined.methodMappingsByOwningClass.get(problem).removeAll {
+					it.value.name == "func_74427_a" //wakeThreads()V
+				}
+			}
+		}
+	}
 	
 	//accessTransformers files("./src/main/resources/good_cool_ats.cfg")
 	
-	//coremodImplementation files("../dep_testin/ears-forge-1.4-1.4.5_01.jar")
-	//modImplementation files("../dep_testin/buildcraft-A-1.4.7-3.4.4.jar")
+//	coremodImplementation files("../dep_testin/ears-forge-1.4-1.4.5_01.jar")
+	modImplementation files("../dep_testin/buildcraft-A-1.4.7-3.4.4.jar")
+	modImplementation files("../dep_testin/Factorization-0.7.21.jar")
+//	modImplementation files("../dep_testin/Factorization-0.7.21-without-that-one-class.jar")
 }

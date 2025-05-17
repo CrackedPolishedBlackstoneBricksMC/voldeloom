@@ -3,19 +3,28 @@ package net.fabricmc.loom.newprovider;
 import net.fabricmc.loom.Constants;
 import net.fabricmc.loom.LoomGradleExtension;
 import net.fabricmc.loom.RemappedConfigurationEntry;
+import net.fabricmc.loom.WellKnownLocations;
 import net.fabricmc.loom.mcp.Members;
 import net.fabricmc.loom.mcp.Srg;
+import net.fabricmc.loom.util.ZipUtil;
 import org.gradle.api.Project;
 import org.gradle.api.artifacts.Configuration;
 import org.gradle.api.artifacts.dsl.DependencyHandler;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.File;
+import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
+import java.util.zip.ZipOutputStream;
 
 public class DependencyRemapperMcp extends NewProvider<DependencyRemapperMcp> {
 	public DependencyRemapperMcp(Project project, LoomGradleExtension extension) {
@@ -101,13 +110,34 @@ public class DependencyRemapperMcp extends NewProvider<DependencyRemapperMcp> {
 						log.info("\\-> First, mapping to SRG using tiny-remapper at {}", srgMappedPath);
 						
 						//add the other mod dependencies to the remap classpath
-						Set<Path> remapClasspathIncludingOtherMods = new LinkedHashSet<>(remapClasspath);
-						for(File file : getConfigurationByName(Constants.EVERY_UNMAPPED_MOD).getFiles()) {
-							Path p = file.toPath();
-							if(!p.equals(unmappedPath)) remapClasspathIncludingOtherMods.add(p);
-						}
-						
-						RemapperMcp.doIt(unmappedPath, srgMappedPath, srg, log, null, remapClasspathIncludingOtherMods, needsAsm4);
+//						int fzClasses = 256;
+//						while(true) {
+							
+							Set<Path> remapClasspathIncludingOtherMods = new LinkedHashSet<>(remapClasspath);
+							for(File file : getConfigurationByName(Constants.EVERY_UNMAPPED_MOD).getFiles()) {
+								Path p = file.toPath();
+								if(!p.equals(unmappedPath)) remapClasspathIncludingOtherMods.add(p);
+//								if(!p.equals(unmappedPath)) {
+//									if(p.toString().contains("Factorization")) {
+//										Path limited = p.resolveSibling("work").resolve("fz-" + fzClasses + "-classes.jar");
+//										Files.createDirectories(limited.getParent());
+//										evilFuckedUpFactorization(p, limited, fzClasses);
+//
+//										remapClasspathIncludingOtherMods.add(limited);
+//										//if(unmappedPath.toString().contains("Factorization")) {
+//											unmappedPath = limited;
+//											srgMappedPath = srgMappedPath.resolveSibling("fz-" + fzClasses + "-classes-mapped.jar");
+//										//}
+//										fzClasses++;
+//									} else remapClasspathIncludingOtherMods.add(p);
+//								}
+							}
+//							System.out.println("REMAP CLASSPATH: " + remapClasspathIncludingOtherMods.stream().map(Object::toString).collect(Collectors.joining(",")));
+//							System.out.println(unmappedPath);
+//							System.out.println(srgMappedPath);
+							RemapperMcp.doIt(unmappedPath, srgMappedPath, srg, log, null, remapClasspathIncludingOtherMods, needsAsm4);
+							System.out.println("remap didn't crash, running it back");
+//						}
 					} else {
 						throw new IllegalArgumentException("Unknown distributionNamingScheme... i should make than an enum");
 					}
@@ -125,4 +155,41 @@ public class DependencyRemapperMcp extends NewProvider<DependencyRemapperMcp> {
 		
 		return this;
 	}
+	
+//	public void evilFuckedUpFactorization(Path fzIn, Path fzOut, int filesToCopy) {
+//		System.out.println("Preparing Factorization with " + filesToCopy + " classes at " + fzOut);
+//		try(
+//			ZipInputStream zin = new ZipInputStream(new BufferedInputStream(Files.newInputStream(fzIn)));
+//			ZipOutputStream zout = new ZipOutputStream(new BufferedOutputStream(Files.newOutputStream(fzOut)))
+//		) {
+//			int filesToGo = filesToCopy;
+//			while(filesToGo > 0) {
+//				ZipEntry e = zin.getNextEntry();
+//				if(e == null) throw new RuntimeException("Copied every class in FZ");
+//
+//				//skip the known-bad one
+//				if(e.getName().endsWith("GenericProxyPlayer.class")) {
+//					System.out.println("Skipping GenericProxyPlayer");
+//					continue;
+//				}
+//
+//				zout.putNextEntry(e);
+//				zout.write(ZipUtil.readFully(zin));
+//				zout.closeEntry();
+//
+//				if(e.getName().endsWith(".class")) filesToGo--;
+//				if(filesToGo == 0) System.out.println("Last file copied was " + e.getName());
+//			}
+//			zout.flush();
+//		} catch (Exception e) {
+//			throw new RuntimeException("ope", e);
+//		}
+//
+//		try {
+//			FileChannel ope = FileChannel.open(fzOut);
+//			ope.force(true);
+//		} catch (Exception e) {
+//			throw new RuntimeException("flush dammit");
+//		}
+//	}
 }
