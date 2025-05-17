@@ -8,11 +8,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Walks a filesystem for "interesting", mappings-relevant files. The idea here is that it's wasteful to do 6 passes
@@ -27,8 +23,10 @@ public class MappingScanner {
 			@Override
 			public FileVisitResult visitFile(Path path, BasicFileAttributes attrs) {
 				String filename = path.getFileName().toString();
-				if(INTERESTING_FILENAMES.contains(filename)) {
-					interestingFiles.put(filename.intern(), path);
+				for(String interesting : INTERESTING_FILENAMES) {
+					if(filename.endsWith(interesting)) {
+						interestingFiles.computeIfAbsent(filename.intern(), __ -> new ArrayList<>(2)).add(path);
+					}
 				}
 				
 				return FileVisitResult.CONTINUE;
@@ -36,14 +34,16 @@ public class MappingScanner {
 		});
 	}
 	
-	private final Map<String, Path> interestingFiles = new HashMap<>();
+	private final Map<String, List<Path>> interestingFiles = new HashMap<>();
 	
-	public @Nullable Path get(String name) {
-		return interestingFiles.get(name);
+	public Iterable<Path> get(String name) {
+		return interestingFiles.getOrDefault(name, Collections.emptyList());
 	}
 	
 	public static final String JOINED_SRG = "joined.srg";
 	public static final String JOINED_CSRG = "joined.csrg";
+	public static final String PACKAGED_SRG = "packaged.srg"; //used by -userdev jars, cc https://github.com/CrackedPolishedBlackstoneBricksMC/voldeloom/issues/8
+	
 	public static final String PACKAGES_CSV = "packages.csv";
 	
 	public static final String CLIENT_SRG = "client.srg";
@@ -53,6 +53,6 @@ public class MappingScanner {
 	public static final String METHODS_CSV = "methods.csv";
 	
 	public static final Set<String> INTERESTING_FILENAMES = new HashSet<>(Arrays.asList(
-		JOINED_SRG, JOINED_CSRG, PACKAGES_CSV, CLIENT_SRG, SERVER_SRG, FIELDS_CSV, METHODS_CSV
+		JOINED_SRG, JOINED_CSRG, PACKAGED_SRG, PACKAGES_CSV, CLIENT_SRG, SERVER_SRG, FIELDS_CSV, METHODS_CSV
 	));
 }

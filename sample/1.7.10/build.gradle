@@ -42,7 +42,9 @@ dependencies {
 	minecraft "com.mojang:minecraft:${minecraftVersion}"
 	forge "net.minecraftforge:forge:${forgeVersion}:universal"
 	
-	mappings volde.layered {
-		importMCPBot("https://mcpbot.unascribed.com/", minecraftVersion, "stable", "12-1.7.10")
-	}
+	mappings "net.minecraftforge:forge:${forgeVersion}:userdev"
+	
+//	mappings volde.layered {
+//		importMCPBot("https://mcpbot.unascribed.com/", minecraftVersion, "stable", "12-1.7.10")
+//	}
 }

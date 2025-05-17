@@ -86,29 +86,29 @@ public class McpMappingsBuilder {
 	//Overloads that guess the path from a MappingScanner:
 	
 	public void mergeFromJoinedSrg(MappingScanner scan, StringInterner mem) throws IOException {
-		Path path = scan.get(MappingScanner.JOINED_SRG);
-		if(path == null) path = scan.get(MappingScanner.JOINED_CSRG); //weird spot to put this?
-		mergeFromJoinedSrg(path, mem);
+		for(Path path : scan.get(MappingScanner.JOINED_SRG)) mergeFromJoinedSrg(path, mem);
+		for(Path path : scan.get(MappingScanner.JOINED_CSRG)) mergeFromJoinedSrg(path, mem);
+		for(Path path : scan.get(MappingScanner.PACKAGED_SRG)) mergeFromJoinedSrg(path, mem);
 	}
 	
 	public void mergeFromPackagesCsv(MappingScanner scan, StringInterner mem) throws IOException {
-		mergeFromPackagesCsv(scan.get(MappingScanner.PACKAGES_CSV), mem);
+		for(Path path : scan.get(MappingScanner.PACKAGES_CSV)) mergeFromPackagesCsv(path, mem);
 	}
 	
 	public void mergeFromClientSrg(MappingScanner scan, StringInterner mem) throws IOException {
-		mergeFromClientSrg(scan.get(MappingScanner.CLIENT_SRG), mem);
+		for(Path path : scan.get(MappingScanner.CLIENT_SRG)) mergeFromClientSrg(path, mem);
 	}
 	
 	public void mergeFromServerSrg(MappingScanner scan, StringInterner mem) throws IOException {
-		mergeFromServerSrg(scan.get(MappingScanner.SERVER_SRG), mem);
+		for(Path path : scan.get(MappingScanner.SERVER_SRG)) mergeFromServerSrg(path, mem);
 	}
 	
 	public void mergeFromFieldsCsv(MappingScanner scan, StringInterner mem) throws IOException {
-		mergeFromFieldsCsv(scan.get(MappingScanner.FIELDS_CSV), mem);
+		for(Path path : scan.get(MappingScanner.FIELDS_CSV)) mergeFromFieldsCsv(path, mem);
 	}
 	
 	public void mergeFromMethodsCsv(MappingScanner scan, StringInterner mem) throws IOException {
-		mergeFromMethodsCsv(scan.get(MappingScanner.METHODS_CSV), mem);
+		for(Path path : scan.get(MappingScanner.METHODS_CSV)) mergeFromMethodsCsv(path, mem);
 	}
 	
 	//And a big giant method that does all the MappingScannering for you:

@@ -6,9 +6,15 @@ Running changelog document, will be added to as I commit things.
 
 * In 1.7.10, `RemapperMcp.ASM4CompatVisitor` will no longer be ran over your jars (see [GH-16](https://github.com/CrackedPolishedBlackstoneBricksMC/voldeloom/issues/16))
   * Controllable by a new `forgeCapabilities` entry: `needsAsm4Compat`, true on 1.6-, false on 1.7+
+* In 1.7.10, [`:userdev` mappings](https://github.com/CrackedPolishedBlackstoneBricksMC/voldeloom/issues/8) now work
+  * Fairly rudimentary support -- not familiar with this part of the ecosystem
+  * `MappingScanner`, used to parse forge zips into mappings data, now recognizes `packaged.srg` files
 
 ## Changes
 
+* If multiple files are included in a mappings zip (such as multiple `fields.csv` files), they will all be merged and used
+  * Later files (in zip encounter order) override earlier files, if there is a conflict
+  * This is a knock-on effect of userdev mappings support since they include two `packaged.srg` files
 * Remove `xz-java` dependency and replace it with the LZMA decoder from the public-domain LZMA SDK
   * It's used to parse 1.6 and 1.7 `binpatches.pack.lzma`
 * Update `tiny-remapper` to 0.11.1
