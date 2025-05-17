@@ -37,10 +37,10 @@ volde {
 
 Voldeloom adds a few configurations, and it tries to make the names match Gradle's convention. There is no technical reason for this - I can name the configurations whatever - but it's done for consistently with the stock Gradle Java plugin configuration names, which changed in Gradle 7 for some reason.
 
-| Gradle version | Mod on compilation classpath and runtime | Mod only at runtime |
-|---|---|---|
-| < 7 | `modCompile`, `coremodCompile` | `modRuntime`, `coremodRuntime` |
-| >= 7 | `modImplementation`, `coremodImplementation` | `modRuntimeOnly`, `coremodRuntimeOnly` |
+| Gradle version | Mod on compilation classpath and runtime     | Mod only at runtime                    |
+|----------------|----------------------------------------------|----------------------------------------|
+| < 7            | `modCompile`, `coremodCompile`               | `modRuntime`, `coremodRuntime`         |
+| >= 7           | `modImplementation`, `coremodImplementation` | `modRuntimeOnly`, `coremodRuntimeOnly` |
 
 Voldeloom will print a warning to the console when you try to use a configuration for a version it doesn't exist for, like `modCompile` on Gradle 7. This helps track down annoying bugs when updating the Gradle version of an old project. Additionally, it will warn when accessing the nonexistent configuration `coremodCompileOnly`, as it is not necessary (`modCompileOnly` is fine).
 
@@ -52,7 +52,7 @@ If nonnull, this URL will be contacted to download the Minecraft per-version man
 
 ## `librariesBaseUrl` / `resourcesBaseUrl`
 
-URL, including trailing `/`, that Minecraft's (native libraries/assets) will be downloaded from. Defaults to Mojang's official server.
+URL, including trailing `/`, that Minecraft's native libraries/assets will be downloaded from. Defaults to Mojang's official server.
 
 ## `fmlLibrariesBaseUrl`
 
@@ -60,7 +60,7 @@ URL, including trailing `/`, that acts as a mirror of Minecraft Forge's library-
 
 ## Toolchain stuff
 
-If `autoConfigureToolchains` is `true`, Voldeloom will set Java toolchains on all run configs. It's overridable per-run config but the default Java version and vendor are settable with `setDefaultRunToolchainVersion` and `setDefaultRunToolchainVendor`.
+If `autoConfigureToolchains` is `true`, Voldeloom will set Java toolchains on all run configs if your Gradle version supports them. It's overridable per-run config but the default Java version and vendor are settable with `setDefaultRunToolchainVersion` and `setDefaultRunToolchainVendor`.
 
 ## `offline` / `refreshDependencies`
 
@@ -74,7 +74,9 @@ TODO: Document run configs (see the `RunConfig` class in the meantime)
 
 ## `forgeCapabilities` block
 
-Forge and Minecraft have changed over the years and Voldeloom contains a bunch of conditionals dependent on the current era. Voldeloom tries to guess this information based on the Minecraft version, but if any switches need switching, you can do it here. See `forge-capabilities.md` for more information.
+Forge and Minecraft have changed over the years and Voldeloom contains a bunch of conditionals dependent on the current era. Voldeloom tries to guess this information based on the Minecraft version, but if any switches need switching, you can do it here.
+
+See `forge-capabilities.md` for more information.
 
 ## `beforeMinecraftSetup` / `afterMinecraftSetup` blocks
 

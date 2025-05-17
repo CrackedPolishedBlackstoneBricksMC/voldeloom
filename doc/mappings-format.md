@@ -1,13 +1,27 @@
-This document might be of interest to people developing tools that export mappings for Voldeloom to ingest. The file Voldeloom expects you to put in the `mappings` configuration is a zip archive containing the following files somewhere inside:
+This document might be of interest to people developing tools that export mappings for Voldeloom to ingest.
 
-* `joined.srg`, `client.srg`, `server.srg` - Class name proguard -> named mappings, and field/method proguard -> intermediary name mappings.
-  * If `joined.srg` does not exist, `joined.csrg` is checked next. 
-  * (Information from `client` and `server` is used on <=1.2.5 split Minecrafts, `joined` used in all other circumstances.)
+The file Voldeloom expects you to put in the `mappings` configuration is a jar or zip archive containing the following files somewhere inside:
+
+* `joined.srg`, `client.srg`, `server.srg`, `joined.csrg`, `packaged.srg` - Class name proguard -> named mappings, and field/method proguard -> intermediary name mappings.
+  * `client.srg` and `server.srg` pertain to pre-1.3 split Minecrafts.
+  * `joined.srg` is used by most legacy versions of interest (1.3 through 1.6)
+  * `joined.csrg` is used by some newer mappings formats like MCPBot exports.
+  * `packaged.srg` is used by some other newer mappings formats like "userdev mappings".
 * `packages.csv` - A packaging transformation file applied to `joined.srg`.
 * `fields.csv` - Field intermediary -> named mappings and comments.
 * `methods.csv` - Method intermediary -> named mappings and comments.
 
-Files may be located in any number of subdirectories. If more than one of these files exists in the zip archive, *even in different directories*, the behavior is undefined.
+Some "everyday" files adhering to this protocol:
+
+* Forge `src` jars/zips
+  * Contains `joined.srg`/`client.srg`+`server.srg`, `packages.csv`, `fields.csv`, and `methods.csv`
+* Forge `userdev` jars/zips
+  * Contains `packaged.srg`, `fields.csv`, and `methods.csv`
+* MCPBot exports
+  * One download contains `joined.csrg` / `joined.srg`
+  * Another download contains `fields.csv` and `methods.csv`
+
+Files may be located in any number of subdirectories. If more than one of these files exists in the zip archive, Voldeloom will merge them together, where later files in zip-encounter order override earlier ones. `joined.srg`, `joined.csrg`, and `packaged.srg` all get dumped into the same bucket of SRG names, and as such they can override each other.
 
 (Voldeloom does not read files under the name `client.csrg`, `server.csrg`, or any sort of `packages.csv` transformation for client/server split srgs. Write me if you're interested in this, it's not hard to add and the only reason it doesn't is because Forge never used those types of files.)
 
