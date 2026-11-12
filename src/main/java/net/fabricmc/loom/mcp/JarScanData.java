@@ -22,9 +22,10 @@ import java.util.Objects;
 import java.util.Set;
 
 /**
- * Walks a jar and reads all the inner-class relations from it.
+ * Walks a jar and reads all the class names and inner-class relations from it.
  */
 public class JarScanData {
+	public final Set<String> allClasses = new HashSet<>();
 	public final Map<String, Set<String>> innerClassData = new HashMap<>();
 	
 	public JarScanData scan(Path jar) throws IOException {
@@ -56,6 +57,7 @@ public class JarScanData {
 		
 		public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
 			visiting = name;
+			allClasses.add(name);
 		}
 		
 		//classes keep a little table of the inner classes they contain, asm calls this for every entry in the table

@@ -121,7 +121,8 @@ public class RunConfig implements Named {
 			//1.3+
 			copy.property("minecraft.applet.TargetDirectory", resolveRunDir().toAbsolutePath().toString());
 			//1.2.5 (should probably gate this one)
-			copy.property("user.home", resolveRunDir().toAbsolutePath().getParent().toString()); //Not Windows
+			//The client puts its game dir under user.home (see ForgeCapabilities#guessMinecraftRealPath). Not Windows
+			copy.property("user.home", resolveRunDir().toAbsolutePath().toString());
 			
 			String nativeLibsDir = ext.getProviderGraph().mcNativesDir.toAbsolutePath().toString();
 			copy.property("java.library.path", nativeLibsDir);
@@ -169,7 +170,8 @@ public class RunConfig implements Named {
 	/// Presets ///
 	
 	public void client() {
-		startOnFirstThread();
+		//No -XstartOnFirstThread: these clients put LWJGL 2's Display in an AWT Frame, and AWT needs the macOS main
+		//thread for itself. With the flag, Display.create deadlocks in MacOSXCanvasPeerInfo.nInitHandle.
 		setEnvironment("client");
 		setMainClass("net.minecraft.client.Minecraft");
 		setRunDir("run");

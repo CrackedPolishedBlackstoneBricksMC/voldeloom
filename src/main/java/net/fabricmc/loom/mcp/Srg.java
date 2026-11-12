@@ -29,6 +29,10 @@ public class Srg {
 	public final Map<String, Map<String, String>> fieldMappingsByOwningClass;
 	public final Map<String, Map<MethodEntry, MethodEntry>> methodMappingsByOwningClass;
 	
+	//Target of the "PK: . <package>" line, if any. Pre-1.3 MCP moves every default-package class there,
+	//including ones without a CL line (such as the ModLoader classes Forge adds).
+	public String defaultPackageTarget;
+	
 	/// importing ///
 	
 	@SuppressWarnings("StatementWithEmptyBody")
@@ -86,7 +90,8 @@ public class Srg {
 				
 				putMethodMapping(fromOwningClass, fromName, fromDesc, toName, toDesc);
 			} else if("PK:".equals(split[0])) {
-				//Ignore PK lines, they're retroguard junk.
+				//Ignore PK lines, they're retroguard junk. Except the default-package one, see augment.
+				if(".".equals(split[1]) && split.length >= 3 && !".".equals(split[2])) defaultPackageTarget = mem.intern(split[2]);
 			} else {
 				//Ok, so this might be a line from a CSRG file, which is a slightly more terse format.
 				//PK lines look like this (two entries where the first ends in `/`)
@@ -366,6 +371,16 @@ public class Srg {
 	}
 	
 	public void augment(JarScanData data) {
+		if(defaultPackageTarget != null) {
+			//Classes in the default package without a CL line (e.g. Forge's BaseMod and ModLoader) would otherwise stay
+			//behind while their vanilla neighbors move to net/minecraft/src, and mod code there couldn't reference them.
+			for(String classs : data.allClasses) {
+				if(classs.indexOf('/') == -1 && !classMappings.containsKey(classs)) {
+					classMappings.put(classs, defaultPackageTarget + "/" + classs);
+				}
+			}
+		}
+		
 		int[] thinAirId = new int[]{0}; //FINAL OR EFFECTIVELY FINAL
 		
 		data.innerClassData.forEach((outerClass, innerClasses) ->
@@ -401,6 +416,7 @@ public class Srg {
 	
 	public void mergeWith(Srg other) {
 		classMappings.putAll(other.classMappings);
+		if(other.defaultPackageTarget != null) defaultPackageTarget = other.defaultPackageTarget;
 		//not using putAll since i want to zip the maps together
 		other.fieldMappingsByOwningClass.forEach(this::putAllFieldMappings);
 		other.methodMappingsByOwningClass.forEach(this::putAllMethodMappings);

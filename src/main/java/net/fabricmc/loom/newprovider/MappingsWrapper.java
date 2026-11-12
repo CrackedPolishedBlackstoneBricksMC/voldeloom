@@ -43,7 +43,7 @@ public class MappingsWrapper extends ResolvedConfigElementWrapper {
 		Checksum.feedFileToHasher(getPath(), sha);
 		this.props = new Props()
 			.put("mappings-hash", Checksum.toHexString(sha.digest()))
-			.put("v", "2");
+			.put("v", "4");
 	}
 	
 	public final McpMappings mappings;

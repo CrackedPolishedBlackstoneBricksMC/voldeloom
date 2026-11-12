@@ -66,8 +66,7 @@ public class ReobfJarTask extends Jar {
 		LoomGradleExtension extension = project.getExtensions().getByType(LoomGradleExtension.class);
 		
 		if(extension.getProviderGraph().reobfSrg == null) {
-			for(int i = 0; i < 10; i++) getLogger().error("[Voldeloom] RELEASE REMAPPING FOR SPLIT JARS (1.2.5) IS CURRENTLY BROKEN!!!!!!! SORRY!!!");
-			return;
+			throw new IllegalStateException("[Voldeloom] No reobf mappings were set up - did Minecraft setup run?");
 		}
 		
 		Path input = this.getInput().getAsFile().get().toPath();

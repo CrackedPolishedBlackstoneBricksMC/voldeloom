@@ -54,8 +54,10 @@ public class ProviderGraph {
 	//package of data used by GenSources
 	public final List<GenSourcesTask.SourceGenerationJob> sourceGenerationJobs = new ArrayList<>();
 	
-	//used by ReobfJarTask TODO: FIX, it's not 1.2.5 clean
+	//used by ReobfJarTask. Built from the joined srg (1.3+) or the selected side's srg (1.2.5-)
 	public Srg reobfSrg;
+	//"joined" for 1.3+, otherwise the split-jar side that was set up ("client" or "server"). Used by run tasks.
+	public String setupSide;
 	
 	public void setup() throws Exception {
 		log.lifecycle("# Wrapping basic dependencies...");
@@ -75,7 +77,7 @@ public class ProviderGraph {
 			.superProps(vanillaJars)
 			.manifest(vanillaJars.getVersionManifest())
 			.librariesBaseUrl(extension.librariesBaseUrl)
-			.nativesDirname(mcWrapper.getFilenameSafeVersion() + "-{HASH}-v2") //v2 to cachebust some version manifest changes in 2.5
+			.nativesDirname(mcWrapper.getFilenameSafeVersion() + "-{HASH}-v3") //v2 to cachebust some version manifest changes in 2.5, v3 for the macOS .dylib copies
 			.fetch()
 			.installDependenciesToProject(Constants.MINECRAFT_DEPENDENCIES, project.getDependencies());
 		mcNativesDir = vanillaDeps.getNativesDir();
@@ -114,10 +116,21 @@ public class ProviderGraph {
 			setupSide("joined", merger.getMergedJar(), merger.props, vanillaDeps, mcPrefix, forge);
 		} else {
 			//split jar (1.2.5-)
-			ResolvedConfigElementWrapper forgeClient = new ResolvedConfigElementWrapper(project, project.getConfigurations().getByName(Constants.FORGE_CLIENT));
-			ResolvedConfigElementWrapper forgeServer = new ResolvedConfigElementWrapper(project, project.getConfigurations().getByName(Constants.FORGE_SERVER));
-			setupSide("client", vanillaJars.getClientJar(), vanillaJars.props, vanillaDeps, mcPrefix + "-client", forgeClient);
-			setupSide("server", vanillaJars.getServerJar(), vanillaJars.props, vanillaDeps, mcPrefix + "-server", forgeServer);
+			//The client and server jars share class names (net.minecraft.src.World etc), so only one side can be on the
+			//compile/run classpath of a project. Set up the side the user picked; develop the other side in another project.
+			String side = extension.splitJarSide;
+			if(!"client".equals(side) && !"server".equals(side)) {
+				throw new IllegalArgumentException("[voldeloom] splitJarSide must be 'client' or 'server', not '" + side + "'");
+			}
+			String forgeConfigName = side.equals("client") ? Constants.FORGE_CLIENT : Constants.FORGE_SERVER;
+			if(project.getConfigurations().getByName(forgeConfigName).isEmpty()) {
+				throw new IllegalStateException("[voldeloom] splitJarSide is '" + side + "', but the '" + forgeConfigName +
+					"' configuration is empty. Add the Forge " + side + " zip to it, or neither 'forge' nor '" + forgeConfigName + "' is set.");
+			}
+			ResolvedConfigElementWrapper forgeSide = new ResolvedConfigElementWrapper(project, project.getConfigurations().getByName(forgeConfigName));
+			Path vanillaSideJar = side.equals("client") ? vanillaJars.getClientJar() : vanillaJars.getServerJar();
+			log.lifecycle("# Split-jar Minecraft: setting up the '{}' side only (volde.splitJarSide)", side);
+			setupSide(side, vanillaSideJar, vanillaJars.props, vanillaDeps, mcPrefix + "-" + side, forgeSide);
 		}
 		
 		log.lifecycle("# Thank you for flying Voldeloom.");
@@ -259,8 +272,9 @@ public class ProviderGraph {
 		
 		project.getDependencies().add(Constants.MINECRAFT_NAMED, project.files(ideallyLinemappedJar));
 		
-		//TODO: oops all leaky abstraction again
-		if(side.equals("joined")) {
+		//Exactly one side is set up per project (joined for 1.3+, the chosen side for split jars), so it owns the reobf mappings.
+		setupSide = side;
+		{
 			boolean reobfToSrg = extension.forgeCapabilities.distributionNamingScheme.get().equals(Constants.INTERMEDIATE_NAMING_SCHEME);
 			
 			log.lifecycle("# ({}) Initializing reobf mappings ({} -> {})...", side, Constants.MAPPED_NAMING_SCHEME,
