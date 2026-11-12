@@ -260,8 +260,8 @@ public class ForgeCapabilities {
 		
 		if(guessMinecraftMinorVersion() <= 2) {
 			if(OperatingSystem.CURRENT.thinkDifferent) {
-				log.info("|-> [ForgeCapabilities guess] Guessing that this Minecraft version appends 'minecraft' to the user-specified path (without a dot character, because this is a Mac)");
-				return p -> p.resolve("minecraft");
+				log.info("|-> [ForgeCapabilities guess] Guessing that this Minecraft version appends 'Library/Application Support/minecraft' to the user-specified path (because this is a Mac)");
+				return p -> p.resolve("Library").resolve("Application Support").resolve("minecraft");
 			} else {
 				log.info("|-> [ForgeCapabilities guess] Guessing that this Minecraft version appends '.minecraft' to the user-specified run dir");
 				return p -> p.resolve(".minecraft");
@@ -313,8 +313,41 @@ public class ForgeCapabilities {
 		return this;
 	}
 	
-	/// --- ///
+	/**
+	 * If `true` (1.2.5-), run tasks load the mod under development from the run directory's "mods" folder instead of the classpath.
+	 * <p>
+	 * The README has long said that mods don't load in a 1.2.5 dev workspace when they're on the classpath. Forge 1.2.5's loader
+	 * (early FML with ModLoader compatibility) reads the mods folder, so the dev jar is copied there. It is also taken off the run
+	 * classpath, so a loader that scans both can't discover it twice.
+	 */
+	public Supplier<Boolean> loadDevModsFromModsFolder = Suppliers.memoize(this::guessLoadDevModsFromModsFolder);
 	
+	public boolean guessLoadDevModsFromModsFolder() {
+		checkConfigured("guessLoadDevModsFromModsFolder");
+		
+		if(guessMinecraftMinorVersion() <= 2) {
+			log.info("|-> [ForgeCapabilities guess] Guessing that the mod under development should be loaded from the mods folder, not the classpath");
+			return true;
+		} else {
+			log.info("|-> [ForgeCapabilities guess] Guessing that the mod under development can be loaded from the classpath");
+			return false;
+		}
+	}
+	
+	@SuppressWarnings("unused") //gradle api
+	public ForgeCapabilities loadDevModsFromModsFolder(boolean loadDevModsFromModsFolder) {
+		this.loadDevModsFromModsFolder = () -> loadDevModsFromModsFolder;
+		return this;
+	}
+	
+	@SuppressWarnings("unused") //gradle api
+	public ForgeCapabilities loadDevModsFromModsFolderSupplier(Supplier<Boolean> loadDevModsFromModsFolder) {
+		this.loadDevModsFromModsFolder = loadDevModsFromModsFolder;
+		return this;
+	}
+	
+	/// --- ///
+
 	/*
 	 * "If a field/method is missing a mapping, if 'true' the proguarded name will show through, and if 'false' the MCP name will.
 	 * By default, this evaluates to 'true' since 1.5, and 'false' before it."

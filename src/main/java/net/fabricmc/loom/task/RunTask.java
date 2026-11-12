@@ -31,11 +31,16 @@ import net.fabricmc.loom.util.GradleSupport;
 import net.fabricmc.loom.util.LoomTaskExt;
 import org.gradle.api.JavaVersion;
 import org.gradle.api.tasks.JavaExec;
+import org.gradle.api.tasks.TaskAction;
 
 import javax.inject.Inject;
 import java.io.File;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -72,9 +77,11 @@ public class RunTask extends JavaExec implements LoomTaskExt {
 			classpath.add(file.getAbsolutePath());
 		}
 		
-		//TODO what is this about
-		for (Path file : extension.getUnmappedMods()) {
-			if (Files.isRegularFile(file)) {
+		//The mod under development (the output of the `jar` task). Don't check that it exists here: this constructor runs
+		//when the task is realized, which can be before `jar` has run on a clean build, and the mod would silently go missing.
+		//For 1.2.5-, it is loaded from the mods folder instead (see installDevModsIntoModsFolder).
+		if(!extension.forgeCapabilities.loadDevModsFromModsFolder.get()) {
+			for (Path file : extension.getUnmappedMods()) {
 				classpath.add(file.toFile().getAbsolutePath());
 			}
 		}
@@ -89,14 +96,77 @@ public class RunTask extends JavaExec implements LoomTaskExt {
 
 		//Pwd
 		Path runDir = config.resolveRunDir().toAbsolutePath();
-		Path realRunDir = getLoomGradleExtension().forgeCapabilities.minecraftRealPath.get().apply(runDir);
+		String environment = config.getEnvironment();
+		//Only the 1.2.5- *client* derives its game directory from APPDATA/user.home; the dedicated server just uses the working directory.
+		Path realRunDir = "client".equals(environment)
+			? getLoomGradleExtension().forgeCapabilities.minecraftRealPath.get().apply(runDir)
+			: runDir;
 		Files.createDirectories(realRunDir);
 		setWorkingDir(realRunDir);
-		
+
 		//TODO: horrible kludge for 1.2.5 on Windows lol (it reads APPDATA environment variable)
 		environment("APPDATA", runDir.toString());
-		
+
 		//Stdin
 		setStandardInput(System.in);
+
+		this.environment = environment;
+		this.realRunDir = realRunDir;
 	}
+	
+	private final String environment;
+	private final Path realRunDir;
+	
+	//Not a doFirst in the constructor: Gradle prepends the @TaskAction after construction, so that would run after the game exits.
+	@Override
+	@TaskAction
+	public void exec() {
+		checkSplitJarSide(environment);
+		installDevModsIntoModsFolder(realRunDir);
+		super.exec();
+	}
+
+	/**
+	 * Split-jar Minecraft (1.2.5-) only sets up one side per project; running the other side would start the wrong jar.
+	 */
+	private void checkSplitJarSide(String environment) {
+		String setupSide = getLoomGradleExtension().getProviderGraph().setupSide;
+		if(setupSide == null || setupSide.equals("joined") || setupSide.equals(environment)) return;
+
+		throw new IllegalStateException("[Voldeloom] Task '" + getName() + "' starts the " + environment + ", but this project is set up for the " +
+			setupSide + " (volde.splitJarSide = \"" + setupSide + "\"). Split-jar Minecraft can only develop one side per project.");
+	}
+
+	/**
+	 * Forge 1.2.5-: copy the mod under development into the run directory's mods folder, where the loader reads it from.
+	 * (It is kept off the run classpath in the constructor, so it can't be discovered twice.)
+	 */
+	private void installDevModsIntoModsFolder(Path realRunDir) {
+		LoomGradleExtension extension = getLoomGradleExtension();
+		if(!extension.forgeCapabilities.loadDevModsFromModsFolder.get()) return;
+
+		Path modsDir = realRunDir.resolve("mods");
+		try {
+			Files.createDirectories(modsDir);
+
+			//Clear out copies from earlier runs (the jar name changes with the project version)
+			try(DirectoryStream<Path> old = Files.newDirectoryStream(modsDir, DEV_MOD_PREFIX + "*")) {
+				for(Path p : old) Files.deleteIfExists(p);
+			}
+
+			for(Path mod : extension.getUnmappedMods()) {
+				if(!Files.isRegularFile(mod)) {
+					getLogger().warn("[Voldeloom] Mod under development {} doesn't exist; it won't be loaded. Did the 'jar' task run?", mod);
+					continue;
+				}
+				Path dest = modsDir.resolve(DEV_MOD_PREFIX + mod.getFileName());
+				Files.copy(mod, dest, StandardCopyOption.REPLACE_EXISTING);
+				getLogger().lifecycle("[Voldeloom] Forge 1.2.5-: loading the mod under development from {}", dest);
+			}
+		} catch (IOException e) {
+			throw new UncheckedIOException("[Voldeloom] Couldn't copy the mod under development into " + modsDir, e);
+		}
+	}
+
+	private static final String DEV_MOD_PREFIX = "voldeloom-dev-";
 }

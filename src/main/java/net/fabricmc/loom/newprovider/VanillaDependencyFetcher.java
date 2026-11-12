@@ -16,6 +16,8 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class VanillaDependencyFetcher extends NewProvider<VanillaDependencyFetcher> {
 	public VanillaDependencyFetcher(Project project, LoomGradleExtension extension) {
@@ -106,6 +108,18 @@ public class VanillaDependencyFetcher extends NewProvider<VanillaDependencyFetch
 						else return FileVisitResult.CONTINUE;
 					}
 				});
+			}
+			
+			//Old LWJGL 2 natives for macOS end in .jnilib, but on Java 7+ System.mapLibraryName (which LWJGL uses) asks
+			//for .dylib. Put a .dylib copy next to each one so the game can load them.
+			if(OperatingSystem.CURRENT.thinkDifferent) {
+				try(Stream<Path> files = Files.list(dest)) {
+					for(Path jnilib : files.filter(f -> f.getFileName().toString().endsWith(".jnilib")).collect(Collectors.toList())) {
+						String name = jnilib.getFileName().toString();
+						Path dylib = dest.resolve(name.substring(0, name.length() - ".jnilib".length()) + ".dylib");
+						if(Files.notExists(dylib)) Files.copy(jnilib, dylib);
+					}
+				}
 			}
 		});
 		log.lifecycle("] native libraries directory: {}", nativesDir);

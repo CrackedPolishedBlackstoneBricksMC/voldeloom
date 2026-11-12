@@ -107,7 +107,14 @@ public class LoomGradleExtension {
 	 * Server that Minecraft's assets are to be downloaded from, including trailing `/`.
 	 */
 	public String resourcesBaseUrl = "https://resources.download.minecraft.net/";
-	
+
+	/**
+	 * For split-jar Minecraft versions (1.2.5 and earlier), which side this project develops against: "client" or "server".
+	 * Only that side's jar is put on the compile/run classpath and used for release remapping, because the client and server
+	 * jars contain classes with the same names. Ignored for 1.3+ (joined jars).
+	 */
+	public String splitJarSide = "client";
+
 	/**
 	 * Holder for run configurations (essentially a {@code Map<String, RunConfig>}).
 	 * 
